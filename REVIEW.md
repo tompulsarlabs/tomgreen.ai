@@ -39,6 +39,13 @@ for this to be public on my site," not accuracy.
       "shipped". Both become true when this gate clears — confirm you're happy
       with that wording, or soften to "in progress" for launch.
 
+## Status
+
+2026-08-24: Tom approved the iteration deploy ("for now it's ok") — private
+repo + Vercel URL with `noindex`. The **launch bundle** stays gated on this
+checklist: repo public flip, DNS cutover to tomgreen.ai, and removing
+`robots: noindex` from `src/app/layout.tsx`.
+
 ## Sign-off
 
 When all boxes are ticked: repo can flip public and the site can deploy.

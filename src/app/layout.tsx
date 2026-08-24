@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     template: `%s — ${site.name}`,
   },
   description: site.positioning,
+  // Iteration deploys live on a vercel.app URL; keep them out of search
+  // indexes until tomgreen.ai is the canonical home (remove at DNS cutover).
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
