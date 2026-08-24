@@ -1,0 +1,60 @@
+import { getContributions } from "@/lib/data/github";
+import { getEvergreenState } from "@/lib/data/evergreen";
+import { ContributionGraph } from "./contribution-graph";
+import { StatTile } from "./stat-tile";
+
+/**
+ * The live section of the homepage: real GitHub activity and the Evergreen
+ * system's own state, refreshed hourly. Every element degrades to a static
+ * fallback — an API failure can never break the page (DESIGN.md).
+ */
+export async function ProofStrip() {
+  const [contributions, evergreen] = await Promise.all([
+    getContributions(),
+    getEvergreenState(),
+  ]);
+
+  return (
+    <section aria-labelledby="proof-heading" className="flex flex-col gap-6">
+      <h2 id="proof-heading" className="text-sm font-medium uppercase tracking-widest text-muted">
+        Live from the workshop
+      </h2>
+      <div className="flex flex-wrap gap-x-12 gap-y-6">
+        {contributions?.total != null && (
+          <StatTile
+            value={contributions.total.toLocaleString("en-GB")}
+            label="GitHub contributions, past year"
+          />
+        )}
+        {evergreen && (
+          <StatTile
+            value={`${evergreen.streak} ${evergreen.streak === 1 ? "day" : "days"}`}
+            label="Evergreen ship streak"
+          />
+        )}
+        <StatTile value="4" label="Agents running my daily-ship system" />
+      </div>
+      {contributions ? (
+        <ContributionGraph days={contributions.days} />
+      ) : (
+        <p className="text-sm text-ink-secondary">
+          Contribution activity lives at{" "}
+          <a href="https://github.com/tompulsarlabs" className="text-accent hover:underline">
+            github.com/tompulsarlabs
+          </a>
+          .
+        </p>
+      )}
+      <p className="text-sm text-ink-secondary">
+        These numbers are fetched live from GitHub and from the{" "}
+        <a
+          href="https://github.com/tompulsarlabs/evergreen"
+          className="text-accent hover:underline"
+        >
+          Evergreen
+        </a>{" "}
+        system&apos;s public state — this site practices what it preaches.
+      </p>
+    </section>
+  );
+}

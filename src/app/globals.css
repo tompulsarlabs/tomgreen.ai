@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Light is the base; dark redefines under prefers-color-scheme.
+ * Heatmap ramps validated with the dataviz palette validator (ordinal, 2:1
+ * light-end floor) against these exact surfaces.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --paper: #faf9f6;
+  --ink: #1a1915;
+  --ink-secondary: #55534c;
+  --muted: #8a877f;
+  --hairline: #e7e5dd;
+  --card: #ffffff;
+  --accent: #156d40;
+  --accent-ink: #0d5c33;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --heat-0: #edebe3;
+  --heat-1: #74c194;
+  --heat-2: #43a86e;
+  --heat-3: #22854f;
+  --heat-4: #0d5c33;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #111311;
+    --ink: #f0efe9;
+    --ink-secondary: #b6b4aa;
+    --muted: #85837b;
+    --hairline: #262a26;
+    --card: #181b18;
+    --accent: #5cc189;
+    --accent-ink: #66cf8f;
+
+    --heat-0: #1d201d;
+    --heat-1: #205c39;
+    --heat-2: #2f7f4f;
+    --heat-3: #46a86c;
+    --heat-4: #66cf8f;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-muted: var(--muted);
+  --color-hairline: var(--hairline);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-newsreader);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--paper);
 }
