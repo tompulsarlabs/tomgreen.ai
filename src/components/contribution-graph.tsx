@@ -8,10 +8,13 @@ const HEAT = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)"
  * split on Sundays, matching GitHub's own layout.
  */
 export function ContributionGraph({ days }: { days: ContributionDay[] }) {
-  const weeks: ContributionDay[][] = [];
+  const weeks: (ContributionDay | null)[][] = [];
   for (const day of days) {
     const dow = new Date(`${day.date}T00:00:00Z`).getUTCDay();
-    if (dow === 0 || weeks.length === 0) weeks.push([]);
+    if (dow === 0 || weeks.length === 0) {
+      // Pad a mid-week start so every day sits in its true weekday row.
+      weeks.push(weeks.length === 0 ? Array<null>(dow).fill(null) : []);
+    }
     weeks[weeks.length - 1].push(day);
   }
 
@@ -24,14 +27,18 @@ export function ContributionGraph({ days }: { days: ContributionDay[] }) {
             className="heat-col flex flex-col gap-[3px]"
             style={{ "--heat-delay": `${i * 8}ms` } as React.CSSProperties}
           >
-            {week.map((day) => (
-              <div
-                key={day.date}
-                title={`${day.date} — activity level ${day.level} of 4`}
-                className="size-[10px] rounded-[2px]"
-                style={{ background: HEAT[day.level] }}
-              />
-            ))}
+            {week.map((day, j) =>
+              day ? (
+                <div
+                  key={day.date}
+                  title={`${day.date} — activity level ${day.level} of 4`}
+                  className="size-[10px] rounded-[2px]"
+                  style={{ background: HEAT[day.level] }}
+                />
+              ) : (
+                <div key={`pad-${j}`} className="size-[10px]" aria-hidden />
+              ),
+            )}
           </div>
         ))}
       </div>

@@ -32,7 +32,16 @@ export async function ProofStrip() {
             label="Ivy ship streak"
           />
         )}
-        <StatTile value="4" label="Agents running my daily-ship system" />
+        {ivy && (
+          <StatTile
+            value={new Date(`${ivy.lastGreen}T12:00:00Z`).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              timeZone: "UTC",
+            })}
+            label="Last green day, per Ivy's state"
+          />
+        )}
       </div>
       {contributions ? (
         <ContributionGraph days={contributions.days} />
