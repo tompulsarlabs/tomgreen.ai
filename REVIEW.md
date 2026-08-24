@@ -1,8 +1,16 @@
-# Named-claims review — required before repo goes public or site deploys
+# Named-claims review — the launch checklist
 
-Per DESIGN.md's publishing policy, every named claim below needs Tom's sign-off.
-All figures were transcribed from the Aug 2026 CV; the check here is "am I happy
-for this to be public on my site," not accuracy.
+Per DESIGN.md's publishing policy, every named claim below needs Tom's
+itemized sign-off. All figures were transcribed from the Aug 2026 CV; the
+check here is "am I happy for this to be public on my site," not accuracy.
+
+**Current state (2026-08-24, recorded honestly):** the repo went public on
+Tom's provisional approval ("for now it's ok — let's build and iterate")
+*before* the boxes below were ticked. So the named claims are already
+visible in this repo. Any box that cannot be ticked must be resolved by
+**editing the claim out or anonymizing it** ("a global fashion platform"
+style), not by re-privating history. The site itself stays `noindex` and
+off the tomgreen.ai domain until this checklist closes.
 
 ## Employers / clients named
 
@@ -34,19 +42,10 @@ for this to be public on my site," not accuracy.
 - [ ] **Sybil** described as "in the lab" (repo stays private, no link). OK?
 - [ ] **margaux-en-tutor** — mentions it was built for a seven-year-old (no name
       beyond the repo's own). OK, or describe more generically?
-- [ ] **This site's own entry** is forward-dated: it links to
-      `github.com/tompulsarlabs/tomgreen.ai` (doesn't exist yet) and says
-      "shipped". Both become true when this gate clears — confirm you're happy
-      with that wording, or soften to "in progress" for launch.
 
-## Status
+## Launch bundle (after all boxes close)
 
-2026-08-24: Tom approved the iteration deploy ("for now it's ok") — private
-repo + Vercel URL with `noindex`. The **launch bundle** stays gated on this
-checklist: repo public flip, DNS cutover to tomgreen.ai, and removing
-`robots: noindex` from `src/app/layout.tsx`.
-
-## Sign-off
-
-When all boxes are ticked: repo can flip public and the site can deploy.
-Until then: no `git push` to a public remote, no production deploy.
+1. Vercel project connected and deploying from `main`.
+2. DNS cutover: tomgreen.ai → Vercel (GoDaddy placeholder retires).
+3. Set `SITE_LAUNCHED=1` in the production environment so `robots` metadata,
+   `robots.ts`, and `sitemap.ts` switch from noindex to indexable.
