@@ -40,6 +40,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        {/* Gate for scroll-reveal CSS: without JS, nothing is ever hidden. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.classList.add('js')",
+          }}
+        />
         <SiteHeader />
         <main className="mx-auto w-full max-w-4xl flex-1 px-6">{children}</main>
         <SiteFooter />

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Reveal } from "@/components/reveal";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
 import { site } from "@/lib/content/site";
 
@@ -27,18 +28,20 @@ export default function About() {
           {career.map((stop) => (
             <li
               key={`${stop.company}-${stop.period}`}
-              className="grid gap-1 border-b border-hairline py-5 last:border-b-0 md:grid-cols-[10rem_1fr] md:gap-6"
+              className="border-b border-hairline last:border-b-0"
             >
-              <p className="text-sm text-muted">{stop.period}</p>
-              <div className="flex flex-col gap-1">
-                <p className="font-medium">
-                  {stop.company}
-                  <span className="text-ink-secondary"> — {stop.role}</span>
-                </p>
-                <p className="max-w-2xl text-sm leading-relaxed text-ink-secondary">
-                  {stop.note}
-                </p>
-              </div>
+              <Reveal className="grid gap-1 py-5 md:grid-cols-[10rem_1fr] md:gap-6">
+                <p className="text-sm text-muted">{stop.period}</p>
+                <div className="flex flex-col gap-1">
+                  <p className="font-medium">
+                    {stop.company}
+                    <span className="text-ink-secondary"> — {stop.role}</span>
+                  </p>
+                  <p className="max-w-2xl text-sm leading-relaxed text-ink-secondary">
+                    {stop.note}
+                  </p>
+                </div>
+              </Reveal>
             </li>
           ))}
         </ol>

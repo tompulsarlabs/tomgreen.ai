@@ -19,7 +19,11 @@ export function ContributionGraph({ days }: { days: ContributionDay[] }) {
     <div className="overflow-x-auto">
       <div className="flex gap-[3px]" role="img" aria-label="GitHub contribution activity, past year">
         {weeks.map((week, i) => (
-          <div key={i} className="flex flex-col gap-[3px]">
+          <div
+            key={i}
+            className="heat-col flex flex-col gap-[3px]"
+            style={{ "--heat-delay": `${i * 8}ms` } as React.CSSProperties}
+          >
             {week.map((day) => (
               <div
                 key={day.date}

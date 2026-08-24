@@ -5,7 +5,7 @@ export function CaseStudyCard({ study }: { study: CaseStudy }) {
   return (
     <Link
       href={`/work/${study.slug}`}
-      className="group flex flex-col gap-2 rounded-lg border border-hairline bg-card p-6 transition-colors hover:border-accent"
+      className="group card-lift flex flex-col gap-2 rounded-lg border border-hairline bg-card p-6 hover:border-accent"
     >
       <p className="text-sm text-muted">
         {study.company} · {study.period}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CaseStudyCard } from "@/components/case-study-card";
+import { Reveal } from "@/components/reveal";
 import { caseStudies } from "@/lib/content/case-studies";
 
 export const metadata: Metadata = {
@@ -19,8 +20,10 @@ export default function WorkIndex() {
         </p>
       </header>
       <div className="grid gap-4 md:grid-cols-2">
-        {caseStudies.map((study) => (
-          <CaseStudyCard key={study.slug} study={study} />
+        {caseStudies.map((study, i) => (
+          <Reveal key={study.slug} delay={(i % 2) * 90}>
+            <CaseStudyCard study={study} />
+          </Reveal>
         ))}
       </div>
     </div>

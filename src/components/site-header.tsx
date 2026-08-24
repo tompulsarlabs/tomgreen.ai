@@ -13,7 +13,7 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="transition-colors hover:text-ink"
+              className="nav-link transition-colors hover:text-ink"
             >
               {item.label}
             </Link>

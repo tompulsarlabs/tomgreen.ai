@@ -66,3 +66,98 @@ body {
   background: var(--accent);
   color: var(--paper);
 }
+
+a,
+button {
+  outline-offset: 3px;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  border-radius: 2px;
+}
+
+/*
+ * Motion. Everything below is presentation-only and collapses to a static
+ * page under prefers-reduced-motion. Scroll reveals additionally gate on the
+ * .js class (set inline in the layout) so content is never hidden without
+ * JavaScript.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Above-the-fold entrance: pure CSS, safe without JS. */
+  .anim {
+    animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: var(--anim-delay, 0ms);
+  }
+
+  /* Scroll reveals: hidden only when JS is present to un-hide them. */
+  .js .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.65s ease,
+      transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .js .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Heatmap columns cascade in once the graph scrolls into view. */
+  .js .reveal .heat-col {
+    opacity: 0;
+  }
+  .js .reveal.is-visible .heat-col {
+    animation: rise-in 0.45s ease both;
+    animation-delay: var(--heat-delay, 0ms);
+  }
+
+  .page-fade {
+    animation: rise-in 0.35s ease both;
+  }
+}
+
+/* Nav links: accent underline draws in from the left. */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -3px;
+  height: 1px;
+  background: var(--accent);
+  transition: right 0.25s ease;
+}
+.nav-link:hover::after,
+.nav-link[aria-current="page"]::after {
+  right: 0;
+}
+
+/* Cards: quiet lift on hover. */
+.card-lift {
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.25);
+  }
+}
