@@ -1,16 +1,16 @@
-export type EvergreenState = {
+export type IvyState = {
   streak: number;
   lastGreen: string;
 };
 
 const STATE_URL =
-  "https://raw.githubusercontent.com/tompulsarlabs/evergreen/main/state.json";
+  "https://raw.githubusercontent.com/tompulsarlabs/ivy/main/state.json";
 
 /**
- * Live state of the Evergreen daily-ship system, read from its public repo.
+ * Live state of the Ivy daily-ship system, read from its public repo.
  * Returns null on any failure — callers render a static fallback.
  */
-export async function getEvergreenState(): Promise<EvergreenState | null> {
+export async function getIvyState(): Promise<IvyState | null> {
   try {
     const res = await fetch(STATE_URL, { next: { revalidate: 3600 } });
     if (!res.ok) return null;

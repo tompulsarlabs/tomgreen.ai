@@ -1,17 +1,17 @@
 import { getContributions } from "@/lib/data/github";
-import { getEvergreenState } from "@/lib/data/evergreen";
+import { getIvyState } from "@/lib/data/ivy";
 import { ContributionGraph } from "./contribution-graph";
 import { StatTile } from "./stat-tile";
 
 /**
- * The live section of the homepage: real GitHub activity and the Evergreen
+ * The live section of the homepage: real GitHub activity and the Ivy
  * system's own state, refreshed hourly. Every element degrades to a static
  * fallback — an API failure can never break the page (DESIGN.md).
  */
 export async function ProofStrip() {
-  const [contributions, evergreen] = await Promise.all([
+  const [contributions, ivy] = await Promise.all([
     getContributions(),
-    getEvergreenState(),
+    getIvyState(),
   ]);
 
   return (
@@ -26,10 +26,10 @@ export async function ProofStrip() {
             label="GitHub contributions, past year"
           />
         )}
-        {evergreen && (
+        {ivy && (
           <StatTile
-            value={`${evergreen.streak} ${evergreen.streak === 1 ? "day" : "days"}`}
-            label="Evergreen ship streak"
+            value={`${ivy.streak} ${ivy.streak === 1 ? "day" : "days"}`}
+            label="Ivy ship streak"
           />
         )}
         <StatTile value="4" label="Agents running my daily-ship system" />
@@ -48,10 +48,10 @@ export async function ProofStrip() {
       <p className="text-sm text-ink-secondary">
         These numbers are fetched live from GitHub and from the{" "}
         <a
-          href="https://github.com/tompulsarlabs/evergreen"
+          href="https://github.com/tompulsarlabs/ivy"
           className="text-accent hover:underline"
         >
-          Evergreen
+          Ivy
         </a>{" "}
         system&apos;s public state — this site practices what it preaches.
       </p>

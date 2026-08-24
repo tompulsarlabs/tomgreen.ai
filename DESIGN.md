@@ -26,7 +26,7 @@ know talent. Tom does both.
 
 Everything on the site should ladder up to that sentence. Proof points live in two
 registers: operating results (Zalando 0→120 AI org, metrics) and built systems
-(agentic People Ops running a country on 1 FTE, evergreen, sybil).
+(agentic People Ops running a country on 1 FTE, ivy, sybil).
 
 ## Audience
 
@@ -39,10 +39,10 @@ registers: operating results (Zalando 0→120 AI org, metrics) and built systems
 
 | Route | Content |
 |---|---|
-| `/` | Hero (positioning line), proof strip (live GitHub / evergreen data), selected work, path to contact |
+| `/` | Hero (positioning line), proof strip (live GitHub / ivy data), selected work, path to contact |
 | `/work` | Case studies index |
 | `/work/[slug]` | Individual case study (MDX or typed content module) |
-| `/building` | The builder side: evergreen, sybil, this site itself, other artifacts |
+| `/building` | The builder side: ivy, sybil, this site itself, other artifacts |
 | `/about` | Career arc, references, the person |
 
 Case studies are the core content unit. Each one: context → what Tom built/did →
@@ -77,7 +77,7 @@ This is a public repo, so **a git push is a publish**. Rules:
   are commits, which feeds the "readable history" goal.
 - **Live data** so the site reads as alive:
   - GitHub contribution activity for `tompulsarlabs` (public API, ISR-cached).
-  - Evergreen system state from the public repo's `state.json`
+  - Ivy system state from the public repo's `state.json`
     (raw.githubusercontent.com, ISR-cached) — streak, last outcome.
   - Each live component is isolated with a static fallback; an API failure can never
     break the page.
