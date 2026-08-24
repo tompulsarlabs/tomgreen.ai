@@ -34,6 +34,10 @@ for this to be public on my site," not accuracy.
 - [ ] **Sybil** described as "in the lab" (repo stays private, no link). OK?
 - [ ] **margaux-en-tutor** — mentions it was built for a seven-year-old (no name
       beyond the repo's own). OK, or describe more generically?
+- [ ] **This site's own entry** is forward-dated: it links to
+      `github.com/tompulsarlabs/tomgreen.ai` (doesn't exist yet) and says
+      "shipped". Both become true when this gate clears — confirm you're happy
+      with that wording, or soften to "in progress" for launch.
 
 ## Sign-off
 
