@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
+import { isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
 import { site } from "@/lib/content/site";
 import "./globals.css";
@@ -28,9 +29,16 @@ export const metadata: Metadata = {
     template: `%s — ${site.name}`,
   },
   description: site.positioning,
-  // Iteration deploys live on a vercel.app URL; keep them out of search
-  // indexes until tomgreen.ai is the canonical home (remove at DNS cutover).
-  robots: { index: false, follow: false },
+  alternates: { canonical: "./" },
+  openGraph: {
+    siteName: site.domain,
+    title: `${site.name} — talent systems and the agents that run them`,
+    description: site.positioning,
+    url: "./",
+    type: "website",
+    locale: "en_GB",
+  },
+  robots: isLaunched ? undefined : { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
