@@ -20,6 +20,13 @@
   --heat-2: #43a86e;
   --heat-3: #22854f;
   --heat-4: #0d5c33;
+
+  /* Knowledge-graph categories — three hues validated all-pairs in both
+     modes (dataviz reference slots), plus neutral for craft/tooling. */
+  --cat-agents: #1baf7a;
+  --cat-products: #2a78d6;
+  --cat-talent: #eb6834;
+  --cat-craft: #8a877f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -38,6 +45,11 @@
     --heat-2: #2f7f4f;
     --heat-3: #46a86c;
     --heat-4: #66cf8f;
+
+    --cat-agents: #199e70;
+    --cat-products: #3987e5;
+    --cat-talent: #d95926;
+    --cat-craft: #85837b;
   }
 }
 
