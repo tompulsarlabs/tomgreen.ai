@@ -47,16 +47,10 @@ const projectCategory: Record<string, CategoryId> = {
   "this-site": "craft",
 };
 
-const tech = [
-  "Claude Code",
-  "GitHub",
-  "Next.js",
-  "TypeScript",
-  "Tailwind",
-  "Vercel",
-  "Supabase",
-  "Expo",
-] as const;
+/* Only the platforms that carry story survive as satellites — Claude Code
+   threads through every agent system; GitHub feeds the site's live data.
+   Bare language/framework listings are noise (the repos say it better). */
+const tech = ["Claude Code", "GitHub"] as const;
 
 export const graphNodes: GraphNode[] = [
   ...Object.entries(categories).map(([id, c]) => ({
@@ -73,7 +67,7 @@ export const graphNodes: GraphNode[] = [
     category: projectCategory[p.slug] ?? "craft",
     href: p.repo,
     blurb: p.tagline,
-    meta: `${p.status} · ${p.stack.join(" · ")}`,
+    meta: p.status,
   })),
   ...caseStudies.map((c) => ({
     id: c.slug,
@@ -113,19 +107,10 @@ export const graphEdges: GraphEdge[] = [
   // Live-data edge: the site reads Ivy's published state
   ["ivy", "this-site"],
 
-  // Stack
+  // Platforms
   ["ivy", "tech:Claude Code"],
   ["ivy", "tech:GitHub"],
   ["sybil", "tech:Claude Code"],
-  ["sybil", "tech:Supabase"],
-  ["sybil", "tech:Next.js"],
-  ["sybil", "tech:Vercel"],
-  ["margaux-en-tutor", "tech:Expo"],
-  ["margaux-en-tutor", "tech:TypeScript"],
   ["writing-voice-skill", "tech:Claude Code"],
-  ["this-site", "tech:Next.js"],
-  ["this-site", "tech:TypeScript"],
-  ["this-site", "tech:Tailwind"],
-  ["this-site", "tech:Vercel"],
   ["this-site", "tech:GitHub"],
 ];

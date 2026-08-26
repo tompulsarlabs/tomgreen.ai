@@ -76,14 +76,13 @@ export default function Building() {
                         {paragraph}
                       </p>
                     ))}
-                    <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted">
-                      <span>{project.stack.join(" · ")}</span>
-                      {project.repo && (
+                    {project.repo && (
+                      <p className="text-xs">
                         <a href={project.repo} className="text-accent hover:underline">
                           {project.repo.replace("https://", "")}
                         </a>
-                      )}
-                    </p>
+                      </p>
+                    )}
                   </article>
                 </Reveal>
               ))}
