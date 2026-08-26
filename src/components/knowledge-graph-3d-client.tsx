@@ -49,6 +49,12 @@ type FGLink = {
 
 const linkEnd = (e: string | FGNode) => (typeof e === "string" ? e : e.id);
 
+/* Stable accessors — new function identities would make the graph rebuild
+   objects on every React render. */
+const LINK_COLOR = "#39413c";
+const techLabel = (n: FGNode) => (n.kind === "tech" ? n.label : "");
+const particleCount = (l: FGLink) => (l.cross ? 2 : 0);
+
 /** Saturn ring with soft inner/outer falloff and faint striping. */
 const ringCache = new Map<string, THREE.CanvasTexture>();
 function ringTexture(hex: string): THREE.CanvasTexture {
@@ -152,6 +158,68 @@ function haloTexture(hex: string): THREE.CanvasTexture {
   return tex;
 }
 
+type NodeParts = {
+  group: THREE.Group;
+  planetMat: THREE.MeshStandardMaterial;
+  shellMat?: THREE.MeshBasicMaterial;
+  haloMat: THREE.SpriteMaterial;
+  ringMat?: THREE.MeshBasicMaterial;
+  marker?: THREE.Mesh;
+  label?: SpriteText;
+  kind: GraphNode["kind"];
+  targetScale: number;
+  lastDim?: boolean;
+};
+
+type StylableLink = FGLink & {
+  __lineObj?: { material?: { color?: THREE.Color; opacity?: number } };
+};
+
+/** Apply hover/selection styling by mutating live scene materials. */
+function applySceneStyle(
+  parts: Map<string, NodeParts>,
+  links: StylableLink[],
+  hovered: string | null,
+  selected: string,
+  neighbours: Map<string, Set<string>>,
+  byId: Map<string, GraphNode>,
+): void {
+  const isDim = (id: string) =>
+    hovered !== null && id !== hovered && !neighbours.get(hovered)?.has(id);
+  for (const [id, part] of parts) {
+    if (!isAttached(part.group)) continue;
+    const dim = isDim(id);
+    part.targetScale = hovered === id ? 1.12 : 1;
+    if (part.marker) part.marker.visible = id === selected;
+    if (dim === part.lastDim) continue;
+    part.lastDim = dim;
+    part.planetMat.opacity = dim ? 0.16 : 1;
+    if (part.kind !== "tech") {
+      part.planetMat.emissiveIntensity = dim ? 0.02 : 0.08;
+    }
+    if (part.shellMat) part.shellMat.opacity = dim ? 0.02 : 0.16;
+    part.haloMat.opacity = dim ? 0.02 : part.kind === "tech" ? 0.14 : 0.22;
+    if (part.ringMat) part.ringMat.opacity = dim ? 0.08 : 0.75;
+    if (part.label) {
+      part.label.color = dim
+        ? "rgba(220,218,208,0.14)"
+        : "rgba(230,228,220,0.82)";
+    }
+  }
+  for (const l of links) {
+    const mat = l.__lineObj?.material;
+    if (!mat?.color) continue;
+    const a = linkEnd(l.source);
+    const b = linkEnd(l.target);
+    const active = hovered !== null && (a === hovered || b === hovered);
+    const h = hovered ? byId.get(hovered) : undefined;
+    mat.color.set(
+      active ? (h?.category ? CAT_HEX[h.category] : "#8a887f") : LINK_COLOR,
+    );
+    mat.opacity = active ? 0.85 : hovered !== null ? 0.12 : 0.45;
+  }
+}
+
 function isAttached(obj: THREE.Object3D): boolean {
   let o: THREE.Object3D = obj;
   while (o.parent) o = o.parent;
@@ -167,6 +235,9 @@ export default function KnowledgeGraph3DClient({
   nodes: GraphNode[];
   edges: GraphEdge[];
 }) {
+  "use no memo"; // Imperative three.js scene: meshes are built once and
+  // mutated directly for hover/selection — rebuilding meshes on state
+  // changes caused visible hitching, so compiler memoization is opted out.
   const fgRef = useRef<ForceGraphMethods | undefined>(undefined);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 700 });
@@ -174,8 +245,15 @@ export default function KnowledgeGraph3DClient({
   const [selected, setSelected] = useState<string>("ivy");
   const reducedRef = useRef(false);
   const spinRef = useRef<{ obj: THREE.Object3D; speed: number }[]>([]);
+  const popRef = useRef<{ obj: THREE.Object3D; start: number }[]>([]);
+  const poppedRef = useRef<Set<string>>(new Set());
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  const onHover = useCallback(
+    (n: FGNode | null) => setHovered(n?.id ?? null),
+    [],
+  );
 
   const graphData = useMemo(
     () => ({
@@ -220,13 +298,39 @@ export default function KnowledgeGraph3DClient({
     return () => ro.disconnect();
   }, []);
 
-  // Planets spin on their own axes.
+  // Planets spin on their own axes; new planets pop in with an
+  // ease-out-back entrance.
   useEffect(() => {
     if (reducedRef.current) return;
     let raf = 0;
+    const easeOutBack = (t: number) => {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
     const loop = () => {
+      const now = performance.now();
       spinRef.current = spinRef.current.filter((e) => isAttached(e.obj));
       for (const e of spinRef.current) e.obj.rotation.y += e.speed;
+      const popping = new Set<THREE.Object3D>();
+      popRef.current = popRef.current.filter((e) => {
+        if (!isAttached(e.obj)) return false;
+        const t = (now - e.start) / 600;
+        if (t >= 1) {
+          e.obj.scale.setScalar(1);
+          return false;
+        }
+        popping.add(e.obj);
+        e.obj.scale.setScalar(t < 0 ? 0.001 : Math.max(easeOutBack(t), 0.001));
+        return true;
+      });
+      // Smooth hover swell: lerp toward each node's target scale.
+      for (const part of partsRef.current.values()) {
+        if (popping.has(part.group) || !isAttached(part.group)) continue;
+        const cur = part.group.scale.x;
+        const next = cur + (part.targetScale - cur) * 0.16;
+        if (Math.abs(next - cur) > 0.0004) part.group.scale.setScalar(next);
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -238,40 +342,34 @@ export default function KnowledgeGraph3DClient({
     [],
   );
 
-  const dimmed = useCallback(
-    (id: string) =>
-      hovered !== null && id !== hovered && !neighbours.get(hovered)?.has(id),
-    [hovered, neighbours],
-  );
+  // Node objects are built ONCE and styled imperatively afterwards —
+  // rebuilding meshes on every hover change was the source of the hitching.
+  const partsRef = useRef<Map<string, NodeParts>>(new Map());
+  const selectedRef = useRef("ivy");
 
   const nodeThreeObject = useCallback(
     (node: FGNode) => {
       const r = NODE_R[node.kind];
       const hex = nodeHex(node);
-      const dim = dimmed(node.id);
-      const isSelected = node.id === selected;
       const group = new THREE.Group();
 
       // The planet itself: textured, lit, tilted, spinning.
-      const planet = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 32, 32),
+      const planetMat =
         node.kind === "tech"
           ? new THREE.MeshStandardMaterial({
               color: hex,
               roughness: 0.95,
               transparent: true,
-              opacity: dim ? 0.15 : 1,
             })
           : new THREE.MeshStandardMaterial({
               map: planetTexture(hex),
               roughness: 0.85,
               metalness: 0,
               emissive: hex,
-              emissiveIntensity: dim ? 0.02 : 0.08,
+              emissiveIntensity: 0.08,
               transparent: true,
-              opacity: dim ? 0.16 : 1,
-            }),
-      );
+            });
+      const planet = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 32), planetMat);
       planet.rotation.z = 0.35;
       group.add(planet);
       if (node.kind !== "tech") {
@@ -281,55 +379,52 @@ export default function KnowledgeGraph3DClient({
         });
       }
 
-      // Atmosphere: a backside shell gives a real limb glow that hugs the
-      // sphere, plus a faint wide sprite for bloom-like falloff.
+      // Atmosphere: a backside shell gives a limb glow that hugs the
+      // sphere, plus a faint wide sprite for soft falloff.
+      let shellMat: THREE.MeshBasicMaterial | undefined;
       if (node.kind !== "tech") {
-        const shell = new THREE.Mesh(
-          new THREE.SphereGeometry(r * 1.16, 32, 32),
-          new THREE.MeshBasicMaterial({
-            color: hex,
-            transparent: true,
-            opacity: dim ? 0.02 : 0.16,
-            side: THREE.BackSide,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-          }),
-        );
-        group.add(shell);
-      }
-      const halo = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: haloTexture(hex),
+        shellMat = new THREE.MeshBasicMaterial({
+          color: hex,
+          transparent: true,
+          opacity: 0.16,
+          side: THREE.BackSide,
           blending: THREE.AdditiveBlending,
           depthWrite: false,
-          transparent: true,
-          opacity: dim ? 0.02 : node.kind === "tech" ? 0.14 : 0.22,
-        }),
-      );
+        });
+        group.add(new THREE.Mesh(new THREE.SphereGeometry(r * 1.16, 32, 32), shellMat));
+      }
+      const haloMat = new THREE.SpriteMaterial({
+        map: haloTexture(hex),
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        opacity: node.kind === "tech" ? 0.14 : 0.22,
+      });
+      const halo = new THREE.Sprite(haloMat);
       const haloScale = r * 4.2;
       halo.scale.set(haloScale, haloScale, 1);
       group.add(halo);
 
-      // Hubs are ringed planets — soft falloff, faint striping.
+      // Hubs are ringed planets — soft falloff texture.
+      let ringMat: THREE.MeshBasicMaterial | undefined;
       if (node.kind === "hub") {
-        const ring = new THREE.Mesh(
-          new THREE.PlaneGeometry(r * 4.6, r * 4.6),
-          new THREE.MeshBasicMaterial({
-            map: ringTexture(hex),
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: dim ? 0.08 : 0.75,
-            depthWrite: false,
-          }),
-        );
+        ringMat = new THREE.MeshBasicMaterial({
+          map: ringTexture(hex),
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.75,
+          depthWrite: false,
+        });
+        const ring = new THREE.Mesh(new THREE.PlaneGeometry(r * 4.6, r * 4.6), ringMat);
         ring.rotation.x = 1.25;
         ring.rotation.y = 0.25;
         group.add(ring);
       }
 
-      // Selection marker: a bright orbit ring.
-      if (isSelected) {
-        const marker = new THREE.Mesh(
+      // Selection marker: prebuilt, toggled by visibility.
+      let marker: THREE.Mesh | undefined;
+      if (node.kind !== "tech") {
+        marker = new THREE.Mesh(
           new THREE.RingGeometry(r * 1.9, r * 2.0, 48),
           new THREE.MeshBasicMaterial({
             color: "#f2f1ea",
@@ -340,24 +435,67 @@ export default function KnowledgeGraph3DClient({
           }),
         );
         marker.rotation.x = 1.05;
+        marker.visible = node.id === selectedRef.current;
         group.add(marker);
       }
 
+      let label: SpriteText | undefined;
       if (node.kind !== "tech") {
-        const label = new SpriteText(
+        label = new SpriteText(
           node.label,
           node.kind === "hub" ? 5 : 3.6,
-          dim ? "rgba(220,218,208,0.14)" : "rgba(230,228,220,0.82)",
+          "rgba(230,228,220,0.82)",
         );
         label.fontWeight = node.kind === "hub" ? "600" : "400";
         label.position.set(0, -(r * 2.3 + 3), 0);
         label.material.depthWrite = false;
         group.add(label);
       }
+
+      partsRef.current.set(node.id, {
+        group,
+        planetMat,
+        shellMat,
+        haloMat,
+        ringMat,
+        marker,
+        label,
+        kind: node.kind,
+        targetScale: 1,
+      });
+
+      // First appearance: staggered pop-in.
+      if (!reducedRef.current && !poppedRef.current.has(node.id)) {
+        poppedRef.current.add(node.id);
+        const stagger =
+          node.kind === "hub" ? 200 : node.kind === "tech" ? 900 : 450;
+        group.scale.setScalar(0.001);
+        popRef.current.push({
+          obj: group,
+          start: performance.now() + stagger + (node.id.length % 7) * 90,
+        });
+      }
       return group;
     },
-    [nodeHex, dimmed, selected],
+    [nodeHex],
   );
+
+  // Imperative styling: hover focus, neighborhood dim, selection marker,
+  // and link recoloring — no mesh is ever rebuilt for a state change.
+  useEffect(() => {
+    selectedRef.current = selected;
+    const fgAny = fgRef.current as unknown as
+      | { graphData?: () => { links: StylableLink[] } }
+      | undefined;
+    applySceneStyle(
+      partsRef.current,
+      fgAny?.graphData?.().links ?? [],
+      hovered,
+      selected,
+      neighbours,
+      byId,
+    );
+  }, [hovered, selected, neighbours, byId]);
 
   // One-time engine setup: forces, camera, lighting, starfield, idle orbit.
   const onEngineInit = useCallback(
@@ -446,7 +584,7 @@ export default function KnowledgeGraph3DClient({
       controls.maxDistance = 430;
       if (!reducedRef.current) {
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.35;
+        controls.autoRotateSpeed = 0.6;
         controls.addEventListener("start", () => {
           controls.autoRotate = false;
         });
@@ -493,25 +631,6 @@ export default function KnowledgeGraph3DClient({
     );
   }, []);
 
-  // Clicking a planet selects it and flies the camera — exploration stays
-  // in the map. Leaving it is always explicit: the panel's "Open details".
-  const navigateTo = useCallback(
-    (node: FGNode) => {
-      setSelected(node.id);
-      flyTo(node, 700);
-    },
-    [flyTo],
-  );
-
-  // Panel navigation: fly to any named planet by id, no 3D hunting.
-  const flyToId = useCallback(
-    (id: string) => {
-      const n = graphData.nodes.find((x) => x.id === id);
-      if (n) navigateTo(n);
-    },
-    [graphData, navigateTo],
-  );
-
   const openDetails = useCallback((node: GraphNode) => {
     const anchor =
       node.kind === "hub"
@@ -525,6 +644,33 @@ export default function KnowledgeGraph3DClient({
       block: "start",
     });
   }, []);
+
+  // Clicking a planet is the full gesture: the camera flies to it, then the
+  // page glides down to its detail. The panel pills use the same path.
+  const navTimer = useRef(0);
+  const navigateTo = useCallback(
+    (node: FGNode) => {
+      setSelected(node.id);
+      flyTo(node, 700);
+      const gn = byId.get(node.id);
+      if (!gn || gn.kind === "tech") return;
+      window.clearTimeout(navTimer.current);
+      navTimer.current = window.setTimeout(
+        () => openDetails(gn),
+        reducedRef.current ? 0 : 850,
+      );
+    },
+    [flyTo, byId, openDetails],
+  );
+
+  // Panel navigation: fly to any named planet by id, no 3D hunting.
+  const flyToId = useCallback(
+    (id: string) => {
+      const n = graphData.nodes.find((x) => x.id === id);
+      if (n) navigateTo(n);
+    },
+    [graphData, navigateTo],
+  );
 
   const detail = byId.get(hovered ?? selected) ?? nodes[0];
   const panelCategory: CategoryId = detail.category ?? "agents";
@@ -561,27 +707,13 @@ export default function KnowledgeGraph3DClient({
           backgroundColor={SCENE_BG}
           graphData={graphData}
           nodeThreeObject={nodeThreeObject}
-          nodeLabel={(n: FGNode) => (n.kind === "tech" ? n.label : "")}
-          onNodeHover={(n: FGNode | null) => setHovered(n?.id ?? null)}
+          nodeLabel={techLabel}
+          onNodeHover={onHover}
           onNodeClick={navigateTo}
-          linkColor={(l: FGLink) => {
-            const a = linkEnd(l.source);
-            const b = linkEnd(l.target);
-            if (hovered && (a === hovered || b === hovered)) {
-              const h = byId.get(hovered);
-              return h?.category ? CAT_HEX[h.category] : "#8a887f";
-            }
-            return "#39413c";
-          }}
+          linkColor={LINK_COLOR}
           linkOpacity={0.45}
-          linkWidth={(l: FGLink) => {
-            const a = linkEnd(l.source);
-            const b = linkEnd(l.target);
-            return hovered && (a === hovered || b === hovered) ? 1.4 : 0.4;
-          }}
-          linkDirectionalParticles={(l: FGLink) =>
-            l.cross && !reducedRef.current ? 2 : 0
-          }
+          linkWidth={0.4}
+          linkDirectionalParticles={particleCount}
           linkDirectionalParticleSpeed={0.0055}
           linkDirectionalParticleWidth={1.4}
           rendererConfig={{ preserveDrawingBuffer: true, antialias: true }}
