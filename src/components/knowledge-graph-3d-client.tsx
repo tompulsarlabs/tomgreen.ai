@@ -618,15 +618,20 @@ export default function KnowledgeGraph3DClient({
     [byId],
   );
 
+  // Approach along the camera's current line of sight — scaling the node's
+  // position vector (the old approach) explodes for planets near the origin
+  // and hurled the camera across the scene.
   const flyTo = useCallback((node: FGNode, ms = 1100) => {
     const fg = fgRef.current;
     if (!fg || node.x === undefined) return;
-    const dist = 150;
-    const len = Math.hypot(node.x, node.y ?? 0, node.z ?? 0) || 1;
-    const k = 1 + dist / len;
+    const target = new THREE.Vector3(node.x, node.y ?? 0, node.z ?? 0);
+    const dir = new THREE.Vector3().subVectors(fg.camera().position, target);
+    if (dir.lengthSq() < 1) dir.set(0, 0, 1);
+    dir.normalize().multiplyScalar(140);
+    const pos = target.clone().add(dir);
     fg.cameraPosition(
-      { x: node.x * k, y: (node.y ?? 0) * k, z: (node.z ?? 0) * k },
-      { x: node.x, y: node.y ?? 0, z: node.z ?? 0 },
+      { x: pos.x, y: pos.y, z: pos.z },
+      { x: target.x, y: target.y, z: target.z },
       reducedRef.current ? 0 : ms,
     );
   }, []);
@@ -657,7 +662,7 @@ export default function KnowledgeGraph3DClient({
       window.clearTimeout(navTimer.current);
       navTimer.current = window.setTimeout(
         () => openDetails(gn),
-        reducedRef.current ? 0 : 850,
+        reducedRef.current ? 0 : 950,
       );
     },
     [flyTo, byId, openDetails],
