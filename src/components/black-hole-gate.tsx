@@ -12,9 +12,11 @@ import { createPortal } from "react-dom";
  * vector, redshift fade at the horizon), then the whole frame is pulled
  * through.
  *
- * Theater, never a wall: once per session, skipped for reduced-motion and
- * no-JS (server content is always complete underneath), Enter/Space and a
- * visible skip link work, and scrolling collapses it immediately.
+ * This IS the landing page: it plays on every full load of "/" (client-side
+ * navigation within the site never re-triggers it). Theater, never a wall:
+ * skipped for reduced-motion and no-JS (server content is always complete
+ * underneath), Enter/Space and a visible skip link work, and scrolling
+ * collapses it immediately.
  */
 
 const GOLD = "#c9971f";

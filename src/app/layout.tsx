@@ -57,12 +57,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         {/* .js gates scroll-reveal CSS (no-JS never hides content);
-            .entering paints the entrance ground before first paint, once
-            per session, never under reduced motion. */}
+            .entering paints the entrance ground before first paint. The
+            landing page gets its entrance on every full load; deep links
+            get the counter once per session. Never under reduced motion. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "document.documentElement.classList.add('js');try{if(!sessionStorage.getItem('tg-entered')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('entering');sessionStorage.setItem('tg-entered','1')}}catch(e){}",
+              "document.documentElement.classList.add('js');try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){if(location.pathname==='/'){document.documentElement.classList.add('entering');sessionStorage.setItem('tg-entered','1')}else if(!sessionStorage.getItem('tg-entered')){document.documentElement.classList.add('entering');sessionStorage.setItem('tg-entered','1')}}}catch(e){}",
           }}
         />
         <Loader />
