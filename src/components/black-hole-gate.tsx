@@ -3,14 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { createBlackHoleRenderer } from "./black-hole-gl";
+
 /**
  * The entrance (DESIGN-MOTION.md, the third set piece): an Interstellar
- * black hole etched on paper — ink horizon, gold photon ring, lensed
- * accretion disk — with the name set beneath it in display serif. Click
- * the hole and the letters peel off and fall in with real gravity
- * (frame-rate-independent GM/r² inspiral, tidal stretch along the velocity
- * vector, redshift fade at the horizon), then the whole frame is pulled
- * through.
+ * black hole rendered with real gravitational lensing — a WebGL raymarch
+ * of Schwarzschild geodesics (black-hole-gl.ts), so the accretion disk
+ * bends into a halo over the shadow and the photon ring emerges from the
+ * physics — composited as pigment on the site's paper ground. The name is
+ * set beneath it in display serif on a 2D canvas above. Click and the
+ * letters peel off and fall in with real gravity (frame-rate-independent
+ * GM/r² inspiral, tidal stretch along the velocity vector, redshift fade
+ * at the horizon), then the camera plunges through the horizon. A 2D
+ * etched fallback covers no-WebGL and context-loss.
  *
  * This IS the landing page: it plays on every full load of "/" (client-side
  * navigation within the site never re-triggers it). Theater, never a wall:
@@ -40,8 +45,11 @@ type Phase = "idle" | "collapsing" | "wormhole" | "done";
 
 export function BlackHoleGate() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
+  const [hintText, setHintText] = useState("Click to enter");
   const phaseRef = useRef<Phase>("idle");
   // The scene effect's finish() — the one exit that also hands focus to
   // the revealed page. The Skip button routes through it too.
@@ -52,7 +60,12 @@ export function BlackHoleGate() {
   // before the scene effect below grabs it.
   useEffect(() => {
     if (!document.documentElement.classList.contains("entering")) return;
-    const raf = requestAnimationFrame(() => setActive(true));
+    const raf = requestAnimationFrame(() => {
+      setActive(true);
+      if (window.matchMedia("(pointer: coarse)").matches) {
+        setHintText("Tap to enter");
+      }
+    });
     return () => cancelAnimationFrame(raf);
   }, []);
 
@@ -63,6 +76,10 @@ export function BlackHoleGate() {
     if (!canvas || !wrap) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    // The lensed 3D scene. Null (no WebGL2) → the 2D etched fallback.
+    const glr = glCanvasRef.current
+      ? createBlackHoleRenderer(glCanvasRef.current)
+      : null;
 
     // The page beneath is opaque-covered: take it out of the tab order and
     // the accessibility tree while the gate is up (JS-only, so the no-JS
@@ -80,8 +97,6 @@ export function BlackHoleGate() {
     const rootStyle = getComputedStyle(document.documentElement);
     const displayFont =
       rootStyle.getPropertyValue("--font-newsreader").trim() || "Georgia";
-    const sansFont =
-      rootStyle.getPropertyValue("--font-geist-sans").trim() || "system-ui";
     let w = 0;
     let h = 0;
     let cx = 0;
@@ -107,9 +122,13 @@ export function BlackHoleGate() {
       cx = w / 2;
       cy = h * 0.42;
       R = Math.min(w, h) * 0.115;
+      glr?.resize(w, h, cx, cy, R);
 
       // Lay the name out beneath the hole, one letter-particle per glyph.
       const size = Math.min(w * 0.088, 108);
+      if (hintRef.current) {
+        hintRef.current.style.top = `${cy + R * 2.55 + size * 1.35}px`;
+      }
       ctx.font = `500 ${size}px ${displayFont}, Georgia, serif`;
       const widths = [...NAME].map((c) => ctx.measureText(c).width);
       const tracking = size * 0.02;
@@ -158,6 +177,7 @@ export function BlackHoleGate() {
     let zoom = 1;
     let rot = 0;
     let whiteout = 0;
+    let plunge = 0; // natural wormhole only — drives the GL camera dive
 
     const finish = () => {
       if (phaseRef.current === "done") return;
@@ -182,6 +202,7 @@ export function BlackHoleGate() {
       if (phaseRef.current !== "idle") return;
       phaseRef.current = "collapsing";
       collapseStart = performance.now();
+      if (hintRef.current) hintRef.current.style.opacity = "0";
       for (const l of letters) {
         // Tangential release: below circular-orbit speed, so each glyph
         // inspirals instead of orbiting forever.
@@ -205,6 +226,7 @@ export function BlackHoleGate() {
       phaseRef.current = "wormhole";
       skipMode = true;
       wormholeStart = performance.now();
+      if (hintRef.current) hintRef.current.style.opacity = "0";
     };
 
     // ---- Drawing ----------------------------------------------------
@@ -325,15 +347,6 @@ export function BlackHoleGate() {
       ctx.globalAlpha = 1;
     };
 
-    const hint = (alphaScale: number) => {
-      ctx.fillStyle = INK;
-      ctx.globalAlpha = 0.42 * alphaScale;
-      ctx.font = `11px ${sansFont}, system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText("C L I C K   T H E   B L A C K   H O L E", cx, cy + R * 2.55 + Math.min(w * 0.088, 108) * 1.35);
-      ctx.globalAlpha = 1;
-    };
-
     // ---- Main loop --------------------------------------------------
     let raf = 0;
     let lastDraw = 0;
@@ -391,11 +404,12 @@ export function BlackHoleGate() {
             return;
           }
         } else {
-          const t = Math.min((now - wormholeStart) / 900, 1);
+          const t = Math.min((now - wormholeStart) / 1300, 1);
           const e = t * t * (3 - 2 * t);
+          plunge = e;
           zoom = 1 + e * e * 26;
           rot = e * 0.35;
-          whiteout = Math.max((t - 0.45) / 0.55, 0);
+          whiteout = Math.max((t - 0.62) / 0.38, 0);
           if (t >= 1) {
             finish();
             return;
@@ -405,21 +419,28 @@ export function BlackHoleGate() {
 
       // Draw.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = PAPER;
-      ctx.fillRect(0, 0, w, h);
-      ctx.save();
-      if (zoom > 1) {
-        ctx.translate(cx, cy);
-        ctx.rotate(rot);
-        ctx.scale(zoom, zoom);
-        ctx.translate(-cx, -cy);
+      if (glr && !glr.lost()) {
+        // Lensed 3D scene below; this canvas carries only the letters.
+        glr.render(now, plunge);
+        ctx.clearRect(0, 0, w, h);
+        drawLetters(now);
+      } else {
+        // 2D etched fallback (no WebGL2, or the context died mid-scene).
+        ctx.fillStyle = PAPER;
+        ctx.fillRect(0, 0, w, h);
+        ctx.save();
+        if (zoom > 1) {
+          ctx.translate(cx, cy);
+          ctx.rotate(rot);
+          ctx.scale(zoom, zoom);
+          ctx.translate(-cx, -cy);
+        }
+        const sceneAlpha = 1 - whiteout;
+        disk(now, sceneAlpha);
+        hole(sceneAlpha);
+        drawLetters(now);
+        ctx.restore();
       }
-      const sceneAlpha = 1 - whiteout;
-      disk(now, sceneAlpha);
-      hole(sceneAlpha);
-      drawLetters(now);
-      ctx.restore();
-      if (phaseRef.current === "idle") hint(1);
       if (whiteout > 0) {
         ctx.fillStyle = PAPER;
         ctx.globalAlpha = whiteout;
@@ -457,6 +478,7 @@ export function BlackHoleGate() {
 
     return () => {
       cancelAnimationFrame(raf);
+      glr?.dispose();
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
       wrap.removeEventListener("click", onClick);
@@ -477,6 +499,7 @@ export function BlackHoleGate() {
   // Portal to <body>: no ancestor transform can trap the fixed overlay.
   return createPortal(
     <div className="fixed inset-0 z-[70] bg-paper">
+      <canvas ref={glCanvasRef} className="absolute inset-0 h-full w-full" />
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       <div
         ref={wrapRef}
@@ -485,6 +508,13 @@ export function BlackHoleGate() {
         aria-label="Enter the site. Press Enter to let the name fall into the black hole, or Escape to go straight to the content."
         className="absolute inset-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
       />
+      <div
+        ref={hintRef}
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-sans text-[11px] font-medium uppercase tracking-[0.4em] text-muted transition-opacity duration-500"
+      >
+        {hintText}
+      </div>
       <button
         type="button"
         onClick={() => {
