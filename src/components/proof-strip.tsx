@@ -1,19 +1,21 @@
-import { getContributions } from "@/lib/data/github";
-import { getIvyState } from "@/lib/data/ivy";
+import type { Contributions } from "@/lib/data/github";
+import type { IvyState } from "@/lib/data/ivy";
 import { ContributionGraph } from "./contribution-graph";
 import { StatTile } from "./stat-tile";
 
 /**
  * The live section of the homepage: real GitHub activity and the Ivy
  * system's own state, refreshed hourly. Every element degrades to a static
- * fallback — an API failure can never break the page (DESIGN.md).
+ * fallback — an API failure can never break the page (DESIGN.md). Data is
+ * fetched once by the page and shared with the hero counters.
  */
-export async function ProofStrip() {
-  const [contributions, ivy] = await Promise.all([
-    getContributions(),
-    getIvyState(),
-  ]);
-
+export function ProofStrip({
+  contributions,
+  ivy,
+}: {
+  contributions: Contributions | null;
+  ivy: IvyState | null;
+}) {
   return (
     <section aria-labelledby="proof-heading" className="flex flex-col gap-6">
       <h2 id="proof-heading" className="text-sm font-medium uppercase tracking-widest text-muted">

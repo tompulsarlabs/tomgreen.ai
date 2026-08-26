@@ -17,9 +17,9 @@ import type { CategoryId, GraphEdge, GraphNode } from "@/lib/content/graph";
  */
 const SCENE_BG = "#070908";
 const CAT_HEX: Record<CategoryId, string> = {
-  agents: "#6fb598",
-  products: "#7c9cc9",
-  talent: "#c98f66",
+  agents: "#479a72",
+  products: "#5d84c4",
+  talent: "#c07647",
   craft: "#a49d90",
 };
 const TECH_HEX = "#7d7b72";

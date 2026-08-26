@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Loader } from "@/components/loader";
 import { SiteHeader } from "@/components/site-header";
 import { isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
@@ -41,6 +42,10 @@ export const metadata: Metadata = {
   robots: isLaunched ? undefined : { index: false, follow: false },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#070908",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -48,12 +53,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        {/* Gate for scroll-reveal CSS: without JS, nothing is ever hidden. */}
+        {/* .js gates scroll-reveal CSS (no-JS never hides content);
+            .entering paints the entrance ground before first paint, once
+            per session, never under reduced motion. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: "document.documentElement.classList.add('js')",
+            __html:
+              "document.documentElement.classList.add('js');try{if(!sessionStorage.getItem('tg-entered')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('entering');sessionStorage.setItem('tg-entered','1')}}catch(e){}",
           }}
         />
+        <Loader />
         <SiteHeader />
         <main className="mx-auto w-full max-w-4xl flex-1 px-6">{children}</main>
         <SiteFooter />

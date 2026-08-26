@@ -37,7 +37,7 @@ const statusStyle: Record<string, string> = {
 
 export default function Building() {
   return (
-    <div data-theme-scope="space" className="flex flex-col gap-12 pb-16">
+    <div className="flex flex-col gap-12 pb-16">
       <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
 
       {categoryOrder.map((catId) => {

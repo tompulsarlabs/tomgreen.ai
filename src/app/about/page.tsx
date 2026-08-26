@@ -38,7 +38,7 @@ export default function About() {
           {/* The line the journey runs along. */}
           <div
             aria-hidden
-            className="absolute bottom-6 left-[7px] top-2 w-px"
+            className="journey-line absolute bottom-6 left-[7px] top-2 w-px"
             style={{
               background:
                 "linear-gradient(to bottom, var(--accent), var(--hairline) 30%, var(--hairline) 85%, transparent)",
