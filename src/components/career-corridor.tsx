@@ -75,6 +75,10 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
           const emerge = near * near * (3 - 2 * near);
           content.style.opacity = emerge.toFixed(3);
           content.style.transform = `translateY(${(1 - emerge) * 22}px)`;
+          // Only the focused chapter is clickable — every chapter is a
+          // full-viewport layer, and later layers paint above earlier ones,
+          // so anything else would swallow the links below it.
+          content.style.pointerEvents = emerge > 0.5 ? "auto" : "none";
         }
       }
 
@@ -130,7 +134,7 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
             ref={(el) => {
               chaptersRef.current[i] = el;
             }}
-            className="corridor-chapter absolute inset-0 flex items-center justify-center"
+            className="corridor-chapter pointer-events-none absolute inset-0 flex items-center justify-center"
             style={{ transformStyle: "preserve-3d", opacity: 0 }}
           >
             {/* Ghost year monument, deep behind the chapter. */}

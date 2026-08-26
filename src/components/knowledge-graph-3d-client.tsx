@@ -309,6 +309,7 @@ export default function KnowledgeGraph3DClient({
   // mutated directly for hover/selection — rebuilding meshes on state
   // changes caused visible hitching, so compiler memoization is opted out.
   const fgRef = useRef<ForceGraphMethods | undefined>(undefined);
+  const controlsRef = useRef<{ autoRotate: boolean } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 700 });
   const [hovered, setHovered] = useState<string | null>(null);
@@ -446,7 +447,10 @@ export default function KnowledgeGraph3DClient({
                 transparent: true,
               });
             })();
-      const planet = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 48), planetMat);
+      const planet = new THREE.Mesh(
+        new THREE.SphereGeometry(r, node.kind === "hub" ? 40 : 32, node.kind === "hub" ? 40 : 32),
+        planetMat,
+      );
       planet.rotation.z = 0.35;
       group.add(planet);
       if (node.kind !== "tech") {
@@ -468,7 +472,7 @@ export default function KnowledgeGraph3DClient({
           blending: THREE.AdditiveBlending,
           depthWrite: false,
         });
-        group.add(new THREE.Mesh(new THREE.SphereGeometry(r * 1.16, 32, 32), shellMat));
+        group.add(new THREE.Mesh(new THREE.SphereGeometry(r * 1.16, 24, 24), shellMat));
       }
       const haloMat = new THREE.SpriteMaterial({
         map: haloTexture(hex),
@@ -478,7 +482,7 @@ export default function KnowledgeGraph3DClient({
         opacity: node.kind === "tech" ? 0.14 : 0.22,
       });
       const halo = new THREE.Sprite(haloMat);
-      const haloScale = r * 4.2;
+      const haloScale = r * 3.6;
       halo.scale.set(haloScale, haloScale, 1);
       group.add(halo);
 
@@ -528,6 +532,14 @@ export default function KnowledgeGraph3DClient({
         label.material.depthWrite = false;
         group.add(label);
       }
+
+      // Fat invisible hit target: clicking a planet shouldn't require
+      // pixel-hunting a moving sphere.
+      const hit = new THREE.Mesh(
+        new THREE.SphereGeometry(Math.max(r * 1.8, 9), 8, 8),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+      );
+      group.add(hit);
 
       partsRef.current.set(node.id, {
         group,
@@ -611,7 +623,7 @@ export default function KnowledgeGraph3DClient({
       // Filmic rendering: ACES tone mapping, capped pixel ratio, and a
       // subtle image-based environment so materials pick up real ambience.
       const renderer = fg.renderer();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.25;
       import("three/examples/jsm/environments/RoomEnvironment.js")
@@ -642,7 +654,7 @@ export default function KnowledgeGraph3DClient({
       scene.add(fill);
 
       // Two star layers: fine distant dust and a few brighter near stars.
-      const starCount = 1400;
+      const starCount = 1000;
       const positions = new Float32Array(starCount * 3);
       for (let i = 0; i < starCount; i++) {
         const rad = 700 + Math.random() * 900;
@@ -773,6 +785,26 @@ export default function KnowledgeGraph3DClient({
   );
 
   const detail = byId.get(hovered ?? selected) ?? nodes[0];
+  const namedOrder = useMemo(() => {
+    const order: string[] = [];
+    for (const cat of ["agents", "talent", "products", "craft"] as CategoryId[]) {
+      order.push(`cat:${cat}`);
+      for (const n of nodes) {
+        if (n.category === cat && n.kind !== "hub" && n.kind !== "tech") {
+          order.push(n.id);
+        }
+      }
+    }
+    return order;
+  }, [nodes]);
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      const idx = namedOrder.indexOf(selected);
+      const next = namedOrder[(idx + dir + namedOrder.length) % namedOrder.length];
+      flyToId(next);
+    },
+    [namedOrder, selected, flyToId],
+  );
   const panelCategory: CategoryId = detail.category ?? "agents";
   const panelMembers = nodes.filter(
     (n) => n.category === panelCategory && n.kind !== "hub" && n.kind !== "tech",
@@ -799,6 +831,15 @@ export default function KnowledgeGraph3DClient({
         ref={wrapRef}
         className="graph-scene relative h-[calc(100dvh-3.9rem)] min-h-[560px] w-full overflow-hidden"
         style={{ touchAction: "pan-y" }}
+        onPointerEnter={() => {
+          // The scene holds still while you aim.
+          if (controlsRef.current) controlsRef.current.autoRotate = false;
+        }}
+        onPointerLeave={() => {
+          if (controlsRef.current && !reducedRef.current) {
+            controlsRef.current.autoRotate = true;
+          }
+        }}
       >
         <ForceGraph3D
           ref={onEngineInit as never}
@@ -816,7 +857,7 @@ export default function KnowledgeGraph3DClient({
           linkDirectionalParticles={particleCount}
           linkDirectionalParticleSpeed={0.0055}
           linkDirectionalParticleWidth={1.4}
-          rendererConfig={{ preserveDrawingBuffer: true, antialias: true }}
+          rendererConfig={{ antialias: true }}
           showNavInfo={false}
         />
 
@@ -892,9 +933,29 @@ export default function KnowledgeGraph3DClient({
           )}
 
           <div className="mt-1 flex flex-col gap-1.5 border-t border-white/10 pt-3">
-            <h2 className="font-display text-xl tracking-tight text-[#f2f0e9]">
-              {detail.label}
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display text-xl tracking-tight text-[#f2f0e9]">
+                {detail.label}
+              </h2>
+              <span className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  aria-label="Previous planet"
+                  onClick={() => step(-1)}
+                  className="rounded-md border border-white/15 px-2 py-1 text-sm text-[#e6e4dc] transition-colors hover:border-white/30 hover:bg-white/10"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next planet"
+                  onClick={() => step(1)}
+                  className="rounded-md border border-white/15 px-2 py-1 text-sm text-[#e6e4dc] transition-colors hover:border-white/30 hover:bg-white/10"
+                >
+                  →
+                </button>
+              </span>
+            </div>
             {detail.blurb && (
               <p className="text-sm leading-relaxed text-[#b9b6ab]">
                 {detail.blurb}

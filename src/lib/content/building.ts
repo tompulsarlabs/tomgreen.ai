@@ -38,7 +38,7 @@ export const projects: Project[] = [
     status: "in the lab",
     tagline: "AI capability assessment platform",
     description: [
-      "A product-led assessment and learning-path tool for AI capability in teams — Next.js and Supabase, with Claude and Gemini doing the assessment reasoning. Currently in the lab.",
+      "A product-led assessment and learning-path tool for AI capability in teams, with Claude and Gemini doing the assessment reasoning. Currently in the lab.",
     ],
     stack: ["Next.js", "Supabase", "Claude API", "Gemini"],
   },
@@ -59,7 +59,7 @@ export const projects: Project[] = [
     status: "shipped",
     tagline: "An English-learning game for a seven-year-old",
     description: [
-      "A touch-based English-learning game built for a specific seven-year-old and her iPad. Expo and TypeScript. The best product spec is a single user you know well.",
+      "A touch-based English-learning game built for a specific seven-year-old and her iPad. The best product spec is a single user you know well.",
     ],
     repo: "https://github.com/tompulsarlabs/margaux-en-tutor",
     stack: ["Expo", "React Native", "TypeScript"],
