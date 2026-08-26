@@ -15,7 +15,8 @@ import type { CategoryId, GraphEdge, GraphNode } from "@/lib/content/graph";
  * deliberately dark in both themes; overlay text uses fixed light colors,
  * never theme tokens.
  */
-const SCENE_BG = "#070908";
+/** Canvas is transparent; the twilight sky lives in .graph-scene CSS. */
+const SCENE_BG = "rgba(0,0,0,0)";
 const CAT_HEX: Record<CategoryId, string> = {
   agents: "#479a72",
   products: "#5d84c4",
@@ -51,7 +52,7 @@ const linkEnd = (e: string | FGNode) => (typeof e === "string" ? e : e.id);
 
 /* Stable accessors — new function identities would make the graph rebuild
    objects on every React render. */
-const LINK_COLOR = "#39413c";
+const LINK_COLOR = "#4d5665";
 const techLabel = (n: FGNode) => (n.kind === "tech" ? n.label : "");
 const particleCount = (l: FGLink) => (l.cross ? 2 : 0);
 
@@ -283,7 +284,7 @@ function applySceneStyle(
     const active = hovered !== null && (a === hovered || b === hovered);
     const h = hovered ? byId.get(hovered) : undefined;
     mat.color.set(
-      active ? (h?.category ? CAT_HEX[h.category] : "#8a887f") : LINK_COLOR,
+      active ? (h?.category ? CAT_HEX[h.category] : "#98a1ae") : LINK_COLOR,
     );
     mat.opacity = active ? 0.9 : hovered !== null ? 0.1 : 0.35;
   }
@@ -628,7 +629,7 @@ export default function KnowledgeGraph3DClient({
       // Depth fog: distant planets recede into the dark instead of
       // hard-clipping — the scene gets atmospheric depth for free.
       const scene = fg.scene();
-      scene.fog = new THREE.FogExp2(0x070908, 0.0013);
+      scene.fog = new THREE.FogExp2(0x1c242f, 0.0013);
       scene.traverse((o) => {
         const light = o as THREE.Light;
         if (light.isLight) light.intensity *= 0.25;
@@ -656,10 +657,10 @@ export default function KnowledgeGraph3DClient({
       const stars = new THREE.Points(
         starGeo,
         new THREE.PointsMaterial({
-          color: 0xaab4c0,
+          color: 0xd3dae4,
           size: 1.1,
           transparent: true,
-          opacity: 0.3,
+          opacity: 0.42,
           sizeAttenuation: true,
           depthWrite: false,
         }),
@@ -797,7 +798,7 @@ export default function KnowledgeGraph3DClient({
       <div
         ref={wrapRef}
         className="graph-scene relative h-[calc(100dvh-3.9rem)] min-h-[560px] w-full overflow-hidden"
-        style={{ background: SCENE_BG, touchAction: "pan-y" }}
+        style={{ touchAction: "pan-y" }}
       >
         <ForceGraph3D
           ref={onEngineInit as never}
@@ -848,7 +849,7 @@ export default function KnowledgeGraph3DClient({
             the map is always the explicit "Open details" action. */}
         <aside
           aria-live="polite"
-          className="absolute inset-x-0 bottom-0 flex flex-col gap-3 border-t border-white/10 bg-black/55 p-5 backdrop-blur-md md:inset-x-auto md:bottom-auto md:right-8 md:top-8 md:w-80 md:rounded-lg md:border"
+          className="absolute inset-x-0 bottom-0 flex flex-col gap-3 border-t border-white/10 bg-[#10161f]/65 p-5 backdrop-blur-md md:inset-x-auto md:bottom-auto md:right-8 md:top-8 md:w-80 md:rounded-lg md:border"
         >
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Fly to a category">
             {(Object.keys(CAT_LABEL) as CategoryId[]).map((id) => (

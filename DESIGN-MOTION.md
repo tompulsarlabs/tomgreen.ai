@@ -50,10 +50,13 @@ constant but small physical responses to input.
 Two grounds, defined in `globals.css` (paper is the default; space is scoped
 to pages carrying the map):
 
-- **Paper (default):** ground `#faf9f6` · cards `#ffffff` · hairline
-  `#e7e5dd` · ink `#1a1915` · accent `#156d40`
-- **Space (/building):** ground `#070908` · panels `#101412` · hairline
-  `#21251f` · ink `#f0efe9` · accent `#5cc189`
+- **Paper (default):** true white ground `#ffffff` (whitespace is a first
+  principle here) · cards `#fbfaf7` · hairline `#eae8e1` · ink `#191815` ·
+  accent `#156d40`
+- **Space (/building):** twilight, not black (amended on Tom's direction:
+  easier on the eye, still night) — gradient sky `#141a23` to `#26303f`
+  with a faint nebula wash of the category tints · panels `#212a35` ·
+  hairline `#2e3845` · ink `#eef0f2` · accent `#5cc189`
 - Categories (map + chips only): agents `#479a72` · products `#5d84c4` ·
   talent `#c07647` — validated as a trio (all-pairs, dark surface `#070908`)
   with the palette validator; craft `#a49d90` is the deliberate neutral

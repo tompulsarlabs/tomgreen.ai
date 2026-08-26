@@ -11,12 +11,12 @@
  */
 :root {
   color-scheme: light;
-  --paper: #faf9f6;
-  --ink: #1a1915;
+  --paper: #ffffff;
+  --ink: #191815;
   --ink-secondary: #55534c;
   --muted: #8a877f;
-  --hairline: #e7e5dd;
-  --card: #ffffff;
+  --hairline: #eae8e1;
+  --card: #fbfaf7;
   --accent: #156d40;
   --accent-ink: #0d5c33;
 
@@ -32,23 +32,24 @@
   --cat-craft: #8f897c;
 }
 
-/* The space ground: any page carrying the planetary map runs fully dark. */
+/* The space ground: any page carrying the planetary map runs on twilight,
+   deep slate-indigo rather than black: easier on the eye, still night. */
 body:has([data-theme-scope="space"]) {
   color-scheme: dark;
-  --paper: #070908;
-  --ink: #f0efe9;
-  --ink-secondary: #b6b4aa;
-  --muted: #85837b;
-  --hairline: #21251f;
-  --card: #101412;
+  --paper: #191f28;
+  --ink: #eef0f2;
+  --ink-secondary: #bac1cb;
+  --muted: #8b93a0;
+  --hairline: #2e3845;
+  --card: #212a35;
   --accent: #5cc189;
   --accent-ink: #66cf8f;
 
-  --heat-0: #171a17;
-  --heat-1: #205c39;
-  --heat-2: #2f7f4f;
-  --heat-3: #46a86c;
-  --heat-4: #66cf8f;
+  --heat-0: #222a34;
+  --heat-1: #2a6a45;
+  --heat-2: #398f5c;
+  --heat-3: #4fb377;
+  --heat-4: #6fd898;
 
   --cat-craft: #a49d90;
 }
@@ -222,6 +223,15 @@ button:focus-visible {
    still orbit the scene. OrbitControls sets touch-action:none inline. */
 .graph-scene canvas {
   touch-action: pan-y !important;
+}
+
+/* The map's sky: twilight gradient with a faint nebula wash of the
+   category tints. The canvas above it renders transparent. */
+.graph-scene {
+  background:
+    radial-gradient(120% 90% at 76% 12%, rgba(93, 132, 196, 0.1), transparent 55%),
+    radial-gradient(110% 85% at 18% 88%, rgba(71, 154, 114, 0.08), transparent 55%),
+    linear-gradient(180deg, #141a23 0%, #1b222d 55%, #26303f 100%);
 }
 
 /* The career corridor (desktop set piece): a perspective stage the camera

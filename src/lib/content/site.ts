@@ -11,7 +11,6 @@ export const site = {
     linkedin: "https://linkedin.com/in/tomegreen",
   },
   nav: [
-    { href: "/work", label: "Work" },
     { href: "/building", label: "Building" },
     { href: "/about", label: "About" },
   ],

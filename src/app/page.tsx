@@ -100,8 +100,8 @@ export default async function Home() {
           >
             Selected work
           </h2>
-          <Link href="/work" className="text-sm text-accent hover:underline">
-            All case studies
+          <Link href="/building" className="text-sm text-accent hover:underline">
+            Explore the map
           </Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
