@@ -17,12 +17,12 @@ import type { CategoryId, GraphEdge, GraphNode } from "@/lib/content/graph";
  */
 const SCENE_BG = "#070908";
 const CAT_HEX: Record<CategoryId, string> = {
-  agents: "#34d399",
-  products: "#5b9df5",
-  talent: "#f9863b",
-  craft: "#b0aa9d",
+  agents: "#6fb598",
+  products: "#7c9cc9",
+  talent: "#c98f66",
+  craft: "#a49d90",
 };
-const TECH_HEX = "#8b897f";
+const TECH_HEX = "#7d7b72";
 const NODE_R = { hub: 9, project: 5.2, case: 5.2, tech: 1.7 } as const;
 
 const CAT_LABEL: Record<CategoryId, string> = {
@@ -48,6 +48,29 @@ type FGLink = {
 };
 
 const linkEnd = (e: string | FGNode) => (typeof e === "string" ? e : e.id);
+
+/** Saturn ring with soft inner/outer falloff and faint striping. */
+const ringCache = new Map<string, THREE.CanvasTexture>();
+function ringTexture(hex: string): THREE.CanvasTexture {
+  const cached = ringCache.get(hex);
+  if (cached) return cached;
+  const S = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(S / 2, S / 2, S * 0.3, S / 2, S / 2, S * 0.5);
+  g.addColorStop(0, `${hex}00`);
+  g.addColorStop(0.18, `${hex}55`);
+  g.addColorStop(0.38, `${hex}22`);
+  g.addColorStop(0.52, `${hex}66`);
+  g.addColorStop(0.72, `${hex}33`);
+  g.addColorStop(1, `${hex}00`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  const tex = new THREE.CanvasTexture(c);
+  ringCache.set(hex, tex);
+  return tex;
+}
 
 /** The edges that draw the positioning argument get flowing particles. */
 const CROSS_EDGES = new Set([
@@ -81,33 +104,27 @@ function planetTexture(hex: string): THREE.CanvasTexture {
   c.width = W;
   c.height = H;
   const ctx = c.getContext("2d")!;
-  ctx.fillStyle = shade(hex, 0.9);
+  // Base: a soft vertical falloff so the sphere reads dimensional even
+  // before lighting.
+  const base = ctx.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, shade(hex, 0.82));
+  base.addColorStop(0.45, shade(hex, 1.0));
+  base.addColorStop(1, shade(hex, 0.72));
+  ctx.fillStyle = base;
   ctx.fillRect(0, 0, W, H);
-  // Latitude bands with soft edges.
-  let y = 0;
-  while (y < H) {
-    const bandH = 8 + Math.random() * 26;
-    const f = 0.72 + Math.random() * 0.55;
+  // A few wide, soft latitude bands — atmosphere, not noise.
+  let y = 10;
+  while (y < H - 10) {
+    const bandH = 26 + Math.random() * 42;
     const g = ctx.createLinearGradient(0, y, 0, y + bandH);
-    const col = shade(hex, f);
+    const col = shade(hex, 0.88 + Math.random() * 0.22);
     g.addColorStop(0, "rgba(0,0,0,0)");
     g.addColorStop(0.5, col);
     g.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = g;
-    ctx.globalAlpha = 0.55;
+    ctx.globalAlpha = 0.3;
     ctx.fillRect(0, y, W, bandH);
-    y += bandH * 0.7;
-  }
-  // Storm speckle.
-  ctx.globalAlpha = 0.28;
-  for (let i = 0; i < 260; i++) {
-    const rx = Math.random() * W;
-    const ry = Math.random() * H;
-    const rr = 1 + Math.random() * 5;
-    ctx.fillStyle = shade(hex, Math.random() < 0.5 ? 0.6 : 1.35);
-    ctx.beginPath();
-    ctx.ellipse(rx, ry, rr * 2.2, rr, 0, 0, Math.PI * 2);
-    ctx.fill();
+    y += bandH * 0.85;
   }
   ctx.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(c);
@@ -250,7 +267,7 @@ export default function KnowledgeGraph3DClient({
               roughness: 0.85,
               metalness: 0,
               emissive: hex,
-              emissiveIntensity: dim ? 0.02 : 0.14,
+              emissiveIntensity: dim ? 0.02 : 0.08,
               transparent: true,
               opacity: dim ? 0.16 : 1,
             }),
@@ -264,29 +281,44 @@ export default function KnowledgeGraph3DClient({
         });
       }
 
-      // Atmosphere.
+      // Atmosphere: a backside shell gives a real limb glow that hugs the
+      // sphere, plus a faint wide sprite for bloom-like falloff.
+      if (node.kind !== "tech") {
+        const shell = new THREE.Mesh(
+          new THREE.SphereGeometry(r * 1.16, 32, 32),
+          new THREE.MeshBasicMaterial({
+            color: hex,
+            transparent: true,
+            opacity: dim ? 0.02 : 0.16,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          }),
+        );
+        group.add(shell);
+      }
       const halo = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map: haloTexture(hex),
           blending: THREE.AdditiveBlending,
           depthWrite: false,
           transparent: true,
-          opacity: dim ? 0.03 : node.kind === "tech" ? 0.25 : 0.6,
+          opacity: dim ? 0.02 : node.kind === "tech" ? 0.14 : 0.22,
         }),
       );
-      const haloScale = r * 4.6;
+      const haloScale = r * 4.2;
       halo.scale.set(haloScale, haloScale, 1);
       group.add(halo);
 
-      // Hubs are ringed planets.
+      // Hubs are ringed planets — soft falloff, faint striping.
       if (node.kind === "hub") {
         const ring = new THREE.Mesh(
-          new THREE.RingGeometry(r * 1.45, r * 2.15, 48),
+          new THREE.PlaneGeometry(r * 4.6, r * 4.6),
           new THREE.MeshBasicMaterial({
-            color: hex,
+            map: ringTexture(hex),
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: dim ? 0.05 : 0.4,
+            opacity: dim ? 0.08 : 0.75,
             depthWrite: false,
           }),
         );
@@ -315,7 +347,7 @@ export default function KnowledgeGraph3DClient({
         const label = new SpriteText(
           node.label,
           node.kind === "hub" ? 5 : 3.6,
-          dim ? "rgba(220,218,208,0.14)" : "rgba(236,234,226,0.88)",
+          dim ? "rgba(220,218,208,0.14)" : "rgba(230,228,220,0.82)",
         );
         label.fontWeight = node.kind === "hub" ? "600" : "400";
         label.position.set(0, -(r * 2.3 + 3), 0);
@@ -350,24 +382,34 @@ export default function KnowledgeGraph3DClient({
         return 66;
       });
 
-      // Frame with a fixed camera distance; zoomToFit is unreliable
-      // mid-settle (the d3 cloud starts compressed).
-      fg.cameraPosition({ x: 0, y: 0, z: 270 });
+      // Cinematic entrance: start pulled back, then dolly in as the system
+      // settles. (Fixed distances — zoomToFit is unreliable mid-settle.)
+      if (reducedRef.current) {
+        fg.cameraPosition({ x: 0, y: 0, z: 280 });
+      } else {
+        fg.cameraPosition({ x: 40, y: 20, z: 425 });
+        window.setTimeout(() => {
+          fg.cameraPosition({ x: 0, y: 0, z: 280 }, undefined, 2200);
+        }, 400);
+      }
 
-      // Sun-and-fill lighting so the globes show a terminator, plus stars.
+      // Depth fog: distant planets recede into the dark instead of
+      // hard-clipping — the scene gets atmospheric depth for free.
       const scene = fg.scene();
+      scene.fog = new THREE.FogExp2(0x070908, 0.0013);
       scene.traverse((o) => {
         const light = o as THREE.Light;
         if (light.isLight) light.intensity *= 0.25;
       });
-      const sun = new THREE.DirectionalLight(0xfff2dc, 2.6);
+      const sun = new THREE.DirectionalLight(0xfff2dc, 2.0);
       sun.position.set(300, 180, 220);
       scene.add(sun);
-      const fill = new THREE.DirectionalLight(0x9db8ff, 0.7);
+      const fill = new THREE.DirectionalLight(0x9db8ff, 0.5);
       fill.position.set(-260, -120, -180);
       scene.add(fill);
 
-      const starCount = 900;
+      // Two star layers: fine distant dust and a few brighter near stars.
+      const starCount = 1400;
       const positions = new Float32Array(starCount * 3);
       for (let i = 0; i < starCount; i++) {
         const rad = 700 + Math.random() * 900;
@@ -383,9 +425,9 @@ export default function KnowledgeGraph3DClient({
         starGeo,
         new THREE.PointsMaterial({
           color: 0xaab4c0,
-          size: 1.6,
+          size: 1.1,
           transparent: true,
-          opacity: 0.55,
+          opacity: 0.3,
           sizeAttenuation: true,
           depthWrite: false,
         }),
@@ -404,7 +446,7 @@ export default function KnowledgeGraph3DClient({
       controls.maxDistance = 430;
       if (!reducedRef.current) {
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.45;
+        controls.autoRotateSpeed = 0.35;
         controls.addEventListener("start", () => {
           controls.autoRotate = false;
         });
@@ -451,35 +493,44 @@ export default function KnowledgeGraph3DClient({
     );
   }, []);
 
-  // Click = go somewhere: the camera acknowledges with a short flight, then
-  // the page glides down to that planet's section. Hubs land on their
-  // category heading; moons just get the camera nudge.
+  // Clicking a planet selects it and flies the camera — exploration stays
+  // in the map. Leaving it is always explicit: the panel's "Open details".
   const navigateTo = useCallback(
     (node: FGNode) => {
       setSelected(node.id);
-      flyTo(node, 550);
-      const anchor =
-        node.kind === "hub"
-          ? `cat-${node.category}`
-          : node.kind === "tech"
-            ? null
-            : node.id;
-      if (!anchor) return;
-      const reduced = reducedRef.current;
-      window.setTimeout(
-        () => {
-          document
-            .getElementById(anchor)
-            ?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-        },
-        reduced ? 0 : 620,
-      );
+      flyTo(node, 700);
     },
     [flyTo],
   );
 
+  // Panel navigation: fly to any named planet by id, no 3D hunting.
+  const flyToId = useCallback(
+    (id: string) => {
+      const n = graphData.nodes.find((x) => x.id === id);
+      if (n) navigateTo(n);
+    },
+    [graphData, navigateTo],
+  );
+
+  const openDetails = useCallback((node: GraphNode) => {
+    const anchor =
+      node.kind === "hub"
+        ? `cat-${node.category}`
+        : node.kind === "tech"
+          ? null
+          : node.id;
+    if (!anchor) return;
+    document.getElementById(anchor)?.scrollIntoView({
+      behavior: reducedRef.current ? "auto" : "smooth",
+      block: "start",
+    });
+  }, []);
+
   const detail = byId.get(hovered ?? selected) ?? nodes[0];
-  const detailHex = detail.category ? CAT_HEX[detail.category] : TECH_HEX;
+  const panelCategory: CategoryId = detail.category ?? "agents";
+  const panelMembers = nodes.filter(
+    (n) => n.category === panelCategory && n.kind !== "hub" && n.kind !== "tech",
+  );
 
   const detailLink = detail.href ? (
     detail.href.startsWith("/") ? (
@@ -522,17 +573,17 @@ export default function KnowledgeGraph3DClient({
             }
             return "#39413c";
           }}
-          linkOpacity={0.5}
+          linkOpacity={0.45}
           linkWidth={(l: FGLink) => {
             const a = linkEnd(l.source);
             const b = linkEnd(l.target);
             return hovered && (a === hovered || b === hovered) ? 1.4 : 0.4;
           }}
           linkDirectionalParticles={(l: FGLink) =>
-            l.cross && !reducedRef.current ? 3 : 0
+            l.cross && !reducedRef.current ? 2 : 0
           }
           linkDirectionalParticleSpeed={0.0055}
-          linkDirectionalParticleWidth={1.8}
+          linkDirectionalParticleWidth={1.4}
           rendererConfig={{ preserveDrawingBuffer: true, antialias: true }}
           showNavInfo={false}
         />
@@ -561,34 +612,82 @@ export default function KnowledgeGraph3DClient({
           </ul>
         </div>
 
-        {/* Detail panel: floating glass card (bottom sheet on mobile). */}
+        {/* Navigator panel: travel between planets without 3D hunting —
+            category chips fly to hubs, pills fly to members, and leaving
+            the map is always the explicit "Open details" action. */}
         <aside
           aria-live="polite"
-          className="absolute inset-x-0 bottom-0 flex flex-col gap-2 border-t border-white/10 bg-black/55 p-5 backdrop-blur-md md:inset-x-auto md:bottom-auto md:right-8 md:top-8 md:w-72 md:rounded-lg md:border"
+          className="absolute inset-x-0 bottom-0 flex flex-col gap-3 border-t border-white/10 bg-black/55 p-5 backdrop-blur-md md:inset-x-auto md:bottom-auto md:right-8 md:top-8 md:w-80 md:rounded-lg md:border"
         >
-          <span className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-[#8f8d84]">
-            <span
-              className="size-2.5 rounded-full"
-              style={{ background: detailHex }}
-            />
-            {detail.category ? CAT_LABEL[detail.category] : "Stack"}
-          </span>
-          <h2 className="font-display text-xl tracking-tight text-[#f2f0e9]">
-            {detail.label}
-          </h2>
-          {detail.blurb && (
-            <p className="text-sm leading-relaxed text-[#b9b6ab]">
-              {detail.blurb}
-            </p>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Fly to a category">
+            {(Object.keys(CAT_LABEL) as CategoryId[]).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => flyToId(`cat:${id}`)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                  panelCategory === id
+                    ? "border-white/25 bg-white/10 text-[#f2f0e9]"
+                    : "border-white/10 text-[#a5a299] hover:border-white/25 hover:text-[#e6e4dc]"
+                }`}
+              >
+                <span
+                  className="size-2 rounded-full"
+                  style={{ background: CAT_HEX[id] }}
+                />
+                {CAT_LABEL[id]}
+              </button>
+            ))}
+          </div>
+
+          {panelMembers.length > 0 && (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Fly to a planet">
+              {panelMembers.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => flyToId(m.id)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                    detail.id === m.id
+                      ? "border-white/25 bg-white/10 text-[#f2f0e9]"
+                      : "border-white/10 text-[#a5a299] hover:border-white/25 hover:text-[#e6e4dc]"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
           )}
-          {detail.meta && (
-            <p className="hidden text-xs text-[#8f8d84] md:block">{detail.meta}</p>
-          )}
-          {detailLink}
+
+          <div className="mt-1 flex flex-col gap-1.5 border-t border-white/10 pt-3">
+            <h2 className="font-display text-xl tracking-tight text-[#f2f0e9]">
+              {detail.label}
+            </h2>
+            {detail.blurb && (
+              <p className="text-sm leading-relaxed text-[#b9b6ab]">
+                {detail.blurb}
+              </p>
+            )}
+            {detail.meta && (
+              <p className="hidden text-xs text-[#8f8d84] md:block">{detail.meta}</p>
+            )}
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {detail.kind !== "tech" && (
+                <button
+                  type="button"
+                  onClick={() => openDetails(detail)}
+                  className="rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-[#e6e4dc] transition-colors hover:border-white/30 hover:bg-white/10"
+                >
+                  Open details ↓
+                </button>
+              )}
+              {detailLink}
+            </div>
+          </div>
         </aside>
 
         <p className="pointer-events-none absolute bottom-4 left-6 hidden text-xs text-[#726f66] md:block md:left-10">
-          Drag to orbit · ⌘ scroll to zoom · click a planet to jump to it
+          Drag to orbit · ⌘ scroll to zoom · click a planet or use the panel
         </p>
       </div>
     </section>
