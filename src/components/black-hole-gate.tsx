@@ -20,8 +20,8 @@ import { createBlackHoleRenderer } from "./black-hole-gl";
  * This IS the landing page: it plays on every full load of "/" (client-side
  * navigation within the site never re-triggers it). Theater, never a wall:
  * skipped for reduced-motion and no-JS (server content is always complete
- * underneath), Enter/Space and a visible skip link work, and scrolling
- * collapses it immediately.
+ * underneath), Enter/Space enter, and Escape, scroll, or a click away
+ * from the hole dissolve it immediately.
  */
 
 const GOLD = "#c9971f";
@@ -51,9 +51,6 @@ export function BlackHoleGate() {
   const [active, setActive] = useState(false);
   const [hintText, setHintText] = useState("Click to enter");
   const phaseRef = useRef<Phase>("idle");
-  // The scene effect's finish() — the one exit that also hands focus to
-  // the revealed page. The Skip button routes through it too.
-  const finishRef = useRef<(() => void) | null>(null);
 
   // Activate only when the entrance inline script marked a first visit;
   // the Loader yields `/` to this gate. Async so the canvas can mount
@@ -196,7 +193,6 @@ export function BlackHoleGate() {
         });
       }, 60);
     };
-    finishRef.current = finish;
 
     const beginCollapse = () => {
       if (phaseRef.current !== "idle") return;
@@ -515,21 +511,6 @@ export function BlackHoleGate() {
       >
         {hintText}
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          if (finishRef.current) {
-            finishRef.current();
-          } else {
-            phaseRef.current = "done";
-            document.documentElement.classList.remove("entering");
-            setActive(false);
-          }
-        }}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.25em] text-muted transition-colors hover:text-ink"
-      >
-        Skip ↓
-      </button>
     </div>,
     document.body,
   );
