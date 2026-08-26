@@ -37,7 +37,7 @@ const statusStyle: Record<string, string> = {
 
 export default function Building() {
   return (
-    <div className="flex flex-col gap-12 pb-16">
+    <div data-theme-scope="space" className="flex flex-col gap-12 pb-16">
       <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
 
       {categoryOrder.map((catId) => {
@@ -47,7 +47,7 @@ export default function Building() {
           <section key={catId} aria-labelledby={`cat-${catId}`} className="flex flex-col gap-5">
             <h2
               id={`cat-${catId}`}
-              className="inline-flex items-center gap-2.5 text-sm font-medium uppercase tracking-widest text-muted"
+              className="inline-flex scroll-mt-24 items-center gap-2.5 text-sm font-medium uppercase tracking-widest text-muted"
             >
               <span
                 className="size-2.5 rounded-full"
@@ -58,7 +58,10 @@ export default function Building() {
             <div className="flex flex-col gap-4">
               {catProjects.map((project) => (
                 <Reveal key={project.slug}>
-                  <article className="card-lift flex flex-col gap-3 rounded-lg border border-hairline bg-card p-6">
+                  <article
+                    id={project.slug}
+                    className="card-lift flex scroll-mt-24 flex-col gap-3 rounded-lg border border-hairline bg-card p-6"
+                  >
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <h3 className="font-display text-xl tracking-tight">{project.name}</h3>
                       <span
@@ -89,8 +92,9 @@ export default function Building() {
                   {catCases.map((study) => (
                     <Reveal key={study.slug}>
                       <Link
+                        id={study.slug}
                         href={`/work/${study.slug}`}
-                        className="group card-lift flex h-full flex-col gap-1.5 rounded-lg border border-hairline bg-card p-5"
+                        className="group card-lift flex h-full scroll-mt-24 flex-col gap-1.5 rounded-lg border border-hairline bg-card p-5"
                       >
                         <p className="text-xs text-muted">
                           {study.company} · {study.period}

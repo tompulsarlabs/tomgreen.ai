@@ -160,6 +160,24 @@ button:focus-visible {
   right: 0;
 }
 
+/* A page carrying the planetary map runs fully dark in both themes — one
+   color world from nav to footer, matched to the scene's space black. */
+body:has([data-theme-scope="space"]) {
+  color-scheme: dark;
+  --paper: #070908;
+  --ink: #f0efe9;
+  --ink-secondary: #b6b4aa;
+  --muted: #85837b;
+  --hairline: #21251f;
+  --card: #101412;
+  --accent: #5cc189;
+  --accent-ink: #66cf8f;
+  --cat-agents: #34d399;
+  --cat-products: #5b9df5;
+  --cat-talent: #f9863b;
+  --cat-craft: #b0aa9d;
+}
+
 /* 3D graph: let vertical touch swipes scroll the page; horizontal drags
    still orbit the scene. OrbitControls sets touch-action:none inline. */
 .graph-scene canvas {

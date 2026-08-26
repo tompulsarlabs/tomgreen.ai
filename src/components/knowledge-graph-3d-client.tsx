@@ -396,8 +396,12 @@ export default function KnowledgeGraph3DClient({
         autoRotate: boolean;
         autoRotateSpeed: number;
         enableZoom: boolean;
+        minDistance: number;
+        maxDistance: number;
         addEventListener: (e: string, cb: () => void) => void;
       };
+      controls.minDistance = 150;
+      controls.maxDistance = 430;
       if (!reducedRef.current) {
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0.45;
@@ -408,8 +412,11 @@ export default function KnowledgeGraph3DClient({
 
       // Map-embed convention: a full-viewport scene must never trap the
       // page's scroll wheel. Plain scroll passes through; ⌘/Ctrl+scroll
-      // (and pinch, which browsers report as ctrl+wheel) zooms the camera.
+      // (and pinch, which browsers report as ctrl+wheel) zooms the camera —
+      // clamped to a comfortable range, never infinite in either direction.
       controls.enableZoom = false;
+      const MIN_DIST = 150;
+      const MAX_DIST = 430;
       const canvas = fg.renderer().domElement;
       canvas.addEventListener(
         "wheel",
@@ -417,10 +424,13 @@ export default function KnowledgeGraph3DClient({
           if (!e.ctrlKey && !e.metaKey) return;
           e.preventDefault();
           const cam = fg.camera();
-          const factor = Math.exp(e.deltaY * 0.0015);
-          cam.position.multiplyScalar(
-            Math.min(Math.max(factor, 0.8), 1.25),
+          const factor = Math.min(
+            Math.max(Math.exp(e.deltaY * 0.0015), 0.8),
+            1.25,
           );
+          const dist = cam.position.length();
+          const next = Math.min(Math.max(dist * factor, MIN_DIST), MAX_DIST);
+          cam.position.multiplyScalar(next / dist);
         },
         { passive: false },
       );
@@ -428,7 +438,7 @@ export default function KnowledgeGraph3DClient({
     [byId],
   );
 
-  const flyTo = useCallback((node: FGNode) => {
+  const flyTo = useCallback((node: FGNode, ms = 1100) => {
     const fg = fgRef.current;
     if (!fg || node.x === undefined) return;
     const dist = 150;
@@ -437,11 +447,38 @@ export default function KnowledgeGraph3DClient({
     fg.cameraPosition(
       { x: node.x * k, y: (node.y ?? 0) * k, z: (node.z ?? 0) * k },
       { x: node.x, y: node.y ?? 0, z: node.z ?? 0 },
-      reducedRef.current ? 0 : 1100,
+      reducedRef.current ? 0 : ms,
     );
   }, []);
 
-  const detail = byId.get(selected) ?? nodes[0];
+  // Click = go somewhere: the camera acknowledges with a short flight, then
+  // the page glides down to that planet's section. Hubs land on their
+  // category heading; moons just get the camera nudge.
+  const navigateTo = useCallback(
+    (node: FGNode) => {
+      setSelected(node.id);
+      flyTo(node, 550);
+      const anchor =
+        node.kind === "hub"
+          ? `cat-${node.category}`
+          : node.kind === "tech"
+            ? null
+            : node.id;
+      if (!anchor) return;
+      const reduced = reducedRef.current;
+      window.setTimeout(
+        () => {
+          document
+            .getElementById(anchor)
+            ?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+        },
+        reduced ? 0 : 620,
+      );
+    },
+    [flyTo],
+  );
+
+  const detail = byId.get(hovered ?? selected) ?? nodes[0];
   const detailHex = detail.category ? CAT_HEX[detail.category] : TECH_HEX;
 
   const detailLink = detail.href ? (
@@ -475,10 +512,7 @@ export default function KnowledgeGraph3DClient({
           nodeThreeObject={nodeThreeObject}
           nodeLabel={(n: FGNode) => (n.kind === "tech" ? n.label : "")}
           onNodeHover={(n: FGNode | null) => setHovered(n?.id ?? null)}
-          onNodeClick={(n: FGNode) => {
-            setSelected(n.id);
-            flyTo(n);
-          }}
+          onNodeClick={navigateTo}
           linkColor={(l: FGLink) => {
             const a = linkEnd(l.source);
             const b = linkEnd(l.target);
@@ -554,7 +588,7 @@ export default function KnowledgeGraph3DClient({
         </aside>
 
         <p className="pointer-events-none absolute bottom-4 left-6 hidden text-xs text-[#726f66] md:block md:left-10">
-          Drag to orbit · ⌘ scroll to zoom · click a planet
+          Drag to orbit · ⌘ scroll to zoom · click a planet to jump to it
         </p>
       </div>
     </section>
