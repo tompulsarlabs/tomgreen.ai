@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BlackHoleGate } from "@/components/black-hole-gate";
 import { CountUp } from "@/components/count-up";
 import { Reveal } from "@/components/reveal";
 import { ProofStrip } from "@/components/proof-strip";
@@ -35,6 +36,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col gap-24 pb-16">
+      <BlackHoleGate />
       {/* The statement: full-viewport hero in the world. */}
       <section
         aria-label="Introduction"

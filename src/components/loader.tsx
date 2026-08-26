@@ -15,6 +15,8 @@ export function Loader() {
 
   useEffect(() => {
     if (!document.documentElement.classList.contains("entering")) return;
+    // The landing page's entrance is the black hole gate, not the counter.
+    if (window.location.pathname === "/") return;
     const DURATION = 900;
     let raf = 0;
     let start = 0;

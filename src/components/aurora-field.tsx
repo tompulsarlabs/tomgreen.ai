@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { whenEntered } from "@/lib/entered";
+
 /**
  * The landing hero's backdrop on the paper ground: a few very faint
  * category-tinted orbs drifting slowly, with gentle pointer parallax.
@@ -72,9 +74,15 @@ export function AuroraField() {
       draw(t);
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    // One static frame now; the drift loop waits until the first-visit
+    // entrance lifts — no invisible rAF work beneath the opaque cover.
+    draw(0);
+    const cancelEntered = whenEntered(() => {
+      raf = requestAnimationFrame(loop);
+    });
     return () => {
       cancelAnimationFrame(raf);
+      cancelEntered();
       ro.disconnect();
       window.removeEventListener("pointermove", onPointer);
     };

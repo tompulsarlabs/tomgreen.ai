@@ -152,8 +152,10 @@ button:focus-visible {
     animation-delay: var(--heat-delay, 0ms);
   }
 
+  /* Opacity-only: a transform here would leave a containing block behind
+     (fill-mode retains it) and trap fixed-position descendants. */
   .page-fade {
-    animation: rise-in 0.2s ease both;
+    animation: fade-only 0.2s ease both;
   }
 
   @supports (animation-timeline: view()) {
@@ -163,6 +165,15 @@ button:focus-visible {
       animation-timeline: view();
       animation-range: entry 0% cover 85%;
     }
+  }
+}
+
+@keyframes fade-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -177,13 +188,30 @@ button:focus-visible {
 
 /* First-visit entrance: html.entering paints the ground instantly (set by an
    inline script before first paint); the Loader component animates and lifts
-   it. Without JS the class is never set. */
+   it. Without JS the class is never set. While the ground is up, the page's
+   own entrance choreography holds — it plays when the cover lifts, not
+   invisibly beneath it. */
+.entering .anim,
+.entering .line-mask .line {
+  animation-play-state: paused;
+}
+
 .entering body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 60;
   background: var(--paper);
+  /* If hydration ever fails, the cover releases itself — the entrance can
+     never become a wall. (The gate and loader paint their own surfaces.) */
+  animation: entering-release 0.4s ease 5s both;
+}
+
+@keyframes entering-release {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 /* Nav links: accent underline draws in from the left. */
