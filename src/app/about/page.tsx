@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CareerJourney } from "@/components/career-journey";
 import { Reveal } from "@/components/reveal";
+import { TestimonialCarousel } from "@/components/testimonial-carousel";
+import { careerPeriodLabel } from "@/lib/career-corridor-state";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
 import { site } from "@/lib/content/site";
+import { testimonials } from "@/lib/content/testimonials";
 
 export const metadata: Metadata = {
   title: "About",
@@ -72,10 +75,7 @@ export default function About() {
               <Reveal delay={Math.min(i * 60, 180)} className="flex flex-col gap-3">
                 <div className="flex flex-col gap-0.5">
                   <p className="text-xs uppercase tracking-widest text-muted">
-                    {stop.period}
-                    {stop.current && (
-                      <span className="ml-2 text-accent">· now</span>
-                    )}
+                    {careerPeriodLabel(stop.period, stop.current)}
                   </p>
                   <h3 className="font-display text-2xl tracking-tight">
                     {stop.href ? (
@@ -136,19 +136,39 @@ export default function About() {
         </CareerJourney>
       </section>
 
-      <section className="grid gap-8 border-y border-ink py-10 md:grid-cols-[0.68fr_1.32fr]">
-        <p className="text-xs uppercase tracking-[0.22em] text-muted">References and contact</p>
+      <section
+        aria-labelledby="references-heading"
+        className="grid gap-8 border-y border-ink py-10 md:grid-cols-[0.68fr_1.32fr] md:py-14"
+      >
         <div>
-          <p className="max-w-xl font-display text-2xl leading-snug tracking-tight">{referencesNote}</p>
-          <p className="mt-4 max-w-xl leading-relaxed text-ink-secondary">
-            If you are building an ambitious team—or the operating system behind it—I’d like to hear what is difficult.
+          <h2 id="references-heading" className="text-xs uppercase tracking-[0.22em] text-muted">
+            References and contact
+          </h2>
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
+            Perspective from the people who have seen the work up close.
           </p>
-          <a
-            href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
-            className="mt-6 inline-flex min-h-12 items-center bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5"
-          >
-            Start a conversation
-          </a>
+        </div>
+        <div className="flex flex-col gap-10">
+          {testimonials.length > 0 ? (
+            <TestimonialCarousel testimonials={testimonials} />
+          ) : (
+            <p className="max-w-xl font-display text-2xl leading-snug tracking-tight">
+              {referencesNote}
+            </p>
+          )}
+
+          <div className={testimonials.length > 0 ? "border-t border-hairline pt-8" : undefined}>
+            <p className="max-w-xl leading-relaxed text-ink-secondary">
+              If you are building an ambitious team—or the operating system behind it—I’d like to
+              hear what is difficult.
+            </p>
+            <a
+              href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
+              className="mt-6 inline-flex min-h-12 items-center bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5 motion-reduce:transform-none"
+            >
+              Start a conversation
+            </a>
+          </div>
         </div>
       </section>
     </div>

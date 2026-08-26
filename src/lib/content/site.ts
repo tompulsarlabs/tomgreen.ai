@@ -9,11 +9,12 @@ export const site = {
   links: {
     github: "https://github.com/tompulsarlabs",
     linkedin: "https://linkedin.com/in/tomegreen",
+    substack: "https://tomgreenlabs.substack.com",
   },
   nav: [
     { href: "/work", label: "Work" },
     { href: "/building", label: "Systems" },
     { href: "/about", label: "About" },
-    { href: "/#contact", label: "Contact" },
+    { href: "/contact", label: "Contact" },
   ],
 } as const;

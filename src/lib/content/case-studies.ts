@@ -123,18 +123,18 @@ export const caseStudies: CaseStudy[] = [
     company: "Chapter 2",
     role: "Managing Director EMEA",
     period: "2025 – 2026",
-    headline: "People Ops rebuilt on agents — a country running on one person",
+    headline: "People Ops rebuilt on agents — EU operations running on one person",
     summary:
-      "Ran a €3.6M business, won €2.5M in annual recurring revenue in year one, and rebuilt People Ops around agent workflows so Germany runs with one person.",
+      "Ran a €3.6M business, won €2.5M in annual recurring revenue in year one, and rebuilt People Ops around agent workflows so EU operations run from Germany with one person.",
     context:
       "A talent-services firm spanning recruitment operations, talent strategy and employer brand needed its European business run with full commercial ownership—and needed to prove internally what it sold externally: that AI changes how talent operations work.",
     body: [
       "I owned a €3.6M profit-and-loss account and won €2.5M in annual recurring revenue in the first year, leading recruiting programmes across Germany, the US, the UK and India for clients including Neura Robotics and Superhuman, and directly hiring the Chief People Officer.",
-      "The build: I rebuilt People Ops around agent workflows. Germany now runs as a one-person function without dependency on three UK shared-service roles—not by cutting corners, but by moving repetitive operating load onto agents and keeping people on judgment calls.",
+      "The build: I rebuilt EU People Ops around agent workflows. Operations now run from Germany as a one-person function without dependency on three UK shared-service roles—not by cutting corners, but by moving repetitive operating load onto agents and keeping people on judgment calls.",
       "That project became the template for the group's wider AI transformation, which I drove.",
     ],
     metrics: [
-      { value: "1 person", label: "Runs German People Ops" },
+      { value: "1 person", label: "Runs EU People Ops from Germany" },
       { value: "€2.5M", label: "Annual recurring revenue won in year one" },
       { value: "€3.6M", label: "P&L owned" },
       { value: "3 roles", label: "Shared-service dependency removed" },
@@ -175,7 +175,7 @@ export const caseStudies: CaseStudy[] = [
         },
       ],
       outcome:
-        "Germany runs with one People Ops person and without dependency on three UK shared-service roles, while human judgment stays at the decisions that matter.",
+        "EU People Ops runs from Germany with one person and without dependency on three UK shared-service roles, while human judgment stays at the decisions that matter.",
     },
     decisions: [
       {
@@ -200,16 +200,16 @@ export const caseStudies: CaseStudy[] = [
   {
     slug: "audibene",
     company: "Audibene / Hear.com",
-    role: "Global Talent Acquisition Lead (Technology) → Product Operations",
+    role: "Technology Talent Lead → Product Operations",
     period: "2019 – 2022",
-    headline: "From hiring the CTO to running Product Ops for him",
+    headline: "Scaled the technology organisation—then built Product Operations from zero",
     summary:
-      "Scaled the technology organisation from about 70 to 180 people before IPO, then was promoted to build Product Operations from zero—reporting to the Group Technology Officer I had hired.",
+      "Scaled the technology organisation from about 70 to 180 people before IPO, then moved into the organisation to build Product Operations from zero.",
     context:
-      "An EQT Ventures-backed HealthTech scaling toward IPO needed its tech org roughly doubled — and then needed someone to make the product organisation itself run better.",
+      "An EQT Ventures-backed HealthTech had two consecutive mandates: scale the technology organisation toward IPO, then make the product portfolio itself run better.",
     body: [
       "Leading three talent-acquisition teams across the US, Germany and India, I doubled the function and grew the technology organisation from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
-      "Then the crossover: I was promoted to build Product Operations from zero, reporting to the Group CTO I had hired. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
+      "Then the crossover: I moved into the organisation to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
     ],
     metrics: [
       { value: "~70 → 180", label: "Technology organisation" },

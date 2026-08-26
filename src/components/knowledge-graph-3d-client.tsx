@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -10,9 +9,12 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import * as THREE from "three";
+import { ImprovedNoise } from "three/examples/jsm/math/ImprovedNoise.js";
 import {
-  categories,
-  type CategoryId,
+  clusterOrder,
+  clusters,
+  sceneNodeIds,
+  type ClusterId,
   type GraphEdge,
   type GraphNode,
 } from "@/lib/content/graph";
@@ -26,71 +28,85 @@ import {
  * complete index are DOM controls; the full project record follows below.
  */
 
-const SCENE_IDS = [
-  "ivy",
-  "zalando",
-  "chapter-2",
-  "audibene",
-  "wave",
-  "this-site",
-  "sybil",
-  "margaux-en-tutor",
-  "writing-voice-skill",
-] as const;
+const SCENE_IDS = sceneNodeIds;
 
-const CATEGORY_ORDER: CategoryId[] = ["agents", "talent", "products", "craft"];
-
-const CATEGORY_COLOR: Record<CategoryId, string> = {
-  agents: "#63d69a",
-  talent: "#f29a62",
-  products: "#78a9ff",
-  craft: "#c9c0b2",
+const CLUSTER_COLOR: Record<ClusterId, string> = {
+  companies: "#df8c58",
+  practice: "#d7bd63",
+  systems: "#63d69a",
+  content: "#91a8ff",
 };
 
-const CATEGORY_SHORT: Record<CategoryId, string> = {
-  agents: "Agent system",
-  talent: "Talent system",
-  products: "Product",
-  craft: "Craft & tooling",
+const CLUSTER_SHORT: Record<ClusterId, string> = {
+  companies: "Company",
+  practice: "Team & operating model",
+  systems: "AI & agent system",
+  content: "Writing & ideas",
 };
 
 const PLANET_SCALE: Record<string, number> = {
-  ivy: 0.92,
-  zalando: 1.2,
-  "chapter-2": 1.02,
-  audibene: 0.7,
-  wave: 0.58,
-  "this-site": 0.57,
-  sybil: 0.53,
-  "margaux-en-tutor": 0.42,
-  "writing-voice-skill": 0.39,
+  zalando: 0.6,
+  "chapter-2": 0.46,
+  audibene: 0.34,
+  wave: 0.29,
+  wer: 0.26,
+  "building-practice": 0.5,
+  "recruiting-practice": 0.32,
+  "operations-practice": 0.37,
+  ivy: 0.54,
+  sybil: 0.34,
+  "this-site": 0.31,
+  "tom-green-labs": 0.46,
+  "stop-hiding-behind-culture": 0.27,
 };
 
 const DESKTOP_ANCHORS: Record<string, readonly [number, number, number]> = {
-  ivy: [-2.5, 0.15, 0.8],
-  zalando: [0.65, 0.9, 0.05],
-  "chapter-2": [3.0, -0.38, 0.5],
-  audibene: [0.35, -1.78, -0.55],
-  wave: [-3.55, -1.48, -0.72],
-  "this-site": [-0.45, 2.22, -1.08],
-  sybil: [3.62, 1.62, -0.92],
-  "margaux-en-tutor": [3.2, -2.18, -1.32],
-  "writing-voice-skill": [-1.72, -2.32, -1.12],
+  zalando: [-4.65, 0.28, 0.2],
+  "chapter-2": [-3.25, -0.12, -0.65],
+  audibene: [-4.55, -1.02, -1.35],
+  wave: [-3.18, -1.18, -2.15],
+  wer: [-2.8, 0.9, -2.35],
+  "building-practice": [-0.7, 0.4, 0.08],
+  "recruiting-practice": [0.48, 0.92, -1.45],
+  "operations-practice": [0.65, -0.48, -1.12],
+  ivy: [3.45, 0.3, 0.12],
+  sybil: [4.72, 0.88, -1.38],
+  "this-site": [4.55, -0.72, -1.9],
+  "tom-green-labs": [0.4, -1.72, -0.22],
+  "stop-hiding-behind-culture": [1.68, -1.96, -1.75],
+};
+
+const COMPACT_ANCHORS: Record<string, readonly [number, number, number]> = {
+  zalando: [-3.65, 0.28, 0.2],
+  "chapter-2": [-2.42, -0.16, -0.65],
+  audibene: [-3.72, -0.92, -1.35],
+  wave: [-2.62, -1.12, -2.15],
+  wer: [-2.24, 0.82, -2.35],
+  "building-practice": [-0.42, 0.38, 0.08],
+  "recruiting-practice": [0.56, 0.88, -1.45],
+  "operations-practice": [0.68, -0.48, -1.12],
+  ivy: [2.62, 0.25, 0.12],
+  sybil: [3.72, 0.82, -1.38],
+  "this-site": [3.58, -0.72, -1.9],
+  "tom-green-labs": [0.35, -1.64, -0.22],
+  "stop-hiding-behind-culture": [1.48, -1.88, -1.75],
 };
 
 const MOBILE_ANCHORS: Record<string, readonly [number, number, number]> = {
-  ivy: [-1.32, 0.25, 0.8],
-  zalando: [0.82, 0.92, 0.05],
-  "chapter-2": [1.32, -0.62, 0.5],
-  audibene: [-0.15, -1.48, -0.55],
-  wave: [-1.36, -1.78, -0.72],
-  "this-site": [-0.42, 2.08, -1.08],
-  sybil: [1.48, 1.88, -0.92],
-  "margaux-en-tutor": [1.5, -2.15, -1.32],
-  "writing-voice-skill": [-1.55, 1.58, -1.12],
+  zalando: [-1.7, 0.78, 0.35],
+  "chapter-2": [-0.82, 0.38, -0.18],
+  audibene: [-2.02, -0.08, -0.48],
+  wave: [-1.22, -0.38, -0.62],
+  wer: [-0.58, 1.18, -0.85],
+  "building-practice": [0.28, 0.78, 0.25],
+  "recruiting-practice": [1.34, 1.22, -0.32],
+  "operations-practice": [1.58, 0.15, -0.16],
+  ivy: [-0.82, -1.18, 0.32],
+  sybil: [-1.82, -1.62, -0.45],
+  "this-site": [0.12, -1.72, -0.38],
+  "tom-green-labs": [1.04, -1.02, 0.12],
+  "stop-hiding-behind-culture": [1.92, -1.58, -0.55],
 };
-
-const HERO_LABELS = new Set(["ivy", "zalando", "chapter-2"]);
 
 type PlanetRuntime = {
   data: GraphNode;
@@ -108,6 +124,7 @@ type PlanetRuntime = {
   releasedAt: number;
   seed: number;
   radius: number;
+  clouds?: THREE.Mesh;
 };
 
 type ConnectionRuntime = {
@@ -141,57 +158,382 @@ function hash(value: string): number {
   return result >>> 0;
 }
 
-function tinted(hex: string, amount: number): string {
-  const color = new THREE.Color(hex);
-  if (amount >= 0) color.lerp(new THREE.Color("#ffffff"), amount);
-  else color.lerp(new THREE.Color("#020305"), -amount);
-  return `#${color.getHexString()}`;
+type PlanetArchetype =
+  | "terrestrial"
+  | "gas-giant"
+  | "ringed-giant"
+  | "rocky"
+  | "cloud-world"
+  | "ice-giant"
+  | "moon"
+  | "dwarf";
+
+type PlanetProfile = {
+  archetype: PlanetArchetype;
+  palette: readonly string[];
+  roughness: number;
+  bumpScale: number;
+  flattening?: number;
+  axialTilt: number;
+  atmosphere?: { color: string; strength: number; scale: number };
+  clouds?: { opacity: number; speed: number };
+  ring?: true;
+};
+
+const PLANET_PROFILE: Record<string, PlanetProfile> = {
+  zalando: {
+    archetype: "gas-giant",
+    palette: ["#6d3520", "#b86b38", "#ddaa72", "#f0d7ae", "#9d492c"],
+    roughness: 0.88,
+    bumpScale: 0.006,
+    flattening: 0.95,
+    axialTilt: -0.12,
+    atmosphere: { color: "#e8ba80", strength: 0.22, scale: 1.035 },
+  },
+  "chapter-2": {
+    archetype: "ringed-giant",
+    palette: ["#8d6848", "#c4a178", "#e4d1aa", "#f1e6cb"],
+    roughness: 0.92,
+    bumpScale: 0.003,
+    flattening: 0.96,
+    axialTilt: 0.36,
+    atmosphere: { color: "#ead4ad", strength: 0.16, scale: 1.025 },
+    ring: true,
+  },
+  audibene: {
+    archetype: "rocky",
+    palette: ["#3b1e18", "#7f3526", "#b95c38", "#d98c59", "#efc09a"],
+    roughness: 1,
+    bumpScale: 0.035,
+    axialTilt: 0.18,
+    atmosphere: { color: "#c26544", strength: 0.08, scale: 1.018 },
+  },
+  wave: {
+    archetype: "cloud-world",
+    palette: ["#714420", "#aa6f35", "#d7a45f", "#ead09a"],
+    roughness: 0.96,
+    bumpScale: 0.002,
+    axialTilt: -0.08,
+    atmosphere: { color: "#e0b66d", strength: 0.2, scale: 1.035 },
+  },
+  wer: {
+    archetype: "ice-giant",
+    palette: ["#183f66", "#286e94", "#57a5bd", "#b3d8d8"],
+    roughness: 0.86,
+    bumpScale: 0.002,
+    flattening: 0.98,
+    axialTilt: 0.24,
+    atmosphere: { color: "#65bdd4", strength: 0.24, scale: 1.045 },
+  },
+  "building-practice": {
+    archetype: "rocky",
+    palette: ["#251d19", "#675044", "#9e775e", "#d2b28c", "#eadbc0"],
+    roughness: 1,
+    bumpScale: 0.045,
+    axialTilt: -0.23,
+  },
+  "recruiting-practice": {
+    archetype: "moon",
+    palette: ["#20242b", "#565d65", "#90969a", "#d2d0c8"],
+    roughness: 1,
+    bumpScale: 0.052,
+    axialTilt: 0.08,
+  },
+  "operations-practice": {
+    archetype: "dwarf",
+    palette: ["#2b2826", "#56493f", "#89725f", "#c3a982"],
+    roughness: 1,
+    bumpScale: 0.04,
+    axialTilt: 0.32,
+  },
+  ivy: {
+    archetype: "terrestrial",
+    palette: ["#071c32", "#124b6c", "#2c7653", "#8f9a5f", "#e7e8d8"],
+    roughness: 0.82,
+    bumpScale: 0.022,
+    axialTilt: 0.41,
+    atmosphere: { color: "#5eaee8", strength: 0.28, scale: 1.045 },
+    clouds: { opacity: 0.48, speed: 1.18 },
+  },
+  sybil: {
+    archetype: "ice-giant",
+    palette: ["#071c45", "#0b3977", "#1761a5", "#55a6dc"],
+    roughness: 0.84,
+    bumpScale: 0.002,
+    flattening: 0.985,
+    axialTilt: -0.47,
+    atmosphere: { color: "#3b86e8", strength: 0.25, scale: 1.048 },
+  },
+  "this-site": {
+    archetype: "moon",
+    palette: ["#16181b", "#43484b", "#858985", "#d2d0c8"],
+    roughness: 1,
+    bumpScale: 0.055,
+    axialTilt: 0.12,
+  },
+  "tom-green-labs": {
+    archetype: "cloud-world",
+    palette: ["#2b3159", "#57618f", "#8f9ac3", "#d2d5e9"],
+    roughness: 0.92,
+    bumpScale: 0.003,
+    axialTilt: -0.28,
+    atmosphere: { color: "#8b9ee9", strength: 0.22, scale: 1.04 },
+  },
+  "stop-hiding-behind-culture": {
+    archetype: "dwarf",
+    palette: ["#231514", "#57302d", "#9b5a49", "#d59470", "#e4c0a1"],
+    roughness: 1,
+    bumpScale: 0.048,
+    axialTilt: 0.51,
+  },
+};
+
+function fbm(noise: ImprovedNoise, x: number, y: number, z: number, seed: number) {
+  let value = 0;
+  let amplitude = 0.5;
+  let frequency = 1;
+  const offset = (seed % 997) * 0.013;
+  for (let octave = 0; octave < 4; octave += 1) {
+    value +=
+      noise.noise(
+        x * frequency + offset,
+        y * frequency - offset * 0.73,
+        z * frequency + offset * 0.37,
+      ) * amplitude;
+    frequency *= 2.07;
+    amplitude *= 0.5;
+  }
+  return value;
 }
 
-/** A small, deterministic painterly surface. Generated once per planet. */
-function makePlanetTexture(hex: string, id: string): THREE.CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = 384;
-  canvas.height = 192;
-  const context = canvas.getContext("2d")!;
-  const random = seeded(hash(id));
+function writePalette(
+  bytes: Uint8ClampedArray,
+  offset: number,
+  palette: readonly THREE.Color[],
+  amount: number,
+) {
+  const value = THREE.MathUtils.clamp(amount, 0, 0.9999) * (palette.length - 1);
+  const index = Math.floor(value);
+  const mix = value - index;
+  const from = palette[index];
+  const to = palette[Math.min(index + 1, palette.length - 1)];
+  bytes[offset] = Math.round(THREE.MathUtils.lerp(from.r, to.r, mix) * 255);
+  bytes[offset + 1] = Math.round(THREE.MathUtils.lerp(from.g, to.g, mix) * 255);
+  bytes[offset + 2] = Math.round(THREE.MathUtils.lerp(from.b, to.b, mix) * 255);
+  bytes[offset + 3] = 255;
+}
 
-  const ground = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  ground.addColorStop(0, tinted(hex, 0.38));
-  ground.addColorStop(0.42, hex);
-  ground.addColorStop(1, tinted(hex, -0.62));
-  context.fillStyle = ground;
-  context.fillRect(0, 0, canvas.width, canvas.height);
+function makeSurfaceMaps(profile: PlanetProfile, id: string, major: boolean) {
+  const width = major ? 384 : 256;
+  const height = width / 2;
+  const albedoCanvas = document.createElement("canvas");
+  const bumpCanvas = document.createElement("canvas");
+  const cloudCanvas = profile.clouds ? document.createElement("canvas") : null;
+  albedoCanvas.width = bumpCanvas.width = width;
+  albedoCanvas.height = bumpCanvas.height = height;
+  if (cloudCanvas) {
+    cloudCanvas.width = width;
+    cloudCanvas.height = height;
+  }
 
-  context.globalCompositeOperation = "soft-light";
-  for (let i = 0; i < 34; i += 1) {
-    const y = random() * canvas.height;
-    const amplitude = 3 + random() * 15;
-    context.beginPath();
-    context.moveTo(-20, y);
-    for (let x = -20; x <= canvas.width + 20; x += 18) {
-      const wave = Math.sin(x * (0.018 + random() * 0.006) + i) * amplitude;
-      context.lineTo(x, y + wave);
+  const albedoContext = albedoCanvas.getContext("2d")!;
+  const bumpContext = bumpCanvas.getContext("2d")!;
+  const cloudContext = cloudCanvas?.getContext("2d") ?? null;
+  const albedo = albedoContext.createImageData(width, height);
+  const bump = bumpContext.createImageData(width, height);
+  const cloud = cloudContext?.createImageData(width, height) ?? null;
+  const palette = profile.palette.map((colour) => new THREE.Color(colour));
+  const noise = new ImprovedNoise();
+  const seed = hash(id);
+  const random = seeded(seed);
+  const craters = Array.from({ length: profile.archetype === "moon" ? 14 : 8 }, () => {
+    const longitude = random() * Math.PI * 2;
+    const latitude = Math.asin(random() * 2 - 1);
+    const radius = 0.035 + random() * 0.09;
+    return {
+      x: Math.cos(latitude) * Math.cos(longitude),
+      y: Math.sin(latitude),
+      z: Math.cos(latitude) * Math.sin(longitude),
+      threshold: Math.cos(radius),
+    };
+  });
+
+  for (let py = 0; py < height; py += 1) {
+    const latitude = (0.5 - py / (height - 1)) * Math.PI;
+    const cosLatitude = Math.cos(latitude);
+    for (let px = 0; px < width; px += 1) {
+      const longitude = (px / (width - 1)) * Math.PI * 2;
+      const x = cosLatitude * Math.cos(longitude);
+      const y = Math.sin(latitude);
+      const z = cosLatitude * Math.sin(longitude);
+      const broad = fbm(noise, x * 1.45, y * 1.45, z * 1.45, seed);
+      const detail = fbm(noise, x * 4.4, y * 4.4, z * 4.4, seed + 151);
+      let colourAmount = 0.5 + broad * 0.45;
+      let elevation = 0.5 + detail * 0.42;
+
+      if (profile.archetype === "gas-giant" || profile.archetype === "ringed-giant") {
+        const bandFrequency = profile.archetype === "ringed-giant" ? 19 : 15;
+        const bands = Math.sin(latitude * bandFrequency + broad * 2.7) * 0.5 + 0.5;
+        colourAmount = 0.15 + bands * 0.7 + detail * 0.12;
+        elevation = 0.48 + bands * 0.08 + detail * 0.05;
+        if (profile.archetype === "gas-giant") {
+          const wrappedLongitude = Math.atan2(
+            Math.sin(longitude - 0.82),
+            Math.cos(longitude - 0.82),
+          );
+          const storm =
+            (wrappedLongitude / 0.48) ** 2 + ((latitude + 0.31) / 0.16) ** 2;
+          if (storm < 1) colourAmount = THREE.MathUtils.lerp(colourAmount, 0.08, 1 - storm);
+        }
+      } else if (profile.archetype === "terrestrial") {
+        const land = broad + detail * 0.26;
+        const ice = THREE.MathUtils.smoothstep(Math.abs(y), 0.78, 0.98);
+        colourAmount =
+          ice > 0.08
+            ? THREE.MathUtils.lerp(0.72, 0.99, ice)
+            : land < 0.035
+              ? 0.05 + THREE.MathUtils.clamp(land + 0.4, 0, 0.42)
+              : 0.48 + THREE.MathUtils.clamp(land, 0, 0.45) * 0.72;
+        elevation = land < 0.035 ? 0.28 : 0.56 + land * 0.5;
+      } else if (
+        profile.archetype === "rocky" ||
+        profile.archetype === "moon" ||
+        profile.archetype === "dwarf"
+      ) {
+        let crater = 0;
+        for (const mark of craters) {
+          const dot = x * mark.x + y * mark.y + z * mark.z;
+          if (dot > mark.threshold) {
+            const progress = (dot - mark.threshold) / (1 - mark.threshold);
+            crater += progress < 0.68 ? -0.34 : 0.22 * (1 - progress);
+          }
+        }
+        elevation = 0.52 + broad * 0.28 + detail * 0.18 + crater;
+        colourAmount = 0.46 + broad * 0.38 + detail * 0.14 + crater * 0.22;
+      } else if (profile.archetype === "cloud-world") {
+        const swirls = Math.sin(latitude * 8 + broad * 4.4 + detail * 1.2) * 0.5 + 0.5;
+        colourAmount = 0.2 + swirls * 0.68;
+        elevation = 0.5 + detail * 0.035;
+      } else {
+        const haze = Math.sin(latitude * 7 + broad * 1.6) * 0.5 + 0.5;
+        colourAmount = 0.28 + haze * 0.48 + detail * 0.08;
+        elevation = 0.5 + detail * 0.025;
+      }
+
+      const offset = (py * width + px) * 4;
+      writePalette(albedo.data, offset, palette, colourAmount);
+      const elevationByte = Math.round(THREE.MathUtils.clamp(elevation, 0, 1) * 255);
+      bump.data[offset] = bump.data[offset + 1] = bump.data[offset + 2] = elevationByte;
+      bump.data[offset + 3] = 255;
+
+      if (cloud) {
+        const cloudNoise = fbm(noise, x * 3.2, y * 3.2, z * 3.2, seed + 701);
+        const cloudAlpha = THREE.MathUtils.smoothstep(cloudNoise + detail * 0.18, 0.04, 0.4);
+        cloud.data[offset] = 235;
+        cloud.data[offset + 1] = 242;
+        cloud.data[offset + 2] = 246;
+        cloud.data[offset + 3] = Math.round(cloudAlpha * 255);
+      }
     }
-    context.strokeStyle = random() > 0.5 ? "rgba(255,255,255,.23)" : "rgba(0,0,0,.2)";
-    context.lineWidth = 1 + random() * 8;
-    context.stroke();
   }
 
-  context.globalCompositeOperation = "overlay";
-  for (let i = 0; i < 120; i += 1) {
-    const radius = 0.4 + random() * 2.4;
-    context.fillStyle = random() > 0.48 ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.13)";
-    context.beginPath();
-    context.arc(random() * canvas.width, random() * canvas.height, radius, 0, Math.PI * 2);
-    context.fill();
+  // Exact first/last column equality prevents a mip seam at longitude 0.
+  for (let py = 0; py < height; py += 1) {
+    for (let channel = 0; channel < 4; channel += 1) {
+      const first = (py * width) * 4 + channel;
+      const last = (py * width + width - 1) * 4 + channel;
+      albedo.data[last] = albedo.data[first];
+      bump.data[last] = bump.data[first];
+      if (cloud) cloud.data[last] = cloud.data[first];
+    }
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.anisotropy = 4;
-  return texture;
+  albedoContext.putImageData(albedo, 0, 0);
+  bumpContext.putImageData(bump, 0, 0);
+  if (cloud && cloudContext) cloudContext.putImageData(cloud, 0, 0);
+
+  const configure = (texture: THREE.CanvasTexture) => {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.anisotropy = 4;
+    texture.generateMipmaps = true;
+  };
+  const albedoTexture = new THREE.CanvasTexture(albedoCanvas);
+  albedoTexture.colorSpace = THREE.SRGBColorSpace;
+  configure(albedoTexture);
+  const bumpTexture = new THREE.CanvasTexture(bumpCanvas);
+  configure(bumpTexture);
+  const cloudTexture = cloudCanvas ? new THREE.CanvasTexture(cloudCanvas) : undefined;
+  if (cloudTexture) {
+    cloudTexture.colorSpace = THREE.SRGBColorSpace;
+    configure(cloudTexture);
+  }
+  return { albedoTexture, bumpTexture, cloudTexture };
+}
+
+function makeAtmosphereMaterial(colour: string, strength: number) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      glowColour: { value: new THREE.Color(colour) },
+      strength: { value: strength },
+    },
+    vertexShader: `
+      varying vec3 vNormalWorld;
+      varying vec3 vWorldPosition;
+      void main() {
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vWorldPosition = worldPosition.xyz;
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 glowColour;
+      uniform float strength;
+      varying vec3 vNormalWorld;
+      varying vec3 vWorldPosition;
+      void main() {
+        vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+        float rim = pow(1.0 - max(0.0, dot(vNormalWorld, viewDirection)), 2.7);
+        gl_FragColor = vec4(glowColour, rim * strength);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+  });
+}
+
+function makeRingMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      innerColour: { value: new THREE.Color("#6f5941") },
+      outerColour: { value: new THREE.Color("#d8c5a1") },
+    },
+    vertexShader: `
+      varying float vRadius;
+      void main() {
+        vRadius = length(position.xy);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 innerColour;
+      uniform vec3 outerColour;
+      varying float vRadius;
+      void main() {
+        float t = clamp((vRadius - 0.72) / 0.58, 0.0, 1.0);
+        float bands = 0.56 + 0.3 * sin(t * 82.0) + 0.14 * sin(t * 191.0);
+        float edge = smoothstep(0.0, 0.06, t) * (1.0 - smoothstep(0.9, 1.0, t));
+        float gap = 1.0 - 0.82 * smoothstep(0.52, 0.535, t) * (1.0 - smoothstep(0.55, 0.565, t));
+        gl_FragColor = vec4(mix(innerColour, outerColour, t), edge * gap * bands * 0.7);
+      }
+    `,
+    side: THREE.DoubleSide,
+    transparent: true,
+    depthWrite: false,
+  });
 }
 
 function makeHaloTexture(): THREE.CanvasTexture {
@@ -207,27 +549,173 @@ function makeHaloTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas);
 }
 
-function makeOrganicGeometry(radius: number, seed: number): THREE.BufferGeometry {
-  const geometry = new THREE.SphereGeometry(radius, 48, 32);
-  const position = geometry.attributes.position as THREE.BufferAttribute;
-  for (let index = 0; index < position.count; index += 1) {
-    const x = position.getX(index);
-    const y = position.getY(index);
-    const z = position.getZ(index);
-    const length = Math.hypot(x, y, z);
-    const nx = x / length;
-    const ny = y / length;
-    const nz = z / length;
-    const displacement =
-      1 +
-      Math.sin(nx * 5.1 + seed * 0.01) * 0.018 +
-      Math.sin(ny * 7.3 - seed * 0.017) * 0.013 +
-      Math.sin(nz * 9.7 + seed * 0.009) * 0.01;
-    position.setXYZ(index, x * displacement, y * displacement, z * displacement);
+function makeNebulaTexture(mobile: boolean): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = mobile ? 512 : 896;
+  canvas.height = canvas.width / 2;
+  const context = canvas.getContext("2d")!;
+  const image = context.createImageData(canvas.width, canvas.height);
+  const noise = new ImprovedNoise();
+
+  for (let py = 0; py < canvas.height; py += 1) {
+    const ny = (py / (canvas.height - 1) - 0.5) * 2;
+    for (let px = 0; px < canvas.width; px += 1) {
+      const nx = (px / (canvas.width - 1) - 0.5) * 2;
+      const bandAxis = ny + nx * 0.22 - 0.14;
+      const band = Math.exp(-(bandAxis * bandAxis) / 0.095);
+      const broad = fbm(noise, nx * 1.2, ny * 1.2, 0.33, 431);
+      const filament = fbm(noise, nx * 3.5, ny * 3.5, 1.17, 997);
+      const structure = THREE.MathUtils.smoothstep(
+        broad * 0.72 + filament * 0.28,
+        -0.28,
+        0.48,
+      );
+      const dustLane = 1 - Math.exp(-(bandAxis * bandAxis) / 0.008);
+      const titleDistance =
+        ((nx + 0.58) / 0.58) ** 2 + ((ny + 0.6) / 0.42) ** 2;
+      const titleMask = THREE.MathUtils.smoothstep(titleDistance, 0.5, 1.45);
+      const vignette =
+        1 - THREE.MathUtils.smoothstep(Math.max(Math.abs(nx), Math.abs(ny)), 0.72, 1);
+      const alpha =
+        band *
+        (0.1 + structure * 0.9) *
+        (0.42 + dustLane * 0.58) *
+        titleMask *
+        vignette;
+      const offset = (py * canvas.width + px) * 4;
+      const warmth = THREE.MathUtils.smoothstep(filament, 0.2, 0.62) * 0.28;
+      image.data[offset] = Math.round(THREE.MathUtils.lerp(66, 112, warmth));
+      image.data[offset + 1] = Math.round(THREE.MathUtils.lerp(83, 86, warmth));
+      image.data[offset + 2] = Math.round(THREE.MathUtils.lerp(109, 79, warmth));
+      image.data[offset + 3] = Math.round(THREE.MathUtils.clamp(alpha, 0, 1) * 36);
+    }
   }
-  position.needsUpdate = true;
-  geometry.computeVertexNormals();
-  return geometry;
+
+  context.putImageData(image, 0, 0);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  return texture;
+}
+
+function createSpaceBackdrop(scene: THREE.Scene, mobile: boolean) {
+  const nebulaTexture = makeNebulaTexture(mobile);
+  const nebulaGeometry = new THREE.PlaneGeometry(1, 1);
+  const nebulaMaterial = new THREE.MeshBasicMaterial({
+    map: nebulaTexture,
+    transparent: true,
+    opacity: 0.72,
+    depthTest: true,
+    depthWrite: false,
+    blending: THREE.NormalBlending,
+    fog: false,
+    toneMapped: false,
+  });
+  const nebula = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+  nebula.position.set(0, -0.25, -14);
+  nebula.renderOrder = -100;
+  scene.add(nebula);
+
+  const count = 800;
+  const positions = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const alphas = new Float32Array(count);
+  const warmth = new Float32Array(count);
+  const random = seeded(0x41c6ce57);
+  for (let index = 0; index < count; index += 1) {
+    const offset = index * 3;
+    const bandStar = random() < 0.42;
+    const x = (random() - 0.5) * 28;
+    const y = bandStar
+      ? x * 0.22 - 0.25 + (random() + random() - 1) * 1.65
+      : (random() - 0.5) * 15;
+    positions[offset] = x;
+    positions[offset + 1] = y;
+    positions[offset + 2] = -4 - random() * 10;
+    sizes[index] = 0.34 + Math.pow(random(), 5) * 1.35;
+    alphas[index] = 0.12 + Math.pow(random(), 2.8) * 0.5;
+    if (x < -2.2 && y > 1.15) alphas[index] *= 0.16;
+    warmth[index] = random() < 0.08 ? 0.72 + random() * 0.28 : random() * 0.32;
+  }
+  const starGeometry = new THREE.BufferGeometry();
+  starGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  starGeometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+  starGeometry.setAttribute("aAlpha", new THREE.BufferAttribute(alphas, 1));
+  starGeometry.setAttribute("aWarmth", new THREE.BufferAttribute(warmth, 1));
+  starGeometry.setDrawRange(0, mobile ? 360 : count);
+  const starMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uPixelRatio: { value: 1 },
+    },
+    transparent: true,
+    depthTest: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: false,
+    toneMapped: false,
+    vertexShader: `
+      attribute float aSize;
+      attribute float aAlpha;
+      attribute float aWarmth;
+      uniform float uPixelRatio;
+      varying float vAlpha;
+      varying vec3 vColour;
+      void main() {
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * viewPosition;
+        float perspective = 26.0 / max(8.0, -viewPosition.z);
+        gl_PointSize = clamp(
+          aSize * uPixelRatio * perspective,
+          0.65 * uPixelRatio,
+          2.4 * uPixelRatio
+        );
+        vAlpha = aAlpha;
+        vColour = mix(
+          vec3(0.68, 0.77, 0.9),
+          vec3(1.0, 0.91, 0.76),
+          aWarmth
+        );
+      }
+    `,
+    fragmentShader: `
+      varying float vAlpha;
+      varying vec3 vColour;
+      void main() {
+        vec2 point = gl_PointCoord - 0.5;
+        float radius = length(point);
+        float core = 1.0 - smoothstep(0.08, 0.5, radius);
+        float glow = exp(-20.0 * radius * radius);
+        float alpha = vAlpha * max(core, glow * 0.42);
+        if (alpha < 0.008) discard;
+        gl_FragColor = vec4(vColour, alpha);
+      }
+    `,
+  });
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  stars.renderOrder = -90;
+  scene.add(stars);
+
+  return {
+    stars,
+    resize: (camera: THREE.PerspectiveCamera, pixelRatio: number, nextMobile: boolean) => {
+      const distance = camera.position.z - nebula.position.z;
+      const frustumHeight =
+        2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
+      const coverHeight = Math.max(frustumHeight, (frustumHeight * camera.aspect) / 2) * 1.12;
+      nebula.scale.set(coverHeight * 2, coverHeight, 1);
+      starMaterial.uniforms.uPixelRatio.value = pixelRatio;
+      starGeometry.setDrawRange(0, nextMobile ? 360 : count);
+    },
+    dispose: () => {
+      scene.remove(nebula, stars);
+      nebulaTexture.dispose();
+      nebulaGeometry.dispose();
+      nebulaMaterial.dispose();
+      starGeometry.dispose();
+      starMaterial.dispose();
+    },
+  };
 }
 
 function nodeStatus(node: GraphNode): string {
@@ -235,8 +723,8 @@ function nodeStatus(node: GraphNode): string {
   return node.meta ?? "System";
 }
 
-function anchorFor(id: string, mobile: boolean): THREE.Vector3 {
-  const source = mobile ? MOBILE_ANCHORS : DESKTOP_ANCHORS;
+function anchorFor(id: string, mobile: boolean, compact: boolean): THREE.Vector3 {
+  const source = mobile ? MOBILE_ANCHORS : compact ? COMPACT_ANCHORS : DESKTOP_ANCHORS;
   const value = source[id] ?? [0, 0, 0];
   return new THREE.Vector3(value[0], value[1], value[2]);
 }
@@ -269,24 +757,13 @@ function relatedIds(
     }
   }
 
-  const category = planets.get(id)?.data.category;
-  if (category) {
+  const cluster = planets.get(id)?.data.cluster;
+  if (cluster) {
     for (const planet of planets.values()) {
-      if (planet.data.id !== id && planet.data.category === category) {
+      if (planet.data.id !== id && planet.data.cluster === cluster) {
         direct.add(planet.data.id);
       }
     }
-  }
-
-  // Genuine cross-system relationships expressed through category hubs in
-  // the source graph, surfaced without restoring the permanent network web.
-  const cross: Record<string, string[]> = {
-    ivy: ["chapter-2", "this-site"],
-    "chapter-2": ["ivy", "zalando"],
-    "this-site": ["ivy", "writing-voice-skill"],
-  };
-  for (const candidate of cross[id] ?? []) {
-    if (planets.has(candidate)) direct.add(candidate);
   }
 
   return [...direct].slice(0, 3);
@@ -510,6 +987,21 @@ export default function KnowledgeGraph3DClient({
     sceneApiRef.current?.focus(id);
   }, []);
 
+  const openRecord = useCallback(
+    (id: string) => {
+      choose(id);
+      requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth",
+          block: "start",
+        });
+      });
+    },
+    [choose],
+  );
+
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
@@ -582,72 +1074,105 @@ export default function KnowledgeGraph3DClient({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#080b10");
-    scene.fog = new THREE.FogExp2("#080b10", 0.035);
+    scene.fog = new THREE.FogExp2("#080b10", 0.022);
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 60);
     camera.position.set(0, 0, 11);
     camera.lookAt(0, 0, 0);
 
-    scene.add(new THREE.HemisphereLight("#dbe8ff", "#17110d", 1.5));
-    const keyLight = new THREE.DirectionalLight("#ffffff", 3.5);
-    keyLight.position.set(-4, 7, 9);
+    scene.add(new THREE.HemisphereLight("#a8bad2", "#07090d", 0.72));
+    const keyLight = new THREE.DirectionalLight("#fff5df", 3.1);
+    keyLight.position.set(-5.5, 6.8, 8.5);
     scene.add(keyLight);
-    const greenLight = new THREE.PointLight("#63d69a", 5.2, 12);
-    greenLight.position.set(-4.4, -0.4, 4);
-    scene.add(greenLight);
-    const warmLight = new THREE.PointLight("#f29a62", 4.3, 11);
-    warmLight.position.set(4.2, -2, 3);
-    scene.add(warmLight);
+    const rimLight = new THREE.DirectionalLight("#91a9cb", 0.75);
+    rimLight.position.set(5, -3, 2);
+    scene.add(rimLight);
 
     const haloTexture = makeHaloTexture();
+    const ownedTextures = new Set<THREE.Texture>();
     const planets = new Map<string, PlanetRuntime>();
     const hitAreas: THREE.Mesh[] = [];
     let mobile = mount.clientWidth < 700;
+    let compact = !mobile && mount.clientWidth < 1120;
+    const spaceBackdrop = createSpaceBackdrop(scene, mobile);
 
-    for (const [index, node] of sceneNodes.entries()) {
-      const category = node.category ?? "craft";
-      const color = CATEGORY_COLOR[category];
+    for (const node of sceneNodes) {
+      const cluster = node.cluster ?? "systems";
+      const color = CLUSTER_COLOR[cluster];
       const radius = PLANET_SCALE[node.id] ?? 0.55;
       const seed = hash(node.id) % 10000;
+      const profile = PLANET_PROFILE[node.id] ?? PLANET_PROFILE["this-site"];
       const group = new THREE.Group();
-      const geometry = makeOrganicGeometry(radius, seed);
-      const texture = makePlanetTexture(color, node.id);
+      const geometry = new THREE.SphereGeometry(radius, 64, 48);
+      const { albedoTexture, bumpTexture, cloudTexture } = makeSurfaceMaps(
+        profile,
+        node.id,
+        radius >= 0.5,
+      );
+      const maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      albedoTexture.anisotropy = maxAnisotropy;
+      bumpTexture.anisotropy = maxAnisotropy;
+      ownedTextures.add(albedoTexture);
+      ownedTextures.add(bumpTexture);
+      if (cloudTexture) {
+        cloudTexture.anisotropy = maxAnisotropy;
+        ownedTextures.add(cloudTexture);
+      }
       const material = new THREE.MeshPhysicalMaterial({
-        map: texture,
+        map: albedoTexture,
+        bumpMap: bumpTexture,
+        bumpScale: profile.bumpScale,
         color: "#ffffff",
-        roughness: node.meta === "in the lab" ? 0.62 : 0.38,
-        metalness: 0.08,
-        clearcoat: 0.48,
-        clearcoatRoughness: 0.42,
+        roughness: profile.roughness,
+        metalness: 0,
+        clearcoat: profile.archetype === "terrestrial" ? 0.08 : 0,
+        clearcoatRoughness: 0.86,
       });
       const surface = new THREE.Mesh(geometry, material);
-      surface.rotation.set(seed * 0.0007, seed * 0.0011, seed * 0.0004);
+      surface.rotation.set(seed * 0.0007, seed * 0.0011, profile.axialTilt);
+      surface.scale.y = profile.flattening ?? 1;
       surface.userData.planetId = node.id;
       group.add(surface);
 
-      const atmosphereMaterial = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: node.meta === "in the lab" ? 0.07 : 0.045,
-        side: THREE.BackSide,
-        depthWrite: false,
-      });
-      const atmosphere = new THREE.Mesh(geometry.clone(), atmosphereMaterial);
-      atmosphere.scale.setScalar(node.meta === "in the lab" ? 1.14 : 1.075);
-      group.add(atmosphere);
-
-      if (node.kind === "case" || node.meta === "shipped") {
-        const ringMaterial = new THREE.MeshBasicMaterial({
-          color: tinted(color, 0.55),
-          transparent: true,
-          opacity: node.kind === "case" ? 0.34 : 0.22,
-          depthWrite: false,
-        });
-        const ring = new THREE.Mesh(
-          new THREE.TorusGeometry(radius * 1.42, Math.max(0.008, radius * 0.014), 8, 120),
-          ringMaterial,
+      if (profile.atmosphere) {
+        const atmosphere = new THREE.Mesh(
+          geometry.clone(),
+          makeAtmosphereMaterial(profile.atmosphere.color, profile.atmosphere.strength),
         );
-        ring.rotation.set(Math.PI * 0.57, 0.18 + index * 0.07, index * 0.19);
+        atmosphere.scale.set(
+          profile.atmosphere.scale,
+          profile.atmosphere.scale * (profile.flattening ?? 1),
+          profile.atmosphere.scale,
+        );
+        group.add(atmosphere);
+      }
+
+      let clouds: THREE.Mesh | undefined;
+      if (cloudTexture && profile.clouds) {
+        clouds = new THREE.Mesh(
+          geometry.clone(),
+          new THREE.MeshStandardMaterial({
+            map: cloudTexture,
+            transparent: true,
+            opacity: profile.clouds.opacity,
+            roughness: 1,
+            metalness: 0,
+            depthWrite: false,
+          }),
+        );
+        clouds.scale.set(1.012, 1.012 * (profile.flattening ?? 1), 1.012);
+        clouds.rotation.copy(surface.rotation);
+        clouds.userData.rotationSpeed = profile.clouds.speed;
+        group.add(clouds);
+      }
+
+      if (profile.ring) {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(0.72, 1.3, 160),
+          makeRingMaterial(),
+        );
+        ring.scale.setScalar(radius * 1.55);
+        ring.rotation.set(Math.PI * 0.38, 0, profile.axialTilt);
         group.add(ring);
       }
 
@@ -655,12 +1180,12 @@ export default function KnowledgeGraph3DClient({
         map: haloTexture,
         color,
         transparent: true,
-        opacity: 0.1,
+        opacity: 0.04,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
       const halo = new THREE.Sprite(haloMaterial);
-      halo.scale.setScalar(radius * 3.45);
+      halo.scale.setScalar(radius * 2.8);
       halo.renderOrder = -1;
       group.add(halo);
 
@@ -672,7 +1197,7 @@ export default function KnowledgeGraph3DClient({
       group.add(hitArea);
       hitAreas.push(hitArea);
 
-      const anchor = anchorFor(node.id, mobile);
+      const anchor = anchorFor(node.id, mobile, compact);
       group.position.copy(anchor);
       scene.add(group);
       planets.set(node.id, {
@@ -691,6 +1216,7 @@ export default function KnowledgeGraph3DClient({
         releasedAt: 0,
         seed,
         radius,
+        clouds,
       });
     }
 
@@ -702,6 +1228,8 @@ export default function KnowledgeGraph3DClient({
     const dragOffset = new THREE.Vector3();
     const cameraDirection = new THREE.Vector3();
     const projected = new THREE.Vector3();
+    const labelEdge = new THREE.Vector3();
+    const cameraRight = new THREE.Vector3();
     const desired = new THREE.Vector3();
     let drag: PlanetRuntime | null = null;
     let downX = 0;
@@ -757,9 +1285,9 @@ export default function KnowledgeGraph3DClient({
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
         const material = new THREE.LineBasicMaterial({
-          color: CATEGORY_COLOR[from.data.category ?? "craft"],
+          color: CLUSTER_COLOR[from.data.cluster ?? "systems"],
           transparent: true,
-          opacity: reduced ? 0.28 : 0,
+          opacity: reduced ? 0.12 : 0,
           depthWrite: false,
         });
         const line = new THREE.Line(geometry, material);
@@ -773,14 +1301,15 @@ export default function KnowledgeGraph3DClient({
       const planet = planets.get(id);
       if (!planet) return;
       lastConnectionId = "";
-      planet.halo.material.opacity = 0.2;
+      planet.halo.material.opacity = 0.12;
       requestSceneFrame();
     };
 
     const reset = () => {
       mobile = mount.clientWidth < 700;
+      compact = !mobile && mount.clientWidth < 1120;
       for (const planet of planets.values()) {
-        planet.anchor.copy(anchorFor(planet.data.id, mobile));
+        planet.anchor.copy(anchorFor(planet.data.id, mobile, compact));
         planet.target.copy(planet.anchor);
         planet.group.position.copy(planet.anchor);
         planet.velocity.set(0, 0, 0);
@@ -870,8 +1399,7 @@ export default function KnowledgeGraph3DClient({
         renderer.domElement.releasePointerCapture(event.pointerId);
       }
       if (!moved) {
-        selectedRef.current = released.data.id;
-        setSelected(released.data.id);
+        openRecord(released.data.id);
       } else if (!reduced) {
         released.velocity.copy(released.dragVelocity).multiplyScalar(0.34);
         released.releasedAt = performance.now();
@@ -917,13 +1445,15 @@ export default function KnowledgeGraph3DClient({
       width = Math.max(1, mount.clientWidth);
       height = Math.max(1, mount.clientHeight);
       const nextMobile = width < 700;
+      const nextCompact = !nextMobile && width < 1120;
       camera.aspect = width / height;
-      camera.fov = nextMobile ? 58 : 45;
-      camera.position.z = nextMobile ? 10.8 : 11;
+      camera.fov = nextMobile ? 58 : nextCompact ? 48 : 45;
+      camera.position.z = nextMobile ? 10.8 : nextCompact ? 11.6 : 11;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.setSize(width, height, false);
-      if (nextMobile !== mobile) reset();
+      spaceBackdrop.resize(camera, renderer.getPixelRatio(), nextMobile);
+      if (nextMobile !== mobile || nextCompact !== compact) reset();
       requestSceneFrame();
     };
     const resizeObserver = new ResizeObserver(resize);
@@ -971,7 +1501,7 @@ export default function KnowledgeGraph3DClient({
               1 - Math.exp(-10 * delta),
             );
         planet.group.scale.setScalar(scale);
-        const haloOpacity = isSelected || isHovered ? 0.2 : 0.085;
+        const haloOpacity = isSelected || isHovered ? 0.12 : 0.035;
         planet.halo.material.opacity = reduced
           ? haloOpacity
           : THREE.MathUtils.lerp(
@@ -982,7 +1512,10 @@ export default function KnowledgeGraph3DClient({
 
         if (!reduced) {
           planet.surface.rotation.y += delta * (0.08 + (planet.seed % 7) * 0.008);
-          planet.surface.rotation.x += delta * 0.012;
+          if (planet.clouds) {
+            planet.clouds.rotation.y +=
+              delta * 0.11 * (planet.clouds.userData.rotationSpeed as number);
+          }
         }
 
         if (isDragging) {
@@ -1015,7 +1548,7 @@ export default function KnowledgeGraph3DClient({
             planet.lastSmokePoint,
             planet.group.position,
             isDragging ? planet.dragVelocity : planet.velocity,
-            CATEGORY_COLOR[planet.data.category ?? "craft"],
+            CLUSTER_COLOR[planet.data.cluster ?? "systems"],
             amount,
           );
           planet.lastSmokePoint.copy(planet.group.position);
@@ -1037,7 +1570,7 @@ export default function KnowledgeGraph3DClient({
         );
         attribute.setXYZ(1, end.x, end.y, end.z);
         attribute.needsUpdate = true;
-        connection.line.material.opacity = 0.28 * eased;
+        connection.line.material.opacity = 0.12 * eased;
       }
 
       smoke.update(delta);
@@ -1048,6 +1581,7 @@ export default function KnowledgeGraph3DClient({
         camera.lookAt(0, 0, 0);
       }
 
+      cameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
       for (const planet of planets.values()) {
         const label = labelRefs.current.get(planet.data.id);
         if (!label) continue;
@@ -1056,10 +1590,17 @@ export default function KnowledgeGraph3DClient({
         const y = (-projected.y * 0.5 + 0.5) * height;
         const show =
           projected.z < 1 &&
-          (HERO_LABELS.has(planet.data.id) ||
-            selectedRef.current === planet.data.id ||
+          (selectedRef.current === planet.data.id ||
             hoveredRef.current === planet.data.id);
-        label.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+        labelEdge
+          .copy(planet.group.position)
+          .addScaledVector(cameraRight, planet.radius * planet.group.scale.x)
+          .project(camera);
+        const radiusPx = Math.abs(labelEdge.x - projected.x) * width * 0.5;
+        const direction = x > width * 0.78 ? -1 : 1;
+        const labelX = x + direction * (radiusPx + 14);
+        const labelY = y + Math.min(14, radiusPx * 0.18);
+        label.style.transform = `translate3d(${labelX}px, ${labelY}px, 0) translate(${direction < 0 ? "-82%" : "-18%"}, -50%)`;
         label.style.opacity = show ? "1" : "0";
         label.style.pointerEvents = show ? "auto" : "none";
       }
@@ -1111,9 +1652,6 @@ export default function KnowledgeGraph3DClient({
             object.geometry.dispose();
             const materials = Array.isArray(object.material) ? object.material : [object.material];
             for (const material of materials) {
-              if (material instanceof THREE.MeshPhysicalMaterial && material.map) {
-                material.map.dispose();
-              }
               material.dispose();
             }
           } else if (object instanceof THREE.Sprite) {
@@ -1121,12 +1659,14 @@ export default function KnowledgeGraph3DClient({
           }
         });
       }
+      for (const texture of ownedTextures) texture.dispose();
+      spaceBackdrop.dispose();
       haloTexture.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       sceneApiRef.current = null;
     };
-  }, [edges, sceneNodes]);
+  }, [edges, openRecord, sceneNodes]);
 
   const onLabelKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLButtonElement>, id: string) => {
@@ -1142,15 +1682,14 @@ export default function KnowledgeGraph3DClient({
   );
 
   const selectedIndex = Math.max(0, sceneNodes.findIndex((node) => node.id === selected));
-  const selectedCategory = selectedNode.category ?? "craft";
-  const selectedHref = selectedNode.href;
+  const selectedCluster = selectedNode.cluster ?? "systems";
 
   return (
     <section
-      className="relative left-1/2 w-screen -translate-x-1/2 px-3 md:px-6"
+      className="relative left-1/2 w-screen -translate-x-1/2"
       aria-labelledby="systems-title"
     >
-      <div className="systems-stage relative h-[76svh] min-h-[570px] overflow-hidden rounded-[1.4rem] bg-[#080b10] text-[#f4f2ec] md:h-[calc(100svh-5.75rem)] md:min-h-[650px] md:rounded-[2rem]">
+      <div className="systems-stage relative h-[calc(100svh-var(--site-header-h))] min-h-[680px] overflow-hidden bg-[#080b10] text-[#f4f2ec] md:min-h-[650px]">
         <div ref={mountRef} aria-hidden="true" className="absolute inset-0" />
 
         {webglStatus === "failed" && (
@@ -1165,8 +1704,8 @@ export default function KnowledgeGraph3DClient({
                     top: `${24 + ((index * 31) % 56)}%`,
                     width: `${34 + (index % 3) * 17}px`,
                     aspectRatio: "1",
-                    background: `radial-gradient(circle at 32% 26%, #fff8, ${CATEGORY_COLOR[node.category ?? "craft"]} 32%, #05070b 78%)`,
-                    boxShadow: `0 0 36px ${CATEGORY_COLOR[node.category ?? "craft"]}38`,
+                    background: `radial-gradient(circle at 32% 26%, #fff8, ${CLUSTER_COLOR[node.cluster ?? "systems"]} 32%, #05070b 78%)`,
+                    boxShadow: `0 0 36px ${CLUSTER_COLOR[node.cluster ?? "systems"]}38`,
                   }}
                 />
               ))}
@@ -1186,11 +1725,11 @@ export default function KnowledgeGraph3DClient({
         >
           <div className="max-w-[36rem]">
             <p className="font-sans text-xs font-semibold uppercase tracking-[-0.02em] text-white/72">
-              Systems / {String(sceneNodes.length).padStart(2, "0")}
+              Systems / 04 constellations
             </p>
             <h1
               id="systems-title"
-              className="mt-3 max-w-[15ch] font-sans text-[clamp(2rem,5vw,4.8rem)] font-medium leading-[0.94] tracking-[-0.06em]"
+              className="mt-3 max-w-[15ch] font-sans text-[clamp(2rem,4.2vw,4rem)] font-medium leading-[0.94] tracking-[-0.06em]"
             >
               The systems behind the outcomes.
             </h1>
@@ -1221,6 +1760,29 @@ export default function KnowledgeGraph3DClient({
         </header>
 
         {webglStatus === "ready" && (
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-10 hidden md:block">
+            {[
+              ["companies", "22%", "34%"],
+              ["practice", "51%", "32%"],
+              ["systems", "79%", "35%"],
+              ["content", "55%", "58%"],
+            ].map(([cluster, left, top]) => (
+              <p
+                key={cluster}
+                className="absolute flex -translate-x-1/2 items-center gap-2 whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.14em] text-white/46"
+                style={{ left, top }}
+              >
+                <span
+                  className="size-1 rounded-full"
+                  style={{ background: CLUSTER_COLOR[cluster as ClusterId] }}
+                />
+                {clusters[cluster as ClusterId].label}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {webglStatus === "ready" && (
           <div
             inert={indexOpen}
             aria-label="Visible planet controls"
@@ -1235,7 +1797,7 @@ export default function KnowledgeGraph3DClient({
                 }}
                 type="button"
                 aria-pressed={selected === node.id}
-                onClick={() => choose(node.id)}
+                onClick={() => openRecord(node.id)}
                 onFocus={() => {
                   hoveredRef.current = node.id;
                   sceneApiRef.current?.focus(node.id);
@@ -1249,7 +1811,7 @@ export default function KnowledgeGraph3DClient({
               >
                 <span
                   className="size-1.5 rounded-full"
-                  style={{ background: CATEGORY_COLOR[node.category ?? "craft"] }}
+                  style={{ background: CLUSTER_COLOR[node.cluster ?? "systems"] }}
                 />
                 {node.label}
               </button>
@@ -1279,17 +1841,17 @@ export default function KnowledgeGraph3DClient({
               </button>
             </div>
             <div className="mt-5 grid gap-6">
-              {CATEGORY_ORDER.map((category) => {
-                const members = sceneNodes.filter((node) => node.category === category);
+              {clusterOrder.map((cluster) => {
+                const members = sceneNodes.filter((node) => node.cluster === cluster);
                 if (members.length === 0) return null;
                 return (
-                  <div key={category}>
+                  <div key={cluster}>
                     <p className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.17em] text-white/52">
                       <span
                         className="size-1.5 rounded-full"
-                        style={{ background: CATEGORY_COLOR[category] }}
+                        style={{ background: CLUSTER_COLOR[cluster] }}
                       />
-                      {categories[category].label}
+                      {clusters[cluster].label}
                     </p>
                     <div className="mt-2 grid">
                       {members.map((node) => (
@@ -1316,7 +1878,7 @@ export default function KnowledgeGraph3DClient({
 
         <div
           inert={indexOpen}
-          className="absolute inset-x-4 bottom-4 z-30 rounded-[1.05rem] border border-white/14 bg-[#090d12]/74 p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] backdrop-blur-lg sm:inset-x-7 sm:bottom-7 sm:grid sm:grid-cols-[auto_1fr_auto] sm:items-end sm:gap-6 sm:p-5 md:inset-x-9"
+          className="absolute inset-x-4 bottom-4 z-30 rounded-[1.05rem] border border-white/14 bg-[#090d12]/74 p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] backdrop-blur-lg sm:bottom-7 sm:left-7 sm:right-auto sm:grid sm:w-[min(40rem,calc(100%-3.5rem))] sm:grid-cols-[auto_1fr_auto] sm:items-end sm:gap-5 md:left-9 md:w-[min(42rem,calc(100%-4.5rem))]"
         >
           <div className="hidden sm:block">
             <p className="font-mono text-xs tabular-nums text-white/48">
@@ -1332,7 +1894,7 @@ export default function KnowledgeGraph3DClient({
               aria-live="polite"
               className="text-[0.68rem] uppercase tracking-[0.16em] text-white/52"
             >
-              {CATEGORY_SHORT[selectedCategory]} · {nodeStatus(selectedNode)}
+              {CLUSTER_SHORT[selectedCluster]} · {nodeStatus(selectedNode)}
             </p>
             <h2 className="mt-1 truncate font-sans text-xl font-medium tracking-[-0.045em] sm:text-2xl">
               {selectedNode.label}
@@ -1344,30 +1906,12 @@ export default function KnowledgeGraph3DClient({
             )}
           </div>
           <div className="mt-3 sm:mt-0">
-            {selectedHref ? (
-              selectedHref.startsWith("/") ? (
-                <Link
-                  href={selectedHref}
-                  className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-[#080b10] transition-transform hover:-translate-y-0.5"
-                >
-                  Read case study →
-                </Link>
-              ) : (
-                <a
-                  href={selectedHref}
-                  className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-[#080b10] transition-transform hover:-translate-y-0.5"
-                >
-                  Open system ↗
-                </a>
-              )
-            ) : (
-              <a
-                href={`#${selectedNode.id}`}
-                className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-[#080b10] transition-transform hover:-translate-y-0.5"
-              >
-                Open details ↓
-              </a>
-            )}
+            <a
+              href={`#${selectedNode.id}`}
+              className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-[#080b10] transition-transform hover:-translate-y-0.5"
+            >
+              Open record ↓
+            </a>
           </div>
         </div>
       </div>

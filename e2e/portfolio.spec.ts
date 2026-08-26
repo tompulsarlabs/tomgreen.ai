@@ -13,6 +13,10 @@ test("homepage communicates the proposition and the next steps", async ({ page }
   );
   await expect(page.getByRole("link", { name: "View the work" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Subscribe on Substack/ })).toHaveAttribute(
+    "href",
+    "https://tomgreenlabs.substack.com/subscribe",
+  );
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toContainText(
     "WorkSystemsAboutContact",
   );
@@ -29,6 +33,9 @@ test("Work is a tiered archive with an active navigation state", async ({ page }
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Outcomes");
   await expect(page.getByRole("heading", { name: /organisation from zero to 120/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /People Ops rebuilt on agents/i })).toBeVisible();
+  await expect(
+    page.getByText("Runs EU People Ops from Germany", { exact: true }).last(),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Current chapter and foundations." })).toBeVisible();
 });
 
@@ -63,17 +70,17 @@ test("mobile navigation and content remain inside the viewport", async ({ page }
 
   await page.getByRole("link", { name: "Contact", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Building the team—or the operating model behind it?" }),
+    page.getByRole("heading", { name: "Tell me what’s hard." }),
   ).toBeVisible();
 
-  for (const route of ["/work", "/work/zalando", "/work/chapter-2", "/about", "/building"]) {
+  for (const route of ["/work", "/work/zalando", "/work/chapter-2", "/about", "/building", "/contact"]) {
     await page.goto(route);
     const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(documentWidth, `${route} should not widen the 390px viewport`).toBeLessThanOrEqual(390);
   }
 });
 
-for (const route of ["/", "/work", "/work/zalando", "/about", "/building"]) {
+for (const route of ["/", "/work", "/work/zalando", "/about", "/building", "/contact"]) {
   test(`${route} has no serious accessibility violations`, async ({ page }) => {
     await page.goto(route);
     const results = await new AxeBuilder({ page })
@@ -89,46 +96,68 @@ for (const route of ["/", "/work", "/work/zalando", "/about", "/building"]) {
   });
 }
 
+test("Contact gives every direct channel a clear destination", async ({ page }) => {
+  await page.goto("/contact");
+
+  await expect(page.getByRole("link", { name: "Contact", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell me what’s hard.");
+  await expect(page.getByRole("link", { name: /Email/ })).toHaveAttribute(
+    "href",
+    /^mailto:tom@tomgreen\.ai/,
+  );
+  await expect(page.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute(
+    "href",
+    "https://linkedin.com/in/tomegreen",
+  );
+  await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute(
+    "href",
+    "https://github.com/tompulsarlabs",
+  );
+  await expect(page.locator("footer").getByRole("link")).toHaveCount(0);
+});
+
 test("About keeps a complete linear journey under reduced motion", async ({ page }) => {
+  await page.setViewportSize({ width: 1005, height: 900 });
   await page.goto("/about");
   await expect(page.getByRole("heading", { name: "The journey" })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Zalando/ })).toBeVisible();
-  await expect(page.locator('[aria-label="Career walkthrough"]')).toHaveCount(0);
+  await expect(
+    page.locator('[aria-label="Interactive CV, reverse chronological"]'),
+  ).toHaveCount(0);
+  await expect(page.locator("[data-career-hyperspace]")).toHaveCount(0);
 });
 
 test("the career corridor exposes only its focused chapter to interaction", async ({ page }) => {
-  await page.addInitScript(() => {
-    const nativeMatchMedia = window.matchMedia.bind(window);
-    window.matchMedia = (query: string) => {
-      const result = nativeMatchMedia(query);
-      if (!query.includes("(pointer: fine)")) return result;
-
-      return new Proxy(result, {
-        get(target, property) {
-          if (property === "matches") return true;
-          const value = Reflect.get(target, property, target);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-    };
-  });
+  await page.setViewportSize({ width: 1005, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/about");
 
   const media = await page.evaluate(() => ({
-    width: window.matchMedia("(min-width: 1024px)").matches,
-    pointer: window.matchMedia("(pointer: fine)").matches,
+    width: window.matchMedia("(min-width: 900px)").matches,
+    belowOldGate: !window.matchMedia("(min-width: 1024px)").matches,
     motion: window.matchMedia("(prefers-reduced-motion: no-preference)").matches,
     combined: window.matchMedia(
-      "(min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+      "(min-width: 900px) and (prefers-reduced-motion: no-preference)",
     ).matches,
   }));
-  expect(media).toEqual({ width: true, pointer: true, motion: true, combined: true });
+  expect(media).toEqual({
+    width: true,
+    belowOldGate: true,
+    motion: true,
+    combined: true,
+  });
 
-  const corridor = page.locator('[aria-label="Career walkthrough"]');
+  const corridor = page.locator('[aria-label="Interactive CV, reverse chronological"]');
   await expect(corridor).toBeVisible();
+  await expect(corridor.locator("[data-career-hyperspace]")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
 
-  const states = await corridor.locator(".corridor-chapter > div.relative").evaluateAll(
+  const states = await corridor.locator("[data-career-entry]").evaluateAll(
     (chapters) =>
       chapters.map((chapter) => ({
         hidden: chapter.getAttribute("aria-hidden"),
@@ -144,6 +173,27 @@ test("the career corridor exposes only its focused chapter to interaction", asyn
   await expect(page.getByRole("button", { name: "Previous career chapter" })).toBeDisabled();
   await page.getByRole("button", { name: "Next career chapter" }).click();
   await expect(corridor.getByText(/02 \/ 07/)).toBeVisible();
+
+  await page.waitForTimeout(500);
+  const paintedPixels = await corridor.locator("[data-career-hyperspace]").evaluate(
+    (canvas) => {
+      const element = canvas as HTMLCanvasElement;
+      const context = element.getContext("2d");
+      if (!context) return 0;
+      const pixels = context.getImageData(0, 0, element.width, element.height).data;
+      let count = 0;
+      for (let index = 3; index < pixels.length; index += 4) {
+        if (pixels[index] > 0) count += 1;
+      }
+      return count;
+    },
+  );
+  expect(paintedPixels).toBeGreaterThan(50);
+
+  const zalando = page.getByRole("button", { name: "View Zalando, 2022 to 2025" });
+  await zalando.click();
+  await expect(zalando).toHaveAttribute("aria-current", "step");
+  await expect(corridor.getByRole("status")).toContainText("03 / 07 · Zalando");
 });
 
 test("the systems field offers direct selection and a semantic route", async ({ page }) => {
@@ -156,13 +206,25 @@ test("the systems field offers direct selection and a semantic route", async ({ 
   const fallback = page.getByRole("link", { name: "Skip to the systems index ↓" });
   await expect(index.or(fallback).first()).toBeVisible({ timeout: 20_000 });
   if (await index.isVisible()) {
+    const visiblePlanets = page.locator('[aria-label="Visible planet controls"]');
+    const zalandoPlanet = visiblePlanets.getByRole("button", {
+      name: "Zalando",
+      exact: true,
+    });
+    await expect(zalandoPlanet).toBeVisible();
+    await zalandoPlanet.click();
+    await expect(page.locator("#zalando")).toBeInViewport();
+
+    await page.locator(".systems-stage").scrollIntoViewIfNeeded();
     await index.click();
     const sybil = page.getByRole("button", { name: /Sybil/ });
     await expect(sybil).toHaveAttribute("aria-pressed", "false");
     await sybil.click();
-    await expect(page.getByText("AI capability assessment platform")).toBeVisible();
+    await expect(page.locator(".systems-stage").getByText("AI capability assessment platform"))
+      .toBeVisible();
   }
-  await expect(page.locator("#cat-agents")).toBeAttached();
+  await expect(page.locator("#ivy")).toBeAttached();
+  await expect(page.locator("#tom-green-labs")).toBeAttached();
 });
 
 test("the systems index traps focus and returns it to its trigger", async ({ page }) => {

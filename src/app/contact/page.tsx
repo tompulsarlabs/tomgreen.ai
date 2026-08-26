@@ -1,0 +1,154 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import type { SVGProps } from "react";
+import { site } from "@/lib/content/site";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Contact Tom Green about AI organisations, talent systems, operating models and agent workflows.",
+};
+
+function MailIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <path d="M3.75 5.75h16.5v12.5H3.75z" />
+      <path d="m4.25 6.5 7.75 6 7.75-6" />
+    </svg>
+  );
+}
+
+function LinkedInIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <rect x="3.75" y="3.75" width="16.5" height="16.5" rx="1.25" />
+      <path d="M8 10v6.25M8 7.55v.1M11.25 16.25V10h3v1.05c.68-.82 1.5-1.23 2.45-1.23 1.7 0 2.55 1.12 2.55 3.36v3.07" />
+    </svg>
+  );
+}
+
+function GitHubIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <path d="M15.5 21v-3.5c0-1 .1-1.4-.5-2 2.75-.3 5.65-1.35 5.65-6.15 0-1.35-.5-2.45-1.3-3.3.15-.3.55-1.55-.1-3.25 0 0-1.05-.35-3.45 1.25A12 12 0 0 0 12.65 3c-1.05 0-2.1.15-3.1.45C7.15 1.85 6.1 2.2 6.1 2.2c-.65 1.7-.25 2.95-.1 3.25-.8.85-1.3 1.95-1.3 3.3 0 4.8 2.9 5.85 5.65 6.15-.45.4-.65.95-.7 1.5-.65.3-2.3.85-3.3-.95-.6-1.05-1.65-1.15-1.65-1.15" />
+      <path d="M9.65 21v-4.6" />
+    </svg>
+  );
+}
+
+const channels = [
+  {
+    label: "Email",
+    detail: site.email,
+    note: "For projects, roles and thoughtful introductions.",
+    href: `mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`,
+    icon: MailIcon,
+    rel: undefined,
+  },
+  {
+    label: "LinkedIn",
+    detail: "Professional profile",
+    note: "Career history, shared context and direct messages.",
+    href: site.links.linkedin,
+    icon: LinkedInIcon,
+    rel: "me",
+  },
+  {
+    label: "GitHub",
+    detail: "@tompulsarlabs",
+    note: "Public systems, source code and the live build record.",
+    href: site.links.github,
+    icon: GitHubIcon,
+    rel: "me",
+  },
+] as const;
+
+export default function ContactPage() {
+  return (
+    <div className="flex min-h-[calc(100svh-4.75rem)] flex-col">
+      <header className="grid gap-10 border-b border-ink py-16 md:py-24 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
+        <div>
+          <p className="anim font-mono text-xs uppercase tracking-[0.22em] text-muted">
+            Contact / {site.location} · global
+          </p>
+          <h1 className="anim mt-4 max-w-3xl font-display text-[clamp(3.75rem,8vw,7rem)] leading-[0.88] tracking-[-0.055em]">
+            Tell me what’s hard.
+          </h1>
+        </div>
+        <div className="anim max-w-2xl lg:pb-2" style={{ "--anim-delay": "120ms" } as React.CSSProperties}>
+          <p className="text-lg leading-relaxed text-ink-secondary md:text-xl">
+            An AI organisation to scale. A hiring system that is creaking. An agent workflow that needs to work outside a demo. Start with the constraint.
+          </p>
+          <a
+            href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
+            className="group mt-8 inline-flex min-h-12 items-center gap-4 bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5"
+          >
+            Start a conversation
+            <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+          </a>
+        </div>
+      </header>
+
+      <section aria-labelledby="contact-channels" className="grid gap-10 py-14 md:py-20 lg:grid-cols-[0.7fr_1.3fr]">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">Direct channels</p>
+          <h2 id="contact-channels" className="mt-3 max-w-sm font-display text-3xl leading-tight tracking-tight md:text-4xl">
+            Choose the shortest route.
+          </h2>
+        </div>
+
+        <ul className="border-t border-hairline">
+          {channels.map(({ label, detail, note, href, icon: Icon, rel }) => (
+            <li key={label} className="border-b border-hairline">
+              <a
+                href={href}
+                rel={rel}
+                className="group grid min-h-28 grid-cols-[3.5rem_1fr_auto] items-center gap-4 py-5 transition-colors hover:text-accent sm:gap-6"
+              >
+                <span className="flex size-12 items-center justify-center border border-hairline bg-card text-ink transition-colors group-hover:border-accent group-hover:text-accent">
+                  <Icon aria-hidden className="size-6" />
+                </span>
+                <span>
+                  <span className="block text-xs uppercase tracking-[0.18em] text-muted">{label}</span>
+                  <span className="mt-1 block text-base text-ink sm:text-lg">{detail}</span>
+                  <span className="mt-1 hidden text-sm leading-relaxed text-muted sm:block">{note}</span>
+                </span>
+                <span aria-hidden className="pr-1 text-xl transition-transform group-hover:translate-x-1">↗</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mb-16 grid gap-10 border-y border-hairline py-10 md:mb-24 lg:grid-cols-[0.7fr_1.3fr]">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">A useful first note</p>
+        </div>
+        <div className="grid gap-px bg-hairline sm:grid-cols-3">
+          {[
+            ["01", "What you’re building"],
+            ["02", "Where it is stuck"],
+            ["03", "What changes if it works"],
+          ].map(([number, label]) => (
+            <div key={number} className="min-h-32 bg-paper p-5">
+              <p className="font-mono text-xs text-accent">{number}</p>
+              <p className="mt-8 max-w-40 text-sm leading-snug text-ink-secondary">{label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <aside className="mb-16 flex flex-wrap items-center justify-between gap-5 md:mb-24">
+        <p className="text-sm text-muted">Want the evidence before the conversation?</p>
+        <div className="flex gap-5 text-sm">
+          <Link href="/work" className="text-link text-accent hover:underline">
+            See the work →
+          </Link>
+          <Link href="/building" className="text-link text-accent hover:underline">
+            Explore the systems →
+          </Link>
+        </div>
+      </aside>
+    </div>
+  );
+}

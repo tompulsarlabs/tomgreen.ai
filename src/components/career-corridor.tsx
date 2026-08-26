@@ -5,26 +5,39 @@ import { useEffect, useRef, useState } from "react";
 import type { CareerStop } from "@/lib/content/about";
 import {
   CAREER_SPACING,
+  careerPeriodLabel,
   careerVisualDepth,
   focusedCareerIndex,
+  spokenCareerPeriod,
 } from "@/lib/career-corridor-state";
 
 /**
  * The career as a corridor (DESIGN-MOTION.md): a sticky perspective stage
  * the reader walks through with one continuous scroll — chapters approach
- * from the depth, hold focus while readable, and fall away, each with its
- * year standing as a ghost monument. The nearest chapter owns the readable
- * plane at every scroll position: depth keeps moving continuously, but the
- * reader never crosses an empty transition or two merged text layers.
- * Desktop-only; the linear timeline is the fallback everywhere else.
+ * from a persistent vanishing point, settle into a crisp reading plane, then
+ * pass the viewer. A restrained tunnel remains visible at rest; camera
+ * velocity stretches its markers into hyperspace rays. The nearest chapter
+ * owns the readable and interactive plane at every scroll position.
+ * Wide-screen only; the linear timeline is the fallback everywhere else.
  */
 const VH_PER_STOP = 0.95;
+const HYPERSPACE_PARTICLES = Array.from({ length: 72 }, (_, index) => {
+  const angle = (index * 2.399963229728653) % (Math.PI * 2);
+  const radius = 0.32 + ((index * 11) % 17) * 0.045;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius * 0.68,
+    depth: ((index * 29) % 71) / 71,
+    accent: index % 11 === 0,
+  };
+});
+const TUNNEL_GATE_COUNT = 6;
 
 export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const chaptersRef = useRef<(HTMLDivElement | null)[]>([]);
   const contentsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const fillRef = useRef<HTMLDivElement>(null);
+  const hyperspaceRef = useRef<HTMLCanvasElement>(null);
   const hintRef = useRef<HTMLParagraphElement>(null);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -34,9 +47,15 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
     if (!section) return;
     const clamped = Math.max(0, Math.min(stops.length - 1, index));
     const sectionTop = window.scrollY + section.getBoundingClientRect().top;
-    const scrollable = Math.max(section.offsetHeight - window.innerHeight, 0);
+    const headerHeight =
+      document.querySelector("body > header")?.getBoundingClientRect().height ?? 76;
+    const stageHeight = Math.max(window.innerHeight - headerHeight, 1);
+    const scrollable = Math.max(section.offsetHeight - stageHeight, 0);
     const progress = stops.length > 1 ? clamped / (stops.length - 1) : 0;
-    window.scrollTo({ top: sectionTop + scrollable * progress, behavior: "smooth" });
+    window.scrollTo({
+      top: sectionTop - headerHeight + scrollable * progress,
+      behavior: "smooth",
+    });
   };
 
   useEffect(() => {
@@ -48,11 +67,117 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
     let raf = 0;
     let running = false;
     let initialized = false;
+    let intersecting = false;
+    let streakIntensity = 0;
+    let streakDirection = 1;
+    let lastFrameTime = 0;
+
+    const hyperspace = hyperspaceRef.current;
+    const context = hyperspace?.getContext("2d") ?? null;
+    let canvasWidth = 0;
+    let canvasHeight = 0;
+
+    const sizeHyperspace = () => {
+      if (!hyperspace || !context) return;
+      const rect = hyperspace.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      canvasWidth = rect.width;
+      canvasHeight = rect.height;
+      hyperspace.width = Math.max(1, Math.round(canvasWidth * dpr));
+      hyperspace.height = Math.max(1, Math.round(canvasHeight * dpr));
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const clearHyperspace = () => {
+      context?.clearRect(0, 0, canvasWidth, canvasHeight);
+    };
+
+    const drawHyperspace = (
+      normalizedVelocity: number,
+      position: number,
+      deltaSeconds: number,
+    ) => {
+      if (!context) return;
+
+      const motion = Math.min(Math.abs(normalizedVelocity) / 2.2, 1);
+      const response = motion > streakIntensity ? 18 : 7;
+      streakIntensity +=
+        (motion - streakIntensity) * (1 - Math.exp(-response * deltaSeconds));
+      if (Math.abs(normalizedVelocity) > 0.01) {
+        streakDirection = Math.sign(normalizedVelocity);
+      }
+      clearHyperspace();
+
+      const centerX = canvasWidth * 0.47;
+      const centerY = canvasHeight * 0.48;
+      const scale = Math.min(canvasWidth, canvasHeight);
+      const cameraStops = position / CAREER_SPACING;
+
+      // Six repeated gates provide a persistent corridor at rest. Their
+      // projection is tied directly to camera position, so they expand and
+      // pass the viewport rather than merely flaring on scroll.
+      for (let index = 0; index < TUNNEL_GATE_COUNT; index += 1) {
+        const depth = ((index / TUNNEL_GATE_COUNT + cameraStops / 5) % 1 + 1) % 1;
+        const projection = 0.04 + Math.pow(depth, 1.8) * 0.95;
+        const width = scale * 1.2 * projection;
+        const height = scale * 0.72 * projection;
+        context.strokeStyle = `rgba(25, 24, 21, ${0.018 + depth * 0.032})`;
+        context.lineWidth = depth > 0.72 ? 0.9 : 0.6;
+        context.strokeRect(centerX - width / 2, centerY - height / 2, width, height);
+      }
+
+      // Deterministic particles are projected through the same camera. At
+      // rest they are tiny depth marks; normalized velocity lengthens their
+      // inward/outward trails without allocating gradients every frame.
+      for (let band = 0; band < 3; band += 1) {
+        for (const accent of [false, true]) {
+          context.beginPath();
+          for (const particle of HYPERSPACE_PARTICLES) {
+            const depth =
+              ((particle.depth + cameraStops / 3.5) % 1 + 1) % 1;
+            const particleBand = Math.min(2, Math.floor(depth * 3));
+            if (particleBand !== band || particle.accent !== accent) continue;
+
+            const projection = 0.045 + Math.pow(depth, 1.7) * 0.92;
+            const x = centerX + particle.x * scale * projection;
+            const y = centerY + particle.y * scale * projection;
+            const magnitude = Math.hypot(particle.x, particle.y) || 1;
+            const unitX = particle.x / magnitude;
+            const unitY = particle.y / magnitude;
+            const length =
+              1.4 + depth * 1.8 + scale * (0.025 + depth * 0.08) * streakIntensity;
+            const tailDirection = streakDirection > 0 ? -1 : 1;
+
+            context.moveTo(
+              x + unitX * length * tailDirection,
+              y + unitY * length * tailDirection,
+            );
+            context.lineTo(x, y);
+          }
+
+          const alpha =
+            [0.035, 0.05, 0.07][band] + streakIntensity * (accent ? 0.17 : 0.1);
+          context.strokeStyle = accent
+            ? `rgba(21, 109, 64, ${alpha})`
+            : `rgba(25, 24, 21, ${alpha})`;
+          context.lineWidth = band === 2 ? 1 : 0.75;
+          context.stroke();
+        }
+      }
+    };
+
+    sizeHyperspace();
 
     const measure = () => {
       const rect = section.getBoundingClientRect();
-      const scrollable = section.offsetHeight - window.innerHeight;
-      const progress = Math.min(Math.max(-rect.top / Math.max(scrollable, 1), 0), 1);
+      const headerHeight =
+        document.querySelector("body > header")?.getBoundingClientRect().height ?? 76;
+      const stageHeight = Math.max(window.innerHeight - headerHeight, 1);
+      const scrollable = section.offsetHeight - stageHeight;
+      const progress = Math.min(
+        Math.max((headerHeight - rect.top) / Math.max(scrollable, 1), 0),
+        1,
+      );
       target = progress * total;
       if (!initialized) {
         cam = target;
@@ -60,9 +185,18 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
       }
     };
 
-    const apply = () => {
-      cam += (target - cam) * 0.13;
+    const apply = (time: number) => {
+      if (!running) return;
+      const deltaSeconds = lastFrameTime
+        ? Math.min(Math.max((time - lastFrameTime) / 1000, 1 / 240), 0.05)
+        : 1 / 60;
+      lastFrameTime = time;
+      const previousCam = cam;
+      cam += (target - cam) * (1 - Math.exp(-9.2 * deltaSeconds));
       if (Math.abs(target - cam) < 0.1) cam = target;
+      const normalizedVelocity =
+        (cam - previousCam) / CAREER_SPACING / deltaSeconds;
+      drawHyperspace(normalizedVelocity, cam, deltaSeconds);
 
       const focusIndex = focusedCareerIndex(cam, stops.length);
       if (focusIndex !== activeIndexRef.current) {
@@ -74,16 +208,14 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
         if (!el) continue;
         const z = cam - i * CAREER_SPACING;
         const focused = i === focusIndex;
-        // Focused content remains fully legible while the physical chapter
-        // continues moving through depth. Nearby years stay as atmosphere.
+        // The full chapter follows one continuous approach/pass curve.
+        // Only the nearest entry exposes copy and interaction.
         const atmosphericPresence = Math.max(
           0,
-          0.16 * (1 - Math.abs(z) / (CAREER_SPACING * 1.4)),
+          0.2 * (1 - Math.abs(z) / (CAREER_SPACING * 1.45)),
         );
         const presence = focused ? 1 : atmosphericPresence;
-        // Keep the active reading plane within a legible depth band while
-        // the surrounding monuments retain the full corridor perspective.
-        const visualZ = careerVisualDepth(z, focused);
+        const visualZ = careerVisualDepth(z);
         el.style.transform = `translate3d(0, 0, ${visualZ}px)`;
         el.style.opacity = presence.toFixed(3);
         el.style.visibility = presence <= 0.001 ? "hidden" : "visible";
@@ -91,8 +223,16 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
         // Exactly one full-viewport layer owns text and pointer events.
         const content = contentsRef.current[i];
         if (content) {
-          content.style.opacity = focused ? "1" : "0";
-          content.style.transform = focused ? "translateY(0)" : "translateY(18px)";
+          const focusDistance = Math.min(
+            Math.abs(z) / (CAREER_SPACING * 0.5),
+            1,
+          );
+          content.style.opacity = focused
+            ? (0.84 + (1 - focusDistance) * 0.16).toFixed(3)
+            : "0";
+          content.style.transform = focused
+            ? `translateY(${(focusDistance * 8).toFixed(2)}px)`
+            : "translateY(18px)";
           content.style.pointerEvents = focused ? "auto" : "none";
           content.inert = !focused;
           content.setAttribute("aria-hidden", focused ? "false" : "true");
@@ -100,44 +240,93 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
       }
 
       const p = total > 0 ? cam / total : 0;
-      if (fillRef.current) fillRef.current.style.transform = `scaleY(${p})`;
       if (hintRef.current) {
         hintRef.current.style.opacity = p > 0.02 ? "0" : "1";
+      }
+
+      if (Math.abs(target - cam) < 0.1 && streakIntensity < 0.004) {
+        cam = target;
+        streakIntensity = 0;
+        drawHyperspace(0, cam, deltaSeconds);
+        running = false;
+        lastFrameTime = 0;
+        return;
       }
       raf = requestAnimationFrame(apply);
     };
 
-    const onScroll = () => measure();
+    const start = () => {
+      if (running || !intersecting || document.hidden) return;
+      running = true;
+      measure();
+      lastFrameTime = 0;
+      raf = requestAnimationFrame(apply);
+    };
+    const stop = (clear = true) => {
+      running = false;
+      cancelAnimationFrame(raf);
+      lastFrameTime = 0;
+      if (clear) clearHyperspace();
+    };
+    const onScroll = () => {
+      measure();
+      start();
+    };
+    const onResize = () => {
+      sizeHyperspace();
+      measure();
+      start();
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) stop();
+      else start();
+    };
     const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !running) {
-        running = true;
-        measure();
-        raf = requestAnimationFrame(apply);
-      } else if (!entry.isIntersecting && running) {
-        running = false;
-        cancelAnimationFrame(raf);
-      }
+      intersecting = entry.isIntersecting;
+      if (intersecting) start();
+      else stop();
     });
     io.observe(section);
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", onResize);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     measure();
     return () => {
       cancelAnimationFrame(raf);
       io.disconnect();
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [stops]);
 
   return (
     <section
       ref={sectionRef}
-      aria-label="Career walkthrough"
+      aria-label="Interactive CV, reverse chronological"
       className="relative left-1/2 w-screen -translate-x-1/2"
       style={{ height: `${stops.length * VH_PER_STOP * 100}vh` }}
     >
-      <div className="corridor-stage sticky top-0 h-dvh overflow-hidden">
+      <div className="corridor-stage sticky top-[var(--site-header-h)] h-[calc(100dvh-var(--site-header-h))] overflow-hidden">
+        <canvas
+          ref={hyperspaceRef}
+          aria-hidden="true"
+          data-career-hyperspace
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        />
+
+        <div
+          className="pointer-events-none absolute top-6 z-20"
+          style={{ left: "max(1.5rem, calc((100vw - 72rem) / 2 + 1.5rem))" }}
+        >
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-ink">
+            Interactive CV
+          </p>
+          <p className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted">
+            Selected experience · newest first
+          </p>
+        </div>
+
         {stops.map((stop, i) => (
           <div
             key={`${stop.company}-${stop.period}`}
@@ -147,13 +336,17 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
             className="corridor-chapter pointer-events-none absolute inset-0 flex items-center justify-center"
             style={{ transformStyle: "preserve-3d", opacity: 0 }}
           >
-            {/* Ghost year monument, deep behind the chapter. */}
+            <div
+              aria-hidden
+              className="corridor-chapter-frame pointer-events-none absolute left-[42%] top-1/2 h-[min(68vh,34rem)] w-[min(43rem,62vw)]"
+            />
+
+            {/* Ordinal, not a year: chapters are equally spaced CV entries. */}
             <span
               aria-hidden
-              className="pointer-events-none absolute select-none font-display text-[20rem] leading-none tracking-tight text-ink opacity-[0.04]"
-              style={{ transform: "translateZ(-300px)" }}
+              className="corridor-ordinal pointer-events-none absolute left-[42%] top-1/2 select-none font-display text-[18rem] leading-none tracking-tight text-ink opacity-[0.035]"
             >
-              {stop.period.slice(0, 4)}
+              {String(i + 1).padStart(2, "0")}
             </span>
 
             <div
@@ -164,12 +357,12 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
                   el.setAttribute("aria-hidden", i === 0 ? "false" : "true");
                 }
               }}
-              className="relative w-[min(38rem,64vw)]"
+              data-career-entry
+              className="corridor-panel relative -left-[8vw] w-[min(36rem,56vw)] p-6 md:p-7"
               style={{ opacity: 0 }}
             >
               <p className="text-xs uppercase tracking-widest text-muted">
-                {stop.period}
-                {stop.current && <span className="ml-2 text-accent">· now</span>}
+                {careerPeriodLabel(stop.period, stop.current)}
               </p>
               <h3 className="mt-1 font-display text-4xl tracking-tight">
                 {stop.href ? (
@@ -190,7 +383,7 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
                   {stop.achievements.slice(0, 2).map((a, j) => (
                     <li
                       key={j}
-                      className="border-l-2 border-hairline pl-4 text-sm leading-relaxed text-ink-secondary"
+                      className="corridor-achievement border-l-2 border-hairline pl-4 text-sm leading-relaxed text-ink-secondary"
                     >
                       {a}
                     </li>
@@ -219,29 +412,61 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
           </div>
         ))}
 
-        {/* Progress rail. */}
-        <div className="absolute right-10 top-1/2 flex -translate-y-1/2 flex-col items-end gap-3 text-right">
-          <span
+        <nav
+          aria-label="Career chapters"
+          className="absolute top-1/2 z-20 w-52 -translate-y-1/2"
+          style={{ right: "max(1.5rem, calc((100vw - 72rem) / 2 + 1.5rem))" }}
+        >
+          <p
+            role="status"
             aria-live="polite"
             aria-atomic="true"
-            className="whitespace-nowrap text-xs uppercase tracking-widest text-muted"
+            className="mb-3 text-right text-[0.65rem] uppercase tracking-widest text-muted"
           >
-            {String(activeIndex + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")} — {stops[activeIndex].company}
-          </span>
-          <div className="h-40 w-px self-end bg-hairline">
-            <div
-              ref={fillRef}
-              className="h-full w-full origin-top bg-accent"
-              style={{ transform: "scaleY(0)" }}
-            />
-          </div>
-          <div className="flex gap-2">
+            {String(activeIndex + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")} · {stops[activeIndex].company} · {spokenCareerPeriod(stops[activeIndex].period, stops[activeIndex].current)}
+          </p>
+
+          <ol className="border-l border-hairline bg-paper/55">
+            {stops.map((stop, i) => {
+              const active = i === activeIndex;
+              const visiblePeriod = careerPeriodLabel(stop.period, stop.current);
+              const spokenPeriod = spokenCareerPeriod(stop.period, stop.current);
+
+              return (
+                <li key={`${stop.company}-${stop.period}`}>
+                  <button
+                    type="button"
+                    aria-current={active ? "step" : undefined}
+                    aria-label={`View ${stop.company}, ${spokenPeriod}`}
+                    onClick={() => scrollToStop(i)}
+                    className={`-ml-px grid min-h-11 w-[calc(100%+1px)] grid-cols-[1.6rem_1fr] items-center gap-2 border-l px-2.5 py-1.5 text-left transition-colors ${
+                      active
+                        ? "border-accent text-ink"
+                        : "border-transparent text-muted hover:border-hairline hover:text-ink"
+                    }`}
+                  >
+                    <span className="text-[0.6rem] tabular-nums tracking-widest">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-medium">{stop.company}</span>
+                      <span className="block text-[0.6rem] uppercase tracking-wider">
+                        {visiblePeriod}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="mt-3 flex justify-end gap-2">
             <button
               type="button"
               aria-label="Previous career chapter"
               disabled={activeIndex === 0}
               onClick={() => scrollToStop(activeIndex - 1)}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
             >
               ←
             </button>
@@ -250,18 +475,18 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
               aria-label="Next career chapter"
               disabled={activeIndex === stops.length - 1}
               onClick={() => scrollToStop(activeIndex + 1)}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
             >
               →
             </button>
           </div>
-        </div>
+        </nav>
 
         <p
           ref={hintRef}
           className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.25em] text-muted transition-opacity duration-400"
         >
-          Scroll to walk
+          Scroll to travel · select any entry
         </p>
       </div>
     </section>

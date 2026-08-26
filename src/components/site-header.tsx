@@ -6,23 +6,39 @@ import { site } from "@/lib/content/site";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const isSystems = pathname === "/building";
 
   return (
-    <header className="sticky top-0 z-40 bg-paper/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+    <header
+      className={`sticky top-0 z-40 h-[var(--site-header-h)] backdrop-blur-md transition-colors ${
+        isSystems
+          ? "border-b border-white/8 bg-[#080b10]/96 text-white"
+          : "bg-paper/90 text-ink"
+      }`}
+    >
+      <div
+        className={`flex h-full items-center justify-between gap-4 ${
+          isSystems
+            ? "w-full px-5 sm:px-7 md:px-9"
+            : "mx-auto max-w-6xl px-6"
+        }`}
+      >
         <Link
           href="/"
-          className="shrink-0 font-sans text-base font-semibold uppercase tracking-[-0.055em]"
+          className="inline-flex min-h-11 shrink-0 items-center font-sans text-base font-semibold uppercase leading-none tracking-[-0.055em]"
           aria-label="Tom Green, home"
         >
           <span className="sm:hidden">TG</span>
           <span className="hidden sm:inline">{site.name}</span>
         </Link>
-        <nav aria-label="Primary navigation" className="flex items-center gap-3 text-sm text-ink-secondary sm:gap-5">
+        <nav
+          aria-label="Primary navigation"
+          className={`flex items-center gap-3 text-sm sm:gap-5 ${
+            isSystems ? "text-white/64" : "text-ink-secondary"
+          }`}
+        >
           {site.nav.map((item) => {
-            const isContact = item.href.includes("#contact");
             const isCurrent =
-              !isContact &&
               (pathname === item.href ||
                 pathname.startsWith(`${item.href}/`));
 
@@ -31,11 +47,9 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 aria-current={isCurrent ? "page" : undefined}
-                className={
-                  isContact
-                    ? "inline-flex min-h-11 items-center border border-ink px-3 text-ink transition-colors hover:bg-ink hover:text-paper sm:px-4"
-                    : "nav-link inline-flex min-h-11 items-center transition-colors hover:text-ink"
-                }
+                className={`nav-link inline-flex min-h-11 items-center transition-colors ${
+                  isSystems ? "hover:text-white" : "hover:text-ink"
+                }`}
               >
                 {item.label}
               </Link>

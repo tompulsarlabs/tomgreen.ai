@@ -2,135 +2,182 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { KnowledgeGraph3D } from "@/components/knowledge-graph-3d";
 import { Reveal } from "@/components/reveal";
+import { projects } from "@/lib/content/building";
 import { caseStudies } from "@/lib/content/case-studies";
 import {
-  categories,
+  clusterOrder,
+  clusters,
   graphEdges,
   graphNodes,
-  projectCategory,
-  type CategoryId,
+  sceneNodeIds,
+  type ClusterId,
+  type GraphNode,
 } from "@/lib/content/graph";
-import { projects } from "@/lib/content/building";
 
 export const metadata: Metadata = {
   title: "Systems",
   description:
-    "An interactive field of the agents, products, talent systems and craft behind Tom Green's work.",
+    "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
 
-const catColor: Record<CategoryId, string> = {
-  agents: "var(--cat-agents)",
-  products: "var(--cat-products)",
-  talent: "var(--cat-talent)",
-  craft: "var(--cat-craft)",
+const clusterColour: Record<ClusterId, string> = {
+  companies: "#c97a4a",
+  practice: "#a58a45",
+  systems: "#3f956b",
+  content: "#667cc2",
 };
 
-const categoryOrder: CategoryId[] = ["agents", "talent", "products", "craft"];
+const sceneIds = new Set<string>(sceneNodeIds);
+const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
+const projectsBySlug = new Map(projects.map((project) => [project.slug, project]));
+const studiesBySlug = new Map(caseStudies.map((study) => [study.slug, study]));
 
-const statusStyle: Record<string, string> = {
-  running: "text-accent",
-  shipped: "text-ink-secondary",
-  "in the lab": "text-muted",
-};
+function RecordLink({ node }: { node: GraphNode }) {
+  if (!node.href) return null;
+  const external = node.href.startsWith("http");
+  const className =
+    "mt-auto inline-flex min-h-11 items-center self-start text-sm font-medium text-accent hover:underline";
+
+  return external ? (
+    <a href={node.href} target="_blank" rel="noreferrer" className={className}>
+      {node.kind === "content" ? "Read on Substack ↗" : "Inspect the system ↗"}
+    </a>
+  ) : (
+    <Link href={node.href} className={className}>
+      Read the case study →
+    </Link>
+  );
+}
+
+function SystemRecord({ node }: { node: GraphNode }) {
+  const project = projectsBySlug.get(node.id);
+  const study = studiesBySlug.get(node.id);
+
+  return (
+    <Reveal>
+      <article
+        id={node.id}
+        className="group flex h-full scroll-mt-24 flex-col border-t border-hairline py-6"
+      >
+        <div className="flex items-baseline justify-between gap-4">
+          <h3 className="font-sans text-xl font-medium tracking-[-0.04em] md:text-2xl">
+            {node.label}
+          </h3>
+          {node.meta && (
+            <span className="shrink-0 text-[0.68rem] uppercase tracking-[0.16em] text-muted">
+              {node.meta}
+            </span>
+          )}
+        </div>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-secondary">
+          {node.blurb}
+        </p>
+        {project?.description.slice(0, 1).map((paragraph) => (
+          <p key={paragraph} className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
+            {paragraph}
+          </p>
+        ))}
+        {study && (
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
+            {study.summary}
+          </p>
+        )}
+        <RecordLink node={node} />
+      </article>
+    </Reveal>
+  );
+}
 
 export default function Building() {
   return (
-    <div className="flex flex-col gap-16 pb-20">
+    <div className="flex flex-col gap-20 pb-20">
       <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
 
-      <section className="grid gap-7 border-b border-hairline pb-12 md:grid-cols-[0.65fr_1.35fr] md:items-end">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">The index</p>
+      <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+          The field, decoded
+        </p>
         <div>
           <h2
             id="systems-index-heading"
             className="max-w-3xl font-sans text-4xl font-medium leading-[0.98] tracking-[-0.055em] md:text-6xl"
           >
-            Every planet is a real system, product or operating story.
+            Four solar systems. One operating story.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            The field is playful; the record is concrete. Explore by category below, inspect the public systems, or open the case studies behind the outcomes.
+            Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method inspectable. Writing turns the lessons into something others can use.
           </p>
         </div>
       </section>
 
-      {categoryOrder.map((catId) => {
-        const catProjects = projects.filter((p) => projectCategory[p.slug] === catId);
-        const catCases =
-          catId === "talent"
-            ? caseStudies.filter((study) => study.tier === "flagship")
-            : [];
+      {clusterOrder.map((clusterId, clusterIndex) => {
+        const cluster = clusters[clusterId];
+        const members = sceneNodes.filter((node) => node.cluster === clusterId);
+
         return (
-          <section key={catId} aria-labelledby={`cat-${catId}`} className="flex flex-col gap-5">
-            <h2
-              id={`cat-${catId}`}
-              className="inline-flex scroll-mt-24 items-center gap-2.5 text-sm font-medium uppercase tracking-widest text-muted"
-            >
-              <span
-                className="size-2.5 rounded-full"
-                style={{ background: catColor[catId] }}
-              />
-              {categories[catId].label}
-            </h2>
-            <div className="flex flex-col gap-2">
-              {catProjects.map((project) => (
-                <Reveal key={project.slug}>
-                  <article
-                    id={project.slug}
-                    className="card-lift flex scroll-mt-24 flex-col gap-3 border-t border-hairline py-6"
-                  >
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <h3 className="font-display text-xl tracking-tight">{project.name}</h3>
-                      <span
-                        className={`text-xs uppercase tracking-widest ${statusStyle[project.status]}`}
-                      >
-                        {project.status}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-ink-secondary">{project.tagline}</p>
-                    {project.description.map((paragraph, i) => (
-                      <p key={i} className="max-w-2xl text-sm leading-relaxed text-ink-secondary">
-                        {paragraph}
-                      </p>
-                    ))}
-                    {project.repo && (
-                      <p className="text-xs">
-                        <a href={project.repo} className="text-accent hover:underline">
-                          {project.repo.replace("https://", "")}
-                        </a>
-                      </p>
-                    )}
-                  </article>
-                </Reveal>
+          <section
+            key={clusterId}
+            aria-labelledby={`cluster-${clusterId}`}
+            className="grid gap-8 md:grid-cols-[0.65fr_1.35fr]"
+          >
+            <div className="md:sticky md:top-28 md:self-start">
+              <p className="font-mono text-xs tabular-nums text-muted">
+                {String(clusterIndex + 1).padStart(2, "0")} / {String(clusterOrder.length).padStart(2, "0")}
+              </p>
+              <h2
+                id={`cluster-${clusterId}`}
+                className="mt-4 flex max-w-xs items-start gap-3 font-sans text-2xl font-medium leading-tight tracking-[-0.045em]"
+              >
+                <span
+                  aria-hidden
+                  className="mt-2 size-2.5 shrink-0 rounded-full"
+                  style={{ background: clusterColour[clusterId] }}
+                />
+                {cluster.label}
+              </h2>
+              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted">
+                {cluster.eyebrow}
+              </p>
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-secondary">
+                {cluster.blurb}
+              </p>
+            </div>
+            <div className="grid gap-x-8 md:grid-cols-2">
+              {members.map((node) => (
+                <SystemRecord key={node.id} node={node} />
               ))}
-              {catCases.length > 0 && (
-                <div>
-                  <div className="grid gap-x-6 md:grid-cols-2">
-                    {catCases.map((study) => (
-                      <Reveal key={study.slug}>
-                        <Link
-                          id={study.slug}
-                          href={`/work/${study.slug}`}
-                          className="group flex h-full scroll-mt-24 flex-col gap-2 border-t border-hairline py-5"
-                        >
-                          <p className="text-xs uppercase tracking-[0.16em] text-muted">
-                            {study.company} · {study.period}
-                          </p>
-                          <p className="font-display text-xl leading-snug tracking-tight transition-colors group-hover:text-accent">
-                            {study.headline}
-                          </p>
-                        </Link>
-                      </Reveal>
-                    ))}
-                  </div>
-                  <Link href="/work" className="mt-4 inline-flex min-h-11 items-center text-sm text-accent hover:underline">
-                    See the full work archive →
-                  </Link>
-                </div>
-              )}
             </div>
           </section>
         );
       })}
+
+      <section className="grid gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
+        <p className="text-xs uppercase tracking-[0.18em] text-muted">More from the workshop</p>
+        <div className="grid gap-x-8 md:grid-cols-2">
+          {projects
+            .filter((project) => !sceneIds.has(project.slug))
+            .map((project) => (
+              <article key={project.slug} className="border-t border-hairline py-5">
+                <h3 className="font-sans text-lg font-medium tracking-[-0.035em]">
+                  {project.name}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+                  {project.tagline}
+                </p>
+                {project.repo && (
+                  <a
+                    href={project.repo}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex min-h-11 items-center text-sm text-accent hover:underline"
+                  >
+                    Inspect the system ↗
+                  </a>
+                )}
+              </article>
+            ))}
+        </div>
+      </section>
     </div>
   );
 }

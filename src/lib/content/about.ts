@@ -30,12 +30,12 @@ export const career: CareerStop[] = [
     note: "Ran the EMEA business as a P&L — and rebuilt its People Ops on agents.",
     achievements: [
       "Owned a €3.6M profit-and-loss account; won €2.5M in annual recurring revenue in year one across recruiting programmes in Germany, the US, the UK and India (Neura Robotics, Superhuman). Directly hired the Chief People Officer.",
-      "Rebuilt People Ops around agent workflows: Germany runs as a one-person function without dependency on three UK shared-service roles. Led the group’s AI transformation.",
+      "Rebuilt EU People Ops around agent workflows: operations run from Germany as a one-person function without dependency on three UK shared-service roles. Led the group’s AI transformation.",
       "Delivered a consulting project for Google EMEA on executive recruiting (NDA).",
     ],
     metrics: [
       { value: "€2.5M", label: "annual recurring revenue in year one" },
-      { value: "1 person", label: "runs German People Ops" },
+      { value: "1 person", label: "runs EU People Ops from Germany" },
     ],
     href: "/work/chapter-2",
   },
@@ -64,7 +64,7 @@ export const career: CareerStop[] = [
     note: "An EQT Ventures-backed HealthTech, scaled toward IPO — then the crossover.",
     achievements: [
       "Led three talent-acquisition teams across the US, Germany and India; doubled the function and grew the technology organisation from about 70 to 180 people; directly hired 40+ people before IPO, including the Group Technology Officer and senior Commercial, Product, Platform, Data and information-security leaders.",
-      "Promoted to build Product Operations 0→1, reporting to the Group CTO I hired: established Tech and Product OKRs with the executive team, cut 75% of low-ROI projects, and release cycles ran ~20% faster.",
+      "Promoted to build Product Operations 0→1: established Tech and Product OKRs with the executive team, cut 75% of low-ROI projects, and release cycles ran ~20% faster.",
     ],
     metrics: [
       { value: "~70 → 180", label: "Technology organisation" },
@@ -109,4 +109,4 @@ export const aboutIntro: string[] = [
 ];
 
 export const referencesNote =
-  "Selected references from senior leaders across the career can be introduced privately.";
+  "Selected references from senior leaders across my career can be introduced privately.";

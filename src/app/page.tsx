@@ -13,7 +13,7 @@ import { getIvyState } from "@/lib/data/ivy";
 const outcomes = [
   { value: "0 → 120", label: "AI organisation built in six months" },
   { value: "−32%", label: "Time to hire at Zalando" },
-  { value: "1 person", label: "Runs German People Ops with agent workflows" },
+  { value: "1 person", label: "Runs EU People Ops from Germany with agent workflows" },
   { value: "£1M", label: "Bootstrapped revenue in two years" },
 ];
 
@@ -226,7 +226,7 @@ export default async function Home() {
           aria-labelledby="contact-heading"
           className="scroll-mt-28 border-y border-ink py-12 md:grid md:grid-cols-[0.72fr_1.28fr] md:gap-10 md:py-16"
         >
-          <p className="text-xs uppercase tracking-[0.22em] text-muted">Start a conversation</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-muted">Work together</p>
           <div className="mt-5 md:mt-0">
             <h2 id="contact-heading" className="max-w-2xl font-display text-4xl leading-tight tracking-tight md:text-5xl">
               Building the team—or the operating model behind it?
@@ -241,12 +241,27 @@ export default async function Home() {
               >
                 Start a conversation
               </a>
-              <a
-                href={site.links.linkedin}
-                className="text-link inline-flex min-h-12 items-center border border-ink px-5 text-sm text-ink transition-colors hover:bg-ink hover:text-paper"
+            </div>
+
+            <div className="mt-10 border-t border-hairline pt-7">
+              <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted">
+                    Writing in public
+                  </p>
+                  <p className="mt-2 text-sm text-ink-secondary">
+                    Subscribe to Tom Green Labs for essays on teams, systems and useful AI.
+                  </p>
+                </div>
+                <a
+                href={`${site.links.substack}/subscribe`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-link inline-flex min-h-11 items-center border border-ink px-4 text-sm text-ink transition-colors hover:bg-ink hover:text-paper sm:border-0 sm:px-0 sm:text-accent sm:hover:bg-transparent sm:hover:underline"
               >
-                Connect on LinkedIn
-              </a>
+                  Subscribe on Substack <span aria-hidden>↗</span>
+                </a>
+              </div>
             </div>
           </div>
         </section>

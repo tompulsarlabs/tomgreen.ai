@@ -9,12 +9,12 @@ export const KnowledgeGraph3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <section className="relative left-1/2 w-screen -translate-x-1/2 px-3 md:px-6">
-        <div className="relative h-[76svh] min-h-[570px] overflow-hidden rounded-[1.4rem] bg-[#080b10] text-[#f4f2ec] md:h-[calc(100svh-5.75rem)] md:min-h-[650px] md:rounded-[2rem]">
+      <section className="relative left-1/2 w-screen -translate-x-1/2">
+        <div className="relative h-[76svh] min-h-[570px] overflow-hidden bg-[#080b10] text-[#f4f2ec] md:h-[calc(100svh-var(--site-header-h))] md:min-h-[650px]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_44%,#182533_0,transparent_48%),#080b10]" />
           <div className="relative p-5 sm:p-7 md:p-9">
-            <p className="text-xs font-semibold uppercase tracking-[-0.02em] text-white/72">Systems / 09</p>
-            <h1 className="mt-3 max-w-[15ch] font-sans text-[clamp(2rem,5vw,4.8rem)] font-medium leading-[0.94] tracking-[-0.06em]">
+            <p className="text-xs font-semibold uppercase tracking-[-0.02em] text-white/72">Systems / 04 constellations</p>
+            <h1 className="mt-3 max-w-[15ch] font-sans text-[clamp(2rem,4.5vw,4.35rem)] font-medium leading-[0.94] tracking-[-0.06em]">
               The systems behind the outcomes.
             </h1>
           </div>

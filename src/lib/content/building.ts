@@ -46,12 +46,12 @@ export const projects: Project[] = [
     slug: "writing-voice-skill",
     name: "writing-voice-skill",
     status: "shipped",
-    tagline: "A prose-editing skill for AI coding agents",
+    tagline: "A voice system for distinctive social content",
     description: [
-      "A craft-first writing and editing skill that teaches AI agents a consistent prose voice — open source, built to be dropped into any agent setup.",
+      "A craft-first writing and editing skill for AI-assisted social content. It turns rough ideas into posts that preserve the author’s voice, structure and point of view instead of flattening them into generic AI copy.",
     ],
     repo: "https://github.com/tompulsarlabs/writing-voice-skill",
-    stack: ["Agent skills", "Markdown"],
+    stack: ["Agent skills", "Social content", "Markdown"],
   },
   {
     slug: "margaux-en-tutor",

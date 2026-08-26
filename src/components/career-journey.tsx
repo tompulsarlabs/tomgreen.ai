@@ -7,9 +7,13 @@ import { CareerCorridor } from "./career-corridor";
 /**
  * Capability gate for the career walkthrough. The server renders the linear
  * timeline (children) — that is what search engines, no-JS, reduced-motion,
- * touch, and small screens keep. Only a mounted desktop client with a fine
- * pointer and no reduced-motion preference upgrades to the corridor.
+ * and small screens keep. A mounted 900px+ client with no reduced-motion
+ * preference upgrades to the corridor; the interaction itself remains native
+ * scroll, so landscape tablets do not need a mouse-specific path.
  */
+const CORRIDOR_QUERY =
+  "(min-width: 900px) and (prefers-reduced-motion: no-preference)";
+
 export function CareerJourney({
   stops,
   children,
@@ -20,14 +24,16 @@ export function CareerJourney({
   const [corridor, setCorridor] = useState(false);
 
   useEffect(() => {
+    const media = window.matchMedia(CORRIDOR_QUERY);
+    const update = () => setCorridor(media.matches);
     const raf = requestAnimationFrame(() => {
-      setCorridor(
-        window.matchMedia(
-          "(min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
-        ).matches,
-      );
+      update();
     });
-    return () => cancelAnimationFrame(raf);
+    media.addEventListener("change", update);
+    return () => {
+      cancelAnimationFrame(raf);
+      media.removeEventListener("change", update);
+    };
   }, []);
 
   return corridor ? <CareerCorridor stops={stops} /> : <>{children}</>;
