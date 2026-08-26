@@ -41,6 +41,9 @@ export function BlackHoleGate() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
   const phaseRef = useRef<Phase>("idle");
+  // The scene effect's finish() — the one exit that also hands focus to
+  // the revealed page. The Skip button routes through it too.
+  const finishRef = useRef<(() => void) | null>(null);
 
   // Activate only when the entrance inline script marked a first visit;
   // the Loader yields `/` to this gate. Async so the canvas can mount
@@ -171,6 +174,7 @@ export function BlackHoleGate() {
         });
       }, 60);
     };
+    finishRef.current = finish;
 
     const beginCollapse = () => {
       if (phaseRef.current !== "idle") return;
@@ -481,11 +485,14 @@ export function BlackHoleGate() {
       />
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          phaseRef.current = "done";
-          document.documentElement.classList.remove("entering");
-          setActive(false);
+        onClick={() => {
+          if (finishRef.current) {
+            finishRef.current();
+          } else {
+            phaseRef.current = "done";
+            document.documentElement.classList.remove("entering");
+            setActive(false);
+          }
         }}
         className="absolute bottom-5 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.25em] text-muted transition-colors hover:text-ink"
       >
