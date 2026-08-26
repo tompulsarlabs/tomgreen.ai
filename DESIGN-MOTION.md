@@ -1,0 +1,110 @@
+# tomgreen.ai — Motion & Experience Brief
+
+The site's job is to be the proof: a talent leader who builds systems that feel
+like they were made by a top-tier product team. Reference standard:
+[lusion.co](https://lusion.co) — studied directly. We borrow its *discipline*,
+not its content: one dark world, silky motion, a few moments of spectacle,
+everything else restrained.
+
+## The reference
+
+Directly observed on lusion.co (its entrance, over a slow connection):
+
+- **Commits to one world.** Black, edge to edge, from the first byte.
+- **The loader is a statement.** Minimal progress bar, oversized kinetic
+  numerals rolling in the corner. Loading is part of the show.
+- **The counter-lesson:** that show took 90+ seconds of black screen before
+  any content on a normal connection. Spectacle that gates content is a tax;
+  our loader is capped at 1.2 seconds and is pure theater — the content
+  behind it is server-rendered and already there.
+
+Reference intent (Lusion's known register, to guide taste — not measured
+here): monumental display type used sparingly over small technical labels;
+one continuous scene steered by scroll and cursor; long damped easing;
+constant but small physical responses to input.
+
+## Principles
+
+1. **One world.** The entire site lives in the space theme: near-black
+   (`#070908`), warm off-white ink, one green accent, the four muted category
+   hues. The light editorial theme is retired. No page may break the world.
+2. **Silk or nothing.** Every animation runs at 60fps or it ships disabled.
+   Imperative three.js mutation over React re-render; transform/opacity only
+   in CSS; no animation of layout properties, ever.
+3. **Spectacle is rationed.** Two set pieces: the home hero and the /building
+   planetary map. Everything else moves quietly (fades, small translates,
+   damped hovers). A page of fireworks reads as noise, not mastery.
+4. **The cursor is felt, not decorated.** Hover states respond with damped
+   scale/glow. No custom cursor chrome unless it earns its place.
+5. **Content is the point.** Zalando's 0→120, the running agents, the £1M —
+   the motion frames the evidence, never replaces it.
+6. **Everyone gets a real site.** `prefers-reduced-motion` gets settled
+   states, no loader theater, instant navigation. No-JS gets full content.
+
+## The system
+
+### Color
+Single dark world (tokens already in `globals.css` under the space scope —
+promoted to the site default):
+
+- Ground `#070908` · panels `#101412` · hairline `#21251f`
+- Ink `#f0efe9` / secondary `#b6b4aa` / muted `#85837b`
+- Accent `#5cc189` (links, live markers, focus)
+- Categories (map + chips only): agents `#479a72` · products `#5d84c4` ·
+  talent `#c07647` — validated as a trio (all-pairs, dark surface `#070908`)
+  with the palette validator; craft `#a49d90` is the deliberate neutral
+  class, always direct-labeled, never relied on as a hue.
+
+### Type
+- Display: Newsreader — hero lines at viewport scale (clamp 3rem → 7rem),
+  tight leading, used once per page.
+- Body/UI: Geist Sans; small technical labels in uppercase tracking-widest.
+- Numbers (metrics): Geist, large, with count-up on first reveal.
+
+### Motion vocabulary (the only moves allowed)
+| Move | Use | Spec |
+|---|---|---|
+| Rise-fade | section/heading entrances | 16px translate, 600–800ms, `cubic-bezier(.2,.7,.2,1)` |
+| Line-split reveal | hero display lines | per-line mask reveal, 80ms stagger |
+| Count-up | metrics on first view | 900ms, eased, tabular figures |
+| Damped hover | cards, pills, planets | scale ≤1.04 (DOM) / 1.12 (3D), lerped |
+| Camera glide | map flights, page settle | 700–1100ms, eased in-out |
+| Progress counter | first-visit loader | big numeral + thin bar, ≤1.2s, then mask wipe |
+
+One easing family site-wide: `cubic-bezier(0.2, 0.7, 0.2, 1)` (CSS) and its
+damped-lerp equivalent in three.js. Durations only from: 200 / 400 / 700 /
+1100ms.
+
+### Flow (page by page)
+- **Entrance (first visit per session):** black, thin progress bar, oversized
+  counter numeral bottom-left, ≤1.2s, wipes upward into the hero. Skipped for
+  reduced-motion and repeat in-session navigations.
+- **Home:** the statement. Full-viewport hero — positioning line as monumental
+  split-line type over a sparse drifting starfield (the same world as the
+  map, pre-warmed); live proof (contributions, Ivy streak) as quiet counters;
+  selected work as two large cards; footer contact line.
+- **Work / case studies:** editorial reading pages in the dark world. Metrics
+  band counts up on reveal. No set pieces.
+- **Building:** the planetary map, full viewport, as shipped — plus panel
+  navigator. The map is the second set piece; the cards below stay quiet.
+- **About:** the journey timeline — the line draws in as you scroll (scroll-
+  linked stroke), stops rise-fade in.
+- **Between pages:** 200ms fade-through-black — fast, never precious.
+
+### Performance guardrails
+- Device pixel ratio capped at 1.75 on the WebGL scenes.
+- Scene meshes built once; state changes mutate materials (already done).
+- No smooth-scroll hijacking library: native scroll + scroll-linked effects
+  via IntersectionObserver/rAF lerp. (Lusion hijacks; we stay native — it's
+  the single biggest UX-risk item and buys nothing at our content depth.)
+- Any effect that can't hold 60fps on a mid M1 ships disabled, not janky.
+
+## Build plan
+1. **World unification** — dark theme site-wide; the light editorial theme
+   is deleted, not shadowed (no dead tokens in this repo); retint /, /work,
+   /about; nav/footer restyled for the world.
+2. **Motion kit** — split-line hero reveal, count-up, loader, page fade;
+   one `motion.css` + tiny hooks, no animation library.
+3. **Home hero** — monumental type + starfield backdrop + live counters.
+4. **About** — scroll-linked timeline line draw.
+5. **Polish lap** — hovers, focus states, 390px, reduced-motion audit.

@@ -85,6 +85,11 @@ This is a public repo, so **a git push is a publish**. Rules:
 
 ## Design intent
 
+Motion, theme, and experience are specified in [DESIGN-MOTION.md](DESIGN-MOTION.md)
+(2026-08-26): one dark world site-wide, a fixed motion vocabulary, and two
+rationed set pieces. The paragraph below is the original editorial intent it
+grew from.
+
 Editorial and restrained: strong typography, generous whitespace, one accent color,
 dark-mode aware. The live-data elements are quiet instruments, not dashboards. The
 site should feel like it was designed by someone with taste and built by someone who
