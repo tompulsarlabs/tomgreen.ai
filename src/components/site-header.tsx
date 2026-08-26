@@ -3,7 +3,7 @@ import { site } from "@/lib/content/site";
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-hairline">
+    <header>
       <div className="mx-auto flex max-w-4xl items-baseline justify-between px-6 py-5">
         <Link href="/" className="font-display text-lg tracking-tight">
           {site.name}

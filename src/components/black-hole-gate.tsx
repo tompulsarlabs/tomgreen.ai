@@ -122,22 +122,25 @@ export function BlackHoleGate() {
       glr?.resize(w, h, cx, cy, R);
 
       // Lay the name out beneath the hole, one letter-particle per glyph.
+      // Positions come from cumulative substring measurement so kerning
+      // pairs land exactly as DOM-set type would — per-glyph widths set
+      // the name unevenly.
       const size = Math.min(w * 0.088, 108);
       if (hintRef.current) {
         hintRef.current.style.top = `${cy + R * 2.55 + size * 1.35}px`;
       }
       ctx.font = `500 ${size}px ${displayFont}, Georgia, serif`;
-      const widths = [...NAME].map((c) => ctx.measureText(c).width);
-      const tracking = size * 0.02;
-      const total = widths.reduce((a, b) => a + b, 0) + tracking * (NAME.length - 1);
+      const total = ctx.measureText(NAME).width;
       ringSprite = null;
-      let x = cx - total / 2;
+      const startX = cx - total / 2;
       const y = cy + R * 2.55 + size * 0.5;
       letters.length = 0;
       for (const [i, ch] of [...NAME].entries()) {
+        const pre = ctx.measureText(NAME.slice(0, i)).width;
+        const adv = ctx.measureText(NAME.slice(0, i + 1)).width - pre;
         letters.push({
           ch,
-          x: x + widths[i] / 2,
+          x: startX + pre + adv / 2,
           y,
           vx: 0,
           vy: 0,
@@ -146,7 +149,6 @@ export function BlackHoleGate() {
           releaseAt: i * 90,
           gone: false,
         });
-        x += widths[i] + tracking;
       }
     };
     layout();
