@@ -1323,7 +1323,7 @@ export default function KnowledgeGraph3DClient({
               {String(selectedIndex + 1).padStart(2, "0")} /{" "}
               {String(sceneNodes.length).padStart(2, "0")}
             </p>
-            <p aria-hidden className="mt-2 text-xs uppercase tracking-[0.17em] text-white/42">
+            <p aria-hidden className="mt-2 text-xs uppercase tracking-[0.17em] text-white/60">
               Drag a planet
             </p>
           </div>
