@@ -114,6 +114,46 @@ export const caseStudies: CaseStudy[] = [
   },
 ];
 
+const additionalStudies: CaseStudy[] = [
+  {
+    slug: "wer",
+    company: "WeR",
+    role: "Talent Advisor",
+    period: "2026 – present",
+    headline: "Building the talent system for a behavioral-AI company",
+    summary:
+      "Advising a €4M pre-seed behavioral-AI company — Mastercard live — on its talent system, and hiring the founding team.",
+    context:
+      "Behavioral AI for financial institutions, backed with a €4M pre-seed and already live with Mastercard. At this stage, every hire is architecture.",
+    body: [
+      "I'm building the talent system — the operating model a company of this ambition will scale on — and hiring the founding team alongside the executives.",
+      "This chapter is being written now; the impact log grows as it ships.",
+    ],
+    metrics: [{ value: "€4M", label: "Pre-seed, Mastercard live" }],
+    demonstrates:
+      "The current chapter: talent systems for AI companies, built from the first hire.",
+  },
+  {
+    slug: "campbell-north",
+    company: "Campbell North",
+    role: "Senior Consultant",
+    period: "2014 – 2015",
+    headline: "Search for quant funds and tier-1 startups",
+    summary:
+      "Executive and technical search for quant funds and tier-1 VC-backed startups — Palantir, DeepMind, CrowdStrike among them.",
+    context:
+      "A search firm focused on quant, research, and tier-1 VC-backed tech — the rooms where hiring standards are least forgiving.",
+    body: [
+      "Hired product, GTM, AI/ML research and tech across the portfolio: Palantir, DeepMind, CrowdStrike, Rappi and Hudl on the venture side; Travelex in private equity.",
+      "The years that calibrated what a top-decile candidate actually looks like — a bar carried into every in-house system since.",
+    ],
+    metrics: [],
+    demonstrates: "Where the hiring bar was set.",
+  },
+];
+
+caseStudies.push(...additionalStudies);
+
 export function getCaseStudy(slug: string): CaseStudy | undefined {
   return caseStudies.find((c) => c.slug === slug);
 }

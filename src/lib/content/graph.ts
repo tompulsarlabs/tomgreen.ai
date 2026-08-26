@@ -103,6 +103,8 @@ export const graphEdges: GraphEdge[] = [
   ["cat:talent", "chapter-2"],
   ["cat:talent", "audibene"],
   ["cat:talent", "wave"],
+  ["cat:talent", "wer"],
+  ["cat:talent", "campbell-north"],
 
   // The intersection — talent systems run on agents
   ["cat:talent", "cat:agents"],

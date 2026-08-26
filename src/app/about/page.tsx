@@ -71,7 +71,16 @@ export default function About() {
                     )}
                   </p>
                   <h3 className="font-display text-2xl tracking-tight">
-                    {stop.company}
+                    {stop.href ? (
+                      <Link
+                        href={stop.href}
+                        className="transition-colors hover:text-accent"
+                      >
+                        {stop.company}
+                      </Link>
+                    ) : (
+                      stop.company
+                    )}
                     <span className="text-ink-secondary"> — {stop.role}</span>
                   </h3>
                   <p className="max-w-2xl text-sm leading-relaxed text-muted">

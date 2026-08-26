@@ -154,7 +154,16 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
                 {stop.current && <span className="ml-2 text-accent">· now</span>}
               </p>
               <h3 className="mt-1 font-display text-4xl tracking-tight">
-                {stop.company}
+                {stop.href ? (
+                  <Link
+                    href={stop.href}
+                    className="transition-colors hover:text-accent"
+                  >
+                    {stop.company}
+                  </Link>
+                ) : (
+                  stop.company
+                )}
                 <span className="text-ink-secondary"> — {stop.role}</span>
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{stop.note}</p>

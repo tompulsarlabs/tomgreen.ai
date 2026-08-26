@@ -21,6 +21,7 @@ export const career: CareerStop[] = [
     achievements: [
       "Building the talent system and hiring the founding team.",
     ],
+    href: "/work/wer",
   },
   {
     company: "Chapter 2",
@@ -91,6 +92,7 @@ export const career: CareerStop[] = [
     achievements: [
       "Hired product, GTM, AI/ML research and tech for Palantir, DeepMind, CrowdStrike, Rappi and Hudl (VC) and Travelex (PE).",
     ],
+    href: "/work/campbell-north",
   },
   {
     company: "Early career",
@@ -102,8 +104,8 @@ export const career: CareerStop[] = [
 ];
 
 export const aboutIntro: string[] = [
-  "I've spent fifteen years building teams — as an agency founder, an in-house leader at scale, and now as an advisor to AI companies. The through-line: I don't just run talent functions, I build the operating systems they run on. Increasingly, those systems are agents.",
-  "Based in Berlin, open to relocation. Away from work: building agents, startups and venture, nutrition, and music production (the degree is real).",
+  "I've spent fifteen years building teams — as an agency founder, an RPO executive running a multimillion-euro P&L, a global talent leader at scale, and now an advisor to AI companies. The through-line: I don't just run talent functions, I build the operating systems they run on. Increasingly, those systems are agents.",
+  "Based in Berlin, open to relocation. Away from work: building agents, startups and venture, nutrition, and music production.",
 ];
 
 export const referencesNote =
