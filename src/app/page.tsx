@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CountUp } from "@/components/count-up";
 import { Reveal } from "@/components/reveal";
 import { ProofStrip } from "@/components/proof-strip";
-import { Starfield } from "@/components/starfield";
+import { AuroraField } from "@/components/aurora-field";
 import { CaseStudyCard } from "@/components/case-study-card";
 import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
@@ -41,7 +41,7 @@ export default async function Home() {
         className="relative left-1/2 w-screen -translate-x-1/2"
       >
         <div className="relative flex h-[calc(100dvh-3.9rem)] min-h-[620px] w-full flex-col justify-center overflow-hidden bg-paper">
-          <Starfield />
+          <AuroraField />
           <div className="relative mx-auto w-full max-w-6xl px-6 md:px-10">
             <p className="anim text-xs uppercase tracking-[0.25em] text-muted">
               Talent systems × agents — {site.location}

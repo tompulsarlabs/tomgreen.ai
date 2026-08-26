@@ -90,53 +90,122 @@ const edgeKey = (a: string, b: string) => `${a}|${b}`;
 /* Procedural planet surfaces                                          */
 /* ------------------------------------------------------------------ */
 
-function shade(hex: string, f: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v * f)));
-  const r = ch(n >> 16), g = ch((n >> 8) & 255), b = ch(n & 255);
-  return `rgb(${r},${g},${b})`;
+/**
+ * High-fidelity gas-giant surfaces: seeded fractal value noise drives
+ * turbulent latitude bands (color), and the same field yields a bump map so
+ * the terminator catches real relief. Generated once per category at
+ * 1024x512 and cached — never per node, never per frame.
+ */
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-/**
- * Gas-giant style surface: banded latitudes plus speckle, drawn once per
- * color and cached. Equirectangular, so bands wrap cleanly on the sphere.
- */
-const surfaceCache = new Map<string, THREE.CanvasTexture>();
-function planetTexture(hex: string): THREE.CanvasTexture {
+function makeFbm(seed: number, octaves: number) {
+  const rng = mulberry32(seed);
+  const lattices: { g: Float32Array; size: number }[] = [];
+  for (let o = 0; o < octaves; o++) {
+    const size = 8 << o;
+    const g = new Float32Array(size * size);
+    for (let i = 0; i < g.length; i++) g[i] = rng();
+    lattices.push({ g, size });
+  }
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  return (x: number, y: number): number => {
+    let sum = 0;
+    let amp = 0.5;
+    let norm = 0;
+    for (const { g, size } of lattices) {
+      const fx = ((x * size) % size + size) % size;
+      const fy = ((y * size) % size + size) % size;
+      const x0 = Math.floor(fx) % size;
+      const y0 = Math.floor(fy) % size;
+      const x1 = (x0 + 1) % size;
+      const y1 = (y0 + 1) % size;
+      const tx = smooth(fx - Math.floor(fx));
+      const ty = smooth(fy - Math.floor(fy));
+      const a = g[y0 * size + x0];
+      const b = g[y0 * size + x1];
+      const c = g[y1 * size + x0];
+      const d = g[y1 * size + x1];
+      sum += (a + (b - a) * tx + (c - a + (a - b + d - c) * tx) * ty) * amp;
+      norm += amp;
+      amp *= 0.55;
+    }
+    return sum / norm;
+  };
+}
+
+type Surface = { map: THREE.CanvasTexture; bump: THREE.CanvasTexture };
+const surfaceCache = new Map<string, Surface>();
+function planetSurface(hex: string): Surface {
   const cached = surfaceCache.get(hex);
   if (cached) return cached;
-  const W = 512, H = 256;
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const ctx = c.getContext("2d")!;
-  // Base: a soft vertical falloff so the sphere reads dimensional even
-  // before lighting.
-  const base = ctx.createLinearGradient(0, 0, 0, H);
-  base.addColorStop(0, shade(hex, 0.82));
-  base.addColorStop(0.45, shade(hex, 1.0));
-  base.addColorStop(1, shade(hex, 0.72));
-  ctx.fillStyle = base;
-  ctx.fillRect(0, 0, W, H);
-  // A few wide, soft latitude bands — atmosphere, not noise.
-  let y = 10;
-  while (y < H - 10) {
-    const bandH = 26 + Math.random() * 42;
-    const g = ctx.createLinearGradient(0, y, 0, y + bandH);
-    const col = shade(hex, 0.88 + Math.random() * 0.22);
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(0.5, col);
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.globalAlpha = 0.3;
-    ctx.fillRect(0, y, W, bandH);
-    y += bandH * 0.85;
+  const W = 1024;
+  const H = 512;
+  const seed = parseInt(hex.slice(1), 16);
+  const fbm = makeFbm(seed, 5);
+  const swirl = makeFbm(seed ^ 0x9e3779b9, 4);
+
+  const n = parseInt(hex.slice(1), 16);
+  const baseR = n >> 16;
+  const baseG = (n >> 8) & 255;
+  const baseB = n & 255;
+
+  const mapCanvas = document.createElement("canvas");
+  mapCanvas.width = W;
+  mapCanvas.height = H;
+  const mapCtx = mapCanvas.getContext("2d")!;
+  const img = mapCtx.createImageData(W, H);
+
+  const bumpCanvas = document.createElement("canvas");
+  bumpCanvas.width = W;
+  bumpCanvas.height = H;
+  const bumpCtx = bumpCanvas.getContext("2d")!;
+  const bumpImg = bumpCtx.createImageData(W, H);
+
+  for (let y = 0; y < H; y++) {
+    const v = y / H;
+    // Poles darken slightly, like a real gas giant.
+    const polar = 1 - 0.22 * Math.pow(Math.abs(v - 0.5) * 2, 2.2);
+    for (let x = 0; x < W; x++) {
+      const u = x / W;
+      // Turbulent banding: latitude waves displaced by swirling noise.
+      const distortion = (swirl(u * 2.2, v * 2.2) - 0.5) * 0.55;
+      const band = Math.sin((v + distortion) * Math.PI * 9);
+      const grain = fbm(u * 3.1, v * 6.2);
+      const tone =
+        polar * (0.86 + band * 0.13 + (grain - 0.5) * 0.34);
+      const i4 = (y * W + x) * 4;
+      img.data[i4] = Math.max(0, Math.min(255, baseR * tone));
+      img.data[i4 + 1] = Math.max(0, Math.min(255, baseG * tone));
+      img.data[i4 + 2] = Math.max(0, Math.min(255, baseB * tone));
+      img.data[i4 + 3] = 255;
+      const relief = Math.max(
+        0,
+        Math.min(255, 128 + band * 34 + (grain - 0.5) * 150),
+      );
+      bumpImg.data[i4] = relief;
+      bumpImg.data[i4 + 1] = relief;
+      bumpImg.data[i4 + 2] = relief;
+      bumpImg.data[i4 + 3] = 255;
+    }
   }
-  ctx.globalAlpha = 1;
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  surfaceCache.set(hex, tex);
-  return tex;
+  mapCtx.putImageData(img, 0, 0);
+  bumpCtx.putImageData(bumpImg, 0, 0);
+
+  const map = new THREE.CanvasTexture(mapCanvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  const bump = new THREE.CanvasTexture(bumpCanvas);
+  const surface: Surface = { map, bump };
+  surfaceCache.set(hex, surface);
+  return surface;
 }
 
 /** Soft additive atmosphere glow, cached per color. */
@@ -216,7 +285,7 @@ function applySceneStyle(
     mat.color.set(
       active ? (h?.category ? CAT_HEX[h.category] : "#8a887f") : LINK_COLOR,
     );
-    mat.opacity = active ? 0.85 : hovered !== null ? 0.12 : 0.45;
+    mat.opacity = active ? 0.9 : hovered !== null ? 0.1 : 0.35;
   }
 }
 
@@ -361,15 +430,22 @@ export default function KnowledgeGraph3DClient({
               roughness: 0.95,
               transparent: true,
             })
-          : new THREE.MeshStandardMaterial({
-              map: planetTexture(hex),
-              roughness: 0.85,
-              metalness: 0,
-              emissive: hex,
-              emissiveIntensity: 0.08,
-              transparent: true,
-            });
-      const planet = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 32), planetMat);
+          : (() => {
+              const surface = planetSurface(hex);
+              return new THREE.MeshStandardMaterial({
+                map: surface.map,
+                bumpMap: surface.bump,
+                bumpScale: 0.6,
+                roughnessMap: surface.bump,
+                roughness: 0.92,
+                metalness: 0,
+                emissive: hex,
+                emissiveIntensity: 0.11,
+                envMapIntensity: 0.5,
+                transparent: true,
+              });
+            })();
+      const planet = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 48), planetMat);
       planet.rotation.z = 0.35;
       group.add(planet);
       if (node.kind !== "tech") {
@@ -531,6 +607,24 @@ export default function KnowledgeGraph3DClient({
         }, 400);
       }
 
+      // Filmic rendering: ACES tone mapping, capped pixel ratio, and a
+      // subtle image-based environment so materials pick up real ambience.
+      const renderer = fg.renderer();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.25;
+      import("three/examples/jsm/environments/RoomEnvironment.js")
+        .then(({ RoomEnvironment }) => {
+          const pmrem = new THREE.PMREMGenerator(renderer);
+          fg.scene().environment = pmrem.fromScene(
+            new RoomEnvironment(),
+            0.04,
+          ).texture;
+        })
+        .catch(() => {
+          // Environment lighting is an enhancement, never a gate.
+        });
+
       // Depth fog: distant planets recede into the dark instead of
       // hard-clipping — the scene gets atmospheric depth for free.
       const scene = fg.scene();
@@ -539,7 +633,7 @@ export default function KnowledgeGraph3DClient({
         const light = o as THREE.Light;
         if (light.isLight) light.intensity *= 0.25;
       });
-      const sun = new THREE.DirectionalLight(0xfff2dc, 2.0);
+      const sun = new THREE.DirectionalLight(0xfff2dc, 2.5);
       sun.position.set(300, 180, 220);
       scene.add(sun);
       const fill = new THREE.DirectionalLight(0x9db8ff, 0.5);
@@ -716,8 +810,8 @@ export default function KnowledgeGraph3DClient({
           onNodeHover={onHover}
           onNodeClick={navigateTo}
           linkColor={LINK_COLOR}
-          linkOpacity={0.45}
-          linkWidth={0.4}
+          linkOpacity={0.35}
+          linkWidth={0}
           linkDirectionalParticles={particleCount}
           linkDirectionalParticleSpeed={0.0055}
           linkDirectionalParticleWidth={1.4}

@@ -1,14 +1,39 @@
 @import "tailwindcss";
 
 /*
- * One dark world (DESIGN-MOTION.md). The site commits to a single theme:
- * near-black ground, warm off-white ink, one accent, three validated
- * category hues plus a neutral. There is no light theme.
+ * Two grounds, one grammar (DESIGN-MOTION.md). The site's default ground is
+ * paper — warm off-white, dark ink — for the landing and reading pages. The
+ * planetary map (/building) runs on the space ground via the scoped block
+ * below. Type, motion, accent, and category hues are identical on both.
  *
- * Heat ramp and category trio validated with the dataviz palette validator
- * against this exact surface (#070908).
+ * Validated with the dataviz palette validator: heat ramp light vs #faf9f6
+ * and dark vs #070908 (ordinal); category trio all-pairs on both grounds.
  */
 :root {
+  color-scheme: light;
+  --paper: #faf9f6;
+  --ink: #1a1915;
+  --ink-secondary: #55534c;
+  --muted: #8a877f;
+  --hairline: #e7e5dd;
+  --card: #ffffff;
+  --accent: #156d40;
+  --accent-ink: #0d5c33;
+
+  --heat-0: #edebe3;
+  --heat-1: #74c194;
+  --heat-2: #43a86e;
+  --heat-3: #22854f;
+  --heat-4: #0d5c33;
+
+  --cat-agents: #479a72;
+  --cat-products: #5d84c4;
+  --cat-talent: #c07647;
+  --cat-craft: #8f897c;
+}
+
+/* The space ground: any page carrying the planetary map runs fully dark. */
+body:has([data-theme-scope="space"]) {
   color-scheme: dark;
   --paper: #070908;
   --ink: #f0efe9;
@@ -25,9 +50,6 @@
   --heat-3: #46a86c;
   --heat-4: #66cf8f;
 
-  --cat-agents: #479a72;
-  --cat-products: #5d84c4;
-  --cat-talent: #c07647;
   --cat-craft: #a49d90;
 }
 
@@ -94,13 +116,11 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Above-the-fold entrance: pure CSS, safe without JS. */
   .anim {
     animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
     animation-delay: var(--anim-delay, 0ms);
   }
 
-  /* Line-split hero reveal: each .line-mask clips a .line that rises. */
   .line-mask {
     overflow: hidden;
   }
@@ -110,7 +130,6 @@ button:focus-visible {
     animation-delay: calc(var(--line-i, 0) * 80ms + var(--line-base, 150ms));
   }
 
-  /* Scroll reveals: hidden only when JS is present to un-hide them. */
   .js .reveal {
     opacity: 0;
     transform: translateY(16px);
@@ -124,7 +143,6 @@ button:focus-visible {
     transform: none;
   }
 
-  /* Heatmap columns cascade in once the graph scrolls into view. */
   .js .reveal .heat-col {
     opacity: 0;
   }
@@ -137,9 +155,6 @@ button:focus-visible {
     animation: rise-in 0.2s ease both;
   }
 
-  /* The journey line draws itself as the timeline scrolls through view
-     (progressive enhancement; browsers without scroll-driven animations
-     get the full line). */
   @supports (animation-timeline: view()) {
     .journey-line {
       transform-origin: top;
@@ -199,7 +214,7 @@ button:focus-visible {
 @media (prefers-reduced-motion: no-preference) {
   .card-lift:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 12px 32px -16px rgba(20, 18, 12, 0.18);
   }
 }
 
@@ -207,4 +222,14 @@ button:focus-visible {
    still orbit the scene. OrbitControls sets touch-action:none inline. */
 .graph-scene canvas {
   touch-action: pan-y !important;
+}
+
+/* The career corridor (desktop set piece): a perspective stage the camera
+   travels through; chapters are positioned in depth by JS each frame. */
+.corridor-stage {
+  perspective: 1100px;
+  perspective-origin: 50% 45%;
+}
+.corridor-chapter {
+  will-change: transform, opacity;
 }

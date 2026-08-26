@@ -25,14 +25,17 @@ constant but small physical responses to input.
 
 ## Principles
 
-1. **One world.** The entire site lives in the space theme: near-black
-   (`#070908`), warm off-white ink, one green accent, the four muted category
-   hues. The light editorial theme is retired. No page may break the world.
+1. **Two grounds, one grammar.** The landing and reading pages live on
+   paper — warm off-white, dark ink, Lusion-style light — and the planetary
+   map lives in space (near-black). Type, motion vocabulary, accent, and
+   category hues are identical on both grounds; only the ground flips, and
+   only at the /building boundary. (Amended 2026-08-26 from "one dark
+   world" on Tom's direction: the landing is light.)
 2. **Silk or nothing.** Every animation runs at 60fps or it ships disabled.
    Imperative three.js mutation over React re-render; transform/opacity only
    in CSS; no animation of layout properties, ever.
-3. **Spectacle is rationed.** Two set pieces: the home hero and the /building
-   planetary map. Everything else moves quietly (fades, small translates,
+3. **Spectacle is rationed.** Three set pieces: the home hero, the career
+   corridor, and the /building planetary map. Everything else moves quietly (fades, small translates,
    damped hovers). A page of fireworks reads as noise, not mastery.
 4. **The cursor is felt, not decorated.** Hover states respond with damped
    scale/glow. No custom cursor chrome unless it earns its place.
@@ -44,12 +47,13 @@ constant but small physical responses to input.
 ## The system
 
 ### Color
-Single dark world (tokens already in `globals.css` under the space scope —
-promoted to the site default):
+Two grounds, defined in `globals.css` (paper is the default; space is scoped
+to pages carrying the map):
 
-- Ground `#070908` · panels `#101412` · hairline `#21251f`
-- Ink `#f0efe9` / secondary `#b6b4aa` / muted `#85837b`
-- Accent `#5cc189` (links, live markers, focus)
+- **Paper (default):** ground `#faf9f6` · cards `#ffffff` · hairline
+  `#e7e5dd` · ink `#1a1915` · accent `#156d40`
+- **Space (/building):** ground `#070908` · panels `#101412` · hairline
+  `#21251f` · ink `#f0efe9` · accent `#5cc189`
 - Categories (map + chips only): agents `#479a72` · products `#5d84c4` ·
   talent `#c07647` — validated as a trio (all-pairs, dark surface `#070908`)
   with the palette validator; craft `#a49d90` is the deliberate neutral
@@ -79,16 +83,21 @@ damped-lerp equivalent in three.js. Durations only from: 200 / 400 / 700 /
 - **Entrance (first visit per session):** black, thin progress bar, oversized
   counter numeral bottom-left, ≤1.2s, wipes upward into the hero. Skipped for
   reduced-motion and repeat in-session navigations.
-- **Home:** the statement. Full-viewport hero — positioning line as monumental
-  split-line type over a sparse drifting starfield (the same world as the
-  map, pre-warmed); live proof (contributions, Ivy streak) as quiet counters;
-  selected work as two large cards; footer contact line.
+- **Home:** the statement, on paper. Full-viewport hero — positioning line
+  as monumental split-line type over a barely-there aurora of the three
+  category tints; live proof (contributions, Ivy streak) as quiet counters;
+  selected work as two large cards.
 - **Work / case studies:** editorial reading pages in the dark world. Metrics
   band counts up on reveal. No set pieces.
 - **Building:** the planetary map, full viewport, as shipped — plus panel
   navigator. The map is the second set piece; the cards below stay quiet.
-- **About:** the journey timeline — the line draws in as you scroll (scroll-
-  linked stroke), stops rise-fade in.
+- **About:** the corridor — on desktop (fine pointer, motion allowed) the
+  career is a walkthrough: a sticky perspective stage the reader scrolls
+  through, chapters approaching and passing with their years as ghost
+  monuments, ≤1.2 viewport-heights of scroll per chapter, never trapping
+  the page. Everyone else (mobile, touch, reduced-motion, no-JS, crawlers)
+  gets the linear timeline with its scroll-drawn line — the fallback IS the
+  server-rendered content.
 - **Between pages:** 200ms fade-through-black — fast, never precious.
 
 ### Performance guardrails
