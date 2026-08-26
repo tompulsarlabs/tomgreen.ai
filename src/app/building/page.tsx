@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KnowledgeGraph } from "@/components/knowledge-graph";
+import { KnowledgeGraph3D } from "@/components/knowledge-graph-3d";
 import { Reveal } from "@/components/reveal";
 import { caseStudies } from "@/lib/content/case-studies";
 import { categories, graphEdges, graphNodes, type CategoryId } from "@/lib/content/graph";
@@ -59,7 +59,7 @@ export default function Building() {
         </ul>
       </header>
 
-      <KnowledgeGraph nodes={graphNodes} edges={graphEdges} />
+      <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
 
       {categoryOrder.map((catId) => {
         const catProjects = projects.filter((p) => projectCategory[p.slug] === catId);
