@@ -9,7 +9,7 @@ import { projects } from "@/lib/content/building";
 export const metadata: Metadata = {
   title: "Building",
   description:
-    "A map of the systems I build and run: agents, products, talent machines, and the connections between them.",
+    "An interactive map of the systems I build and run: agents, products, talent machines, and the connections between them.",
 };
 
 const catColor: Record<CategoryId, string> = {
@@ -37,28 +37,7 @@ const statusStyle: Record<string, string> = {
 
 export default function Building() {
   return (
-    <div className="flex flex-col gap-12 py-16">
-      <header className="flex flex-col gap-3">
-        <h1 className="font-display text-3xl tracking-tight">Building</h1>
-        <p className="max-w-2xl leading-relaxed text-ink-secondary">
-          A map of the systems I build and run: agents that operate daily
-          without supervision, products in production, and the talent machines
-          they power. Every node is real — a repo, a running system, or a case
-          study.
-        </p>
-        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-secondary">
-          {categoryOrder.map((id) => (
-            <li key={id} className="inline-flex items-center gap-2">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ background: catColor[id] }}
-              />
-              {categories[id].label}
-            </li>
-          ))}
-        </ul>
-      </header>
-
+    <div className="flex flex-col gap-12 pb-16">
       <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
 
       {categoryOrder.map((catId) => {

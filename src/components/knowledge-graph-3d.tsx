@@ -12,7 +12,7 @@ export const KnowledgeGraph3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[520px] items-center justify-center rounded-lg border border-hairline bg-[#0b0d0c] text-sm text-muted">
+      <div className="relative left-1/2 flex h-[calc(100dvh-3.9rem)] min-h-[560px] w-screen -translate-x-1/2 items-center justify-center bg-[#070908] text-sm text-[#8f8d84]">
         Rendering the map…
       </div>
     ),
