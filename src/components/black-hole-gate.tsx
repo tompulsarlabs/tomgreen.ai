@@ -11,14 +11,14 @@ import { createBlackHoleRenderer } from "./black-hole-gl";
  * of Schwarzschild geodesics (black-hole-gl.ts), so the accretion disk
  * bends into a halo over the shadow and the photon ring emerges from the
  * physics — composited as pigment on the site's paper ground. The name is
- * set beneath it in display serif on a 2D canvas above. Click and the
+ * set beneath it as a sharp grotesk wordmark on a 2D canvas above. Click and the
  * letters peel off and fall in with real gravity (frame-rate-independent
  * GM/r² inspiral, tidal stretch along the velocity vector, redshift fade
  * at the horizon), then the camera plunges through the horizon. A 2D
  * etched fallback covers no-WebGL and context-loss.
  *
- * This IS the landing page: it plays on every full load of "/" (client-side
- * navigation within the site never re-triggers it). Theater, never a wall:
+ * This IS the first-visit landing page; repeat visits and hash destinations
+ * bypass it. Theater, never a wall:
  * skipped for reduced-motion and no-JS (server content is always complete
  * underneath), Enter/Space enter, and Escape, scroll, or a click away
  * from the hole dissolve it immediately.
@@ -93,7 +93,7 @@ export function BlackHoleGate() {
     // next/font family names off the root element once.
     const rootStyle = getComputedStyle(document.documentElement);
     const displayFont =
-      rootStyle.getPropertyValue("--font-newsreader").trim() || "Georgia";
+      rootStyle.getPropertyValue("--font-geist-sans").trim() || "Arial";
     let w = 0;
     let h = 0;
     let cx = 0;
@@ -122,25 +122,27 @@ export function BlackHoleGate() {
       glr?.resize(w, h, cx, cy, R);
 
       // Lay the name out beneath the hole, one letter-particle per glyph.
-      // Positions come from cumulative substring measurement so kerning
-      // pairs land exactly as DOM-set type would — per-glyph widths set
-      // the name unevenly.
-      const size = Math.min(w * 0.088, 108);
+      // A tight, deliberately tracked grotesk wordmark. Canvas has no
+      // letter-spacing primitive, so each glyph is positioned explicitly.
+      const size = Math.min(w * 0.074, 92);
       if (hintRef.current) {
         hintRef.current.style.top = `${cy + R * 2.55 + size * 1.35}px`;
       }
-      ctx.font = `500 ${size}px ${displayFont}, Georgia, serif`;
-      const total = ctx.measureText(NAME).width;
+      ctx.font = `650 ${size}px ${displayFont}, Arial, sans-serif`;
+      const glyphs = [...NAME];
+      const tracking = -size * 0.038;
+      const widths = glyphs.map((glyph) => ctx.measureText(glyph).width);
+      const total = widths.reduce((sum, width) => sum + width, 0) + tracking * (glyphs.length - 1);
       ringSprite = null;
       const startX = cx - total / 2;
       const y = cy + R * 2.55 + size * 0.5;
       letters.length = 0;
-      for (const [i, ch] of [...NAME].entries()) {
-        const pre = ctx.measureText(NAME.slice(0, i)).width;
-        const adv = ctx.measureText(NAME.slice(0, i + 1)).width - pre;
+      let cursor = startX;
+      for (const [i, ch] of glyphs.entries()) {
+        const advance = widths[i];
         letters.push({
           ch,
-          x: startX + pre + adv / 2,
+          x: cursor + advance / 2,
           y,
           vx: 0,
           vy: 0,
@@ -149,6 +151,7 @@ export function BlackHoleGate() {
           releaseAt: i * 90,
           gone: false,
         });
+        cursor += advance + tracking;
       }
     };
     layout();
@@ -313,7 +316,7 @@ export function BlackHoleGate() {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       if (letters.length) {
-        ctx.font = `500 ${letters[0].size}px ${displayFont}, Georgia, serif`;
+        ctx.font = `650 ${letters[0].size}px ${displayFont}, Arial, sans-serif`;
       }
       for (const l of letters) {
         if (l.gone) continue;
@@ -504,12 +507,12 @@ export function BlackHoleGate() {
         role="button"
         tabIndex={0}
         aria-label="Enter the site. Press Enter to let the name fall into the black hole, or Escape to go straight to the content."
-        className="absolute inset-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+        className="peer absolute inset-0 cursor-pointer outline-none"
       />
       <div
         ref={hintRef}
         aria-hidden
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-sans text-[11px] font-medium uppercase tracking-[0.4em] text-muted transition-opacity duration-500"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-sans text-[11px] font-medium uppercase tracking-[0.4em] text-muted underline-offset-8 transition-opacity duration-500 peer-focus-visible:text-ink peer-focus-visible:underline"
       >
         {hintText}
       </div>

@@ -3,8 +3,8 @@
 The site's job is to be the proof: a talent leader who builds systems that feel
 like they were made by a top-tier product team. Reference standard:
 [lusion.co](https://lusion.co) — studied directly. We borrow its *discipline*,
-not its content: one dark world, silky motion, a few moments of spectacle,
-everything else restrained.
+not its content: a committed visual world, silky motion, a few moments of
+spectacle, everything else restrained.
 
 ## The reference
 
@@ -25,12 +25,10 @@ constant but small physical responses to input.
 
 ## Principles
 
-1. **Two grounds, one grammar.** The landing and reading pages live on
-   paper — warm off-white, dark ink, Lusion-style light — and the planetary
-   map lives in space (near-black). Type, motion vocabulary, accent, and
-   category hues are identical on both grounds; only the ground flips, and
-   only at the /building boundary. (Amended 2026-08-26 from "one dark
-   world" on Tom's direction: the landing is light.)
+1. **One editorial ground, one bounded world.** The site lives on paper —
+   true white, dark ink, disciplined negative space. The Systems field is a
+   rounded near-black object within that ground, not a route-wide theme flip.
+   Type, motion, accent, and category hues remain one coherent grammar.
 2. **Silk or nothing.** Every animation runs at 60fps or it ships disabled.
    Imperative three.js mutation over React re-render; transform/opacity only
    in CSS; no animation of layout properties, ever.
@@ -47,19 +45,16 @@ constant but small physical responses to input.
 ## The system
 
 ### Color
-Two grounds, defined in `globals.css` (paper is the default; space is scoped
-to pages carrying the map):
+One page ground plus the bounded Systems field:
 
 - **Paper (default):** true white ground `#ffffff` (whitespace is a first
   principle here) · cards `#fbfaf7` · hairline `#eae8e1` · ink `#191815` ·
   accent `#156d40`
-- **Space (/building):** twilight, not black (amended on Tom's direction:
-  easier on the eye, still night) — gradient sky `#141a23` to `#26303f`
-  with a faint nebula wash of the category tints · panels `#212a35` ·
-  hairline `#2e3845` · ink `#eef0f2` · accent `#5cc189`
-- Categories (map + chips only): agents `#479a72` · products `#5d84c4` ·
-  talent `#c07647` — validated as a trio (all-pairs, dark surface `#070908`)
-  with the palette validator; craft `#a49d90` is the deliberate neutral
+- **Systems field:** near-black `#080b10` inside a large rounded stage ·
+  white editorial chrome · selected-only hairline connections · no starfield,
+  nebula, dashboard panel, or page-wide dark mode.
+- Categories (planets + index only): agents `#63d69a` · products `#78a9ff` ·
+  talent `#f29a62`; craft `#c9c0b2` is the deliberate neutral
   class, always direct-labeled, never relied on as a hue.
 
 ### Type
@@ -74,8 +69,9 @@ to pages carrying the map):
 | Rise-fade | section/heading entrances | 16px translate, 600–800ms, `cubic-bezier(.2,.7,.2,1)` |
 | Line-split reveal | hero display lines | per-line mask reveal, 80ms stagger |
 | Count-up | metrics on first view | 900ms, eased, tabular figures |
-| Damped hover | cards, pills, planets | scale ≤1.04 (DOM) / 1.12 (3D), lerped |
-| Camera glide | map flights, page settle | 700–1100ms, eased in-out |
+| Damped hover | cards, controls, planets | scale ≤1.04, lerped |
+| Direct manipulation | Systems planets | immediate grab, ≤6px click threshold, inertia + magnetic settle in 700–900ms |
+| Smoke trace | force feedback only | 0.6–1.0s life, category tint mixed toward neutral, zero idle emission |
 | Progress counter | first-visit loader | big numeral + thin bar, ≤1.2s, then mask wipe |
 
 One easing family site-wide: `cubic-bezier(0.2, 0.7, 0.2, 1)` (CSS) and its
@@ -83,17 +79,21 @@ damped-lerp equivalent in three.js. Durations only from: 200 / 400 / 700 /
 1100ms.
 
 ### Flow (page by page)
-- **Entrance (first visit per session):** black, thin progress bar, oversized
-  counter numeral bottom-left, ≤1.2s, wipes upward into the hero. Skipped for
-  reduced-motion and repeat in-session navigations.
+- **Entrance (first visit per session):** the lensed black hole and a sharp
+  grotesk TOM GREEN wordmark. The name falls into the horizon on entry; direct
+  hash visits, repeat loads, reduced motion, Escape, scroll and failure paths bypass it.
 - **Home:** the statement, on paper. Full-viewport hero — positioning line
-  as monumental split-line type over a barely-there aurora of the three
-  category tints; live proof (contributions, Ivy streak) as quiet counters;
-  selected work as two large cards.
-- **Work / case studies:** editorial reading pages in the dark world. Metrics
-  band counts up on reveal. No set pieces.
-- **Building:** the planetary map, full viewport, as shipped — plus panel
-  navigator. The map is the second set piece; the cards below stay quiet.
+  as monumental split-line type beside one operating-system atlas; clear Work
+  and Systems actions; business outcomes lead. Live state appears later as
+  supporting proof, never as the headline.
+- **Work / case studies:** editorial reading pages on paper. Work is tiered by
+  evidence strength. Flagship stories expose the mandate, operating model,
+  tradeoffs, outcomes, and confidentiality-safe evidence notes. No new set piece.
+- **Building:** nine authored planets in a bounded, near-full-viewport field.
+  Dragging applies force, emits a short smoke trail, and ends in a magnetic
+  return. Connections exist only for the selected planet. Fixed editorial
+  chrome exposes Index, Reset, selected detail, and one explicit action; the
+  complete server-rendered record follows below.
 - **About:** the corridor — on desktop (fine pointer, motion allowed) the
   career is a walkthrough: a sticky perspective stage the reader scrolls
   through, chapters approaching and passing with their years as ghost
@@ -104,19 +104,25 @@ damped-lerp equivalent in three.js. Durations only from: 200 / 400 / 700 /
 - **Between pages:** 200ms fade-through-black — fast, never precious.
 
 ### Performance guardrails
-- Device pixel ratio capped at 1.75 on the WebGL scenes.
+- Device pixel ratio capped at 1.5 in the orbital field.
 - Scene meshes built once; state changes mutate materials (already done).
+- Reduced-motion mode renders on demand; both modes stop when the field is offscreen,
+  the document is hidden, or the WebGL context is lost.
 - No smooth-scroll hijacking library: native scroll + scroll-linked effects
   via IntersectionObserver/rAF lerp. (Lusion hijacks; we stay native — it's
   the single biggest UX-risk item and buys nothing at our content depth.)
 - Any effect that can't hold 60fps on a mid M1 ships disabled, not janky.
 
-## Build plan
-1. **World unification** — dark theme site-wide; the light editorial theme
-   is deleted, not shadowed (no dead tokens in this repo); retint /, /work,
-   /about; nav/footer restyled for the world.
-2. **Motion kit** — split-line hero reveal, count-up, loader, page fade;
-   one `motion.css` + tiny hooks, no animation library.
-3. **Home hero** — monumental type + starfield backdrop + live counters.
-4. **About** — scroll-linked timeline line draw.
-5. **Polish lap** — hovers, focus states, 390px, reduced-motion audit.
+## Current implementation priorities
+
+1. **Protect the first-screen composition** — proposition, concise proof, two actions,
+   and one graphic; do not add another hero element without removing one.
+2. **Make evidence richer, not louder** — add approved artifacts, baselines, and quality
+   measures to flagship cases before adding decorative effects.
+3. **Keep the set pieces legible** — one readable corridor chapter at all times;
+   only three flagship planet labels at rest; selection and index remain DOM controls;
+   semantic fallbacks always remain complete.
+4. **Measure the journey** — use Analytics and Speed Insights to learn where attention
+   drops, then change hierarchy before adding content.
+5. **Polish against real devices** — 390px, desktop fine-pointer, reduced motion,
+   keyboard, and production-build checks stay in the release loop.

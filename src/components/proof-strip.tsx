@@ -1,13 +1,19 @@
 import type { Contributions } from "@/lib/data/github";
-import type { IvyState } from "@/lib/data/ivy";
+import { ivyOperatingDate, type IvyState } from "@/lib/data/ivy";
 import { ContributionGraph } from "./contribution-graph";
-import { StatTile } from "./stat-tile";
+
+function formatDate(date: string): string {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
 
 /**
- * The live section of the homepage: real GitHub activity and the Ivy
- * system's own state, refreshed hourly. Every element degrades to a static
- * fallback — an API failure can never break the page (DESIGN.md). Data is
- * fetched once by the page and shared with the hero counters.
+ * Execution is the claim; Ivy and GitHub are the inspectable mechanism.
+ * Live data refreshes hourly and degrades to a useful public link.
  */
 export function ProofStrip({
   contributions,
@@ -16,56 +22,103 @@ export function ProofStrip({
   contributions: Contributions | null;
   ivy: IvyState | null;
 }) {
+  const today = ivyOperatingDate();
+  const verifiedLabel = ivy
+    ? ivy.lastGreen === today
+      ? "Verified today"
+      : `Verified through ${formatDate(ivy.lastGreen)}`
+    : "Public record";
+  const contributionLabel =
+    ivy?.latestContributions !== null &&
+    ivy?.latestContributions !== undefined &&
+    ivy.latestContributionDate
+      ? `${ivy.latestContributions} real-work contributions ${
+          ivy.latestContributionDate === today
+            ? "today"
+            : `on ${formatDate(ivy.latestContributionDate)}`
+        }`
+      : null;
+
   return (
-    <section aria-labelledby="proof-heading" className="flex flex-col gap-6">
-      <h2 id="proof-heading" className="text-sm font-medium uppercase tracking-widest text-muted">
-        Live from the workshop
-      </h2>
-      <div className="flex flex-wrap gap-x-12 gap-y-6">
-        {contributions?.total != null && (
-          <StatTile
-            value={contributions.total.toLocaleString("en-GB")}
-            label="GitHub contributions, past year"
-          />
-        )}
-        {ivy && (
-          <StatTile
-            value={`${ivy.streak} ${ivy.streak === 1 ? "day" : "days"}`}
-            label="Ivy ship streak"
-          />
-        )}
-        {ivy && (
-          <StatTile
-            value={new Date(`${ivy.lastGreen}T12:00:00Z`).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              timeZone: "UTC",
-            })}
-            label="Last green day, per Ivy's state"
-          />
-        )}
-      </div>
-      {contributions ? (
-        <ContributionGraph days={contributions.days} />
-      ) : (
-        <p className="text-sm text-ink-secondary">
-          Contribution activity lives at{" "}
-          <a href="https://github.com/tompulsarlabs" className="text-accent hover:underline">
-            github.com/tompulsarlabs
-          </a>
-          .
+    <section
+      aria-labelledby="proof-heading"
+      className="grid overflow-hidden border-y border-ink lg:grid-cols-[0.72fr_1.28fr]"
+    >
+      <div className="py-9 lg:border-r lg:border-ink lg:py-12 lg:pr-10">
+        <p className="text-xs uppercase tracking-[0.22em] text-muted">Execution in public</p>
+        <h2
+          id="proof-heading"
+          className="mt-4 max-w-[12ch] font-sans text-4xl font-medium leading-[0.98] tracking-[-0.055em] md:text-6xl"
+        >
+          I build—and ship—at speed.
+        </h2>
+        <p className="mt-6 max-w-md leading-relaxed text-ink-secondary">
+          I built Ivy to turn that bias into a system. It scouts the next useful task, checks
+          what moved and learns from each day’s outcome. The record is public.
         </p>
-      )}
-      <p className="text-sm text-ink-secondary">
-        These numbers are fetched live from GitHub and from the{" "}
         <a
           href="https://github.com/tompulsarlabs/ivy"
-          className="text-accent hover:underline"
+          className="text-link mt-6 inline-flex min-h-11 items-center gap-2 text-sm text-accent hover:underline"
         >
-          Ivy
-        </a>{" "}
-        system&apos;s public state — this site practices what it preaches.
-      </p>
+          Inspect Ivy and the shipping record <span aria-hidden>↗</span>
+        </a>
+      </div>
+
+      <div className="min-w-0 border-t border-ink py-9 lg:border-t-0 lg:py-12 lg:pl-10">
+        <div className="grid gap-7 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <div className="flex items-baseline gap-3">
+              <p className="font-sans text-[clamp(5rem,13vw,9.5rem)] font-semibold leading-[0.72] tracking-[-0.09em]">
+                {ivy ? ivy.streak : "—"}
+              </p>
+              {ivy && (
+                <p className="pb-1 text-sm uppercase tracking-[0.18em] text-muted">
+                  {ivy.streak === 1 ? "day" : "days"}
+                </p>
+              )}
+            </div>
+            <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em]">Ship streak</p>
+          </div>
+          <div className="sm:text-right">
+            <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted">
+              <span className={`size-2 rounded-full ${ivy ? "bg-accent" : "bg-muted"}`} />
+              {verifiedLabel}
+            </p>
+            {contributionLabel && (
+              <p className="mt-2 text-sm text-ink-secondary">{contributionLabel}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-10 border-t border-hairline pt-6">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted">Public build record</p>
+            {contributions?.total !== null && contributions?.total !== undefined && (
+              <p className="font-mono text-xs tabular-nums text-muted">
+                {contributions.total.toLocaleString("en-GB")} contributions · past year
+              </p>
+            )}
+          </div>
+          {contributions ? (
+            <ContributionGraph days={contributions.days} />
+          ) : (
+            <p className="text-sm text-ink-secondary">
+              Activity remains available at{" "}
+              <a
+                href="https://github.com/tompulsarlabs"
+                className="text-link text-accent hover:underline"
+              >
+                github.com/tompulsarlabs
+              </a>
+              .
+            </p>
+          )}
+          <p className="mt-5 max-w-2xl text-xs leading-relaxed text-muted">
+            A ship day is verified, non-bot work on a real project. Ivy’s own bookkeeping never
+            counts.
+          </p>
+        </div>
+      </div>
     </section>
   );
 }

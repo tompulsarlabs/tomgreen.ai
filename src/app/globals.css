@@ -3,8 +3,8 @@
 /*
  * Two grounds, one grammar (DESIGN-MOTION.md). The site's default ground is
  * paper — warm off-white, dark ink — for the landing and reading pages. The
- * planetary map (/building) runs on the space ground via the scoped block
- * below. Type, motion, accent, and category hues are identical on both.
+ * Systems places a bounded near-black interaction field inside that paper
+ * ground. Type, motion, accent, and category hues remain one grammar.
  *
  * Validated with the dataviz palette validator: heat ramp light vs #faf9f6
  * and dark vs #070908 (ordinal); category trio all-pairs on both grounds.
@@ -14,11 +14,12 @@
   --paper: #ffffff;
   --ink: #191815;
   --ink-secondary: #55534c;
-  --muted: #8a877f;
+  --muted: #68665f;
   --hairline: #eae8e1;
   --card: #fbfaf7;
   --accent: #156d40;
   --accent-ink: #0d5c33;
+  --visited: #704f7e;
 
   --heat-0: #edebe3;
   --heat-1: #74c194;
@@ -30,28 +31,6 @@
   --cat-products: #5d84c4;
   --cat-talent: #c07647;
   --cat-craft: #8f897c;
-}
-
-/* The space ground: any page carrying the planetary map runs on twilight,
-   deep slate-indigo rather than black: easier on the eye, still night. */
-body:has([data-theme-scope="space"]) {
-  color-scheme: dark;
-  --paper: #191f28;
-  --ink: #eef0f2;
-  --ink-secondary: #bac1cb;
-  --muted: #8b93a0;
-  --hairline: #2e3845;
-  --card: #212a35;
-  --accent: #5cc189;
-  --accent-ink: #66cf8f;
-
-  --heat-0: #222a34;
-  --heat-1: #2a6a45;
-  --heat-2: #398f5c;
-  --heat-3: #4fb377;
-  --heat-4: #6fd898;
-
-  --cat-craft: #a49d90;
 }
 
 @theme inline {
@@ -88,6 +67,13 @@ a:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--accent);
   border-radius: 2px;
+}
+
+/* Editorial links retain a visible reading history. Navigation and large
+   action links opt out because their state is communicated by location and
+   interaction styling instead. */
+.text-link:visited {
+  color: var(--visited);
 }
 
 /*
@@ -247,21 +233,6 @@ button:focus-visible {
   }
 }
 
-/* 3D graph: let vertical touch swipes scroll the page; horizontal drags
-   still orbit the scene. OrbitControls sets touch-action:none inline. */
-.graph-scene canvas {
-  touch-action: pan-y !important;
-}
-
-/* The map's sky: twilight gradient with a faint nebula wash of the
-   category tints. The canvas above it renders transparent. */
-.graph-scene {
-  background:
-    radial-gradient(120% 90% at 76% 12%, rgba(93, 132, 196, 0.1), transparent 55%),
-    radial-gradient(110% 85% at 18% 88%, rgba(71, 154, 114, 0.08), transparent 55%),
-    linear-gradient(180deg, #141a23 0%, #1b222d 55%, #26303f 100%);
-}
-
 /* The career corridor (desktop set piece): a perspective stage the camera
    travels through; chapters are positioned in depth by JS each frame. */
 .corridor-stage {
@@ -270,4 +241,63 @@ button:focus-visible {
 }
 .corridor-chapter {
   will-change: transform, opacity;
+}
+
+/* The system atlas moves like an instrument, not a screensaver: one slow
+   orbit, two data traces, and a quiet pulse at the operating core. */
+@keyframes system-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes system-trace {
+  to {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes system-breathe {
+  50% {
+    opacity: 0.72;
+    transform: scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .system-orbit {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: system-orbit 48s linear infinite;
+  }
+
+  .system-trace {
+    stroke-dasharray: 5 11;
+    animation: system-trace 18s linear infinite;
+  }
+
+  .system-trace-delayed {
+    animation-delay: -9s;
+  }
+
+  .system-core {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: system-breathe 4s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+  }
+}
+
+@media (min-width: 768px) {
+  .system-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 2.25rem;
+    width: 7px;
+    height: 7px;
+    border-top: 1px solid var(--muted);
+    border-right: 1px solid var(--muted);
+    transform: rotate(45deg);
+    background: var(--card);
+  }
 }

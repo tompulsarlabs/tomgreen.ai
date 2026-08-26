@@ -26,7 +26,7 @@ export const categories: Record<
   },
   products: {
     label: "Products",
-    blurb: "Software built for real users, in production.",
+    blurb: "Software built for real users — shipped products and focused experiments in the lab.",
   },
   talent: {
     label: "Talent systems",
@@ -39,7 +39,7 @@ export const categories: Record<
   },
 };
 
-const projectCategory: Record<string, CategoryId> = {
+export const projectCategory: Record<string, CategoryId> = {
   ivy: "agents",
   sybil: "products",
   "margaux-en-tutor": "products",

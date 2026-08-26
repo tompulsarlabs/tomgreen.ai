@@ -1,35 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CareerStop } from "@/lib/content/about";
+import {
+  CAREER_SPACING,
+  careerVisualDepth,
+  focusedCareerIndex,
+} from "@/lib/career-corridor-state";
 
 /**
  * The career as a corridor (DESIGN-MOTION.md): a sticky perspective stage
  * the reader walks through with one continuous scroll — chapters approach
  * from the depth, hold focus while readable, and fall away, each with its
- * year standing as a ghost monument. Two guards keep it clean: a chapter's
- * text only materializes near the camera (so two sections can never merge),
- * and scroll stays native and untrapped. Desktop-only; the linear timeline
- * is the fallback everywhere else (see CareerJourney).
+ * year standing as a ghost monument. The nearest chapter owns the readable
+ * plane at every scroll position: depth keeps moving continuously, but the
+ * reader never crosses an empty transition or two merged text layers.
+ * Desktop-only; the linear timeline is the fallback everywhere else.
  */
-const SPACING = 1400;
-const VH_PER_STOP = 1.3;
-/** Text is fully alive only this close to the camera. */
-const CONTENT_WINDOW = 560;
+const VH_PER_STOP = 0.95;
 
 export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const chaptersRef = useRef<(HTMLDivElement | null)[]>([]);
   const contentsRef = useRef<(HTMLDivElement | null)[]>([]);
   const fillRef = useRef<HTMLDivElement>(null);
-  const counterRef = useRef<HTMLSpanElement>(null);
   const hintRef = useRef<HTMLParagraphElement>(null);
+  const activeIndexRef = useRef(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const scrollToStop = (index: number) => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const clamped = Math.max(0, Math.min(stops.length - 1, index));
+    const sectionTop = window.scrollY + section.getBoundingClientRect().top;
+    const scrollable = Math.max(section.offsetHeight - window.innerHeight, 0);
+    const progress = stops.length > 1 ? clamped / (stops.length - 1) : 0;
+    window.scrollTo({ top: sectionTop + scrollable * progress, behavior: "smooth" });
+  };
 
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
-    const total = (stops.length - 1) * SPACING;
+    const total = (stops.length - 1) * CAREER_SPACING;
     let cam = 0;
     let target = 0;
     let raf = 0;
@@ -51,46 +64,43 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
       cam += (target - cam) * 0.13;
       if (Math.abs(target - cam) < 0.1) cam = target;
 
+      const focusIndex = focusedCareerIndex(cam, stops.length);
+      if (focusIndex !== activeIndexRef.current) {
+        activeIndexRef.current = focusIndex;
+        setActiveIndex(focusIndex);
+      }
+
       for (const [i, el] of chaptersRef.current.entries()) {
         if (!el) continue;
-        const z = cam - i * SPACING;
-        // Presence: the chapter (and its ghost year) breathes in from the
-        // deep, steeply enough that the far chapter is atmosphere, not text.
-        let presence = 0;
-        if (z > 50) {
-          presence = Math.max(0, 1 - (z - 50) / 150);
-        } else if (z > -SPACING * 1.4) {
-          const t = (z + SPACING * 1.4) / (SPACING * 1.4);
-          presence = Math.pow(Math.min(t, 1), 2.4);
-        }
-        el.style.transform = `translate3d(0, 0, ${z}px)`;
+        const z = cam - i * CAREER_SPACING;
+        const focused = i === focusIndex;
+        // Focused content remains fully legible while the physical chapter
+        // continues moving through depth. Nearby years stay as atmosphere.
+        const atmosphericPresence = Math.max(
+          0,
+          0.16 * (1 - Math.abs(z) / (CAREER_SPACING * 1.4)),
+        );
+        const presence = focused ? 1 : atmosphericPresence;
+        // Keep the active reading plane within a legible depth band while
+        // the surrounding monuments retain the full corridor perspective.
+        const visualZ = careerVisualDepth(z, focused);
+        el.style.transform = `translate3d(0, 0, ${visualZ}px)`;
         el.style.opacity = presence.toFixed(3);
         el.style.visibility = presence <= 0.001 ? "hidden" : "visible";
 
-        // The text itself materializes only near the camera — rising and
-        // settling on arrival — so two chapters can never merge.
+        // Exactly one full-viewport layer owns text and pointer events.
         const content = contentsRef.current[i];
         if (content) {
-          const near = 1 - Math.min(Math.abs(z) / CONTENT_WINDOW, 1);
-          const emerge = near * near * (3 - 2 * near);
-          content.style.opacity = emerge.toFixed(3);
-          content.style.transform = `translateY(${(1 - emerge) * 22}px)`;
-          // Only the focused chapter is clickable — every chapter is a
-          // full-viewport layer, and later layers paint above earlier ones,
-          // so anything else would swallow the links below it.
-          content.style.pointerEvents = emerge > 0.5 ? "auto" : "none";
+          content.style.opacity = focused ? "1" : "0";
+          content.style.transform = focused ? "translateY(0)" : "translateY(18px)";
+          content.style.pointerEvents = focused ? "auto" : "none";
+          content.inert = !focused;
+          content.setAttribute("aria-hidden", focused ? "false" : "true");
         }
       }
 
       const p = total > 0 ? cam / total : 0;
       if (fillRef.current) fillRef.current.style.transform = `scaleY(${p})`;
-      if (counterRef.current) {
-        const idx = Math.min(stops.length - 1, Math.round(p * (stops.length - 1)));
-        const label = `${String(idx + 1).padStart(2, "0")} / ${String(stops.length).padStart(2, "0")} — ${stops[idx].company}`;
-        if (counterRef.current.textContent !== label) {
-          counterRef.current.textContent = label;
-        }
-      }
       if (hintRef.current) {
         hintRef.current.style.opacity = p > 0.02 ? "0" : "1";
       }
@@ -149,6 +159,10 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
             <div
               ref={(el) => {
                 contentsRef.current[i] = el;
+                if (el) {
+                  el.inert = i !== 0;
+                  el.setAttribute("aria-hidden", i === 0 ? "false" : "true");
+                }
               }}
               className="relative w-[min(38rem,64vw)]"
               style={{ opacity: 0 }}
@@ -208,10 +222,11 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
         {/* Progress rail. */}
         <div className="absolute right-10 top-1/2 flex -translate-y-1/2 flex-col items-end gap-3 text-right">
           <span
-            ref={counterRef}
+            aria-live="polite"
+            aria-atomic="true"
             className="whitespace-nowrap text-xs uppercase tracking-widest text-muted"
           >
-            01 / {String(stops.length).padStart(2, "0")} — {stops[0].company}
+            {String(activeIndex + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")} — {stops[activeIndex].company}
           </span>
           <div className="h-40 w-px self-end bg-hairline">
             <div
@@ -219,6 +234,26 @@ export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
               className="h-full w-full origin-top bg-accent"
               style={{ transform: "scaleY(0)" }}
             />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Previous career chapter"
+              disabled={activeIndex === 0}
+              onClick={() => scrollToStop(activeIndex - 1)}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              aria-label="Next career chapter"
+              disabled={activeIndex === stops.length - 1}
+              onClick={() => scrollToStop(activeIndex + 1)}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              →
+            </button>
           </div>
         </div>
 

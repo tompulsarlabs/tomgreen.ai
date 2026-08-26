@@ -13,18 +13,25 @@ export const metadata: Metadata = {
 
 export default function About() {
   return (
-    <div className="flex flex-col gap-14 py-16">
-      <header className="flex flex-col gap-4">
-        <h1 className="anim font-display text-3xl tracking-tight">About</h1>
-        {aboutIntro.map((paragraph, i) => (
-          <p
-            key={i}
-            className="anim max-w-2xl leading-relaxed text-ink-secondary"
-            style={{ "--anim-delay": `${(i + 1) * 100}ms` } as React.CSSProperties}
-          >
-            {paragraph}
-          </p>
-        ))}
+    <div className="flex flex-col gap-20 py-16 md:gap-28 md:py-24">
+      <header className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr] lg:items-end">
+        <div>
+          <p className="anim text-xs uppercase tracking-[0.22em] text-muted">About</p>
+          <h1 className="anim mt-3 font-display text-5xl leading-none tracking-tight md:text-7xl">
+            A career built at the crossover.
+          </h1>
+        </div>
+        <div className="flex flex-col gap-5 lg:pb-2">
+          {aboutIntro.map((paragraph, i) => (
+            <p
+              key={i}
+              className="anim max-w-2xl text-lg leading-relaxed text-ink-secondary"
+              style={{ "--anim-delay": `${(i + 1) * 100}ms` } as React.CSSProperties}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </header>
 
       <section aria-labelledby="career-heading" className="flex flex-col gap-8">
@@ -129,13 +136,20 @@ export default function About() {
         </CareerJourney>
       </section>
 
-      <section className="flex flex-col gap-2 text-sm text-ink-secondary">
-        <p>{referencesNote}</p>
-        <p>
-          <a href={`mailto:${site.email}`} className="text-accent hover:underline">
-            {site.email}
+      <section className="grid gap-8 border-y border-ink py-10 md:grid-cols-[0.68fr_1.32fr]">
+        <p className="text-xs uppercase tracking-[0.22em] text-muted">References and contact</p>
+        <div>
+          <p className="max-w-xl font-display text-2xl leading-snug tracking-tight">{referencesNote}</p>
+          <p className="mt-4 max-w-xl leading-relaxed text-ink-secondary">
+            If you are building an ambitious team—or the operating system behind it—I’d like to hear what is difficult.
+          </p>
+          <a
+            href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
+            className="mt-6 inline-flex min-h-12 items-center bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5"
+          >
+            Start a conversation
           </a>
-        </p>
+        </div>
       </section>
     </div>
   );

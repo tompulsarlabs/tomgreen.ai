@@ -29,13 +29,13 @@ export const career: CareerStop[] = [
     period: "2025 – 2026",
     note: "Ran the EMEA business as a P&L — and rebuilt its People Ops on agents.",
     achievements: [
-      "Ran a €3.6M P&L; won €2.5M ARR in year one across recruiting programs in DE, US, UK and India (Neura Robotics, Superhuman). Directly hired the CPO.",
-      "Rebuilt People Ops on agentic HR workflows: Germany runs on 1 FTE, retiring 3 FTE of UK shared-services support. Drove the group's AI transformation.",
+      "Owned a €3.6M profit-and-loss account; won €2.5M in annual recurring revenue in year one across recruiting programmes in Germany, the US, the UK and India (Neura Robotics, Superhuman). Directly hired the Chief People Officer.",
+      "Rebuilt People Ops around agent workflows: Germany runs as a one-person function without dependency on three UK shared-service roles. Led the group’s AI transformation.",
       "Delivered a consulting project for Google EMEA on executive recruiting (NDA).",
     ],
     metrics: [
-      { value: "€2.5M", label: "ARR in year one" },
-      { value: "1 FTE", label: "runs DE People Ops" },
+      { value: "€2.5M", label: "annual recurring revenue in year one" },
+      { value: "1 person", label: "runs German People Ops" },
     ],
     href: "/work/chapter-2",
   },
@@ -45,13 +45,13 @@ export const career: CareerStop[] = [
     period: "2022 – 2025",
     note: "Europe's leading fashion platform makes its AI bet — and needs the org built.",
     achievements: [
-      "Led TA globally — 22 FTE across the EU and China — for AI/ML, Research, Tech, GTM, Product, Design and G&A.",
-      "Built a cross-functional AI org 0→120 FTE in six months across DE/IE/CH/FI (42% DEI hires); led market entry, executive search, and a Tech/AI hub in Shenzhen.",
+      "Led talent acquisition globally—a team of 22 across Europe and China—for AI and machine learning, Research, Technology, Commercial, Product, Design and corporate functions.",
+      "Built a cross-functional AI organisation from zero to 120 people in six months across Germany, Ireland, Switzerland and Finland; 42% were diversity hires under the organisation’s internal reporting definition. Led market entry, executive search, and a Technology and AI hub in Shenzhen.",
       "Launched AI/ML and Research early-careers programs and an Associate PM MBA program; built an interviewer training system on hiring data and neuroscience — 1,000+ trained.",
       "Rated Delivering Breakthroughs — Zalando's top performance tier (~3% of the org).",
     ],
     metrics: [
-      { value: "0 → 120", label: "AI org FTE in six months" },
+      { value: "0 → 120", label: "AI organisation in six months" },
       { value: "−32%", label: "Time to Hire" },
       { value: "+21%", label: "Offer acceptance" },
     ],
@@ -59,15 +59,15 @@ export const career: CareerStop[] = [
   },
   {
     company: "Audibene / Hear.com",
-    role: "TA Lead → Product Operations",
+    role: "Talent Acquisition Lead → Product Operations",
     period: "2019 – 2022",
     note: "An EQT Ventures-backed HealthTech, scaled toward IPO — then the crossover.",
     achievements: [
-      "Led three TA teams (US, DE, IN); scaled TA 2x to grow the tech org ~70→180 FTE; directly hired 40+ pre-IPO including the Group CTO, CISO, GTM, Product, Platform Eng, Data Eng and InfoSec leaders.",
+      "Led three talent-acquisition teams across the US, Germany and India; doubled the function and grew the technology organisation from about 70 to 180 people; directly hired 40+ people before IPO, including the Group Technology Officer and senior Commercial, Product, Platform, Data and information-security leaders.",
       "Promoted to build Product Operations 0→1, reporting to the Group CTO I hired: established Tech and Product OKRs with the executive team, cut 75% of low-ROI projects, and release cycles ran ~20% faster.",
     ],
     metrics: [
-      { value: "~70 → 180", label: "Tech org FTE" },
+      { value: "~70 → 180", label: "Technology organisation" },
       { value: "40+", label: "Direct hires pre-IPO" },
     ],
     href: "/work/audibene",
@@ -104,9 +104,9 @@ export const career: CareerStop[] = [
 ];
 
 export const aboutIntro: string[] = [
-  "I've spent fifteen years building teams — as an agency founder, an RPO executive running a multimillion-euro P&L, a global talent leader at scale, and now an advisor to AI companies. The through-line: I don't just run talent functions, I build the operating systems they run on. Increasingly, those systems are agents.",
-  "Based in Berlin, open to relocation. Away from work: building agents, startups and venture, nutrition, and music production.",
+  "For fifteen years I’ve built teams and the systems around them: as a founder, a Managing Director with P&L ownership, a global talent leader, a product operator, and now an advisor to AI companies.",
+  "That range matters. I understand the search, the organisation, the operating model and the economics—and I can build the software and agent workflows that make each work better. Based in Berlin; away from work, I’m usually building agents, following startups and venture, thinking about nutrition, or making music.",
 ];
 
 export const referencesNote =
-  "References from Zalando, Audibene, Google, Chapter 2 and Wave — available on request.";
+  "Selected references from senior leaders across the career can be introduced privately.";

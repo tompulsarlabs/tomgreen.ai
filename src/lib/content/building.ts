@@ -15,7 +15,7 @@ export const projects: Project[] = [
     status: "running",
     tagline: "A self-learning daily-ship system",
     description: [
-      "Four scheduled cloud agents — scout, check, failsafe, retro — keep my projects moving and guarantee at least one real contribution ships every day. No synthetic commits: the system's own bookkeeping is deliberately attributed so it never lights the graph.",
+      "Four scheduled cloud agents — scout, check, failsafe, retro — keep my projects moving and guarantee at least one real contribution ships every day. The public state records whether the system is actually operating.",
       "The interesting part is the learning loop: a weekly retro agent rewrites the system's own playbook based on what worked, within immutable guardrails. The design doc, playbook and full decision history are public in the repo.",
     ],
     repo: "https://github.com/tompulsarlabs/ivy",
@@ -27,7 +27,7 @@ export const projects: Project[] = [
     status: "shipped",
     tagline: "This site — design doc, readable history, live data",
     description: [
-      "The site you're reading is built the way I build systems: design before code (DESIGN.md is the first commit), content as typed modules in a public repo, and live data — the contribution graph and Ivy's state — so it reads as alive rather than as a brochure.",
+      "The site you're reading is built the way I build systems: design before code, content as typed modules in a public repo, and live state from Ivy and GitHub so the claims remain inspectable.",
     ],
     repo: "https://github.com/tompulsarlabs/tomgreen.ai",
     stack: ["Next.js", "TypeScript", "Tailwind", "Vercel"],

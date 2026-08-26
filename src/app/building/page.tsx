@@ -3,13 +3,19 @@ import Link from "next/link";
 import { KnowledgeGraph3D } from "@/components/knowledge-graph-3d";
 import { Reveal } from "@/components/reveal";
 import { caseStudies } from "@/lib/content/case-studies";
-import { categories, graphEdges, graphNodes, type CategoryId } from "@/lib/content/graph";
+import {
+  categories,
+  graphEdges,
+  graphNodes,
+  projectCategory,
+  type CategoryId,
+} from "@/lib/content/graph";
 import { projects } from "@/lib/content/building";
 
 export const metadata: Metadata = {
-  title: "Building",
+  title: "Systems",
   description:
-    "An interactive map of the systems I build and run: agents, products, talent machines, and the connections between them.",
+    "An interactive field of the agents, products, talent systems and craft behind Tom Green's work.",
 };
 
 const catColor: Record<CategoryId, string> = {
@@ -21,14 +27,6 @@ const catColor: Record<CategoryId, string> = {
 
 const categoryOrder: CategoryId[] = ["agents", "talent", "products", "craft"];
 
-const projectCategory: Record<string, CategoryId> = {
-  ivy: "agents",
-  sybil: "products",
-  "margaux-en-tutor": "products",
-  "writing-voice-skill": "craft",
-  "this-site": "craft",
-};
-
 const statusStyle: Record<string, string> = {
   running: "text-accent",
   shipped: "text-ink-secondary",
@@ -37,12 +35,30 @@ const statusStyle: Record<string, string> = {
 
 export default function Building() {
   return (
-    <div data-theme-scope="space" className="flex flex-col gap-12 pb-16">
+    <div className="flex flex-col gap-16 pb-20">
       <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
+
+      <section className="grid gap-7 border-b border-hairline pb-12 md:grid-cols-[0.65fr_1.35fr] md:items-end">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">The index</p>
+        <div>
+          <h2
+            id="systems-index-heading"
+            className="max-w-3xl font-sans text-4xl font-medium leading-[0.98] tracking-[-0.055em] md:text-6xl"
+          >
+            Every planet is a real system, product or operating story.
+          </h2>
+          <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
+            The field is playful; the record is concrete. Explore by category below, inspect the public systems, or open the case studies behind the outcomes.
+          </p>
+        </div>
+      </section>
 
       {categoryOrder.map((catId) => {
         const catProjects = projects.filter((p) => projectCategory[p.slug] === catId);
-        const catCases = catId === "talent" ? caseStudies : [];
+        const catCases =
+          catId === "talent"
+            ? caseStudies.filter((study) => study.tier === "flagship")
+            : [];
         return (
           <section key={catId} aria-labelledby={`cat-${catId}`} className="flex flex-col gap-5">
             <h2
@@ -55,12 +71,12 @@ export default function Building() {
               />
               {categories[catId].label}
             </h2>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               {catProjects.map((project) => (
                 <Reveal key={project.slug}>
                   <article
                     id={project.slug}
-                    className="card-lift flex scroll-mt-24 flex-col gap-3 rounded-lg border border-hairline bg-card p-6"
+                    className="card-lift flex scroll-mt-24 flex-col gap-3 border-t border-hairline py-6"
                   >
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <h3 className="font-display text-xl tracking-tight">{project.name}</h3>
@@ -87,23 +103,28 @@ export default function Building() {
                 </Reveal>
               ))}
               {catCases.length > 0 && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {catCases.map((study) => (
-                    <Reveal key={study.slug}>
-                      <Link
-                        id={study.slug}
-                        href={`/work/${study.slug}`}
-                        className="group card-lift flex h-full scroll-mt-24 flex-col gap-1.5 rounded-lg border border-hairline bg-card p-5"
-                      >
-                        <p className="text-xs text-muted">
-                          {study.company} · {study.period}
-                        </p>
-                        <p className="font-display text-lg leading-snug tracking-tight group-hover:text-accent">
-                          {study.headline}
-                        </p>
-                      </Link>
-                    </Reveal>
-                  ))}
+                <div>
+                  <div className="grid gap-x-6 md:grid-cols-2">
+                    {catCases.map((study) => (
+                      <Reveal key={study.slug}>
+                        <Link
+                          id={study.slug}
+                          href={`/work/${study.slug}`}
+                          className="group flex h-full scroll-mt-24 flex-col gap-2 border-t border-hairline py-5"
+                        >
+                          <p className="text-xs uppercase tracking-[0.16em] text-muted">
+                            {study.company} · {study.period}
+                          </p>
+                          <p className="font-display text-xl leading-snug tracking-tight transition-colors group-hover:text-accent">
+                            {study.headline}
+                          </p>
+                        </Link>
+                      </Reveal>
+                    ))}
+                  </div>
+                  <Link href="/work" className="mt-4 inline-flex min-h-11 items-center text-sm text-accent hover:underline">
+                    See the full work archive →
+                  </Link>
                 </div>
               )}
             </div>
