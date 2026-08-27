@@ -76,7 +76,7 @@ by commit.
 - [x] R2 Restore routes — `140bd43` (suites green)
 - [x] R3 Ship surface — `670e045` (content-guard + Vercel contract pass)
 - [x] R4 Transition refinements — `cf73b04` (velocity 31.0/18.8 vs 40 ceiling)
-- [x] Review report committed; verified ledger table follows in its own commit
+- [x] Review report committed; verified ledger table inserted (77 rows, zero refuted)
 - [x] Draft PR #2 opened against `codex/load-bearing-type`
 - [ ] R5 (gated: spine decision) · Wave 1 (gated: 3D direction decision)
 
