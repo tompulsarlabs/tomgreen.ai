@@ -8,6 +8,7 @@ import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 import { getContributions } from "@/lib/data/github";
 import { getIvyState } from "@/lib/data/ivy";
+import { isAboutPublic } from "@/lib/site-env";
 
 export default async function Home() {
   const [contributions, ivy] = await Promise.all([
@@ -183,9 +184,11 @@ export default async function Home() {
               I understand the search, the organisation, the operating model and the economics—and I can build the software and agent workflows that make each work better.
             </p>
             <p className="mt-4 text-sm text-muted">Selected references can be introduced privately.</p>
-            <Link href="/about" className="mt-6 inline-flex items-center gap-2 text-sm text-accent hover:underline">
-              Walk through the career <span aria-hidden>→</span>
-            </Link>
+            {isAboutPublic && (
+              <Link href="/about" className="mt-6 inline-flex items-center gap-2 text-sm text-accent hover:underline">
+                Walk through the career <span aria-hidden>→</span>
+              </Link>
+            )}
           </div>
         </section>
       </Reveal>

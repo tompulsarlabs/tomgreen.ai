@@ -17,7 +17,7 @@ function PendingMark() {
   return <span aria-hidden className={`nav-pending ${pending ? "is-pending" : ""}`} />;
 }
 
-export function SiteHeader() {
+export function SiteHeader({ showAbout }: { showAbout: boolean }) {
   const pathname = usePathname();
   const isSystems = pathname === "/building";
   const [progress, setProgress] = useState(0);
@@ -84,7 +84,7 @@ export function SiteHeader() {
             isSystems ? "text-white/64" : "text-ink-secondary"
           }`}
         >
-          {site.nav.map((item) => {
+          {site.nav.filter((item) => showAbout || item.href !== "/about").map((item) => {
             const isCurrent =
               (pathname === item.href ||
                 pathname.startsWith(`${item.href}/`));
