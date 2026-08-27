@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteHeader } from "@/components/site-header";
-import { isLaunched } from "@/lib/site-env";
+import { isAboutPublic, isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
 import { site } from "@/lib/content/site";
 import "./globals.css";
@@ -107,7 +107,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: "document.documentElement.classList.add('js')",
           }}
         />
-        <SiteHeader />
+        <SiteHeader showAbout={isAboutPublic} />
         <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-6">
           {children}
         </main>

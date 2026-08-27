@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { CareerJourney } from "@/components/career-journey";
 import { Reveal } from "@/components/reveal";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { careerPeriodLabel } from "@/lib/career-corridor-state";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
 import { site } from "@/lib/content/site";
+import { isAboutPublic } from "@/lib/site-env";
 import { testimonials } from "@/lib/content/testimonials";
 
 export const metadata: Metadata = {
@@ -15,6 +17,8 @@ export const metadata: Metadata = {
 };
 
 export default function About() {
+  if (!isAboutPublic) notFound();
+
   return (
     <div className="flex flex-col gap-20 py-16 md:gap-28 md:py-24">
       <header className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr] lg:items-end">
