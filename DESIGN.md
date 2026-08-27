@@ -89,14 +89,15 @@ This is a public repo, so **a git push is a publish**. Rules:
 
 ## Design intent
 
-The experience thesis, route specifications, budgets and phased roadmap live in
-[docs/EXPERIENCE-ROADMAP.md](docs/EXPERIENCE-ROADMAP.md). The implementation contract
-is summarised in [DESIGN-MOTION.md](DESIGN-MOTION.md): a warm-paper editorial field,
-green-black operating states, persistent route coordinates and motion that explains
-causal change rather than decorating it.
+The historical experience roadmap lives in
+[docs/EXPERIENCE-ROADMAP.md](docs/EXPERIENCE-ROADMAP.md). The current implementation contract
+is [DESIGN-MOTION.md](DESIGN-MOTION.md): a white and near-black editorial field where
+Archivo's width axis carries constraint, resolution and release. Persistent route coordinates,
+semantic fallbacks and motion that explains causal change remain part of the system.
 
-Editorial and restrained: strong typography, generous whitespace, one accent color,
-dark-mode aware. The live-data elements are quiet instruments, not dashboards. The
+Editorial and restrained: strong typography, generous whitespace and two semantic accents only:
+green for live production state and clay for reconstruction labels. The live-data elements are
+quiet instruments, not dashboards. The
 site should feel like it was designed by someone with taste and built by someone who
 ships — because both must be true for the positioning to hold.
 

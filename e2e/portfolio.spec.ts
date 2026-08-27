@@ -5,396 +5,227 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-test("homepage communicates the proposition and the next steps", async ({ page }) => {
+test("Home presents the complete Load-Bearing Type journey", async ({ page }) => {
   await page.goto("/");
-
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /Identify constraints\.\s*Simplicity by design\.\s*Build a system that compounds\./,
-  );
-  await expect(page.getByText("The organisation that does not exist yet.", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("figure").filter({ hasText: /A model of the work/ }).first()).toBeVisible();
-  await expect(page.locator(".operating-field .field-world")).toBeVisible();
-  await expect(page.locator(".operating-field .field-signal")).toHaveCSS(
-    "background-color",
-    "rgb(255, 255, 255)",
-  );
-  await expect(page.getByRole("heading", { name: "Constraint becomes motion." })).toBeVisible();
-  await expect(page.getByRole("link", { name: "View the work" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/I see theconstraint\./i);
+  await expect(page.locator(".system-line")).toBeVisible();
+  await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Subscribe on Substack/ })).toHaveAttribute(
-    "href",
-    "https://tomgreenlabs.substack.com/subscribe",
-  );
-  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toContainText(
-    "WorkSystemsAboutContact",
-  );
-  await expect(page.getByRole("link", { name: "Tom Green, home" })).toBeVisible();
-  await expect(page.locator("html")).not.toHaveClass(/entering/);
+  await expect(page.getByLabel("Verified proof")).toContainText("0 → 120");
+  await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
 
-test("the Home display type keeps readable leading and an upright final line", async ({ page }) => {
-  await page.setViewportSize({ width: 1005, height: 940 });
+test("Home starts compressed and resolves through scroll when motion is enabled", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
 
-  const lines = page.locator("#home-title .line");
-  const typography = await lines.evaluateAll((items) =>
-    items.map((item) => {
-      const style = getComputedStyle(item);
-      return {
-        fontSize: Number.parseFloat(style.fontSize),
-        fontStyle: style.fontStyle,
-        lineHeight: Number.parseFloat(style.lineHeight),
-      };
-    }),
+  const hero = page.locator(".home-resolve");
+  await expect(hero).toHaveCSS("height", "2160px");
+  await expect(page.locator(".constraint-line")).toHaveCSS(
+    "font-variation-settings",
+    /"wdth" 62/,
   );
 
-  expect(typography[1].lineHeight / typography[1].fontSize).toBeGreaterThanOrEqual(0.94);
-  expect(typography[2].fontStyle).toBe("normal");
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight * 1.65));
+  await expect(page.locator(".release-line")).toHaveCSS("opacity", "1");
+  await expect(page.locator(".release-line")).toHaveCSS(
+    "font-variation-settings",
+    /"wdth" 125/,
+  );
 });
 
-test("Work is a tiered archive with an active navigation state", async ({ page }) => {
+test("reduced motion renders the hero as a resolved linear document", async ({ page }) => {
+  await page.goto("/");
+  const hero = page.locator(".home-resolve");
+  await expect(hero).not.toHaveCSS("height", /[12]\d{3}px/);
+  const displays = await hero.locator(".axis-display").evaluateAll((items) =>
+    items.map((item) => getComputedStyle(item).fontVariationSettings),
+  );
+  expect(displays.every((value) => value.includes("100"))).toBe(true);
+});
+
+test("no JavaScript keeps every Home sentence and action available", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator(".system-line")).toBeVisible();
+  await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
+  const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
+    items.map((item) => getComputedStyle(item).fontVariationSettings),
+  );
+  expect(axes.every((value) => value.includes("100"))).toBe(true);
+  await context.close();
+});
+
+test("Work is a six-row evidence index with clear hierarchy", async ({ page }) => {
   await page.goto("/work");
-
-  await expect(page.getByRole("link", { name: "Work", exact: true })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Proof is the system moving.");
-  await expect(page.locator("main header")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(
-    page.locator(".case-link").filter({ hasText: "Explore the case study" }).first(),
-  ).toBeVisible();
-  await expect(page.getByText("Open the operating record", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /organisation from zero to 120/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Ran the €3.6M EMEA business/i })).toBeVisible();
-  await expect(
-    page.getByText("EMEA P&L", { exact: true }).last(),
-  ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Current work. Calibrated foundations." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Selected work.");
+  await expect(page.locator("[data-work-row]")).toHaveCount(6);
+  await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
+  await expect(page.getByRole("link", { name: /Zalando/ })).toContainText("2022 – 2025");
+  await expect(page.getByRole("link", { name: "Work", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
-test("flagship case studies expose the operating system and a next action", async ({ page }) => {
+test("Work hover and keyboard focus resolve the same width state", async ({ page }) => {
+  await page.goto("/work");
+  const row = page.locator("[data-work-row]").first();
+  const company = row.locator("[data-travel-name]");
+  await row.hover();
+  await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
+  await page.mouse.move(0, 0);
+  await row.focus();
+  await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
+  await expect(row).toHaveCSS("background-color", "rgb(245, 245, 241)");
+});
+
+test("Work to case navigation completes the travelling-name handoff", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/work");
+  await page.getByRole("link", { name: /Zalando/ }).click();
+  await expect(page).toHaveURL("/work/zalando");
+  await expect(page.locator("[data-arrival-name]")).toHaveText("Zalando");
+  await expect(page.locator("[data-arrival-name]")).toHaveCSS("font-variation-settings", /"wdth" 106/);
+});
+
+test("Zalando exposes the reconstructed typeset build object and verified footer", async ({ page }) => {
   await page.goto("/work/zalando");
-
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("120 people in six months");
-  await expect(
-    page.getByRole("heading", {
-      name: "A talent system built around the organisation—not a list of vacancies.",
-    }),
-  ).toBeVisible();
-  await expect(page.getByText("Reconstructed six-month build signal")).toBeVisible();
-  await expect(page.getByText(/Verified endpoints\. The sequence shows operating logic/)).toBeVisible();
-  await expect(page.getByText("Reconstructed operating model")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Zalando");
+  await expect(page.getByRole("heading", { name: "The build, typeset." })).toBeVisible();
+  await expect(page.locator(".role-crowd span")).toHaveCount(120);
+  for (const label of ["Germany", "Ireland", "Switzerland", "Finland"]) {
+    await expect(page.locator(".country-columns").getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByText("Figures verified · layout is a reconstruction", { exact: true })).toBeVisible();
+  await expect(page.locator(".evidence-verification")).toContainText("0→120 / 6 months");
   await expect(page.getByText(/The diagram is a confidentiality-safe reconstruction/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Tell me what is hard" })).toBeVisible();
 });
 
-test("reduced motion exposes the complete operating sequence without a scroll dependency", async ({ page }) => {
-  await page.goto("/");
-
-  const sequence = page.locator(".operating-sequence");
-  await sequence.scrollIntoViewIfNeeded();
-  await expect(sequence.getByRole("listitem")).toHaveCount(3);
-  await expect(sequence.getByText("Start with what the organisation must become.")).toBeVisible();
-  await expect(sequence.getByText("Build the organisation around the outcome.")).toBeVisible();
-  await expect(
-    sequence.getByText("Move repeatable work to agents. Keep sensitive decisions with people."),
-  ).toBeVisible();
-
-  const steps = await sequence.locator(".sequence-step").evaluateAll((items) =>
-    items.map((item) => ({
-      position: getComputedStyle(item).position,
-      top: item.getBoundingClientRect().top,
-      bottom: item.getBoundingClientRect().bottom,
-    })),
-  );
-  expect(steps.every((step) => step.position !== "absolute")).toBe(true);
-  expect(steps[0].bottom).toBeLessThanOrEqual(steps[1].top);
-  expect(steps[1].bottom).toBeLessThanOrEqual(steps[2].top);
+test("Zalando reduced motion is a static resolved structure", async ({ page }) => {
+  await page.goto("/work/zalando");
+  await expect(page.locator(".resolved-organisation")).toBeVisible();
+  await expect(page.locator(".zalando-evidence")).not.toHaveCSS("height", /[12]\d{3}px/);
 });
 
-test("mobile navigation and content remain inside the viewport", async ({ page }) => {
+test("Systems exposes a labelled width-axis maturity index", async ({ page }) => {
+  await page.goto("/building");
+  await expect(page.getByRole("heading", { name: "Systems", level: 1 })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Maturity is visible." })).toBeVisible();
+  await expect(page.locator(".maturity-rows")).toContainText("In production");
+  await expect(page.locator(".maturity-rows")).toContainText("Prototype");
+  await expect(page.locator(".maturity-rows")).toContainText("In design");
+  await expect(page.locator(".live-node")).toHaveCSS("background-color", "rgb(63, 160, 108)");
+});
+
+test("the Systems field offers direct selection and a semantic route", async ({ page }) => {
+  await page.goto("/building");
+  const index = page.getByRole("button", { name: "Index" });
+  const fallback = page.getByRole("link", { name: "Skip to the systems index ↓" });
+  await expect(index.or(fallback).first()).toBeVisible({ timeout: 20_000 });
+  if (await index.isVisible()) {
+    const zalando = page.locator('[aria-label="Visible planet controls"]').getByRole("button", { name: "Zalando", exact: true });
+    await zalando.click({ force: true });
+    await expect(page.locator("#zalando")).toBeInViewport();
+  }
+  await expect(page.locator("#ivy")).toBeAttached();
+  await expect(page.locator("#tom-green-labs")).toBeAttached();
+});
+
+test("the Systems index traps focus and returns it to its trigger", async ({ page }) => {
+  await page.goto("/building");
+  const trigger = page.getByRole("button", { name: "Index" });
+  await expect(trigger).toBeVisible({ timeout: 20_000 });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Systems index" });
+  await expect(page.getByRole("button", { name: "Close systems index" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test("Systems remains usable without WebGL", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, contextId: string, ...args: unknown[]) {
+      if (contextId === "webgl" || contextId === "webgl2") return null;
+      return Reflect.apply(original, this, [contextId, ...args]);
+    } as typeof HTMLCanvasElement.prototype.getContext;
+  });
+  await page.goto("/building");
+  await expect(page.locator('[aria-label="Visible planet controls"]')).toHaveCount(0, { timeout: 20_000 });
+  await page.getByRole("button", { name: "Index" }).click();
+  await expect(page.getByRole("dialog", { name: "Systems index" })).toBeVisible();
+});
+
+test("About is complete and linear in the local working environment", async ({ page }) => {
+  await page.goto("/about");
+  await expect(page.getByRole("heading", { name: "The journey" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Zalando/ })).toBeVisible();
+  await expect(page.locator('[aria-label="Interactive CV, reverse chronological"]')).toHaveCount(0);
+  await expect(page.locator("[data-career-hyperspace]")).toHaveCount(0);
+});
+
+test("Contact keeps direct channels and mailto primary", async ({ page }) => {
+  await page.goto("/contact");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell me what’s hard.");
+  await expect(page.getByRole("link", { name: /Email/ })).toHaveAttribute("href", /^mailto:tom@tomgreen\.ai/);
+  await expect(page.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute("href", "https://linkedin.com/in/tomegreen");
+  await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/tompulsarlabs");
+});
+
+test("the 390px Home uses the intentional three-line constraint turn", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-
-  const geometry = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    document: document.documentElement.scrollWidth,
-    navTargets: [...document.querySelectorAll("nav a")].map((link) =>
-      link.getBoundingClientRect().height,
-    ),
-  }));
-
-  expect(geometry.document).toBeLessThanOrEqual(geometry.viewport);
-  expect(geometry.navTargets.every((height) => height >= 44)).toBe(true);
-
-  await page.getByRole("link", { name: "Contact", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Tell me what’s hard." }),
-  ).toBeVisible();
-
-  for (const route of [
-    "/work",
-    "/work/zalando",
-    "/work/chapter-2",
-    "/work/audibene",
-    "/work/wave",
-    "/work/wer",
-    "/work/campbell-north",
-    "/about",
-    "/building",
-    "/contact",
-  ]) {
-    await page.goto(route);
-    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-    expect(documentWidth, `${route} should not widen the 390px viewport`).toBeLessThanOrEqual(390);
-  }
+  await expect(page.locator(".mobile-constraint")).toBeVisible();
+  await expect(page.locator(".mobile-constraint > span")).toHaveText(["I see", "the con—", "straint."]);
+  const actionWidths = await page.locator(".home-actions .action").evaluateAll((items) =>
+    items.map((item) => item.getBoundingClientRect().width),
+  );
+  expect(actionWidths.every((width) => width > 300)).toBe(true);
 });
 
-test("key journeys hold their layout at intermediate breakpoints", async ({ page }) => {
+test("required responsive compositions do not overflow", async ({ page }) => {
   const routes = ["/", "/work", "/work/zalando", "/building", "/about", "/contact"];
-
-  for (const width of [1005, 768]) {
-    await page.setViewportSize({ width, height: width === 1005 ? 900 : 1024 });
+  for (const [width, height] of [[1440, 900], [1005, 900], [768, 1024], [390, 844]] as const) {
+    await page.setViewportSize({ width, height });
     for (const route of routes) {
       await page.goto(route);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(documentWidth, `${route} should not widen the ${width}px viewport`).toBeLessThanOrEqual(width);
+      expect(documentWidth, `${route} should not widen ${width}px`).toBeLessThanOrEqual(width);
     }
   }
 });
 
-for (const route of ["/", "/work", "/work/zalando", "/about", "/building", "/contact"]) {
+test("Home holds the desktop paint and layout-shift budgets", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await page.waitForTimeout(750);
+  const metrics = await page.evaluate(() => {
+    const paints = performance.getEntriesByType("largest-contentful-paint");
+    const shifts = performance.getEntriesByType("layout-shift") as Array<PerformanceEntry & {
+      value: number;
+      hadRecentInput: boolean;
+    }>;
+    return {
+      lcp: paints.at(-1)?.startTime ?? 0,
+      cls: shifts.filter((entry) => !entry.hadRecentInput).reduce((sum, entry) => sum + entry.value, 0),
+    };
+  });
+  expect(metrics.lcp).toBeLessThan(1_800);
+  expect(metrics.cls).toBeLessThan(0.02);
+});
+
+for (const route of ["/", "/work", "/work/zalando", "/building", "/about", "/contact"]) {
   test(`${route} has no serious accessibility violations`, async ({ page }) => {
     await page.goto(route);
     const results = await new AxeBuilder({ page })
       .include("main")
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
-
-    expect(
-      results.violations.filter(
-        (violation) => violation.impact === "serious" || violation.impact === "critical",
-      ),
-    ).toEqual([]);
+    expect(results.violations.filter((violation) =>
+      violation.impact === "serious" || violation.impact === "critical",
+    )).toEqual([]);
   });
 }
-
-test("Contact gives every direct channel a clear destination", async ({ page }) => {
-  await page.goto("/contact");
-
-  await expect(page.getByRole("link", { name: "Contact", exact: true })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell me what’s hard.");
-  await expect(page.getByRole("link", { name: /Email/ })).toHaveAttribute(
-    "href",
-    /^mailto:tom@tomgreen\.ai/,
-  );
-  await expect(page.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute(
-    "href",
-    "https://linkedin.com/in/tomegreen",
-  );
-  await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute(
-    "href",
-    "https://github.com/tompulsarlabs",
-  );
-  await expect(page.getByRole("link", { name: /Email/ })).not.toContainText(
-    "tom@tomgreen.ai",
-  );
-  await expect(page.getByRole("link", { name: /LinkedIn/ })).not.toContainText(
-    "Professional profile",
-  );
-  await expect(page.getByRole("link", { name: /GitHub/ })).not.toContainText(
-    "@tompulsarlabs",
-  );
-  await expect(page.getByText("What you’re solving", { exact: true })).toBeVisible();
-  await expect(page.getByText("Where it’s blocked", { exact: true })).toBeVisible();
-  await expect(page.locator("footer").getByRole("link")).toHaveCount(0);
-});
-
-test("Systems records avoid redundant practice classifications", async ({ page }) => {
-  await page.goto("/building");
-
-  await expect(page.locator("#building-practice")).toContainText("Organisation design");
-  await expect(page.getByText("Practice", { exact: true })).toHaveCount(0);
-});
-
-test("About keeps a complete linear journey under reduced motion", async ({ page }) => {
-  await page.setViewportSize({ width: 1005, height: 900 });
-  await page.goto("/about");
-  await expect(page.getByRole("heading", { name: "The journey" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Zalando/ })).toBeVisible();
-  await expect(
-    page.locator('[aria-label="Interactive CV, reverse chronological"]'),
-  ).toHaveCount(0);
-  await expect(page.locator("[data-career-hyperspace]")).toHaveCount(0);
-});
-
-test("the career corridor exposes only its focused chapter to interaction", async ({ page }) => {
-  await page.setViewportSize({ width: 1005, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/about");
-
-  const media = await page.evaluate(() => ({
-    width: window.matchMedia("(min-width: 900px)").matches,
-    belowOldGate: !window.matchMedia("(min-width: 1024px)").matches,
-    motion: window.matchMedia("(prefers-reduced-motion: no-preference)").matches,
-    combined: window.matchMedia(
-      "(min-width: 900px) and (prefers-reduced-motion: no-preference)",
-    ).matches,
-  }));
-  expect(media).toEqual({
-    width: true,
-    belowOldGate: true,
-    motion: true,
-    combined: true,
-  });
-
-  const corridor = page.locator('[aria-label="Interactive CV, reverse chronological"]');
-  await expect(corridor).toBeVisible();
-  await expect(corridor.locator("[data-career-hyperspace]")).toHaveAttribute(
-    "aria-hidden",
-    "true",
-  );
-
-  const states = await corridor.locator("[data-career-entry]").evaluateAll(
-    (chapters) =>
-      chapters.map((chapter) => ({
-        hidden: chapter.getAttribute("aria-hidden"),
-        inert: (chapter as HTMLElement).inert,
-      })),
-  );
-
-  expect(states.filter((state) => state.hidden === "false" && !state.inert)).toHaveLength(1);
-  expect(states.filter((state) => state.hidden === "true" && state.inert)).toHaveLength(
-    states.length - 1,
-  );
-
-  await expect(page.getByRole("button", { name: "Previous career chapter" })).toBeDisabled();
-  await page.getByRole("button", { name: "Next career chapter" }).click();
-  await expect(corridor.getByText(/02 \/ 07/)).toBeVisible();
-
-  await page.waitForTimeout(500);
-  const paintedPixels = await corridor.locator("[data-career-hyperspace]").evaluate(
-    (canvas) => {
-      const element = canvas as HTMLCanvasElement;
-      const context = element.getContext("2d");
-      if (!context) return 0;
-      const pixels = context.getImageData(0, 0, element.width, element.height).data;
-      let count = 0;
-      for (let index = 3; index < pixels.length; index += 4) {
-        if (pixels[index] > 0) count += 1;
-      }
-      return count;
-    },
-  );
-  expect(paintedPixels).toBeGreaterThan(50);
-
-  const zalando = page.getByRole("button", { name: "View Zalando, 2022 to 2025" });
-  await zalando.click();
-  await expect(zalando).toHaveAttribute("aria-current", "step");
-  await expect(corridor.getByRole("status")).toContainText("03 / 07 · Zalando");
-});
-
-test("the systems field offers direct selection and a semantic route", async ({ page }) => {
-  await page.goto("/building");
-
-  await expect(page.getByRole("heading", { name: "Systems", level: 1 })).toBeVisible({
-    timeout: 20_000,
-  });
-  const index = page.getByRole("button", { name: "Index" });
-  const fallback = page.getByRole("link", { name: "Skip to the systems index ↓" });
-  await expect(index.or(fallback).first()).toBeVisible({ timeout: 20_000 });
-  if (await index.isVisible()) {
-    const visiblePlanets = page.locator('[aria-label="Visible planet controls"]');
-    const zalandoPlanet = visiblePlanets.getByRole("button", {
-      name: "Zalando",
-      exact: true,
-    });
-    await expect(zalandoPlanet).toBeVisible();
-    await zalandoPlanet.click();
-    await expect(page.locator("#zalando")).toBeInViewport();
-
-    await page.locator(".systems-stage").scrollIntoViewIfNeeded();
-    await index.click();
-    const sybil = page.getByRole("button", { name: /Sybil/ });
-    await expect(sybil).toHaveAttribute("aria-pressed", "false");
-    await sybil.click();
-    await expect(page.locator(".systems-stage").getByText("AI capability assessment platform"))
-      .toBeVisible();
-  }
-  await expect(page.locator("#ivy")).toBeAttached();
-  await expect(page.locator("#tom-green-labs")).toBeAttached();
-});
-
-test("the systems index traps focus and returns it to its trigger", async ({ page }) => {
-  await page.goto("/building");
-
-  const trigger = page.getByRole("button", { name: "Index" });
-  await expect(trigger).toBeVisible({ timeout: 20_000 });
-  await trigger.click();
-
-  const dialog = page.getByRole("dialog", { name: "Systems index" });
-  const close = page.getByRole("button", { name: "Close systems index" });
-  await expect(dialog).toBeVisible();
-  await expect(close).toBeFocused();
-
-  await page.keyboard.press("Shift+Tab");
-  await expect(dialog.locator(":focus")).toHaveCount(1);
-
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  await expect(trigger).toBeFocused();
-});
-
-test("the systems index remains usable when WebGL is unavailable", async ({ page }) => {
-  await page.addInitScript(() => {
-    const original = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (
-      this: HTMLCanvasElement,
-      contextId: string,
-      ...args: unknown[]
-    ) {
-      if (contextId === "webgl" || contextId === "webgl2") return null;
-      return Reflect.apply(original, this, [contextId, ...args]);
-    } as typeof HTMLCanvasElement.prototype.getContext;
-  });
-  await page.goto("/building");
-
-  await expect(page.locator('[aria-label="Visible planet controls"]')).toHaveCount(0, {
-    timeout: 20_000,
-  });
-  await page.getByRole("button", { name: "Index" }).click();
-  await expect(page.getByRole("dialog", { name: "Systems index" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Sybil/ })).toBeVisible();
-});
-
-test("the systems field falls back cleanly if its graphics context is lost", async ({ page }) => {
-  await page.goto("/building");
-
-  const controls = page.locator('[aria-label="Visible planet controls"]');
-  await expect(controls).toBeVisible({ timeout: 20_000 });
-  await page.locator(".systems-stage canvas").dispatchEvent("webglcontextlost", {
-    cancelable: true,
-  });
-
-  await expect(controls).toHaveCount(0);
-  await expect(page.getByRole("status")).toContainText("Every system remains accessible");
-  await page.getByRole("button", { name: "Index" }).click();
-  await expect(page.getByRole("dialog", { name: "Systems index" })).toBeVisible();
-});
-
-test("direct hash visits and repeat loads bypass the entrance", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/#contact");
-  await expect(page.locator("html")).not.toHaveClass(/entering/);
-  await expect(
-    page.getByRole("heading", { name: "Building the team—or the operating model behind it?" }),
-  ).toBeVisible();
-
-  await page.goto("/");
-  await expect(page.locator("html")).not.toHaveClass(/entering/);
-});

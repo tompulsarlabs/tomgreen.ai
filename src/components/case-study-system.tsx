@@ -8,9 +8,9 @@ const ownerLabel = {
 } as const;
 
 const ownerStyle = {
-  human: "border-[var(--cat-talent)] text-ink-secondary",
-  agent: "border-[var(--cat-agents)] text-ink-secondary",
-  system: "border-[var(--cat-products)] text-ink-secondary",
+  human: "border-ink text-ink",
+  agent: "border-hairline text-ink-secondary",
+  system: "border-hairline text-ink-secondary",
   team: "border-ink-secondary text-ink-secondary",
 } as const;
 

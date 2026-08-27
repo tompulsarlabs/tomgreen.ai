@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CareerJourney } from "@/components/career-journey";
 import { Reveal } from "@/components/reveal";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { careerPeriodLabel } from "@/lib/career-corridor-state";
@@ -49,7 +48,6 @@ export default function About() {
           The journey
         </h2>
 
-        <CareerJourney stops={career}>
         <ol className="relative flex flex-col">
           {/* The line the journey runs along. */}
           <div
@@ -137,7 +135,6 @@ export default function About() {
             </li>
           ))}
         </ol>
-        </CareerJourney>
       </section>
 
       <section

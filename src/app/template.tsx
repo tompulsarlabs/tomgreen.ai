@@ -1,3 +1,5 @@
+import { RouteTransition } from "@/components/route-transition";
+
 export default function Template({ children }: { children: React.ReactNode }) {
-  return <div className="page-fade">{children}</div>;
+  return <RouteTransition>{children}</RouteTransition>;
 }

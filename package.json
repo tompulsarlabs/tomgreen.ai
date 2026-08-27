@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:vercel-contract": "node e2e/verify-vercel-about.mjs",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

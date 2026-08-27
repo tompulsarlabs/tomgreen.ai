@@ -10,7 +10,6 @@ import {
   graphEdges,
   graphNodes,
   sceneNodeIds,
-  type ClusterId,
   type GraphNode,
 } from "@/lib/content/graph";
 
@@ -18,13 +17,6 @@ export const metadata: Metadata = {
   title: "Systems",
   description:
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
-};
-
-const clusterColour: Record<ClusterId, string> = {
-  companies: "#c97a4a",
-  practice: "#a58a45",
-  systems: "#3f956b",
-  content: "#667cc2",
 };
 
 const sceneIds = new Set<string>(sceneNodeIds);
@@ -90,8 +82,29 @@ function SystemRecord({ node }: { node: GraphNode }) {
 
 export default function Building() {
   return (
-    <div className="flex flex-col gap-20 pb-20">
+    <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
+
+      <section aria-labelledby="maturity-heading" className="maturity-index mx-auto w-full max-w-[1360px]">
+        <div>
+          <p className="record">System state / width is maturity</p>
+          <h2 id="maturity-heading" className="axis-heading">Maturity is visible.</h2>
+        </div>
+        <div className="maturity-rows" aria-label="System maturity width key">
+          <div className="is-production">
+            <span className="live-node" aria-hidden />
+            <strong>In production</strong><span className="record">wdth 100 · live</span>
+          </div>
+          <div className="is-prototype">
+            <span aria-hidden />
+            <strong>Prototype</strong><span className="record">wdth 82 · 72%</span>
+          </div>
+          <div className="is-design">
+            <span aria-hidden />
+            <strong>In design</strong><span className="record">wdth 64 · 44%</span>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
@@ -126,13 +139,8 @@ export default function Building() {
               </p>
               <h2
                 id={`cluster-${clusterId}`}
-                className="mt-4 flex max-w-xs items-start gap-3 font-sans text-2xl font-medium leading-tight tracking-[-0.045em]"
+                className="axis-index mt-4 flex max-w-xs items-start gap-3 text-2xl leading-tight"
               >
-                <span
-                  aria-hidden
-                  className="mt-2 size-2.5 shrink-0 rounded-full"
-                  style={{ background: clusterColour[clusterId] }}
-                />
                 {cluster.label}
               </h2>
               <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted">

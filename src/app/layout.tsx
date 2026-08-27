@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteHeader } from "@/components/site-header";
@@ -18,10 +18,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  style: "normal",
+  axes: ["wdth"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -86,7 +87,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       // can enhance a complete server-rendered document without hiding the
       // no-JS experience.
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <a
@@ -108,7 +109,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <SiteHeader showAbout={isAboutPublic} />
-        <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-6">
+        <main id="main-content" className="site-main mx-auto w-full max-w-[1360px] flex-1 px-[max(22px,6vw)]">
           {children}
         </main>
         <SiteFooter />
