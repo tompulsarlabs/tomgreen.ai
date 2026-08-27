@@ -21,6 +21,11 @@ export function Reveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const bounds = el.getBoundingClientRect();
+    if ((bounds.top < window.innerHeight && bounds.bottom > 0) || bounds.bottom <= 0) {
+      el.classList.add("is-visible");
+      return;
+    }
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -38,6 +43,7 @@ export function Reveal({
     <div
       ref={ref}
       className={className ? `reveal ${className}` : "reveal"}
+      onFocusCapture={(event) => event.currentTarget.classList.add("is-visible")}
       style={delay ? ({ "--reveal-delay": `${delay}ms` } as React.CSSProperties) : undefined}
     >
       {children}

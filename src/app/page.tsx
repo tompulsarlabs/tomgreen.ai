@@ -4,15 +4,9 @@ import { Reveal } from "@/components/reveal";
 import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
-const proof = [
-  ["0 → 120", "AI organisation · six months"],
-  ["−32%", "Time to Hire"],
-  ["+21%", "Offer acceptance"],
-  ["1,000+", "Interviewers trained"],
-] as const;
-
 export default function Home() {
   const flagship = caseStudies.filter((study) => study.tier === "flagship");
+  const proof = caseStudies.find((study) => study.slug === "zalando")?.evidenceMetrics ?? [];
 
   return (
     <div className="home-page">
@@ -22,10 +16,10 @@ export default function Home() {
         <section aria-label="Verified proof" className="proof-band">
           <p className="record proof-label">Verified proof / 01</p>
           <dl>
-            {proof.map(([value, label]) => (
-              <div key={label}>
-                <dd className="axis-index">{value}</dd>
-                <dt>{label}</dt>
+            {proof.map((metric) => (
+              <div key={metric.label}>
+                <dt>{metric.label}</dt>
+                <dd className="axis-index">{metric.value}</dd>
               </div>
             ))}
           </dl>
@@ -60,9 +54,9 @@ export default function Home() {
           <div>
             <h2 id="systems-bridge-title" className="axis-heading">The operating model is the product.</h2>
             <p>
-              Explore the agents, products, talent systems and craft behind the outcomes as one connected map, not a pile of tools.
+              Explore the agents, products, talent systems and craft behind the outcomes as one inspectable operating record.
             </p>
-            <Link href="/building" className="action action-invert">Enter the systems map →</Link>
+            <Link href="/building" className="action action-invert">Explore the systems →</Link>
           </div>
         </section>
       </Reveal>

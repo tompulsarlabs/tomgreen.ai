@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
+import type { CSSProperties } from "react";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { KnowledgeGraph3D } from "@/components/knowledge-graph-3d";
+import { LoadBearingObject } from "@/components/load-bearing-object";
 import { Reveal } from "@/components/reveal";
 import { projects } from "@/lib/content/building";
 import { caseStudies } from "@/lib/content/case-studies";
 import {
   clusterOrder,
   clusters,
-  graphEdges,
   graphNodes,
   sceneNodeIds,
   type GraphNode,
@@ -19,10 +19,18 @@ export const metadata: Metadata = {
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
 
+export const viewport: Viewport = { themeColor: "#101410" };
+
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
 const projectsBySlug = new Map(projects.map((project) => [project.slug, project]));
 const studiesBySlug = new Map(caseStudies.map((study) => [study.slug, study]));
+
+function projectAxis(status: "running" | "shipped" | "in the lab") {
+  if (status === "running") return 100;
+  if (status === "shipped") return 92;
+  return 82;
+}
 
 function RecordLink({ node }: { node: GraphNode }) {
   if (!node.href) return null;
@@ -44,6 +52,7 @@ function RecordLink({ node }: { node: GraphNode }) {
 function SystemRecord({ node }: { node: GraphNode }) {
   const project = projectsBySlug.get(node.id);
   const study = studiesBySlug.get(node.id);
+  const axis = project ? projectAxis(project.status) : 92;
 
   return (
     <Reveal>
@@ -52,11 +61,15 @@ function SystemRecord({ node }: { node: GraphNode }) {
         className="group flex h-full scroll-mt-24 flex-col border-t border-hairline py-6"
       >
         <div className="flex items-baseline justify-between gap-4">
-          <h3 className="font-sans text-xl font-medium tracking-[-0.04em] md:text-2xl">
+          <h3
+            className="system-record-title axis-index text-xl md:text-2xl"
+            style={{ "--axis": axis } as CSSProperties}
+          >
+            {project?.status === "running" ? <span className="live-node" aria-hidden /> : null}
             {node.label}
           </h3>
           {node.meta && (
-            <span className="shrink-0 text-[0.68rem] uppercase tracking-[0.16em] text-muted">
+            <span className="record shrink-0 tabular-nums text-muted">
               {node.meta}
             </span>
           )}
@@ -83,39 +96,43 @@ function SystemRecord({ node }: { node: GraphNode }) {
 export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
-      <KnowledgeGraph3D nodes={graphNodes} edges={graphEdges} />
+      <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
+        <div className="systems-hero-copy">
+          <p className="record">Systems / structure under load</p>
+          <h1 id="systems-title" className="axis-display">Systems.</h1>
+          <p className="systems-lead">
+            The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
+          </p>
 
-      <section aria-labelledby="maturity-heading" className="maturity-index mx-auto w-full max-w-[1360px]">
-        <div>
-          <p className="record">System state / width is maturity</p>
-          <h2 id="maturity-heading" className="axis-heading">Maturity is visible.</h2>
+          <section className="maturity-index" aria-labelledby="maturity-heading">
+            <h2 id="maturity-heading" className="record">System state / width is maturity</h2>
+            <div className="maturity-rows">
+              <div className="is-production">
+                <span className="live-node" aria-hidden />
+                <strong>In production</strong><span className="record">wdth 100 · live</span>
+              </div>
+              <div className="is-shipped">
+                <span className="maturity-tick" aria-hidden />
+                <strong>Shipped</strong><span className="record">wdth 92</span>
+              </div>
+              <div className="is-prototype">
+                <span className="maturity-tick" aria-hidden />
+                <strong>In the lab</strong><span className="record">wdth 82</span>
+              </div>
+            </div>
+          </section>
         </div>
-        <div className="maturity-rows" aria-label="System maturity width key">
-          <div className="is-production">
-            <span className="live-node" aria-hidden />
-            <strong>In production</strong><span className="record">wdth 100 · live</span>
-          </div>
-          <div className="is-prototype">
-            <span aria-hidden />
-            <strong>Prototype</strong><span className="record">wdth 82 · 72%</span>
-          </div>
-          <div className="is-design">
-            <span aria-hidden />
-            <strong>In design</strong><span className="record">wdth 64 · 44%</span>
-          </div>
-        </div>
+        <LoadBearingObject />
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-          The field, decoded
-        </p>
+        <p className="record text-muted">The systems index</p>
         <div>
           <h2
             id="systems-index-heading"
-            className="max-w-3xl font-sans text-4xl font-medium leading-[0.98] tracking-[-0.055em] md:text-6xl"
+            className="axis-heading max-w-3xl"
           >
-            Four solar systems. One operating story.
+            Four domains. One operating story.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
             Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method inspectable. Writing turns the lessons into something others can use.
@@ -134,7 +151,7 @@ export default function Building() {
             className="grid gap-8 md:grid-cols-[0.65fr_1.35fr]"
           >
             <div className="md:sticky md:top-28 md:self-start">
-              <p className="font-mono text-xs tabular-nums text-muted">
+              <p className="record tabular-nums text-muted">
                 {String(clusterIndex + 1).padStart(2, "0")} / {String(clusterOrder.length).padStart(2, "0")}
               </p>
               <h2
@@ -143,7 +160,7 @@ export default function Building() {
               >
                 {cluster.label}
               </h2>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted">
+              <p className="record mt-2 text-muted">
                 {cluster.eyebrow}
               </p>
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-secondary">
@@ -160,13 +177,17 @@ export default function Building() {
       })}
 
       <section className="grid gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
-        <p className="text-xs uppercase tracking-[0.18em] text-muted">More from the workshop</p>
+        <p className="record text-muted">More from the workshop</p>
         <div className="grid gap-x-8 md:grid-cols-2">
           {projects
             .filter((project) => !sceneIds.has(project.slug))
             .map((project) => (
               <article key={project.slug} className="border-t border-hairline py-5">
-                <h3 className="font-sans text-lg font-medium tracking-[-0.035em]">
+                <p className="record mb-3 text-muted">{project.status}</p>
+                <h3
+                  className="axis-index text-lg"
+                  style={{ "--axis": projectAxis(project.status) } as CSSProperties}
+                >
                   {project.name}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-secondary">

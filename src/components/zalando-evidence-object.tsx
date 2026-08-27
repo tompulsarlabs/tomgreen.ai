@@ -1,39 +1,42 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
-const roleFamilies = [
-  "Machine Learning Engineer",
-  "Research Scientist",
-  "Product Manager",
-  "Data Engineer",
-  "Applied Scientist",
-  "Engineering Manager",
-  "Product Designer",
-  "ML Platform Engineer",
-  "Technical Program Manager",
-  "Research Engineer",
-] as const;
-
-const roleTitles = Array.from({ length: 120 }, (_, index) => roleFamilies[index % roleFamilies.length]);
-
-const countries = [
-  ["Germany", "52"],
-  ["Ireland", "28"],
-  ["Switzerland", "22"],
-  ["Finland", "18"],
-] as const;
+import { useEffect, useRef, useState } from "react";
+import { evidenceMotionAt } from "@/lib/evidence-motion";
+import type { Metric } from "@/lib/content/case-studies";
 
 function clamp(value: number) {
   return Math.min(Math.max(value, 0), 1);
 }
 
-export function ZalandoEvidenceObject() {
+export function ZalandoEvidenceObject({
+  countries,
+  evidenceNote,
+  metrics,
+  roleFamilies,
+  summary,
+}: {
+  countries: string[];
+  evidenceNote: string;
+  metrics: Metric[];
+  roleFamilies: string[];
+  summary: string;
+}) {
   const ref = useRef<HTMLElement>(null);
+  const [motionEligible, setMotionEligible] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(
+      "(min-width: 769px) and (min-height: 900px) and (prefers-reduced-motion: no-preference)",
+    );
+    const sync = () => setMotionEligible(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     const section = ref.current;
-    if (!section || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!section || !motionEligible) return;
     let frame = 0;
     let visible = false;
     const measure = () => {
@@ -41,7 +44,14 @@ export function ZalandoEvidenceObject() {
       if (!visible) return;
       const bounds = section.getBoundingClientRect();
       const travel = Math.max(section.offsetHeight - window.innerHeight, 1);
-      section.style.setProperty("--evidence-progress", String(clamp(-bounds.top / travel)));
+      const state = evidenceMotionAt(clamp(-bounds.top / travel));
+      section.style.setProperty("--crowd-exit", String(state.crowdExit));
+      section.style.setProperty("--spine-axis", String(state.spineAxis));
+      section.style.setProperty("--spine-arrive", String(state.spineArrive));
+      section.style.setProperty("--countries-arrive", String(state.countriesArrive));
+      section.style.setProperty("--ruler-arrive", String(state.rulerArrive));
+      section.style.setProperty("--figures-axis", String(state.figuresAxis));
+      section.style.setProperty("--figures-arrive", String(state.figuresArrive));
     };
     const requestMeasure = () => {
       if (!frame) frame = requestAnimationFrame(measure);
@@ -50,6 +60,7 @@ export function ZalandoEvidenceObject() {
       visible = entry.isIntersecting;
       if (visible) requestMeasure();
     });
+    section.classList.add("is-motion-ready");
     observer.observe(section);
     window.addEventListener("scroll", requestMeasure, { passive: true });
     window.addEventListener("resize", requestMeasure);
@@ -58,8 +69,18 @@ export function ZalandoEvidenceObject() {
       observer.disconnect();
       window.removeEventListener("scroll", requestMeasure);
       window.removeEventListener("resize", requestMeasure);
+      section.classList.remove("is-motion-ready");
+      [
+        "--crowd-exit",
+        "--spine-axis",
+        "--spine-arrive",
+        "--countries-arrive",
+        "--ruler-arrive",
+        "--figures-axis",
+        "--figures-arrive",
+      ].forEach((property) => section.style.removeProperty(property));
     };
-  }, []);
+  }, [motionEligible]);
 
   return (
     <section ref={ref} className="zalando-evidence" aria-labelledby="zalando-object-title">
@@ -67,12 +88,12 @@ export function ZalandoEvidenceObject() {
         <div className="evidence-object-head">
           <p className="record evidence-mark">Evidence object / 01</p>
           <h2 id="zalando-object-title" className="axis-heading">The build, typeset.</h2>
-          <p>Zero to a 120-person cross-functional AI organisation across four countries in six months.</p>
+          <p>{summary}</p>
         </div>
 
         <div className="build-object">
           <div className="role-crowd" aria-hidden="true">
-            {roleTitles.map((role, index) => <span key={`${role}-${index}`}>{role}</span>)}
+            {roleFamilies.map((role) => <span key={role}>{role}</span>)}
           </div>
 
           <div className="resolved-organisation">
@@ -80,29 +101,31 @@ export function ZalandoEvidenceObject() {
               <span className="record">Leadership spine / first</span>
               <strong>AI LEADERSHIP</strong>
             </div>
-            <div className="month-ruler" aria-label="Six-month build period">
-              {["M01", "M02", "M03", "M04", "M05", "M06"].map((month) => (
-                <span key={month} className="record">{month}</span>
-              ))}
-            </div>
             <div className="country-columns">
-              {countries.map(([country, count]) => (
+              {countries.map((country) => (
                 <div key={country}>
                   <strong className="axis-index">{country}</strong>
-                  <span>{count}</span>
                 </div>
+              ))}
+            </div>
+            <div className="month-ruler" role="img" aria-label="Six-month build period, month one to month six">
+              {["M01", "M02", "M03", "M04", "M05", "M06"].map((month) => (
+                <span key={month} className="record">{month}</span>
               ))}
             </div>
           </div>
         </div>
 
         <div className="evidence-verification">
-          <span className="record evidence-mark">Figures verified · layout is a reconstruction</span>
+          <span className="record evidence-mark">Figures verified · organisation structure reconstructed</span>
+          <p className="evidence-disclosure">Evidence note · {evidenceNote}</p>
           <dl>
-            <div><dd>0→120 / 6 months</dd></div>
-            <div><dd>Time to Hire −32%</dd></div>
-            <div><dd>Offer acceptance +21%</dd></div>
-            <div><dd>1,000+ interviewers trained</dd></div>
+            {metrics.map((metric) => (
+              <div key={metric.label}>
+                <dt>{metric.label}</dt>
+                <dd>{metric.value}</dd>
+              </div>
+            ))}
           </dl>
         </div>
       </div>

@@ -15,8 +15,6 @@ export type GraphNode = {
   meta?: string;
 };
 
-export type GraphEdge = readonly [string, string];
-
 export const categories: Record<CategoryId, { label: string; blurb: string }> = {
   agents: {
     label: "Agent systems",
@@ -183,20 +181,3 @@ export const sceneNodeIds = [
   "tom-green-labs",
   "stop-hiding-behind-culture",
 ] as const;
-
-export const graphEdges: GraphEdge[] = [
-  ["zalando", "chapter-2"],
-  ["chapter-2", "wer"],
-  ["audibene", "wave"],
-  ["building-practice", "recruiting-practice"],
-  ["recruiting-practice", "operations-practice"],
-  ["operations-practice", "building-practice"],
-  ["ivy", "this-site"],
-  ["ivy", "sybil"],
-  ["tom-green-labs", "stop-hiding-behind-culture"],
-  ["recruiting-practice", "zalando"],
-  ["operations-practice", "chapter-2"],
-  ["building-practice", "wave"],
-  ["operations-practice", "ivy"],
-  ["this-site", "tom-green-labs"],
-];

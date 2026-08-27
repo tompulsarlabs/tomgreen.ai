@@ -42,8 +42,8 @@ registers: operating results (Zalando 0→120 AI org, metrics) and built systems
 | `/` | Positioning → operating outcomes → flagship work → systems → live state → person → contact |
 | `/work` | Tiered archive: flagship, supporting evidence, current chapter, foundations |
 | `/work/[slug]` | Editorial case study with mandate, decisions, system model, outcomes, evidence note, next action |
-| `/building` | **Systems** in the UI: a direct-manipulation orbital field plus a complete server-rendered detail layer |
-| `/about` | Career arc, references, the person, and a direct contact path |
+| `/building` | **Systems** in the UI: a code-native procedural compression member, a labelled width/maturity key, and a complete server-rendered systems index |
+| `/about` | A local-only linear career record, references, the person, and a direct contact path; hidden on every Vercel deployment |
 
 Case studies are the core content unit. Each one: context → what Tom built/did →
 measurable outcome → what it demonstrates. Initial set (strongest first):
@@ -75,17 +75,18 @@ This is a public repo, so **a git push is a publish**. Rules:
   Static-first: everything prerendered except the live-data components.
 - Content as typed TS/MDX modules in the repo — no CMS. The repo *is* the CMS; edits
   are commits, which feeds the "readable history" goal.
-- **Live data** so the site reads as alive:
-  - GitHub contribution activity for `tompulsarlabs` (public API, ISR-cached).
-  - Ivy system state from the public repo's `state.json`
-    (raw.githubusercontent.com, ISR-cached) — verified ship days, current streak,
-    and last outcome. The visible streak is derived from the daily record when
-    the late-evening checkpoint is one day behind.
-  - Each live component is isolated with a static fallback; an API failure can never
-    break the page.
+- Typed, tested GitHub and Ivy data adapters remain available in the repository, but the current
+  Load-Bearing Type slice does not surface live counters. Any later reintroduction must be
+  isolated behind a complete static fallback and cannot gate rendering.
 - No client-side data fetching for content.
 - Vercel Analytics and Speed Insights provide privacy-conscious journey and performance
   telemetry; neither is used to gate rendering.
+- A small raw-WebGL renderer is isolated to `/building` and renders one agent-built procedural
+  compression member. The renderer is deferred until route arrival has finished and is not
+  requested on mobile, reduced-motion or Save-Data sessions. The object is not a data
+  visualisation: adjacent HTML carries the truthful maturity and systems information.
+- No external 3D artist, purchased model or motion-production vendor is required. Geometry,
+  material, lighting, interaction and the static fallback are repository-native.
 
 ## Design intent
 
@@ -109,13 +110,32 @@ The product model is deliberately simple:
 Visual evidence follows one rule: conceptual or reconstructed system diagrams are
 labelled as such. They are never presented as internal operational artifacts.
 
+The two flagship evidence objects make that rule concrete. Zalando resolves organisational
+compression into a reconstructed structure without invented country counts. Chapter 2 splits a
+request into repeatable agent work and accountable human judgment, using only the five workflow
+steps and verified figures already present in the typed content module.
+
+## Current implementation status
+
+Fable's post-P0 system-design retrospective returned **accept with corrections**. The review
+preserved the Load-Bearing Type direction while requiring corrections to motion scheduling,
+route continuity, evidence integrity, Systems coherence and accessibility coverage. Those
+corrections, Chapter 2 Evidence Object 2, the procedural Systems object and the About linear-axis
+retype are implemented and validated on `codex/load-bearing-type`. The branch is review-ready;
+it is not merged or deployed.
+
+The procedural object is no longer an asset blocker. Portrait and artifact work are deliberately
+separate: About remains type-led unless Tom supplies a genuine rights-cleared portrait, and no
+artifact ships until its source, claims and public-use rights are approved.
+
 ## Current quality gates
 
 1. Typed content and named-claim review remain the publishing gate.
-2. `npm run lint`, `npm run typecheck`, and `npm test` cover static quality and live-data parsing.
-3. `npm run test:e2e` covers the visitor journey, mobile overflow, active navigation,
-   flagship evidence, reduced motion, direct Systems selection, semantic WebGL fallback, and serious/critical WCAG
-   violations.
+2. `npm run lint`, `npm run typecheck`, and 39 unit tests cover static quality, motion schedules,
+   procedural geometry and data parsing.
+3. The 41-test Playwright suite covers the visitor journey, route handoff geometry, mobile
+   overflow, flagship evidence, reduced motion, no JavaScript, WebGL/context-loss fallbacks,
+   keyboard behavior, lab performance gates and eight full-document Axe scans.
 4. CI builds before running Playwright, so browser tests exercise the production server.
 5. The generated Open Graph image and Person JSON-LD make the site legible when shared or
    indexed outside the visual experience.

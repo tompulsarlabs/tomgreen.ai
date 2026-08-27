@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 
 const EXIT_MS = 280;
 
@@ -13,21 +13,67 @@ export function RouteTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const navigating = useRef(false);
+  const travelling = useRef<HTMLElement | null>(null);
+  const recoveryTimer = useRef<number | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     navigating.current = false;
+    if (recoveryTimer.current) window.clearTimeout(recoveryTimer.current);
+    recoveryTimer.current = null;
     document.documentElement.classList.remove("route-leaving");
+    document.querySelectorAll(".nav-pending.is-pending").forEach((mark) => mark.classList.remove("is-pending"));
+    document.querySelectorAll(".work-index-row.is-transition-source").forEach((row) => row.classList.remove("is-transition-source"));
     document.documentElement.classList.add("route-entering");
-    const timer = window.setTimeout(
+    const timers: number[] = [window.setTimeout(
       () => document.documentElement.classList.remove("route-entering"),
-      440,
-    );
-    return () => window.clearTimeout(timer);
+      1_060,
+    )];
+
+    const clone = travelling.current;
+    const target = document.querySelector<HTMLElement>("[data-arrival-name]");
+    if (clone && target) {
+      const source = clone.getBoundingClientRect();
+      target.classList.add("handoff-target");
+      const destination = target.getBoundingClientRect();
+      const scale = destination.width / Math.max(source.width, 1);
+      const scaleY = destination.height / Math.max(source.height, 1);
+      clone.style.setProperty("--travel-x", `${destination.left - source.left}px`);
+      clone.style.setProperty("--travel-y", `${destination.top - source.top}px`);
+      clone.style.setProperty("--travel-scale", String(scale));
+      clone.style.setProperty("--travel-scale-y", String(scaleY));
+      requestAnimationFrame(() => {
+        clone.style.removeProperty("font-variation-settings");
+        clone.classList.add("is-travelling");
+      });
+
+      timers.push(window.setTimeout(() => {
+        clone.classList.add("is-fading");
+      }, 440));
+      timers.push(window.setTimeout(() => {
+        target.classList.add("is-revealed");
+        target.classList.add("handoff-complete");
+        target.classList.remove("handoff-target", "is-revealed");
+        clone.remove();
+        travelling.current = null;
+        document.documentElement.classList.remove("travelling-active");
+      }, 610));
+    } else {
+      clone?.remove();
+      travelling.current = null;
+      document.documentElement.classList.remove("travelling-active");
+    }
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [pathname]);
 
   function onClickCapture(event: ReactMouseEvent<HTMLDivElement>) {
     const native = event.nativeEvent;
-    if (isModified(native) || navigating.current) return;
+    if (isModified(native)) return;
+    if (navigating.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const anchor = (event.target as Element).closest("a");
     if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
 
@@ -37,35 +83,58 @@ export function RouteTransition({ children }: { children: ReactNode }) {
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      router.push(`${url.pathname}${url.search}${url.hash}`);
+      return;
+    }
+
     navigating.current = true;
     document.documentElement.classList.add("route-leaving");
+    anchor.querySelector(".nav-pending")?.classList.add("is-pending");
 
     const travellingName = anchor.querySelector<HTMLElement>("[data-travel-name]");
     if (travellingName) {
+      anchor.classList.add("is-transition-source");
       const bounds = travellingName.getBoundingClientRect();
+      const computed = window.getComputedStyle(travellingName);
       const clone = travellingName.cloneNode(true) as HTMLElement;
       clone.className = "travelling-name";
       clone.removeAttribute("data-travel-name");
+      clone.setAttribute("aria-hidden", "true");
       Object.assign(clone.style, {
         left: `${bounds.left}px`,
         top: `${bounds.top}px`,
         width: `${bounds.width}px`,
         height: `${bounds.height}px`,
+        fontSize: computed.fontSize,
+        lineHeight: computed.lineHeight,
+        letterSpacing: computed.letterSpacing,
+        textTransform: computed.textTransform,
+        fontVariationSettings: computed.fontVariationSettings,
       });
-      clone.style.setProperty("--travel-left", `${bounds.left}px`);
-      clone.style.setProperty("--travel-top", `${bounds.top}px`);
       document.body.appendChild(clone);
-      requestAnimationFrame(() => clone.classList.add("is-travelling"));
-      window.setTimeout(() => clone.remove(), 700);
+      travelling.current = clone;
+      document.documentElement.classList.add("travelling-active");
     }
 
     window.setTimeout(() => {
       router.push(`${url.pathname}${url.search}${url.hash}`);
     }, EXIT_MS);
+
+    recoveryTimer.current = window.setTimeout(() => {
+      if (!navigating.current) return;
+      navigating.current = false;
+      document.documentElement.classList.remove("route-leaving", "travelling-active");
+      document.querySelectorAll(".nav-pending.is-pending").forEach((mark) => mark.classList.remove("is-pending"));
+      document.querySelectorAll(".work-index-row.is-transition-source").forEach((row) => row.classList.remove("is-transition-source"));
+      travelling.current?.remove();
+      travelling.current = null;
+    }, 3_000);
   }
 
   return (
-    <div className="route-shell" onClickCapture={onClickCapture}>
+    <div className="route-shell flex min-h-full flex-col" onClickCapture={onClickCapture}>
       {children}
     </div>
   );

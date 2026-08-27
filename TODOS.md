@@ -1,21 +1,38 @@
 # Load-Bearing Type follow-ups
 
-P0 is complete. This is the approved P1 tranche; do not substitute invented assets or evidence
-for the blocked inputs.
+Fable accepted P0 with corrections. The current branch folds those corrections into the first
+fully agentic P1 slice. Do not substitute invented assets, figures or evidence.
 
-1. Build Chapter 2 Evidence Object 2: the typeset human/agent sentence fork, using the existing
-   five workflow steps and verified footer.
-2. Design and build the Systems matte object agentically as code-native procedural geometry, with
-   drag orbit, DPR at most 2, idle/offscreen sleep and a pre-rendered context-loss/no-WebGL still.
-   Use no external 3D artist, purchased model or paid asset dependency.
-3. Add the legal-cleared, lazy redacted-artifact layer.
-4. Retype the local About career line fully in the width-axis grammar.
-5. Add a supplied genuine portrait masthead with responsive crops and provenance, or defer it if
-   no rights-cleared source exists. Do not generate a synthetic likeness.
+## Current branch
+
+- [x] Replace the orbital Systems field with one code-native procedural compression member.
+- [x] Build Chapter 2 Evidence Object 2 from the five existing workflow steps and verified
+  footer.
+- [x] Retype the local About career line in the width-axis record grammar.
+- [x] Finish and verify the Fable correction pass across Home motion scheduling, route-transition
+  continuity, Zalando evidence integrity, Systems coherence and the identified accessibility floor
+  regressions.
+- [x] Run lint, typecheck, unit tests, the optimized production build and the full
+  Playwright/accessibility suite against the completed branch.
+- [x] Visually QA 1440, 1005, 768 and 390px, reduced motion, no JavaScript and WebGL-loss paths;
+  replace the review captures.
+- [x] Close or record every remaining Fable P0/P1 correction before publishing the review branch.
+
+## Rights-dependent work
+
+- [ ] Add a lazy redacted-artifact layer only after artifact selection, rights verification,
+  claim-by-claim review and exact reconstruction/provenance labels.
+- [ ] Add a genuine portrait only if Tom supplies a publication-cleared source; otherwise keep
+  the completed type-led About masthead. Do not generate a synthetic likeness.
 
 ## Inputs still required from Tom
 
-- Approval of one agent-generated, code-feasible matte-object direction.
-- An existing genuine portrait with publication rights, if the portrait remains in scope.
-- Artifact selection, legal clearance and claim-by-claim approval.
-- The later P2 timing and easing pass remains fully agentic.
+- Artifact selection, legal clearance and claim-by-claim approval if the artifact layer should
+  proceed.
+- An existing genuine portrait with publication rights only if the optional portrait remains in
+  scope.
+
+The Systems object and later motion-quality pass require no external artist, vendor or budget.
+The P1 geometry and validation are stable. The next bounded work is rights review for optional
+artifacts, optional supplied-portrait integration, real Safari/iOS/hardware verification, and the
+agentic P2 timing/easing pass.

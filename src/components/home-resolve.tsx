@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { site } from "@/lib/content/site";
-
-function clamp(value: number, min = 0, max = 1) {
-  return Math.min(Math.max(value, min), max);
-}
+import { clampUnit, homeMotionAt } from "@/lib/home-motion";
 
 export function HomeResolve() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -24,17 +21,21 @@ export function HomeResolve() {
       if (!visible) return;
       const bounds = section.getBoundingClientRect();
       const travel = Math.max(section.offsetHeight - window.innerHeight, 1);
-      const progress = clamp(-bounds.top / travel);
-      const constraintProgress = clamp(progress / 0.46);
-      const resolvedProgress = clamp((progress - 0.22) / 0.38);
-      const releaseProgress = clamp((progress - 0.67) / 0.2);
+      const progress = clampUnit(-bounds.top / travel);
+      const state = homeMotionAt(progress);
+      const mobileProgress = clampUnit(-bounds.top / (window.innerHeight * 0.6));
 
       section.style.setProperty("--resolve-progress", String(progress));
-      section.style.setProperty("--axis-constraint", String(62 + constraintProgress * 38));
-      section.style.setProperty("--axis-system", String(62 + resolvedProgress * 44));
-      section.style.setProperty("--constraint-recede", String(clamp((progress - 0.37) / 0.18)));
-      section.style.setProperty("--system-arrive", String(resolvedProgress));
-      section.style.setProperty("--release-arrive", String(releaseProgress));
+      section.style.setProperty("--axis-constraint", String(state.constraintAxis));
+      section.style.setProperty("--axis-system", String(state.systemAxis));
+      section.style.setProperty("--axis-release", String(state.releaseAxis));
+      section.style.setProperty("--constraint-recede", String(state.constraintRecede));
+      section.style.setProperty("--constraint-word-space", `${(1 - clampUnit((state.constraintAxis - 62) / 38)) * 0.14}em`);
+      section.style.setProperty("--system-arrive", String(state.systemArrive));
+      section.style.setProperty("--system-recede", String(state.systemRecede));
+      section.style.setProperty("--release-arrive", String(state.releaseArrive));
+      section.style.setProperty("--stage-exit", String(state.stageExit));
+      section.style.setProperty("--axis-mobile", String(62 + mobileProgress * 38));
     };
     const requestMeasure = () => {
       if (!frame) frame = requestAnimationFrame(measure);
@@ -63,11 +64,12 @@ export function HomeResolve() {
         </p>
         <div className="resolve-lines">
           <h1 id="home-title" className="axis-display constraint-line">
-            <span className="line-mask desktop-constraint">
-              <span>I see the</span><span>constraint.</span>
+            <span className="sr-only">I see the constraint.</span>
+            <span className="line-mask desktop-constraint" aria-hidden="true">
+              <span><span>I see the</span></span><span><span>constraint.</span></span>
             </span>
             <span className="line-mask mobile-constraint" aria-hidden="true">
-              <span>I see</span><span>the con—</span><span>straint.</span>
+              <span><span>I see</span></span><span><span>the con—</span></span><span><span>straint.</span></span>
             </span>
           </h1>
           <p className="axis-display system-line" aria-label="Design the system.">

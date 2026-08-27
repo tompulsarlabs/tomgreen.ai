@@ -65,20 +65,20 @@ export default function ContactPage() {
     <div className="flex min-h-[calc(100svh-4.75rem)] flex-col">
       <header className="grid gap-10 border-b border-ink py-16 md:py-24 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
         <div>
-          <p className="anim font-mono text-xs uppercase tracking-[0.22em] text-muted">
+          <p className="record text-muted">
             Contact / {site.location} · global
           </p>
-          <h1 className="anim mt-4 max-w-3xl font-display text-[clamp(3.75rem,8vw,7rem)] leading-[0.88] tracking-[-0.055em]">
+          <h1 className="contact-title axis-display mt-4 max-w-3xl">
             Tell me what’s hard.
           </h1>
         </div>
-        <div className="anim max-w-2xl lg:pb-2" style={{ "--anim-delay": "120ms" } as React.CSSProperties}>
+        <div className="max-w-2xl lg:pb-2">
           <p className="text-lg leading-relaxed text-ink-secondary md:text-xl">
             An AI organisation to scale. A hiring system that is creaking. An agent workflow that needs to work outside a demo. Start with the constraint.
           </p>
           <a
             href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
-            className="group mt-8 inline-flex min-h-12 items-center gap-4 bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5"
+            className="action action-dark group mt-8 gap-4"
           >
             Start a conversation
             <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
@@ -88,8 +88,8 @@ export default function ContactPage() {
 
       <section aria-labelledby="contact-channels" className="grid gap-10 py-14 md:py-20 lg:grid-cols-[0.7fr_1.3fr]">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">Direct channels</p>
-          <h2 id="contact-channels" className="mt-3 max-w-sm font-display text-3xl leading-tight tracking-tight md:text-4xl">
+          <p className="record text-muted">Direct channels</p>
+          <h2 id="contact-channels" className="axis-heading mt-3 max-w-sm">
             Choose the shortest route.
           </h2>
         </div>
@@ -100,9 +100,9 @@ export default function ContactPage() {
               <a
                 href={href}
                 rel={rel}
-                className="group grid min-h-28 grid-cols-[3.5rem_1fr_auto] items-center gap-4 py-5 transition-colors hover:text-accent sm:gap-6"
+                className="group grid min-h-28 grid-cols-[3.5rem_1fr_auto] items-center gap-4 px-3 py-5 transition-colors hover:bg-card focus-visible:bg-card sm:gap-6"
               >
-                <span className="flex size-12 items-center justify-center border border-hairline bg-card text-ink transition-colors group-hover:border-accent group-hover:text-accent">
+                <span className="flex size-12 items-center justify-center border border-hairline bg-paper text-ink transition-colors group-hover:border-ink group-focus-visible:border-ink">
                   <Icon aria-hidden className="size-6" />
                 </span>
                 <span>
@@ -118,7 +118,7 @@ export default function ContactPage() {
 
       <section className="mb-16 grid gap-10 border-y border-hairline py-10 md:mb-24 lg:grid-cols-[0.7fr_1.3fr]">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">A useful first note</p>
+          <p className="record text-muted">A useful first note</p>
         </div>
         <div className="grid gap-px bg-hairline sm:grid-cols-3">
           {[
@@ -127,7 +127,7 @@ export default function ContactPage() {
             ["03", "What changes if it works"],
           ].map(([number, label]) => (
             <div key={number} className="min-h-32 bg-paper p-5">
-              <p className="font-mono text-xs text-accent">{number}</p>
+              <p className="font-mono text-xs text-ink">{number}</p>
               <p className="mt-8 max-w-40 text-sm leading-snug text-ink-secondary">{label}</p>
             </div>
           ))}
@@ -137,10 +137,10 @@ export default function ContactPage() {
       <aside className="mb-16 flex flex-wrap items-center justify-between gap-5 md:mb-24">
         <p className="text-sm text-muted">Want the evidence before the conversation?</p>
         <div className="flex gap-5 text-sm">
-          <Link href="/work" className="text-link text-accent hover:underline">
+          <Link href="/work" className="inline-flex min-h-11 items-center text-ink hover:underline">
             See the work →
           </Link>
-          <Link href="/building" className="text-link text-accent hover:underline">
+          <Link href="/building" className="inline-flex min-h-11 items-center text-ink hover:underline">
             Explore the systems →
           </Link>
         </div>

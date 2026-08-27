@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteHeader } from "@/components/site-header";
 import { isAboutPublic, isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
+import { RouteTransition } from "@/components/route-transition";
 import { site } from "@/lib/content/site";
 import "./globals.css";
 
@@ -89,7 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="min-h-full">
         <a
           href="#main-content"
           className="fixed left-4 top-3 z-[100] -translate-y-20 bg-ink px-4 py-3 text-sm text-paper transition-transform focus:translate-y-0"
@@ -108,11 +109,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: "document.documentElement.classList.add('js')",
           }}
         />
-        <SiteHeader showAbout={isAboutPublic} />
-        <main id="main-content" className="site-main mx-auto w-full max-w-[1360px] flex-1 px-[max(22px,6vw)]">
-          {children}
-        </main>
-        <SiteFooter />
+        <RouteTransition>
+          <SiteHeader showAbout={isAboutPublic} />
+          <main id="main-content" tabIndex={-1} className="site-main mx-auto w-full max-w-[1360px] flex-1 px-[max(22px,6vw)]">
+            {children}
+          </main>
+          <SiteFooter />
+        </RouteTransition>
         <Analytics />
         <SpeedInsights />
       </body>

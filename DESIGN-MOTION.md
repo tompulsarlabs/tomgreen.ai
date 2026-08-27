@@ -33,10 +33,27 @@ channel: `62` constraint, `82` prototype, `92` index rest, `100` resolved, `106`
 
 - Home: type resolve, verified proof, Work bridge, one dark Systems band, contact.
 - Work: six full-row links; hover and focus both resolve `92→100`.
-- Zalando: company masthead plus Evidence Object 1 and canonical body/evidence note.
-- Systems: dark route, semantic field/index and labelled maturity widths.
+- Zalando: company masthead plus Evidence Object 1, truthful reconstructed structure and the
+  canonical evidence note in the object's own frame.
+- Chapter 2: Evidence Object 2 splits governed agent work from accountable human judgment, using
+  the five content-module workflow steps and verified footer only.
+- Systems: dark route, truthful `running 100 / shipped 92 / in the lab 82` maturity widths,
+  semantic index and one code-native procedural compression member. The object is a structural
+  metaphor, not a hidden data encoding.
 - About: local-only linear career record; no corridor.
 - Contact: direct mailto remains primary.
+
+## Systems object
+
+- One near-white matte compression member sits between a base and load plate on the shared
+  `#101410` ground.
+- No atom, particle system, orbital graph, glow, labels inside canvas or invented relationship
+  mapping. The semantic records remain HTML.
+- Desktop interaction is bounded drag orbit. The raw-WebGL module waits until route arrival and
+  an idle window; rendering sleeps when idle, hidden or offscreen, and DPR is capped at 1.5.
+- Mobile, reduced motion, Save Data, no WebGL, context loss and no JavaScript all resolve to one
+  deterministic responsive still plus the complete semantic index. The same still is visually
+  verified at 1440, 1005, 768 and 390px rather than duplicated into four identical payloads.
 
 ## Cut list
 
