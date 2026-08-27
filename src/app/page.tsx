@@ -35,20 +35,20 @@ export default async function Home() {
             >
               <span className="line-mask block">
                 <span className="line block" style={{ "--line-i": 0 } as React.CSSProperties}>
-                  I see the constraint.
+                  Identify constraints.
                 </span>
               </span>
               <span className="line-mask block">
                 <span className="line block" style={{ "--line-i": 1 } as React.CSSProperties}>
-                  Design the system.
+                  Simplicity by design.
                 </span>
               </span>
               <span className="line-mask block">
                 <span
-                  className="line block text-accent"
+                  className="line block text-[clamp(2.7rem,4.7vw,3.75rem)] text-accent"
                   style={{ "--line-i": 2 } as React.CSSProperties}
                 >
-                  Build what makes it move.
+                  Build a system that learns and compounds.
                 </span>
               </span>
             </h1>
