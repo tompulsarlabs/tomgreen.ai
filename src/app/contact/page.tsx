@@ -39,7 +39,6 @@ function GitHubIcon(props: SVGProps<SVGSVGElement>) {
 const channels = [
   {
     label: "Email",
-    detail: site.email,
     note: "For projects, roles and thoughtful introductions.",
     href: `mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`,
     icon: MailIcon,
@@ -47,7 +46,6 @@ const channels = [
   },
   {
     label: "LinkedIn",
-    detail: "Professional profile",
     note: "Career history, shared context and direct messages.",
     href: site.links.linkedin,
     icon: LinkedInIcon,
@@ -55,7 +53,6 @@ const channels = [
   },
   {
     label: "GitHub",
-    detail: "@tompulsarlabs",
     note: "Public systems, source code and the live build record.",
     href: site.links.github,
     icon: GitHubIcon,
@@ -98,7 +95,7 @@ export default function ContactPage() {
         </div>
 
         <ul className="border-t border-hairline">
-          {channels.map(({ label, detail, note, href, icon: Icon, rel }) => (
+          {channels.map(({ label, note, href, icon: Icon, rel }) => (
             <li key={label} className="border-b border-hairline">
               <a
                 href={href}
@@ -109,8 +106,7 @@ export default function ContactPage() {
                   <Icon aria-hidden className="size-6" />
                 </span>
                 <span>
-                  <span className="block text-xs uppercase tracking-[0.18em] text-muted">{label}</span>
-                  <span className="mt-1 block text-base text-ink sm:text-lg">{detail}</span>
+                  <span className="block text-base text-ink sm:text-lg">{label}</span>
                   <span className="mt-1 hidden text-sm leading-relaxed text-muted sm:block">{note}</span>
                 </span>
                 <span aria-hidden className="pr-1 text-xl transition-transform group-hover:translate-x-1">↗</span>
@@ -126,8 +122,8 @@ export default function ContactPage() {
         </div>
         <div className="grid gap-px bg-hairline sm:grid-cols-3">
           {[
-            ["01", "What you’re building"],
-            ["02", "Where it is stuck"],
+            ["01", "What you’re solving"],
+            ["02", "Where it’s blocked"],
             ["03", "What changes if it works"],
           ].map(([number, label]) => (
             <div key={number} className="min-h-32 bg-paper p-5">

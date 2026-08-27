@@ -62,14 +62,13 @@ export function SiteHeader() {
       >
         <Link
           href="/"
-          className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2 font-sans uppercase leading-none"
+          className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2.5 font-sans uppercase leading-none"
           aria-label="Tom Green, home"
         >
-          <span className="grid text-[0.82rem] font-bold tracking-[-0.065em]">
-            <span>TOM</span>
-            <span>GREEN</span>
+          <span className="whitespace-nowrap text-[1rem] font-bold tracking-[-0.07em] sm:text-[1.4rem]">
+            TOM GREEN
           </span>
-          <span aria-hidden className="brand-signal h-8 w-1 bg-current transition-transform group-hover:scale-y-75" />
+          <span aria-hidden className="brand-signal h-8 w-1.5 bg-current transition-transform group-hover:scale-y-75 sm:h-10" />
         </Link>
         <div className="ml-1 hidden min-w-0 border-l border-current/16 pl-4 sm:block">
           <p className="font-mono text-[0.58rem] uppercase tracking-[0.18em] opacity-55">
@@ -108,7 +107,7 @@ export function SiteHeader() {
       </div>
       <div aria-hidden className="header-progress absolute inset-x-0 bottom-0 h-px bg-current/10">
         <span
-          className="block h-full origin-left bg-signal will-change-transform"
+          className="block h-full origin-left bg-current will-change-transform"
           style={{ transform: `scaleX(${progress})` }}
         />
       </div>

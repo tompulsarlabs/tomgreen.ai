@@ -44,8 +44,8 @@ export function CaseStudyCard({
             <p className="evidence-muted mt-1 text-xs leading-relaxed text-muted transition-colors">{leadMetric.label}</p>
           </div>
         )}
-        <span className="mt-6 inline-flex items-center gap-3 text-sm font-medium text-accent group-hover:text-signal group-focus-visible:text-signal">
-          Open the operating record <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+        <span className="mt-6 inline-flex items-center gap-3 text-sm font-medium text-accent">
+          Explore the case study <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
         </span>
       </div>
       {featured && leadMetric && (

@@ -17,14 +17,14 @@ export default function WorkIndex() {
   const foundation = caseStudies.filter((study) => study.tier === "foundation");
 
   return (
-    <div className="flex flex-col gap-24 pb-20 md:gap-32">
-      <header className="relative left-1/2 w-screen -translate-x-1/2 bg-ink text-paper">
-        <div className="mx-auto grid min-h-[calc(82svh-var(--site-header-h))] max-w-6xl gap-12 px-6 py-14 lg:grid-cols-[0.78fr_1.22fr] lg:items-end lg:py-16">
+    <div className="flex flex-col gap-16 pb-20 md:gap-24">
+      <header className="relative left-1/2 w-screen -translate-x-1/2 border-b border-ink bg-white text-ink">
+        <div className="mx-auto grid min-h-[calc(72svh-var(--site-header-h))] max-w-6xl gap-10 px-6 py-14 lg:grid-cols-[0.72fr_1.28fr] lg:items-end lg:py-16">
           <div className="self-start">
-            <p className="anim font-mono text-[0.65rem] uppercase tracking-[0.18em] text-signal">
+            <p className="anim font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">
               Evidence / selected operating records
             </p>
-            <p className="anim mt-6 max-w-xs text-sm leading-relaxed text-paper/58" style={{ "--anim-delay": "80ms" } as React.CSSProperties}>
+            <p className="anim mt-6 max-w-xs text-sm leading-relaxed text-ink-secondary" style={{ "--anim-delay": "80ms" } as React.CSSProperties}>
               Organisation building, operating-model design, product operations and founder economics—under real constraints.
             </p>
           </div>
@@ -32,18 +32,18 @@ export default function WorkIndex() {
             <h1 className="anim max-w-[10ch] font-display text-[clamp(4.5rem,9vw,9rem)] leading-[0.82] tracking-[-0.065em]">
               Proof is the system moving.
             </h1>
-            <p className="anim mt-8 max-w-2xl text-lg leading-relaxed text-paper/68" style={{ "--anim-delay": "160ms" } as React.CSSProperties}>
+            <p className="anim mt-8 max-w-2xl text-lg leading-relaxed text-ink-secondary" style={{ "--anim-delay": "160ms" } as React.CSSProperties}>
               Start with the consequence. Then inspect the mandate, operating logic, judgment and evidence that produced it.
             </p>
           </div>
-          <dl className="grid border-t border-paper/16 pt-6 sm:grid-cols-3 lg:col-span-2">
+          <dl className="grid border-t border-ink pt-6 sm:grid-cols-3 lg:col-span-2">
             {[
               ["0 → 120", "AI organisation / six months"],
               ["1 person", "EU People Ops / agent workflows"],
               ["£1M", "Bootstrapped / two years"],
             ].map(([value, label]) => (
-              <div key={label} className="border-b border-paper/12 py-4 sm:border-b-0 sm:border-l sm:px-5 sm:first:border-l-0 sm:first:pl-0">
-                <dt className="text-xs leading-relaxed text-paper/62">{label}</dt>
+              <div key={label} className="border-b border-hairline py-4 sm:border-b-0 sm:border-l sm:px-5 sm:first:border-l-0 sm:first:pl-0">
+                <dt className="text-xs leading-relaxed text-muted">{label}</dt>
                 <dd className="mt-2 font-sans text-3xl font-semibold tracking-[-0.055em]">{value}</dd>
               </div>
             ))}

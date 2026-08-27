@@ -1,21 +1,22 @@
 @import "tailwindcss";
 
 /*
- * The operating field: warm paper, green-black machinery and one signal
+ * The operating field: white paper, near-black machinery and restrained
+ * neutral signals.
  * colour. Systems uses the same grammar inverted rather than a separate
  * visual identity. Colour is never the only carrier of state.
  */
 :root {
   color-scheme: light;
-  --site-header-h: 4.75rem;
-  --paper: #f3f1e8;
-  --paper-high: #fbfaf4;
+  --site-header-h: 5.25rem;
+  --paper: #ffffff;
+  --paper-high: #ffffff;
   --ink: #101410;
   --ink-secondary: #4f554d;
   --muted: #62675f;
-  --hairline: #d9d8ce;
-  --card: #ebe9df;
-  --signal: #c8ff45;
+  --hairline: #deded8;
+  --card: #f5f5f1;
+  --signal: #f4f4ef;
   --accent: #174f35;
   --accent-ink: #103c28;
   --clay: #e45b3d;
@@ -188,7 +189,7 @@ button:focus-visible {
   -webkit-backdrop-filter: blur(16px);
 }
 .brand-signal {
-  background: var(--signal);
+  background: var(--ink);
 }
 .site-header-dark .brand-signal {
   background: var(--signal);
@@ -208,7 +209,7 @@ button:focus-visible {
   right: 100%;
   bottom: 6px;
   height: 1px;
-  background: var(--signal);
+  background: currentColor;
   transition: right 160ms ease;
 }
 .nav-pending {
@@ -240,7 +241,7 @@ button:focus-visible {
 .site-header-dark a:focus-visible,
 .case-opening a:focus-visible,
 .systems-stage :is(a, button):focus-visible {
-  outline-color: var(--signal);
+  outline-color: var(--paper);
 }
 
 /* Cards: quiet lift on hover. */
@@ -257,11 +258,21 @@ button:focus-visible {
   --field-y: 0px;
   --field-x-back: 0px;
   --field-y-back: 0px;
+  --field-rx: 0deg;
+  --field-ry: 0deg;
+  perspective: 1100px;
   background:
-    linear-gradient(color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 58% 42%, color-mix(in srgb, var(--paper) 8%, transparent), transparent 31%),
+    radial-gradient(circle at 50% 106%, color-mix(in srgb, var(--paper) 8%, transparent), transparent 42%),
     var(--ink);
-  background-size: 46px 46px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--paper) 10%, transparent),
+    0 26px 70px -46px color-mix(in srgb, var(--ink) 72%, transparent);
+}
+.field-world {
+  transform: rotateX(var(--field-rx)) rotateY(var(--field-ry));
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(0.22, 0.72, 0.18, 1);
 }
 .field-plane,
 .field-input,
@@ -270,16 +281,63 @@ button:focus-visible {
   transition: transform 440ms cubic-bezier(0.22, 0.72, 0.18, 1);
 }
 .field-plane {
-  transform: translate3d(var(--field-x-back), var(--field-y-back), 0);
+  background:
+    linear-gradient(color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px);
+  background-size: 54px 54px;
+  transform: translate3d(var(--field-x-back), var(--field-y-back), -90px) scale(1.12);
 }
 .field-input {
-  transform: translate3d(var(--field-x-back), var(--field-y-back), 0);
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  box-shadow: 0 20px 45px -30px rgba(0, 0, 0, 0.9);
+  transform: translate3d(var(--field-x-back), var(--field-y-back), 42px);
 }
 .field-core {
-  transform: translate3d(calc(-50% + var(--field-x)), calc(-50% + var(--field-y)), 0);
+  padding: 1.45rem 1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--paper) 14%, transparent);
+  background: color-mix(in srgb, var(--ink) 76%, transparent);
+  box-shadow:
+    0 28px 60px -28px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 color-mix(in srgb, var(--paper) 10%, transparent),
+    0 0 54px color-mix(in srgb, var(--paper) 6%, transparent);
+  backdrop-filter: blur(10px);
+  transform: translate3d(calc(-50% + var(--field-x)), calc(-50% + var(--field-y)), 96px);
 }
 .field-output {
-  transform: translate3d(var(--field-x), var(--field-y), 0);
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  box-shadow: 0 20px 45px -30px rgba(0, 0, 0, 0.9);
+  transform: translate3d(var(--field-x), var(--field-y), 58px);
+}
+.field-haze {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--paper) 8%, transparent), transparent 67%);
+  filter: blur(16px);
+  transform: translate3d(-50%, -50%, -20px);
+}
+.field-floor {
+  position: absolute;
+  right: 5%;
+  bottom: -20%;
+  left: 5%;
+  height: 58%;
+  border: 1px solid color-mix(in srgb, var(--paper) 11%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--paper) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--paper) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(to top, color-mix(in srgb, var(--paper) 5%, transparent), transparent 72%);
+  background-size: 48px 48px, 48px 48px, auto;
+  opacity: 0.76;
+  transform: rotateX(68deg) translateZ(-28px);
+  transform-origin: center bottom;
 }
 .field-rule {
   position: absolute;
@@ -317,7 +375,7 @@ button:focus-visible {
   width: 48%;
   height: 74%;
   border-style: dashed;
-  border-color: color-mix(in srgb, var(--signal) 38%, transparent);
+  border-color: color-mix(in srgb, var(--paper) 28%, transparent);
   transform: translate(-50%, -50%) rotate(28deg);
 }
 .field-signal {
@@ -327,8 +385,8 @@ button:focus-visible {
   width: 0.9rem;
   height: 0.9rem;
   border-radius: 50%;
-  background: var(--signal);
-  box-shadow: 0 0 0 10px color-mix(in srgb, var(--signal) 12%, transparent);
+  background: var(--paper);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--paper) 9%, transparent);
 }
 
 /* The desktop sequence is deliberately bounded to two viewport-heights of
@@ -395,7 +453,7 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: var(--ink);
+  background: var(--card);
   content: "";
   transform: translateY(calc(100% - 2px));
   transition: transform 440ms cubic-bezier(0.22, 0.72, 0.18, 1);
@@ -406,11 +464,11 @@ button:focus-visible {
 }
 .evidence-link:hover,
 .evidence-link:focus-visible {
-  color: var(--paper);
+  color: var(--ink);
 }
 .evidence-link:hover .evidence-muted,
 .evidence-link:focus-visible .evidence-muted {
-  color: color-mix(in srgb, var(--paper) 66%, transparent);
+  color: var(--muted);
 }
 
 .case-opening {
@@ -428,6 +486,9 @@ button:focus-visible {
 @media (max-width: 767px) {
   .operating-field {
     min-height: 34rem;
+  }
+  .field-world {
+    transform: none;
   }
   .field-core {
     left: 1.25rem;
@@ -454,10 +515,17 @@ button:focus-visible {
     width: 74%;
     height: 58%;
   }
+  .field-floor {
+    right: -18%;
+    bottom: -14%;
+    left: -18%;
+    opacity: 0.48;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .field-plane,
+  .field-world,
   .field-input,
   .field-core,
   .field-output,
