@@ -47,18 +47,20 @@ document is static and resolved without JavaScript or with reduced motion.
 
 ## Known gaps
 
-- The commissioned matte object, portrait and legal-cleared artifacts do not exist yet and were
-  not simulated.
+- The agent-built procedural matte object, genuine portrait source and legal-cleared artifacts do
+  not exist yet and were not simulated.
 - Chapter 2 still uses the shared reconstructed workflow; its sentence-fork evidence object is P1.
-- Systems retains the current interactive field until the commissioned object is available.
+- Systems retains the current interactive field until the code-native procedural object is built.
 - Production Web Vitals require observation after deployment; no production action was taken.
 
 ## Exact P1 tranche
 
 1. Build Chapter 2 Evidence Object 2, the typeset human/agent sentence fork, from the existing
    five workflow steps and verified footer.
-2. Integrate the commissioned matte object on Systems with drag orbit, DPR ≤2, idle/offscreen
-   sleep and a pre-rendered context-loss/no-WebGL still.
+2. Design and build the Systems matte object agentically as code-native procedural geometry, with
+   drag orbit, DPR ≤2, idle/offscreen sleep and a pre-rendered context-loss/no-WebGL still. Use no
+   external 3D artist, purchased model or paid asset dependency.
 3. Add the legal-cleared, lazy redacted-artifact layer.
 4. Retype the local About career line fully in the axis grammar.
-5. Add the approved portrait masthead with responsive crops and provenance.
+5. Add a supplied genuine portrait masthead with responsive crops and provenance, or defer it if
+   no rights-cleared source exists. Do not generate a synthetic likeness.
