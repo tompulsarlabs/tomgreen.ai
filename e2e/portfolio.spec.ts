@@ -65,9 +65,9 @@ test("Work is a tiered archive with an active navigation state", async ({ page }
   ).toBeVisible();
   await expect(page.getByText("Open the operating record", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /organisation from zero to 120/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /People Ops rebuilt on agents/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Ran the €3.6M EMEA business/i })).toBeVisible();
   await expect(
-    page.getByText("Runs EU People Ops from Germany", { exact: true }).last(),
+    page.getByText("EMEA P&L", { exact: true }).last(),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Current work. Calibrated foundations." })).toBeVisible();
 });
@@ -96,7 +96,9 @@ test("reduced motion exposes the complete operating sequence without a scroll de
   await expect(sequence.getByRole("listitem")).toHaveCount(3);
   await expect(sequence.getByText("Start with what the organisation must become.")).toBeVisible();
   await expect(sequence.getByText("Build the organisation around the outcome.")).toBeVisible();
-  await expect(sequence.getByText("Let agents carry load. Keep people on judgment.")).toBeVisible();
+  await expect(
+    sequence.getByText("Move repeatable work to agents. Keep sensitive decisions with people."),
+  ).toBeVisible();
 
   const steps = await sequence.locator(".sequence-step").evaluateAll((items) =>
     items.map((item) => ({

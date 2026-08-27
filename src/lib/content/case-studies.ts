@@ -123,75 +123,75 @@ export const caseStudies: CaseStudy[] = [
     company: "Chapter 2",
     role: "Managing Director EMEA",
     period: "2025 – 2026",
-    headline: "People Ops rebuilt on agents — EU operations running on one person",
+    headline: "Ran the €3.6M EMEA business. Won €2.5M ARR in year one. Then rebuilt how Europe operated.",
     summary:
-      "Ran a €3.6M business, won €2.5M in annual recurring revenue in year one, and rebuilt People Ops around agent workflows so EU operations run from Germany with one person.",
+      "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
-      "A talent-services firm spanning recruitment operations, talent strategy and employer brand needed its European business run with full commercial ownership—and needed to prove internally what it sold externally: that AI changes how talent operations work.",
+      "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how agents could change People Ops.",
     body: [
-      "I owned a €3.6M profit-and-loss account and won €2.5M in annual recurring revenue in the first year, leading recruiting programmes across Germany, the US, the UK and India for clients including Neura Robotics and Superhuman, and directly hiring the Chief People Officer.",
-      "The build: I rebuilt EU People Ops around agent workflows. Operations now run from Germany as a one-person function without dependency on three UK shared-service roles—not by cutting corners, but by moving repetitive operating load onto agents and keeping people on judgment calls.",
-      "That project became the template for the group's wider AI transformation, which I drove.",
+      "I led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief People Officer.",
+      "I rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
+      "The model became the reference for the group’s wider AI transformation.",
     ],
     metrics: [
-      { value: "1 person", label: "Runs EU People Ops from Germany" },
-      { value: "€2.5M", label: "Annual recurring revenue won in year one" },
-      { value: "€3.6M", label: "P&L owned" },
-      { value: "3 roles", label: "Shared-service dependency removed" },
+      { value: "€3.6M", label: "EMEA P&L" },
+      { value: "€2.5M", label: "ARR won in year one" },
+      { value: "4 countries", label: "Recruiting programmes led" },
+      { value: "3 roles", label: "Shared-service reliance removed" },
     ],
     demonstrates:
-      "The positioning made literal: a talent operating model redesigned around agents, in production, with the org chart to prove it.",
+      "Commercial leadership and operating design in the same role: grow the business, then redesign the work behind it.",
     tier: "flagship",
     system: {
       eyebrow: "Reconstructed service workflow",
-      title: "Agents carry the operating load. People retain judgment and accountability.",
+      title: "Repeatable work moved to agents. Sensitive decisions stayed with people.",
       description:
-        "Routine service work moves through governed workflows; exceptions, approvals and sensitive decisions stay with humans.",
+        "Agents handle the routine work and keep a record of what happened. A person steps in for exceptions, approvals and decisions that affect people.",
       steps: [
         {
-          label: "Request enters",
-          detail: "A People Ops request arrives with its source, context and service expectation intact.",
+          label: "Request arrives",
+          detail: "A People Ops request arrives with the information needed to act on it.",
           owner: "team",
         },
         {
-          label: "Agent triage",
-          detail: "The workflow classifies the request, gathers context and routes the next action.",
+          label: "Agent prepares",
+          detail: "An agent sorts the request, gathers context and prepares the next action.",
           owner: "agent",
         },
         {
-          label: "Routine execution",
-          detail: "Repeatable service work is completed against policy and recorded.",
+          label: "Routine work runs",
+          detail: "The agent completes repeatable work against policy and records what it did.",
           owner: "agent",
         },
         {
-          label: "Judgment gate",
-          detail: "Exceptions, risk and people decisions are escalated to an accountable human.",
+          label: "A person decides",
+          detail: "Exceptions, risk and decisions that affect people go to an accountable person.",
           owner: "human",
         },
         {
-          label: "Audit and learn",
-          detail: "Outcomes and exceptions feed the operating playbook instead of disappearing in inboxes.",
+          label: "The record improves",
+          detail: "Outcomes and exceptions improve the playbook instead of disappearing in inboxes.",
           owner: "system",
         },
       ],
       outcome:
-        "EU People Ops runs from Germany with one person and without dependency on three UK shared-service roles, while human judgment stays at the decisions that matter.",
+        "One Germany-based operator now runs EU People Ops with governed agents, replacing reliance on three UK shared-service roles while keeping sensitive decisions with people.",
     },
     decisions: [
       {
-        title: "Automate load, not accountability",
+        title: "Start with repeatable work",
         detail:
-          "The design separates repeatable execution from decisions that require human context, empathy or risk ownership.",
+          "Agents handle work with a clear process. Decisions needing context, empathy or risk ownership stay with people.",
       },
       {
-        title: "Make exceptions visible",
+        title: "Escalate uncertainty",
         detail:
-          "Escalations are part of the workflow design, so edge cases become operating insight rather than invisible manual work.",
+          "The workflow makes exceptions visible and sends them to a person instead of guessing or burying them in manual work.",
       },
       {
-        title: "Prove it in one country",
+        title: "Prove the model in Germany",
         detail:
-          "Germany became a bounded production reference before the operating model informed the wider transformation.",
+          "Germany became the working reference before the model informed the wider transformation.",
       },
     ],
     evidenceNote:

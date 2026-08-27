@@ -20,9 +20,9 @@ const steps = [
   {
     number: "03",
     verb: "Put it in motion",
-    title: "Let agents carry load. Keep people on judgment.",
-    copy: "Repeatable work moves through governed workflows. Exceptions, accountability and sensitive decisions stay with people.",
-    proof: "Chapter 2 / EU People Ops / one person",
+    title: "Move repeatable work to agents. Keep sensitive decisions with people.",
+    copy: "Agents handle work with a clear process. Exceptions, approvals and decisions that affect people stay with an accountable person.",
+    proof: "Chapter 2 / €3.6M EMEA P&L / €2.5M ARR",
   },
 ] as const;
 
