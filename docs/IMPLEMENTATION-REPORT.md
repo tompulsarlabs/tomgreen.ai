@@ -1,110 +1,76 @@
-# tomgreen.ai: Load-Bearing Type implementation report
+# tomgreen.ai: clean editorial correction report
 
 - Date: 27 August 2026
 - Branch: `codex/load-bearing-type`
-- Base: `main` at `ee9a958`
-- Deployment: not performed
+- Base: `main` including `ee9a958`
+- Production: unchanged
 
-Current status: review-ready branch; not merged or deployed
+## Decision
 
-## Decision record
+The implemented Fable concepts were tested in context and failed the product-design test: visitors
+had to decode “Evidence Object,” “typeset,” M01–M06, typography-width labels and a dark showcase
+route before they could understand the work. Those concepts came from the design handoff, not from
+the underlying project records or a visitor need.
 
-Archivo's width axis remains the motion identity. Constraint compresses to `wdth 62`, systems
-resolve to `100–106`, and release reaches `125`. Display weight stays fixed. The complete
-document remains static and resolved without JavaScript or with reduced motion.
+The authoritative direction is now one clean editorial flow:
 
-Fable's post-P0 system-design retrospective returned **accept with corrections**. It preserved the
-direction and identified a bounded correction pass across Home scheduling, route continuity,
-evidence integrity, Systems coherence, accessibility and test coverage. The current branch combines
-that correction pass with the unblocked, fully agentic P1 work.
+- white ground on every route and every full-width section;
+- black reserved for type, rules and compact controls;
+- verified outcomes directly below each case-study masthead;
+- challenge → work → operating model → decisions → outcome → source note;
+- subtle width-axis craft without visitor-facing design-system labels;
+- no 3D object, commissioned asset or paid specialist dependency.
 
-The procedural compression member failed visual review on a real 390px device: it was too literal,
-visually crude and dominant over the information. It has been removed completely, not polished.
-Systems now follows the first-principles solution: the truthful type-led maturity channel is the
-centerpiece, with no separate 3D metaphor, poster, canvas or rendering dependency.
+## Implementation
 
-## Current branch implementation
-
-### P0 system retained
-
-- Self-hosted Archivo variable type, including the `wdth 62–125` range, remains the display and
-  structure face. Geist and Geist Mono retain their reading and record roles.
-- The white/near-black palette, semantic live green, reconstruction clay, common shell geometry,
-  immediate first paint and static-first content model remain intact.
-- Home keeps the type-resolve journey, verified proof band, Work bridge, sole dark Home band and
-  direct contact close.
-- Work remains a six-row semantic index, with full-row links and matching hover/focus behavior.
-- About remains absent from public navigation and the sitemap, returns 404 on Vercel, and stays
-  complete locally for continued work.
-
-### Fable correction pass
-
-- Home now uses disjoint width-animation windows for constraint, system and release; the release
-  performs a real `106→125` width change. Word spacing, stage exit, scroll-cue state, accessible
-  heading text, mobile behavior and reduced-motion scoping were corrected in the same scheduler.
-- Route transitions are captured above the persistent shell. Reduced-motion navigation bypasses
-  the animated exit immediately, while Work-to-case navigation carries a measured travelling-name
-  clone into the destination masthead instead of aiming at a hard-coded coordinate.
-- Zalando Evidence Object 1 no longer implies invented country counts or ratios. It uses ten
-  authored generic role families as readable compression, equal country columns, a separately explained
-  six-month ruler, larger verified figures and the canonical reconstruction note in the object's
-  own frame.
-- Header, footer and Contact now share the same axis enrollment, dark-route ground and focus/action
-  grammar. Systems uses a route-specific dark browser theme and keeps its semantic index in HTML.
-
-### Fully agentic P1 slice
-
-- **Systems centerpiece:** the maturity channel now spans the full dark stage. Production,
-  shipped and lab states use the visible `100 / 92 / 82` Archivo widths and matching record labels.
-  The semantic index follows directly; no decorative object competes with it.
-- **Chapter 2 Evidence Object 2:** the typeset sentence fork separates routine agent work from
-  exceptions, risk and decisions affecting people. Its five workflow beats and footer figures are
-  sourced from the existing typed content module, with the reconstruction note kept in frame.
-- **About:** the retired corridor is replaced by a linear sequence of axis-typed career records,
-  mono coordinates, rules and editorial evidence. No synthetic portrait or placeholder artifact
-  was introduced.
+- Removed the inverted Home band and Systems route, including their dark header, footer and browser
+  theme behavior.
+- Removed Zalando’s role crowd, organisation reconstruction, “The build, typeset” title and M01–M06
+  ruler. The four verified figures now sit directly under the masthead.
+- Removed Chapter 2’s sentence fork and scroll-gated evidence animation. Its five existing workflow
+  steps now read as the same linear operating-model record used by Zalando.
+- Rebuilt the shared operating-model component as simple editorial rows with clear ownership labels.
+- Removed the visitor-facing Systems maturity legend and width values. Running, shipped and lab
+  status remains attached to real project records.
+- Replaced design-process copy such as “Evidence index,” “operating record” and “inspect the method”
+  with direct case-study and project language.
+- Deleted the two evidence-object client components, their motion schedulers and their unit tests.
+- Preserved all approved claims, metrics, content modules, semantic HTML, keyboard behavior, route
+  transitions, reduced-motion behavior and static/no-JavaScript content.
+- Preserved the deployment contract: About remains complete locally, absent from public navigation
+  and the sitemap, and 404s on every Vercel build.
 
 ## Validation
 
-- `npm run lint`, `npm run typecheck`, `npm test` and the optimized Next.js production build pass.
-- Seven unit files pass with 35 tests covering content/data contracts and every motion schedule.
-- All 38 Playwright tests pass against `next start`. They include real Work-to-case FLIP landing
-  within 8px, keyboard parity, 48px Work targets, Home/About geometry regressions, tall Chapter 2
-  motion, no-JavaScript, reduced-motion and mobile branches.
-- Eight full-document Axe scans report no serious or critical violations. All required routes pass
-  horizontal-overflow checks at 1440, 1005, 768 and 390px.
-- The lab Home gate observes a nonzero LCP below 1.8s and CLS below 0.02.
-- The three Latin font requests total 142,492 bytes; the authored redesign feature chunks remain
-  below the 60KB gzip budget.
-- Fresh review captures cover every required viewport plus reduced motion, no JavaScript, tall
-  Chapter motion and intermediate/final Zalando states.
+- `npm run lint`: pass.
+- `npm run typecheck`: pass.
+- `npm run test`: 30/30 pass across five files.
+- `npm run build`: pass; all expected routes prerender.
+- `CI=1 npm run test:e2e`: 35 browser/accessibility tests, including white-ground, flagship-flow,
+  reduced-motion and no-JavaScript contracts.
+- Review captures cover 1440, 1005, 768 and 390px plus reduced motion and no JavaScript.
+- A separate Vercel build contract verifies the public About 404 before branch handoff.
 
-The Vercel-specific build contract passed separately because the local production build must keep
-About available. `VERCEL=1 npm run build` followed by `npm run test:vercel-contract` verifies that
-every Vercel build returns 404 for `/about` and omits About from navigation and the sitemap. No
-merge or deployment is authorized by this report.
+## Known gaps
 
-## Known gaps and remaining decisions
+- Automated browser validation is Chromium-only in this environment. Safari 16+ and Firefox remain
+  release checks, not design or asset blockers.
+- Production LCP, CLS and INP require production observation; local/lab results are not represented
+  as production measurements.
+- Portraits and redacted artifacts are optional editorial enhancements, not requirements. Nothing
+  synthetic or rights-unclear will be added to fill space.
 
-- Local automation is Chromium-only. Firefox, Safari 16+ and real iOS review remain required before
-  merge.
-- A redacted-artifact layer remains rights-dependent. No artifact can ship until the source,
-  surviving names/dates/figures, public-use rights, redactions and reconstruction label are all
-  approved.
-- A portrait is optional and supplied-or-deferred. About remains intentionally type-led unless Tom
-  provides a genuine high-resolution portrait with publication rights. A synthetic likeness is
-  out of scope.
-- Production LCP, CLS and INP cannot be claimed from local validation and require later production
-  observation.
+## Exact P1 tranche
 
-## Exact P1 remainder
+1. Review the new white editorial flow as a product, beginning with Home, Work, Zalando, Chapter 2
+   and Systems at 390 and 1440px; change hierarchy or copy only where comprehension still fails.
+2. Run an agentic motion-polish pass on the surviving width resolve and route handoff: fewer beats,
+   calmer entrances, no new visual object and no external specialist dependency.
+3. Apply the same case-study hierarchy polish to the four supporting stories without inventing a
+   bespoke “evidence moment” for each.
+4. Finish the release surface: focused 404/OG states, font/preload audit, Firefox/Safari checks and
+   production Web-Vitals observation after a separately approved deployment.
+5. Add a genuine portrait or redacted artifact only if an existing publication-cleared source makes
+   the story materially clearer; otherwise leave the white space intact.
 
-1. Produce an artifact inventory only after Tom selects candidates. For each asset record source,
-   public-use rights, surviving names/dates/figures, redactions and the exact reconstruction label;
-   then add the approved layer lazily below evidence objects. Defer cleanly if none pass review.
-2. If Tom supplies a genuine publication-cleared high-resolution portrait, add the responsive
-   About masthead and provenance note. Otherwise keep the completed type-led masthead.
-3. Run the review branch on current Chrome/Firefox, Safari 16+ and real iOS hardware; verify the
-   type composition, route motion and Web Vitals/RUM gates.
-4. Merge or deploy only after those review decisions. The later timing/easing pass remains fully
-   agentic P2 work; no 3D artist or motion-specialist engagement is required.
+No merge or production deployment is authorized by this report.

@@ -59,7 +59,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems", exact: true })).toBeVisible();
-  await expect(page.getByLabel("Verified proof")).toContainText("0 → 120");
+  await expect(page.getByLabel("Selected outcomes")).toContainText("0 → 120");
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
 
@@ -458,244 +458,89 @@ test("motion-enabled header navigation exposes and clears its pending mark", asy
     .not.toHaveClass(/is-pending/);
 });
 
-test("Zalando keeps the reconstructed object truthful and its evidence exact", async ({ page }) => {
+test("Zalando reads as a clear case study with verified outcomes", async ({ page }) => {
   await gotoReduced(page, "/work/zalando");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Zalando");
-  await expect(page.getByRole("heading", { name: "The build, typeset." })).toBeVisible();
-  await expect(page.getByText(
-    "Zero to a 120-person cross-functional AI organisation across four countries in six months.",
-    { exact: true },
-  )).toBeVisible();
-  await expect(page.locator(".role-crowd span")).toHaveCount(10);
-
-  const countries = page.locator(".country-columns");
-  await expect(countries.locator("strong")).toHaveText([
-    "Germany",
-    "Ireland",
-    "Switzerland",
-    "Finland",
-  ]);
-  const countryText = (await countries.textContent()) ?? "";
-  expect(countryText).not.toMatch(/Germany\s*52|Ireland\s*28|Switzerland\s*22|Finland\s*18/i);
-
-  const verification = page.locator(".zalando-evidence .evidence-verification");
-  await expect(verification.getByText(
-    "Figures verified · organisation structure reconstructed",
-    { exact: true },
-  )).toBeVisible();
-  await expect(verification.locator("dd")).toHaveText(["0 → 120", "−32%", "+21%", "1,000+"]);
-  await expect(verification.locator("dt")).toHaveText([
+  const metrics = page.locator(".case-opening dl");
+  await expect(metrics.locator("dd")).toHaveText(["0 → 120", "−32%", "+21%", "1,000+"]);
+  await expect(metrics.locator("dt")).toHaveText([
     "AI organisation in six months",
     "Time to Hire",
     "Offer acceptance",
     "Interviewers trained",
   ]);
-  await expect(verification.getByText(
-    "Evidence note · Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
+
+  const system = page.getByRole("region", { name: "How the operating system worked" });
+  await expect(system.getByRole("heading", {
+    name: "A talent system built around the organisation—not a list of vacancies.",
+  })).toBeVisible();
+  await expect(system.locator("ol > li h3")).toHaveText([
+    "Capability map",
+    "Market entry",
+    "Talent engine",
+    "Quality loop",
+    "AI organisation",
+  ]);
+  await expect(page.getByText(
+    "Source note · Metrics are drawn from the project records for this work; selected references and supporting context are available privately.",
     { exact: true },
   )).toBeVisible();
+  await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
+  await expect(page.locator(".zalando-evidence, .month-ruler, .role-crowd")).toHaveCount(0);
 });
 
-test("Zalando reduced motion is a complete static resolved structure", async ({ page }) => {
-  await gotoReduced(page, "/work/zalando");
-  await expect(page.locator(".zalando-evidence-stage")).toHaveCSS("position", "static");
-  await expect(page.locator(".role-crowd")).toBeVisible();
-  await expect(page.locator(".resolved-organisation")).toBeVisible();
-  await expect(page.locator(".month-ruler")).toBeVisible();
-  await expect(page.locator(".zalando-evidence .evidence-verification")).toBeVisible();
-});
-
-test("Zalando evidence owns one width-axis beat at each motion checkpoint", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/work/zalando");
-  const object = page.locator(".zalando-evidence");
-
-  await setSectionProgress(page, ".zalando-evidence", 0.1);
-  expect(await customProperty(object, "--crowd-exit")).toBeGreaterThan(0.4);
-  expectWithin(await customProperty(object, "--spine-axis"), 62, 0.75);
-
-  await setSectionProgress(page, ".zalando-evidence", 0.4);
-  expectWithin(await customProperty(object, "--crowd-exit"), 1, 0.02);
-  expectWithin(await customProperty(object, "--spine-axis"), 81, 1);
-  expectWithin(await customProperty(object, "--countries-arrive"), 0, 0.02);
-
-  await setSectionProgress(page, ".zalando-evidence", 0.61);
-  expectWithin(await customProperty(object, "--spine-axis"), 100, 0.75);
-  expect(await customProperty(object, "--countries-arrive")).toBeGreaterThan(0.45);
-  expectWithin(await customProperty(object, "--ruler-arrive"), 0, 0.02);
-
-  await setSectionProgress(page, ".zalando-evidence", 0.74);
-  expectWithin(await customProperty(object, "--countries-arrive"), 1, 0.02);
-  expect(await customProperty(object, "--ruler-arrive")).toBeGreaterThan(0.45);
-  expectWithin(await customProperty(object, "--figures-axis"), 92, 0.75);
-
-  await setSectionProgress(page, ".zalando-evidence", 0.95);
-  expectWithin(await customProperty(object, "--ruler-arrive"), 1, 0.02);
-  expectWithin(await customProperty(object, "--figures-axis"), 100, 0.75);
-});
-
-test("Zalando keeps country labels and its disclosure reachable in short viewports", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  for (const [width, height] of [[1440, 800], [1280, 720]] as const) {
-    await page.setViewportSize({ width, height });
-    await page.goto("/work/zalando");
-    await expect(page.locator(".zalando-evidence-stage")).toHaveCSS("position", "static");
-    const disclosure = page.locator(".zalando-evidence .evidence-verification");
-    await disclosure.scrollIntoViewIfNeeded();
-    await expect(disclosure).toBeInViewport();
-    await expect(disclosure.getByText(
-      "Figures verified · organisation structure reconstructed",
-      { exact: true },
-    )).toBeVisible();
-  }
-
-  for (const width of [1440, 1005]) {
-    await page.setViewportSize({ width, height: 900 });
-    await gotoReduced(page, "/work/zalando");
-    const clipping = await page.locator(".country-columns strong").evaluateAll((labels) =>
-      labels.map((label) => ({
-        clientWidth: label.clientWidth,
-        scrollWidth: label.scrollWidth,
-      })),
-    );
-    expect(clipping.every(({ clientWidth, scrollWidth }) => scrollWidth <= clientWidth + 1)).toBe(true);
-  }
-});
-
-test("Chapter 2 reduced motion keeps both accountability paths and all evidence static", async ({ page }) => {
+test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => {
   await gotoReduced(page, "/work/chapter-2");
-  const object = page.locator(".chapter-two-evidence");
-  await expect(page.getByRole("heading", { name: "The sentence that splits." })).toBeVisible();
-  await expect(object).not.toHaveClass(/is-motion-ready/);
-  await expect(object.locator(".chapter-two-evidence-stage")).toHaveCSS("position", "static");
-  await expect(object.getByText("A request arrives.", { exact: true })).toBeVisible();
-  await expect(object.getByText("Classified → gathered → executed → recorded", { exact: true })).toBeVisible();
-  await expect(object.getByText("Exceptions. Risk. People.", { exact: true })).toBeVisible();
-  await expect(object.locator("[data-workflow-step]")).toHaveCount(5);
-  await expect(object.locator("[data-workflow-step] h3")).toHaveText([
+  const metrics = page.locator(".case-opening dl");
+  await expect(metrics.locator("dd")).toHaveText(["€3.6M", "€2.5M", "4 countries", "3 roles"]);
+
+  const system = page.getByRole("region", { name: "How the operating system worked" });
+  await expect(system.locator("ol > li h3")).toHaveText([
     "Request arrives",
     "Agent prepares",
     "Routine work runs",
     "A person decides",
     "The record improves",
   ]);
-  await expect(object.locator(".evidence-verification dd")).toHaveText([
-    "1 person",
-    "3 roles",
-    "€3.6M",
-    "€2.5M",
-  ]);
-  await expect(object.getByText("Figures verified · workflow reconstructed", { exact: true })).toBeVisible();
-  await expect(object.getByText(
-    "Evidence note · Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
+  await expect(system.getByText("Human judgment", { exact: true })).toBeVisible();
+  await expect(page.getByText(
+    "Source note · Metrics are drawn from the project records for this work; selected references are available privately.",
     { exact: true },
   )).toBeVisible();
+  await expect(page.getByText(/evidence object|sentence that splits|classified →|workflow reconstructed/i)).toHaveCount(0);
+  await expect(page.locator(".chapter-two-evidence, .sentence-fork")).toHaveCount(0);
 });
 
-test("Chapter 2 enhances into disjoint width-axis beats on a tall viewport", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1100 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/work/chapter-2");
-  const object = page.locator(".chapter-two-evidence");
-  await expect(object).toHaveClass(/is-motion-ready/);
-  const journeyRatio = await object.evaluate((element) =>
-    (element as HTMLElement).offsetHeight / window.innerHeight,
-  );
-  expectWithin(journeyRatio, 2.4, 0.05);
-
-  await setSectionProgress(page, ".chapter-two-evidence", 0.17);
-  await expect.poll(() => customProperty(object, "--routine-axis")).toBeCloseTo(111, 0);
-  expectWithin(await customProperty(object, "--routine-arrive"), 0.5, 0.05);
-  expectWithin(await customProperty(object, "--judgment-axis"), 100, 0.75);
-
-  await setSectionProgress(page, ".chapter-two-evidence", 0.35);
-  expectWithin(await customProperty(object, "--routine-axis"), 122, 0.75);
-  expectWithin(await customProperty(object, "--judgment-axis"), 86, 1);
-  expectWithin(await customProperty(object, "--judgment-arrive"), 0.5, 0.05);
-  expectWithin(
-    await customProperty(object.locator("[data-workflow-step]").first(), "--step-axis"),
-    72,
-    0.75,
-  );
-
-  await setSectionProgress(page, ".chapter-two-evidence", 0.51);
-  expectWithin(
-    await customProperty(object.locator("[data-workflow-step]").nth(0), "--step-axis"),
-    86,
-    1,
-  );
-  expectWithin(
-    await customProperty(object.locator("[data-workflow-step]").nth(1), "--step-axis"),
-    72,
-    0.75,
-  );
-
-  await setSectionProgress(page, ".chapter-two-evidence", 0.68);
-  expectWithin(
-    await customProperty(object.locator("[data-workflow-step]").nth(1), "--step-axis"),
-    100,
-    0.75,
-  );
-  expectWithin(
-    await customProperty(object.locator("[data-workflow-step]").nth(2), "--step-axis"),
-    86,
-    1,
-  );
-  expectWithin(
-    await customProperty(object.locator("[data-workflow-step]").nth(3), "--step-axis"),
-    72,
-    0.75,
-  );
-
-  await setSectionProgress(page, ".chapter-two-evidence", 0.98);
-  expectWithin(await customProperty(object, "--chapter-figures-axis"), 100, 0.75);
-  expectWithin(await customProperty(object, "--chapter-figures-arrive"), 1, 0.02);
-  const finalSteps = await object.locator("[data-workflow-step]").evaluateAll((steps) =>
-    steps.map((step) => Number.parseFloat(getComputedStyle(step).getPropertyValue("--step-axis"))),
-  );
-  expect(finalSteps.every((axis) => Math.abs(axis - 100) <= 0.75)).toBe(true);
-});
-
-test("Chapter 2 no-JavaScript fallback does not hide the reconstructed record", async ({ browser }) => {
+test("case studies keep the complete editorial record without JavaScript", async ({ browser }) => {
   const context = await browser.newContext({
     javaScriptEnabled: false,
     reducedMotion: "reduce",
     viewport: { width: 1005, height: 900 },
   });
   const page = await context.newPage();
-  await page.goto("/work/chapter-2");
-  const object = page.locator(".chapter-two-evidence");
-  await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
-  await expect(object.locator(".fork-branches > div")).toHaveCount(2);
-  await expect(object.locator("[data-workflow-step]")).toHaveCount(5);
-  await expect(object.locator(".evidence-disclosure")).toBeVisible();
+  for (const route of ["/work/zalando", "/work/chapter-2"]) {
+    await page.goto(route);
+    await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
+    await expect(page.locator('[aria-label="How the operating system worked"] ol > li')).toHaveCount(5);
+    await expect(page.getByText("The outcome", { exact: true })).toBeVisible();
+  }
   await context.close();
 });
 
-test("Systems exposes a labelled maturity channel and semantic index", async ({ page }) => {
+test("Home and Systems use one continuous white editorial ground", async ({ page }) => {
+  await gotoReduced(page, "/");
+  await expect(page.locator(".systems-bridge")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+
+  await gotoReduced(page, "/building");
+  await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator(".site-header")).toHaveCSS("color", "rgb(16, 20, 16)");
+  await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
+});
+
+test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.getByRole("heading", { name: "Systems.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "System state / width is maturity" })).toBeVisible();
-  await expect(page.locator(".maturity-rows strong")).toHaveText([
-    "In production",
-    "Shipped",
-    "In the lab",
-  ]);
-  await expect(page.locator(".maturity-rows .record")).toHaveText([
-    "wdth 100 · live",
-    "wdth 92",
-    "wdth 82",
-  ]);
-  await expect(page.locator(".maturity-rows .is-production strong"))
-    .toHaveCSS("font-variation-settings", /"wdth" 100/);
-  await expect(page.locator(".maturity-rows .is-shipped strong"))
-    .toHaveCSS("font-variation-settings", /"wdth" 92/);
-  await expect(page.locator(".maturity-rows .is-prototype strong"))
-    .toHaveCSS("font-variation-settings", /"wdth" 82/);
-  await expect(page.locator(".live-node").first()).toHaveCSS("background-color", "rgb(63, 160, 108)");
-
-  await expect(page.getByRole("heading", { name: "Four domains. One operating story." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
   for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeAttached();
   }
@@ -710,7 +555,7 @@ test("Systems exposes a labelled maturity channel and semantic index", async ({ 
     /"wdth" 100/,
   );
 
-  const workshop = page.getByText("More from the workshop", { exact: true }).locator("..");
+  const workshop = page.getByText("More projects", { exact: true }).locator("..");
   await expect(workshop.locator("article")).toHaveCount(2);
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
@@ -729,8 +574,8 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   await page.goto("/building");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator(".maturity-rows strong")).toHaveCount(3);
-  await expect(page.getByRole("heading", { name: "Four domains. One operating story." })).toBeVisible();
+  await expect(page.locator(".maturity-rows")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();
   await expect(page.locator("#ivy")).toBeAttached();
   await context.close();

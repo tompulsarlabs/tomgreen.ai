@@ -1,5 +1,9 @@
 # Load-Bearing Type P0 — system-design retrospective report
 
+> **Archive status:** this report reviews a superseded implementation. Its evidence remains useful
+> history, but the dark route and evidence-object direction was later rejected in product review.
+> `DESIGN-MOTION.md` is the current contract.
+
 Date: 27 August 2026
 Repository: `tompulsarlabs/tomgreen.ai`
 Review branch: `codex/load-bearing-type` (P0 commit `f709fc0`)

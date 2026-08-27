@@ -29,12 +29,6 @@ export type CaseStudy = {
   /** What Tom actually did/built — the narrative core. */
   body: string[];
   metrics: Metric[];
-  /** Verified figures repeated inside a typeset evidence object. */
-  evidenceMetrics?: Metric[];
-  /** Authored content used by a reconstructed evidence object. */
-  evidenceSummary?: string;
-  evidenceCountries?: string[];
-  evidenceRoleFamilies?: string[];
   /** What this proves about the positioning. */
   demonstrates: string;
   tier: "flagship" | "supporting" | "current" | "foundation";
@@ -66,32 +60,11 @@ export const caseStudies: CaseStudy[] = [
       { value: "+21%", label: "Offer acceptance" },
       { value: "1,000+", label: "Interviewers trained" },
     ],
-    evidenceMetrics: [
-      { value: "0 → 120", label: "AI organisation in six months" },
-      { value: "−32%", label: "Time to Hire" },
-      { value: "+21%", label: "Offer acceptance" },
-      { value: "1,000+", label: "Interviewers trained" },
-    ],
-    evidenceSummary:
-      "Zero to a 120-person cross-functional AI organisation across four countries in six months.",
-    evidenceCountries: ["Germany", "Ireland", "Switzerland", "Finland"],
-    evidenceRoleFamilies: [
-      "Machine Learning Engineer",
-      "Research Scientist",
-      "Product Manager",
-      "Data Engineer",
-      "Applied Scientist",
-      "Engineering Manager",
-      "Product Designer",
-      "ML Platform Engineer",
-      "Technical Program Manager",
-      "Research Engineer",
-    ],
     demonstrates:
       "Scale and speed at the executive level: building an entire AI organisation, not filling roles.",
     tier: "flagship",
     system: {
-      eyebrow: "Reconstructed operating model",
+      eyebrow: "Operating model",
       title: "A talent system built around the organisation—not a list of vacancies.",
       description:
         "The build linked capability planning, market entry, leadership search, talent pipelines and interviewer quality into one operating loop across four countries.",
@@ -143,7 +116,7 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     evidenceNote:
-      "Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
+      "Metrics are drawn from the project records for this work; selected references and supporting context are available privately.",
   },
   {
     slug: "chapter-2",
@@ -166,17 +139,11 @@ export const caseStudies: CaseStudy[] = [
       { value: "4 countries", label: "Recruiting programmes led" },
       { value: "3 roles", label: "Shared-service reliance removed" },
     ],
-    evidenceMetrics: [
-      { value: "1 person", label: "Runs EU People Ops" },
-      { value: "3 roles", label: "UK shared-service reliance removed" },
-      { value: "€3.6M", label: "EMEA P&L" },
-      { value: "€2.5M", label: "ARR won in year one" },
-    ],
     demonstrates:
       "Commercial leadership and operating design in the same role: grow the business, then redesign the work behind it.",
     tier: "flagship",
     system: {
-      eyebrow: "Reconstructed service workflow",
+      eyebrow: "People Ops workflow",
       title: "Repeatable work moved to agents. Sensitive decisions stayed with people.",
       description:
         "Agents handle the routine work and keep a record of what happened. A person steps in for exceptions, approvals and decisions that affect people.",
@@ -228,7 +195,7 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     evidenceNote:
-      "Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
+      "Metrics are drawn from the project records for this work; selected references are available privately.",
   },
   {
     slug: "audibene",

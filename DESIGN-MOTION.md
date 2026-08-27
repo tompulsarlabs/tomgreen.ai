@@ -1,10 +1,11 @@
-# tomgreen.ai — Load-Bearing Type contract
+# tomgreen.ai — Clean editorial type contract
 
 ## Thesis
 
-Typography behaves like an organisation under load. Archivo’s `wdth` axis is the expressive
-channel: `62` constraint, `82` prototype, `92` index rest, `100` resolved, `106` masthead and
-`125` release. Display weight never animates.
+The site explains Tom's work, not its own design system. Archivo’s `wdth` axis remains the quiet
+motion channel: `62` constraint, `82` prototype, `92` index rest, `100` resolved, `106` masthead
+and `125` release. Those values are implementation details and never appear as visitor-facing
+labels. Display weight never animates.
 
 ## Type
 
@@ -17,9 +18,11 @@ channel: `62` constraint, `82` prototype, `92` index rest, `100` resolved, `106`
 
 - Paper `#fff`; ink `#101410`; reading `#4f554d`; ghost `#b9bdb4`; hairline `#deded8`.
 - Live green `#3fa06c` means running in production only.
-- Clay `#e45b3d` marks reconstruction/evidence and is paired with a text label.
+- Clay `#e45b3d` marks a small case/source annotation and never becomes a decorative field.
 - Twelve columns, 1360px max, 24px gutters, 6vw margins, 8px baseline.
-- Display blocks are left-set. The right third is reserved for evidence, annotation or air.
+- Every route and section uses the white paper ground. Near-black is reserved for type, rules and
+  compact controls; there are no full-width dark bands or inverted routes.
+- Display blocks are left-set. The right third is reserved for content or air.
 
 ## Motion
 
@@ -31,25 +34,32 @@ channel: `62` constraint, `82` prototype, `92` index rest, `100` resolved, `106`
 
 ## Route rules
 
-- Home: type resolve, verified proof, Work bridge, one dark Systems band, contact.
+- Home: type resolve, selected outcomes, Work bridge, white Systems bridge, contact.
 - Work: six full-row links; hover and focus both resolve `92→100`.
-- Zalando: company masthead plus Evidence Object 1, truthful reconstructed structure and the
-  canonical evidence note in the object's own frame.
-- Chapter 2: Evidence Object 2 splits governed agent work from accountable human judgment, using
-  the five content-module workflow steps and verified footer only.
-- Systems: dark route, truthful `running 100 / shipped 92 / in the lab 82` maturity widths and a
-  semantic index. The maturity channel is the visual centerpiece; there is no separate object.
+- Every case study: company masthead, verified metrics, challenge, work, a linear operating model,
+  key decisions, outcome, source note and next action.
+- Zalando and Chapter 2 use that same editorial structure. There are no special “Evidence Object,”
+  “typeset,” role-crowd, sentence-fork or month-ruler treatments.
+- Systems: white route and complete semantic index. Running, shipped and lab status remains plain
+  content attached to the relevant record; typography never explains itself.
 - About: local-only linear career record; no corridor.
 - Contact: direct mailto remains primary.
 
 ## Systems composition
 
-- The title, short explanation and three maturity rows form one full-width composition on the
-  shared `#101410` ground.
-- Width is the information channel and the visual identity: production `100`, shipped `92`, lab
-  `82`, each paired with a visible text label.
+- The title and short explanation lead directly into four editorial content domains.
+- Status is stated in words on the relevant project. Width may reinforce hierarchy, but no axis
+  value or maturity legend is shown to visitors.
 - There is no canvas, WebGL, poster, 3D metaphor or decorative replacement. Mobile, reduced
   motion and no JavaScript therefore retain the same complete composition without a fallback fork.
+
+## Rejected patterns
+
+The Fable handoff’s dark Systems route, “Evidence Object” framing, “The build, typeset” title,
+generic role crowd, M01–M06 ruler, organisation reconstruction and Chapter 2 sentence fork were
+tested in implementation and rejected in product review. They exposed design-process language,
+slowed comprehension and competed with the verified work. They must not be reintroduced without
+a new explicit product decision.
 
 ## Cut list
 

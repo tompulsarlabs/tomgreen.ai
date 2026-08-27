@@ -1,5 +1,9 @@
 # Fable system-design retrospective: Load-Bearing Type P0
 
+> **Archive status:** this was the input to the 27 August retrospective. Its dark route,
+> evidence-object and procedural-object assumptions were later tested and rejected in product
+> review. `DESIGN-MOTION.md` and `docs/IMPLEMENTATION-REPORT.md` are authoritative.
+
 Date: 27 August 2026
 Repository: `tompulsarlabs/tomgreen.ai`
 Review branch: `codex/load-bearing-type`

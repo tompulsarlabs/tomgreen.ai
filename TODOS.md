@@ -1,38 +1,27 @@
-# Load-Bearing Type follow-ups
+# Clean editorial follow-ups
 
-Fable accepted P0 with corrections. The current branch folds those corrections into the first
-fully agentic P1 slice. Do not substitute invented assets, figures or evidence.
+The white editorial flow is authoritative. Do not reintroduce the rejected Fable artifacts,
+visitor-facing typography values, dark route, synthetic assets or invented evidence.
 
 ## Current branch
 
-- [x] Remove the rejected procedural Systems object and promote the truthful type-led maturity
-  channel to the full-width centerpiece.
-- [x] Build Chapter 2 Evidence Object 2 from the five existing workflow steps and verified
-  footer.
-- [x] Retype the local About career line in the width-axis record grammar.
-- [x] Finish and verify the Fable correction pass across Home motion scheduling, route-transition
-  continuity, Zalando evidence integrity, Systems coherence and the identified accessibility floor
-  regressions.
-- [x] Run lint, typecheck, unit tests, the optimized production build and the full
-  Playwright/accessibility suite against the completed branch.
-- [x] Visually QA 1440, 1005, 768 and 390px, reduced motion and no JavaScript;
-  replace the review captures.
-- [x] Close or record every remaining Fable P0/P1 correction before publishing the review branch.
+- [x] Use white ground on every route and full-width section.
+- [x] Remove the procedural Systems object and visitor-facing maturity legend.
+- [x] Remove Zalando’s role crowd, organisation reconstruction, “typeset” title and M01–M06 ruler.
+- [x] Remove Chapter 2’s sentence fork and evidence-object animation.
+- [x] Put verified metrics under both flagship mastheads.
+- [x] Give both flagship stories one linear case-study and operating-model structure.
+- [x] Preserve all approved copy, metrics, evidence notes and deployment constraints.
+- [x] Capture 1440, 1005, 768 and 390px plus reduced-motion and no-JavaScript review states.
+- [x] Run lint, typecheck, unit tests, production build and the full Playwright/accessibility suite.
 
-## Rights-dependent work
+## Exact P1
 
-- [ ] Add a lazy redacted-artifact layer only after artifact selection, rights verification,
-  claim-by-claim review and exact reconstruction/provenance labels.
-- [ ] Add a genuine portrait only if Tom supplies a publication-cleared source; otherwise keep
-  the completed type-led About masthead. Do not generate a synthetic likeness.
+- [ ] Product-review Home, Work, Zalando, Chapter 2 and Systems at 390 and 1440px.
+- [ ] Simplify and polish the surviving width/route motion without adding a visual object.
+- [ ] Apply the shared hierarchy polish to all four supporting case studies.
+- [ ] Complete Firefox, Safari 16+, 404/OG, font/preload and post-deploy Web-Vitals checks.
+- [ ] Add a genuine portrait or artifact only if an existing rights-cleared source materially
+  improves comprehension; otherwise retain the clean type-led composition.
 
-## Inputs still required from Tom
-
-- Artifact selection, legal clearance and claim-by-claim approval if the artifact layer should
-  proceed.
-- An existing genuine portrait with publication rights only if the optional portrait remains in
-  scope.
-
-Systems has no 3D asset or external production dependency. The next bounded work is rights review for optional
-artifacts, optional supplied-portrait integration, real Safari/iOS/hardware verification, and the
-agentic P2 timing/easing pass.
+No external artist or motion specialist is required.

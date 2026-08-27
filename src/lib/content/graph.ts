@@ -42,7 +42,7 @@ export const clusters: Record<
 > = {
   companies: {
     label: "Where I’ve worked",
-    eyebrow: "Evidence in context",
+    eyebrow: "Work in context",
     blurb:
       "The organisations, businesses and operating environments where the outcomes were built.",
   },

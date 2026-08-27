@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
 
 const routeMeta = [
-  { match: "/work", index: "01", label: "Evidence" },
+  { match: "/work", index: "01", label: "Work" },
   { match: "/building", index: "02", label: "Systems" },
   { match: "/about", index: "03", label: "Through-line" },
   { match: "/contact", index: "04", label: "Contact" },
@@ -19,7 +19,6 @@ function PendingMark() {
 
 export function SiteHeader({ showAbout }: { showAbout: boolean }) {
   const pathname = usePathname();
-  const isSystems = pathname === "/building";
   const [progress, setProgress] = useState(0);
   const stableScrollY = useRef(0);
   const current =
@@ -58,11 +57,7 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
 
   return (
     <header
-      className={`site-header sticky top-0 z-40 h-[var(--site-header-h)] transition-colors ${
-        isSystems
-          ? "site-header-dark bg-[#101410] text-[#f4f4ef]"
-          : "bg-paper/94 text-ink"
-      }`}
+      className="site-header sticky top-0 z-40 h-[var(--site-header-h)] bg-paper/94 text-ink transition-colors"
       onFocusCapture={preserveScrollOnHeaderFocus}
     >
       <div
@@ -79,8 +74,8 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
           <span aria-hidden className="brand-signal h-8 w-1.5 bg-current sm:h-10" />
         </Link>
         <div className="ml-1 hidden min-w-0 border-l border-current/16 pl-4 sm:block">
-          <p className={`font-mono text-[0.58rem] uppercase tracking-[0.18em] ${isSystems ? "text-[#b9bdb4]" : "text-ink-secondary"}`}>
-            Field / {current.index}
+          <p className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-ink-secondary">
+            Section / {current.index}
           </p>
           <p className="mt-1 truncate text-[0.68rem] uppercase tracking-[0.13em]">
             {current.label}
@@ -88,9 +83,7 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
         </div>
         <nav
           aria-label="Primary navigation"
-          className={`col-start-3 row-start-1 ml-auto flex items-center gap-3 text-xs sm:gap-5 sm:text-sm ${
-            isSystems ? "text-[#b9bdb4]" : "text-ink-secondary"
-          }`}
+          className="col-start-3 row-start-1 ml-auto flex items-center gap-3 text-xs text-ink-secondary sm:gap-5 sm:text-sm"
         >
           {site.nav.filter((item) => showAbout || item.href !== "/about").map((item) => {
             const isCurrent =
@@ -102,9 +95,7 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
                 key={item.href}
                 href={item.href}
                 aria-current={isCurrent ? "page" : undefined}
-                className={`nav-link inline-flex min-h-11 items-center transition-colors ${
-                  isSystems ? "hover:text-[#f4f4ef]" : "hover:text-ink"
-                }`}
+                className="nav-link inline-flex min-h-11 items-center transition-colors hover:text-ink"
               >
                 {item.label}
                 <PendingMark />

@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CaseStudySystem } from "@/components/case-study-system";
-import { ChapterTwoEvidenceObject } from "@/components/chapter-two-evidence-object";
 import { Reveal } from "@/components/reveal";
-import { ZalandoEvidenceObject } from "@/components/zalando-evidence-object";
 import { caseStudies, getCaseStudy } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
@@ -47,12 +45,12 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <header className="case-opening relative left-1/2 w-screen -translate-x-1/2">
         <div className="mx-auto max-w-[1360px] px-[max(22px,6vw)] py-12 md:py-20">
           <Link href="/work" className="record inline-flex min-h-11 items-center hover:underline">
-            ← Evidence index
+            ← All work
           </Link>
           <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(16rem,0.42fr)_minmax(0,1.58fr)] lg:items-end">
             <div>
               <p className="record evidence-mark">
-                Operating record / {String(index + 1).padStart(2, "0")}
+                Case study / {String(index + 1).padStart(2, "0")}
               </p>
               <p className="mt-5 max-w-xs text-sm leading-relaxed text-ink-secondary">
                 {study.role}<br />{study.period}
@@ -70,7 +68,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
             </div>
           </div>
 
-          {study.metrics.length > 0 && study.slug !== "zalando" && study.slug !== "chapter-2" && (
+          {study.metrics.length > 0 && (
             <dl
               className="mt-12 grid grid-cols-2 gap-x-6 gap-y-7 border-t border-ink pt-7 md:grid-cols-4"
             >
@@ -85,29 +83,11 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
         </div>
       </header>
 
-      {study.slug === "zalando" && study.evidenceNote && (
-        <ZalandoEvidenceObject
-          countries={study.evidenceCountries ?? []}
-          evidenceNote={study.evidenceNote}
-          metrics={study.evidenceMetrics ?? study.metrics}
-          roleFamilies={study.evidenceRoleFamilies ?? []}
-          summary={study.evidenceSummary ?? study.summary}
-        />
-      )}
-
-      {study.slug === "chapter-2" && study.evidenceNote && study.system && (
-        <ChapterTwoEvidenceObject
-          evidenceNote={study.evidenceNote}
-          metrics={study.evidenceMetrics ?? study.metrics}
-          steps={study.system.steps}
-        />
-      )}
-
       <Reveal>
         <section aria-labelledby="mandate-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
-            <p className="record text-muted">01 · The mandate</p>
-            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">The problem worth solving.</h2>
+            <p className="record text-muted">The challenge</p>
+            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">What needed to change.</h2>
           </div>
           <p className="max-w-2xl text-lg leading-relaxed text-ink-secondary">{study.context}</p>
         </section>
@@ -116,8 +96,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <Reveal>
         <section aria-labelledby="work-built-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
-            <p className="record text-muted">02 · What I built and led</p>
-            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">Decisions, not theatre.</h2>
+            <p className="record text-muted">What I did</p>
+            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">What I built and led.</h2>
           </div>
           <div className="flex max-w-2xl flex-col gap-6 text-lg leading-relaxed text-ink-secondary">
             {study.body.map((paragraph, paragraphIndex) => (
@@ -127,7 +107,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
         </section>
       </Reveal>
 
-      {study.system && study.slug !== "chapter-2" && (
+      {study.system && (
         <Reveal>
           <section aria-label="How the operating system worked" className="relative left-1/2 w-screen max-w-[90rem] -translate-x-1/2 px-0 md:px-6">
             <CaseStudySystem system={study.system} />
@@ -139,8 +119,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
         <Reveal>
           <section aria-labelledby="judgment-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
             <div>
-              <p className="record text-muted">03 · Tradeoffs and judgment</p>
-              <h2 id="judgment-heading" className="axis-index mt-3 text-3xl">The choices that shaped the system.</h2>
+              <p className="record text-muted">Key decisions</p>
+              <h2 id="judgment-heading" className="axis-index mt-3 text-3xl">The choices that shaped it.</h2>
             </div>
             <ol className="border-t border-hairline">
               {study.decisions.map((decision, decisionIndex) => (
@@ -161,16 +141,14 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
 
       <Reveal>
         <section className="grid gap-8 border-y border-ink py-10 lg:grid-cols-[0.68fr_1.32fr]">
-          <p className="record">
-            {study.system ? "04" : "03"} · What changed
-          </p>
+          <p className="record">The outcome</p>
           <div>
             <p className="axis-index max-w-3xl text-2xl leading-snug md:text-3xl">
               {study.system?.outcome ?? study.demonstrates}
             </p>
             {study.evidenceNote && (
               <p className="mt-6 max-w-2xl border-t border-hairline pt-4 text-xs leading-relaxed text-muted">
-                Evidence note · {study.evidenceNote}
+                Source note · {study.evidenceNote}
               </p>
             )}
           </div>
@@ -180,7 +158,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <Reveal>
         <footer className="grid gap-10 lg:grid-cols-[1fr_1fr]">
           <Link href={`/work/${next.slug}`} className="group border-t border-hairline py-6 hover:border-ink">
-            <p className="record text-muted">Next story</p>
+            <p className="record text-muted">Next case study</p>
             <p className="axis-index mt-3 text-2xl leading-tight group-hover:underline">
               {next.company} — {next.headline}
             </p>

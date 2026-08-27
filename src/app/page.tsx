@@ -6,15 +6,15 @@ import { site } from "@/lib/content/site";
 
 export default function Home() {
   const flagship = caseStudies.filter((study) => study.tier === "flagship");
-  const proof = caseStudies.find((study) => study.slug === "zalando")?.evidenceMetrics ?? [];
+  const proof = caseStudies.find((study) => study.slug === "zalando")?.metrics ?? [];
 
   return (
     <div className="home-page">
       <HomeResolve />
 
       <Reveal>
-        <section aria-label="Verified proof" className="proof-band">
-          <p className="record proof-label">Verified proof / 01</p>
+        <section aria-label="Selected outcomes" className="proof-band">
+          <p className="record proof-label">Selected outcomes</p>
           <dl>
             {proof.map((metric) => (
               <div key={metric.label}>
@@ -29,7 +29,7 @@ export default function Home() {
       <Reveal>
         <section aria-labelledby="work-bridge-title" className="work-bridge">
           <div className="bridge-intro">
-            <p className="record">Evidence / 02</p>
+            <p className="record">Selected work</p>
             <h2 id="work-bridge-title" className="axis-heading">The outcome. The system behind it.</h2>
           </div>
           <div className="bridge-records">
@@ -50,20 +50,20 @@ export default function Home() {
 
       <Reveal>
         <section aria-labelledby="systems-bridge-title" className="systems-bridge">
-          <p className="record">Systems / 03</p>
+          <p className="record">Systems</p>
           <div>
             <h2 id="systems-bridge-title" className="axis-heading">The operating model is the product.</h2>
             <p>
-              Explore the agents, products, talent systems and craft behind the outcomes as one inspectable operating record.
+              Explore the agents, products, talent systems and practical work behind the outcomes.
             </p>
-            <Link href="/building" className="action action-invert">Explore the systems →</Link>
+            <Link href="/building" className="action action-dark">Explore the systems →</Link>
           </div>
         </section>
       </Reveal>
 
       <Reveal>
         <section id="contact" aria-labelledby="contact-heading" className="home-contact">
-          <p className="record">Work together / 04</p>
+          <p className="record">Work together</p>
           <div>
             <h2 id="contact-heading" className="axis-heading">
               Building the team, or the operating model behind it?

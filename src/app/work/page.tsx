@@ -13,7 +13,7 @@ export default function WorkIndex() {
   return (
     <div className="work-index-page">
       <header className="work-index-header">
-        <p className="record">Evidence / selected operating records</p>
+        <p className="record">Case studies</p>
         <h1 className="axis-display">Selected work.</h1>
         <p>
           Organisation building, operating-model design, product operations and founder economics, under real constraints.
@@ -27,8 +27,8 @@ export default function WorkIndex() {
       </section>
 
       <aside className="work-index-next">
-        <p className="record">Next / inspect the method</p>
-        <p className="axis-heading">Want the operating logic, not just the result?</p>
+        <p className="record">Behind the work</p>
+        <p className="axis-heading">See the products, agents and operating models.</p>
         <Link href="/building" className="action action-light">Explore the systems →</Link>
       </aside>
     </div>

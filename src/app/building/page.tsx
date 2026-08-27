@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
 
-export const viewport: Viewport = { themeColor: "#101410" };
+export const viewport: Viewport = { themeColor: "#ffffff" };
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
@@ -39,7 +39,7 @@ function RecordLink({ node }: { node: GraphNode }) {
 
   return external ? (
     <a href={node.href} target="_blank" rel="noreferrer" className={className}>
-      {node.kind === "content" ? "Read on Substack ↗" : "Inspect the system ↗"}
+      {node.kind === "content" ? "Read on Substack ↗" : "View project ↗"}
     </a>
   ) : (
     <Link href={node.href} className={className}>
@@ -97,7 +97,7 @@ export default function Building() {
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
         <div className="systems-hero-copy">
-          <p className="record">Systems / structure under load</p>
+          <p className="record">Systems</p>
           <div className="systems-title-row">
             <h1 id="systems-title" className="axis-display">Systems.</h1>
             <p className="systems-lead">
@@ -105,37 +105,20 @@ export default function Building() {
             </p>
           </div>
 
-          <section className="maturity-index" aria-labelledby="maturity-heading">
-            <h2 id="maturity-heading" className="record">System state / width is maturity</h2>
-            <div className="maturity-rows">
-              <div className="is-production">
-                <span className="live-node" aria-hidden />
-                <strong>In production</strong><span className="record">wdth 100 · live</span>
-              </div>
-              <div className="is-shipped">
-                <span className="maturity-tick" aria-hidden />
-                <strong>Shipped</strong><span className="record">wdth 92</span>
-              </div>
-              <div className="is-prototype">
-                <span className="maturity-tick" aria-hidden />
-                <strong>In the lab</strong><span className="record">wdth 82</span>
-              </div>
-            </div>
-          </section>
         </div>
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
-        <p className="record text-muted">The systems index</p>
+        <p className="record text-muted">Explore</p>
         <div>
           <h2
             id="systems-index-heading"
             className="axis-heading max-w-3xl"
           >
-            Four domains. One operating story.
+            The work behind the outcomes.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method inspectable. Writing turns the lessons into something others can use.
+            Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method tangible. Writing turns the lessons into something others can use.
           </p>
         </div>
       </section>
@@ -177,7 +160,7 @@ export default function Building() {
       })}
 
       <section className="grid gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
-        <p className="record text-muted">More from the workshop</p>
+        <p className="record text-muted">More projects</p>
         <div className="grid gap-x-8 md:grid-cols-2">
           {projects
             .filter((project) => !sceneIds.has(project.slug))
@@ -200,7 +183,7 @@ export default function Building() {
                     rel="noreferrer"
                     className="mt-3 inline-flex min-h-11 items-center text-sm text-accent hover:underline"
                   >
-                    Inspect the system ↗
+                    View project ↗
                   </a>
                 )}
               </article>

@@ -49,7 +49,11 @@ async function gotoSettled(page, route) {
   await page.goto(`${baseURL}${route}`, { waitUntil: "load" });
   await page.locator(".site-main").waitFor({ state: "visible" });
   await waitForFonts(page);
-  await page.waitForFunction(() => document.documentElement.classList.contains("route-entering"));
+  await page.waitForFunction(
+    () => document.documentElement.classList.contains("route-entering"),
+    undefined,
+    { timeout: 5_000 },
+  ).catch(() => {});
   await waitForNextPaint(page);
   await waitForCssMotion(page);
   await page.waitForFunction(() => !document.documentElement.classList.contains("route-entering"));
@@ -86,7 +90,17 @@ async function scrollSectionToStart(page, selector) {
     window.scrollTo(0, Math.max(0, top - headerHeight - 16));
   });
   await waitForNextPaint(page);
-  await waitForCssMotion(page, selector);
+  await page.waitForFunction((target) => {
+    const element = document.querySelector(target);
+    const reveal = element?.closest(".reveal");
+    return !reveal || reveal.classList.contains("is-visible");
+  }, selector);
+  await page.locator(selector).evaluate(async (element) => {
+    const animatedRoot = element.closest(".reveal") ?? element;
+    await Promise.allSettled(
+      animatedRoot.getAnimations({ subtree: true }).map((animation) => animation.finished),
+    );
+  });
 }
 
 const viewports = [
@@ -117,43 +131,18 @@ const reviewPage = await reviewContext.newPage();
 await gotoSettled(reviewPage, "/work");
 await reviewPage.screenshot({ path: `${output}/work-1440.png` });
 await gotoSettled(reviewPage, "/work/zalando");
-await reviewPage.locator(".zalando-evidence.is-motion-ready").waitFor();
-await setSectionProgress(reviewPage, ".zalando-evidence", 0.72);
-await waitForCustomProperty(reviewPage, ".zalando-evidence", "--countries-arrive", 0.95);
-await reviewPage.screenshot({ path: `${output}/zalando-evidence-1440.png` });
-await setSectionProgress(reviewPage, ".zalando-evidence", 0.95);
-await waitForCustomProperty(reviewPage, ".zalando-evidence", "--figures-arrive", 0.95);
-await reviewPage.screenshot({ path: `${output}/zalando-evidence-final-1440.png` });
+await reviewPage.screenshot({ path: `${output}/zalando-1440.png` });
+await scrollSectionToStart(reviewPage, '[aria-label="How the operating system worked"]');
+await reviewPage.screenshot({ path: `${output}/zalando-system-1440.png` });
 await gotoSettled(reviewPage, "/work/chapter-2");
-await scrollSectionToStart(reviewPage, ".chapter-two-evidence");
-await reviewPage.screenshot({ path: `${output}/chapter-two-evidence-1440.png` });
-await reviewPage.locator(".chapter-two-verification").scrollIntoViewIfNeeded();
-await waitForNextPaint(reviewPage);
-await reviewPage.screenshot({ path: `${output}/chapter-two-evidence-footer-1440.png` });
+await reviewPage.screenshot({ path: `${output}/chapter-two-1440.png` });
+await scrollSectionToStart(reviewPage, '[aria-label="How the operating system worked"]');
+await reviewPage.screenshot({ path: `${output}/chapter-two-system-1440.png` });
 await gotoSettled(reviewPage, "/building");
 await reviewPage.screenshot({ path: `${output}/systems-1440.png` });
 await gotoSettled(reviewPage, "/about");
 await reviewPage.screenshot({ path: `${output}/about-1440.png` });
 await reviewContext.close();
-
-const chapterMotionContext = await browser.newContext({
-  viewport: { width: 1440, height: 1100 },
-  reducedMotion: "no-preference",
-});
-const chapterMotionPage = await chapterMotionContext.newPage();
-await gotoSettled(chapterMotionPage, "/work/chapter-2");
-await chapterMotionPage.locator(".chapter-two-evidence.is-motion-ready").waitFor();
-await setSectionProgress(chapterMotionPage, ".chapter-two-evidence", 0.88);
-await waitForCustomProperty(
-  chapterMotionPage,
-  ".chapter-two-evidence [data-workflow-step]:nth-child(5)",
-  "--step-arrive",
-  0.95,
-);
-await chapterMotionPage.screenshot({
-  path: `${output}/chapter-two-motion-1440x1100.png`,
-});
-await chapterMotionContext.close();
 
 const midReviewContext = await browser.newContext({
   viewport: { width: 1005, height: 900 },
@@ -161,10 +150,9 @@ const midReviewContext = await browser.newContext({
 });
 const midReviewPage = await midReviewContext.newPage();
 await gotoSettled(midReviewPage, "/work/zalando");
-await midReviewPage.locator(".zalando-evidence.is-motion-ready").waitFor();
-await setSectionProgress(midReviewPage, ".zalando-evidence", 0.72);
-await waitForCustomProperty(midReviewPage, ".zalando-evidence", "--countries-arrive", 0.95);
-await midReviewPage.screenshot({ path: `${output}/zalando-evidence-1005.png` });
+await midReviewPage.screenshot({ path: `${output}/zalando-1005.png` });
+await scrollSectionToStart(midReviewPage, '[aria-label="How the operating system worked"]');
+await midReviewPage.screenshot({ path: `${output}/zalando-system-1005.png` });
 await gotoSettled(midReviewPage, "/building");
 await midReviewPage.screenshot({ path: `${output}/systems-1005.png` });
 await midReviewContext.close();
@@ -176,6 +164,8 @@ const tabletReviewContext = await browser.newContext({
 const tabletReviewPage = await tabletReviewContext.newPage();
 await gotoSettled(tabletReviewPage, "/building");
 await tabletReviewPage.screenshot({ path: `${output}/systems-768.png` });
+await gotoSettled(tabletReviewPage, "/work/zalando");
+await tabletReviewPage.screenshot({ path: `${output}/zalando-768.png` });
 await tabletReviewContext.close();
 
 const mobileReviewContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -183,11 +173,13 @@ const mobileReviewPage = await mobileReviewContext.newPage();
 await gotoSettled(mobileReviewPage, "/work");
 await mobileReviewPage.screenshot({ path: `${output}/work-390.png` });
 await gotoSettled(mobileReviewPage, "/work/zalando");
-await scrollSectionToStart(mobileReviewPage, ".zalando-evidence");
-await mobileReviewPage.screenshot({ path: `${output}/zalando-evidence-390.png` });
+await mobileReviewPage.screenshot({ path: `${output}/zalando-390.png` });
+await scrollSectionToStart(mobileReviewPage, '[aria-label="How the operating system worked"]');
+await mobileReviewPage.screenshot({ path: `${output}/zalando-system-390.png` });
 await gotoSettled(mobileReviewPage, "/work/chapter-2");
-await scrollSectionToStart(mobileReviewPage, ".chapter-two-evidence");
-await mobileReviewPage.screenshot({ path: `${output}/chapter-two-evidence-390.png` });
+await mobileReviewPage.screenshot({ path: `${output}/chapter-two-390.png` });
+await scrollSectionToStart(mobileReviewPage, '[aria-label="How the operating system worked"]');
+await mobileReviewPage.screenshot({ path: `${output}/chapter-two-system-390.png` });
 await gotoSettled(mobileReviewPage, "/building");
 await mobileReviewPage.screenshot({ path: `${output}/systems-390.png` });
 await gotoSettled(mobileReviewPage, "/about");
@@ -206,7 +198,6 @@ await reducedPage.screenshot({ path: `${output}/home-reduced-motion-1005.png` })
 await gotoSettled(reducedPage, "/building");
 await reducedPage.screenshot({ path: `${output}/systems-reduced-motion-1005.png` });
 await gotoSettled(reducedPage, "/work/zalando");
-await scrollSectionToStart(reducedPage, ".zalando-evidence");
 await reducedPage.screenshot({ path: `${output}/zalando-reduced-motion-1005.png` });
 await reducedContext.close();
 
@@ -219,6 +210,8 @@ await noJsPage.goto(baseURL, { waitUntil: "load" });
 await noJsPage.screenshot({ path: `${output}/home-no-js-1005.png`, fullPage: true });
 await noJsPage.goto(`${baseURL}/building`, { waitUntil: "load" });
 await noJsPage.screenshot({ path: `${output}/systems-no-js-1005.png` });
+await noJsPage.goto(`${baseURL}/work/zalando`, { waitUntil: "load" });
+await noJsPage.screenshot({ path: `${output}/zalando-no-js-1005.png`, fullPage: true });
 await noJsContext.close();
 
 await browser.close();
