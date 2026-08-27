@@ -88,9 +88,10 @@ The five strongest system decisions, each verified by measurement:
    second line), and the new Home JS really is ~2.2KB gzip. The site's credibility argument —
    the claims are inspectable — survives inspection of the claims.
 
-Also worth protecting: the `/about` gating is correctly implemented at a single flag
-(`VERCEL !== "1"`) driving all three surfaces (route 404, sitemap, nav) with unit and contract
-tests; and the 390px Home is a properly proportioned, complete document (32% hero / 8.8% proof /
+Also worth protecting: the `/about` gating is correctly designed at a single flag
+(`VERCEL !== "1"`) driving all three surfaces (route 404, sitemap, nav) — sound on Vercel, where
+the flag is set at build time, though the contract *script* verifies the wrong layer (P1-36);
+and the 390px Home is a properly proportioned, complete document (32% hero / 8.8% proof /
 14.2% Work / 13.2% Systems / 16.1% contact) — the strongest single state of the site.
 
 ---
@@ -493,6 +494,7 @@ acceptance test an implementer can run.
 | P1-33 | light routes | `--accent` is defined as `#101410` = ink: every `hover:text-accent` is a null transition; About company links change 0 of 2,898 pixels on hover | Purge `text-accent` idioms: give real hover affordances from the system (underline, background like `.bridge-record`) — do not mint a third colour (every link has a measurable hover/focus change) |
 | P1-34 | `/about` (local) | Pre-P0 idioms: the journey-line linear-gradient (only element gradient on a light route), 18 `rounded-full` pills, Geist Sans labels where the system uses Mono records; tracking −0.025em vs system −0.055em | In scope of P1 item 4 (About retype): retire gradient/pills/label grammar with the axis retype (zero gradients, zero pills; labels in record voice) |
 | P1-35 | `/` all routes, keyboard | Focusing header links scrolls the document backwards, discarding reading position (scroll-into-view against the sticky header) | `scroll-margin` / focus-scroll suppression on header nav (focusing nav does not change scrollY when header is already visible) |
+| P1-36 | `/about` gate verification | The gate is **build-time**: `/about` is statically prerendered and `isAboutPublic` is baked into the page, sitemap and nav during `next build`. On Vercel this is correct (Vercel sets `VERCEL=1` for the build), but `e2e/verify-vercel-about.mjs` sets `VERCEL=1` only on `next start` against an existing build — measured here: it fails (`/about` → 200) against any non-Vercel build and can only pass against a build that already had the env. The script's pass/fail reports the preceding build's state, not the gate | Make the script rebuild first (`VERCEL=1 next build` to a temp dist, then start and assert), so it verifies the layer the contract lives in (script fails when the gate is removed, passes when present, regardless of the developer's prior build) |
 
 ### 4.3 P2 polish
 
@@ -758,9 +760,16 @@ Facts, fallbacks and implementation choices the next sprint must protect:
 - **Environment limits:** Chromium only; WebGL under SwiftShader (the 1431ms freeze and fps
   figures need re-measurement on hardware GPU; the keyboard/clipping findings are structural and
   reproduce regardless); real-iOS behaviour evidenced by Tom's 17 Pro Max review of production
-  `/building` (27 Aug 2026); `/about`'s live Vercel 404 asserted by code, unit test and the
-  repo's contract script, not re-verified against a deployment from this environment; no
-  production deployment was performed.
+  `/building` (27 Aug 2026); no production deployment was performed.
+- **The `/about` Vercel 404, specifically:** it could not be end-to-end verified from this
+  session — the PR's Vercel preview sits behind Vercel Authentication and this environment's
+  egress policy blocks the deployment host. Attempting the repo's own contract script here
+  *failed* (`/about` → 200 under `VERCEL=1`), which exposed that the gate is build-time (the
+  route is statically prerendered; see P1-36): the gate is sound on Vercel because `VERCEL=1` is
+  set during the build there, but the script as written verifies the preceding build's state
+  rather than the gate, and the implementation report's citation of it should be read
+  accordingly. A one-time manual check of `/about` on the next preview or production deployment
+  is recommended alongside the P1-36 script fix.
 
 **Exit state.** An implementer can start now: §5's P1.0 packages and the two unblocked tranche
 items (Chapter 2 EO2, About retype) carry acceptance tests and need no assets. Tom can unblock
