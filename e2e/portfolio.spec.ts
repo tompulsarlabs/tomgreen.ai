@@ -252,8 +252,10 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
 
 test("Work is a six-row evidence index with clear hierarchy", async ({ page }) => {
   await gotoReduced(page, "/work");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Selected work.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Proof is the system moving.");
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
+  await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
+  await expect(page.locator(".work-metric-rail")).toContainText("ARR won / first year");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(page.getByRole("link", { name: /Zalando/ })).toContainText("2022 – 2025");
   await expect(page.getByRole("link", { name: "Work", exact: true })).toHaveAttribute("aria-current", "page");
