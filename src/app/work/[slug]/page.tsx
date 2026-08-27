@@ -143,8 +143,10 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
         <section className="grid gap-8 border-y border-ink py-10 lg:grid-cols-[0.68fr_1.32fr]">
           <p className="record">The outcome</p>
           <div>
+            {/* The diagram's figcaption already carries system.outcome; this
+                section closes with what the work demonstrates instead. */}
             <p className="axis-index max-w-3xl text-2xl leading-snug md:text-3xl">
-              {study.system?.outcome ?? study.demonstrates}
+              {study.demonstrates}
             </p>
             {study.evidenceNote && (
               <p className="mt-6 max-w-2xl border-t border-hairline pt-4 text-xs leading-relaxed text-muted">

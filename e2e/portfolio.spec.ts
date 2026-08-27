@@ -63,6 +63,22 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
 
+test("Home restores the live execution record with its methodology caveat", async ({ page }) => {
+  await gotoReduced(page, "/");
+  const proof = page.getByRole("region", { name: "Execution in public" }).or(
+    page.locator("section", { has: page.getByRole("heading", { name: "I build—and ship—at speed." }) }),
+  ).first();
+  await expect(page.getByRole("heading", { name: "I build—and ship—at speed." })).toBeVisible();
+  await expect(page.getByText("Ship streak", { exact: true })).toBeVisible();
+  await expect(page.getByText(/A ship day is verified, non-bot work on a real project/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Inspect Ivy and the shipping record/ })).toHaveAttribute(
+    "href",
+    "https://github.com/tompulsarlabs/ivy",
+  );
+  await expect(page.locator(".proof-band")).toContainText("Zalando");
+  await expect(page.getByRole("link", { name: "From the flagship case study →" })).toBeVisible();
+});
+
 test("Home owns one width-axis cluster at each scroll checkpoint", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -482,7 +498,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
     "AI organisation",
   ]);
   await expect(page.getByText(
-    "Source note · Metrics are drawn from the project records for this work; selected references and supporting context are available privately.",
+    "Source note · Metrics are drawn from the project records for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
@@ -504,7 +520,7 @@ test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => 
   ]);
   await expect(system.getByText("Human judgment", { exact: true })).toBeVisible();
   await expect(page.getByText(
-    "Source note · Metrics are drawn from the project records for this work; selected references are available privately.",
+    "Source note · Metrics are drawn from the project records for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|sentence that splits|classified →|workflow reconstructed/i)).toHaveCount(0);

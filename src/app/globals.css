@@ -280,6 +280,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .proof-band dl > div:first-child { border-left: 0; padding-left: 0; }
 .proof-band dd { order: -1; font-size: clamp(2rem, 4vw, 4rem); }
 .proof-band dt { margin-top: 0.75rem; font-size: 0.78rem; line-height: 1.5; color: var(--ink-secondary); }
+.proof-source { display: inline-flex; min-height: 44px; align-items: center; margin-top: 0.5rem; font-size: 0.875rem; text-decoration: underline; text-underline-offset: 4px; }
+.proof-source:hover, .proof-source:focus-visible { text-decoration: none; }
 
 .work-bridge, .home-contact { display: grid; grid-template-columns: 0.65fr 1.35fr; gap: clamp(2rem, 6vw, 6rem); }
 .bridge-intro .axis-heading { max-width: 10ch; margin-top: 1.25rem; }

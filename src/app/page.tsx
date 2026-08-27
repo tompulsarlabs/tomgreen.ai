@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { HomeResolve } from "@/components/home-resolve";
+import { ProofStrip } from "@/components/proof-strip";
 import { Reveal } from "@/components/reveal";
+import { getContributions } from "@/lib/data/github";
+import { getIvyState } from "@/lib/data/ivy";
 import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
-export default function Home() {
+export const revalidate = 3600;
+
+export default async function Home() {
   const flagship = caseStudies.filter((study) => study.tier === "flagship");
-  const proof = caseStudies.find((study) => study.slug === "zalando")?.metrics ?? [];
+  const zalando = caseStudies.find((study) => study.slug === "zalando");
+  const proof = zalando?.metrics ?? [];
+  const [contributions, ivy] = await Promise.all([getContributions(), getIvyState()]);
 
   return (
     <div className="home-page">
@@ -14,7 +21,9 @@ export default function Home() {
 
       <Reveal>
         <section aria-label="Selected outcomes" className="proof-band">
-          <p className="record proof-label">Selected outcomes</p>
+          <p className="record proof-label">
+            Selected outcomes · {zalando?.company}, {zalando?.period}
+          </p>
           <dl>
             {proof.map((metric) => (
               <div key={metric.label}>
@@ -23,6 +32,9 @@ export default function Home() {
               </div>
             ))}
           </dl>
+          <Link href="/work/zalando" className="proof-source text-link">
+            From the flagship case study →
+          </Link>
         </section>
       </Reveal>
 
@@ -59,6 +71,10 @@ export default function Home() {
             <Link href="/building" className="action action-dark">Explore the systems →</Link>
           </div>
         </section>
+      </Reveal>
+
+      <Reveal>
+        <ProofStrip contributions={contributions} ivy={ivy} />
       </Reveal>
 
       <Reveal>
