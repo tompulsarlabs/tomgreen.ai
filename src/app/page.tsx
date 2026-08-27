@@ -45,10 +45,10 @@ export default async function Home() {
               </span>
               <span className="line-mask block">
                 <span
-                  className="line block text-[clamp(2.7rem,4.7vw,3.75rem)] text-accent"
+                  className="line block text-accent"
                   style={{ "--line-i": 2 } as React.CSSProperties}
                 >
-                  Build a system that learns and compounds.
+                  Build a system that compounds.
                 </span>
               </span>
             </h1>
