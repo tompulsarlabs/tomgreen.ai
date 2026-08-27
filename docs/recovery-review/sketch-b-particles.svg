@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+  <rect width="1440" height="900" fill="#ffffff"/>
+  <line x1="86" y1="84" x2="1354" y2="84" stroke="#deded8"/>
+  <text x="86" y="64" font-size="11" letter-spacing="2" fill="#6a7068">HOME — HERO · SKETCH B · CONSTRAINT → STRUCTURE (PARTICLES) — NOT RECOMMENDED</text>
+  <!-- type journey, left-set as today -->
+  <text x="86" y="330" font-size="150" font-family="Arial Black, Arial, sans-serif" fill="#101410" letter-spacing="-10">I SEE THE</text>
+  <text x="86" y="470" font-size="150" font-family="Arial Black, Arial, sans-serif" fill="#101410" letter-spacing="-10">CONSTRAINT.</text>
+  <!-- particle field, right third: scattered upper half -->
+  <g fill="#101410">
+    <circle cx="1063" cy="176" r="2.5"/><circle cx="1121" cy="221" r="2"/><circle cx="1189" cy="164" r="2.5"/>
+    <circle cx="1246" cy="243" r="2"/><circle cx="1102" cy="292" r="2.5"/><circle cx="1301" cy="197" r="2"/>
+    <circle cx="1174" cy="309" r="2"/><circle cx="1258" cy="331" r="2.5"/><circle cx="1327" cy="276" r="2"/>
+    <circle cx="1080" cy="366" r="2"/><circle cx="1210" cy="384" r="2.5"/><circle cx="1305" cy="401" r="2"/>
+  </g>
+  <!-- resolving into a baseline-grid lattice lower half -->
+  <g fill="#101410">
+    <circle cx="1064" cy="512" r="2"/><circle cx="1128" cy="512" r="2"/><circle cx="1192" cy="512" r="2"/><circle cx="1256" cy="512" r="2"/><circle cx="1320" cy="512" r="2"/>
+    <circle cx="1064" cy="560" r="2"/><circle cx="1128" cy="560" r="2"/><circle cx="1192" cy="560" r="2"/><circle cx="1256" cy="560" r="2"/><circle cx="1320" cy="560" r="2"/>
+    <circle cx="1064" cy="608" r="2"/><circle cx="1128" cy="608" r="2"/><circle cx="1192" cy="608" r="2"/><circle cx="1256" cy="608" r="2"/><circle cx="1320" cy="608" r="2"/>
+  </g>
+  <line x1="1040" y1="470" x2="1344" y2="470" stroke="#deded8"/>
+  <!-- annotations: the two disqualifiers -->
+  <text x="86" y="640" font-size="11" fill="#9ba097">RISK 1: A SECOND CLUSTER RESOLVES BESIDE THE TYPE — BREAKS THE ONE-CLUSTER DISCIPLINE THE JOURNEY JUST EARNED</text>
+  <text x="86" y="660" font-size="11" fill="#9ba097">RISK 2: PARTICLES-ORGANISE IS THE GENERIC CREATIVE-DEV TROPE THE BRIEF BANS · RIGHT THIRD DOES NOT EXIST AT 390</text>
+  <text x="86" y="812" font-size="11" letter-spacing="2" fill="#6a7068">INCLUDED FOR COMPARISON — RECOMMENDED VERDICT: CUT</text>
+</svg>

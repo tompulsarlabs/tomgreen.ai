@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+  <rect width="1440" height="900" fill="#ffffff"/>
+  <!-- route frame -->
+  <line x1="86" y1="84" x2="1354" y2="84" stroke="#deded8"/>
+  <text x="86" y="64" font-size="11" letter-spacing="2" fill="#6a7068">SYSTEMS — MASTHEAD · SKETCH A · THE OPERATING ORBIT (CONCEPTUAL WIREFRAME)</text>
+  <!-- display type block, left-set -->
+  <text x="86" y="215" font-size="120" font-family="Arial Black, Arial, sans-serif" fill="#101410" letter-spacing="-8">Systems.</text>
+  <text x="86" y="258" font-size="16" fill="#4f554d" font-family="Arial, sans-serif">The products, operating models and agents behind the outcomes.</text>
+  <!-- orbit field occupies the right third / air -->
+  <g transform="translate(1010,420)">
+    <!-- orbital paths: hairline ellipses, differing periods and tilts (not Bohr rings) -->
+    <ellipse rx="300" ry="96"  transform="rotate(-14)" fill="none" stroke="#deded8" stroke-width="1"/>
+    <ellipse rx="228" ry="150" transform="rotate(22)"  fill="none" stroke="#deded8" stroke-width="1"/>
+    <ellipse rx="150" ry="58"  transform="rotate(-38)" fill="none" stroke="#b9bdb4" stroke-width="1"/>
+    <!-- nucleus: ink ring, not a filled ball -->
+    <circle r="9" fill="none" stroke="#101410" stroke-width="2"/>
+    <!-- orbiting bodies: small ink dots -->
+    <circle cx="-273" cy="-8"  r="4" fill="#101410" transform="rotate(-14)"/>
+    <circle cx="176"  cy="98"  r="3.5" fill="#101410" transform="rotate(22)"/>
+    <circle cx="121"  cy="-34" r="3" fill="#101410" transform="rotate(-38)"/>
+    <!-- one green body only if truthfully 'running in production' -->
+    <circle cx="-96"  cy="140" r="4" fill="#3fa06c" transform="rotate(22)"/>
+    <!-- an exception leaving orbit, travelling inward to the nucleus -->
+    <path d="M 150 -90 C 96 -56, 40 -28, 14 -10" fill="none" stroke="#101410" stroke-width="1" stroke-dasharray="1 5"/>
+    <circle cx="60" cy="-38" r="3.5" fill="#101410"/>
+  </g>
+  <!-- caption OUTSIDE the canvas, record voice -->
+  <text x="866" y="704" font-size="11" letter-spacing="2" fill="#6a7068">CONCEPTUAL — REPEATABLE WORK ORBITS. EXCEPTIONS COME TO A PERSON.</text>
+  <line x1="852" y1="695" x2="852" y2="708" stroke="#e45b3d" stroke-width="3"/>
+  <!-- semantic index continues below -->
+  <line x1="86" y1="780" x2="1354" y2="780" stroke="#deded8"/>
+  <text x="86" y="812" font-size="12" fill="#4f554d" font-family="Arial, sans-serif">01 / 04 — Where I’ve worked … (complete semantic index continues, unchanged, white ground)</text>
+  <!-- annotations -->
+  <text x="86" y="640" font-size="11" fill="#9ba097">IDLE: SLOW PRECESSION, ONE BODY VISIBLY MOVING AT A TIME · SCROLL: PATHS RESOLVE FROM ARCS TO ELLIPSES</text>
+  <text x="86" y="660" font-size="11" fill="#9ba097">DRAG: PLANE TILTS ±15° BOUNDED · REDUCED MOTION / NO-JS: BUILD-TIME STILL OF THIS RESOLVED STATE</text>
+</svg>
