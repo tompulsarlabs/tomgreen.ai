@@ -32,6 +32,10 @@ The thesis is **Load-Bearing Type**: typography behaves like an organisation und
 - White is the site ground; Systems is the only dark route.
 - Green means running in production. Clay means reconstruction or evidence labelling.
 - The clean MVP remains the usability floor.
+- The build is fully agentic. Do not propose an external 3D artist, motion specialist, purchased
+  model or paid asset-production dependency.
+- The Systems object must be code-native procedural geometry. Generated stills may guide its art
+  direction, but the shipped form, material, lighting and motion must be implemented in code.
 - Reduced motion and no JavaScript must produce a complete, resolved linear document.
 - About remains complete locally but must be absent from public navigation and sitemap, with
   `/about` returning 404 on every Vercel deployment.
@@ -99,7 +103,7 @@ the design consequences yourself.
 
 - Does width function as a real maturity channel alongside the visible labels and percentages?
 - Does the retained interactive field now conflict with the flatter typographic system?
-- What exactly must the commissioned object solve that type alone cannot?
+- What exactly must the procedural object solve that type alone cannot?
 - Is the dark route still recognisably part of the same product?
 
 ### 6. Trust, usability and restraint
@@ -115,10 +119,10 @@ These are task-specific inputs, not reasons to pause all P1 work.
 
 | Item | What it blocks | Minimum input required from Tom | Fable's required output |
 | --- | --- | --- | --- |
-| Matte object | Systems centerpiece only | Approve one metaphor/form direction, a production budget ceiling, ownership terms and whether the object may appear as a still on Home in a later phase | A one-page commission brief covering form, material, lighting, orbit behavior, static fallback, crops, performance constraints and rejection criteria |
-| Portrait | About masthead only | Supply an existing high-resolution image with rights, or approve a shoot and select photographer/budget | A shot and crop brief for desktop, tablet and 390px, including background, wardrobe, expression, negative space and image-treatment rules |
+| Matte object | Systems centerpiece only | Approve one of up to three agent-generated, code-feasible concept directions and whether its still may appear on Home in a later phase | An implementation-ready procedural-object specification covering geometry, material, lighting, orbit behavior, static fallback, crops, performance constraints and rejection criteria. No external artist, purchased model or production budget |
+| Portrait | About masthead only | Supply an existing genuine high-resolution portrait with publication rights, or explicitly defer the portrait | A crop and treatment brief for desktop, tablet and 390px. Do not generate a synthetic likeness or introduce a paid shoot dependency |
 | Redacted artifacts | Artifact layer only | Nominate source artifacts, identify the rights owner, approve public use and verify every surviving name, date and figure | An artifact register classifying each item as publish, reconstruct, redact further or reject, with exact captions and provenance labels |
-| Motion specialist | P2 curve pass, not P1 | Engage only after P1 interaction geometry is stable | A bounded review brief for timing and easing only, with no permission to alter information architecture or add effects |
+| Agentic motion pass | P2 polish, not P1 | No external input required | A bounded timing/easing QA specification, executed agentically after P1 geometry is stable, with no information-architecture changes or added effects |
 
 Chapter 2 Evidence Object 2 and the About career-line retype are unblocked and should not wait for
 the three asset decisions.
@@ -134,9 +138,9 @@ Return one Markdown report with this structure:
 4. **Issue register:** severity, route, viewport/input, observed problem, governing design rule,
    precise correction and acceptance test.
 5. **P1 recommendation:** confirm or amend the five-item tranche without adding unrelated scope.
-6. **Three asset briefs:** matte object, portrait and redacted artifacts, each ready to commission
-   or approve.
-7. **Motion-specialist brief:** explicitly deferred until P2.
+6. **Three asset specifications:** procedural matte object, genuine portrait treatment and
+   redacted artifacts, each ready to implement or approve without an external production vendor.
+7. **Agentic motion-QA specification:** explicitly deferred until P2.
 8. **Do-not-change list:** facts, fallbacks and successful implementation choices that should be
    protected in the next sprint.
 
