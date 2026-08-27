@@ -1,9 +1,29 @@
 import { spawn } from "node:child_process";
+import { rm } from "node:fs/promises";
 
+// The /about gate is evaluated at BUILD time (the route is statically
+// prerendered), so the contract must build with VERCEL=1 before asserting.
+// Building into an isolated dist dir keeps the working .next intact.
+const distDir = ".next-vercel-contract";
 const port = "3199";
 const origin = `http://127.0.0.1:${port}`;
-const server = spawn("npm", ["run", "start", "--", "-p", port, "-H", "127.0.0.1"], {
-  env: { ...process.env, VERCEL: "1" },
+const env = { ...process.env, VERCEL: "1", NEXT_DIST_DIR: distDir };
+
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { env, stdio: "inherit" });
+    child.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`${command} ${args.join(" ")} exited ${code}`)),
+    );
+    child.on("error", reject);
+  });
+}
+
+await rm(distDir, { recursive: true, force: true });
+await run("npx", ["next", "build"]);
+
+const server = spawn("npx", ["next", "start", "-p", port, "-H", "127.0.0.1"], {
+  env,
   stdio: "ignore",
 });
 
@@ -30,6 +50,9 @@ try {
 
   const sitemap = await (await fetch(`${origin}/sitemap.xml`)).text();
   if (sitemap.includes("/about")) throw new Error("Sitemap exposes About");
+
+  console.log("Vercel /about contract holds: 404, no nav link, no sitemap entry.");
 } finally {
   server.kill("SIGTERM");
+  await rm(distDir, { recursive: true, force: true });
 }
