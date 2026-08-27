@@ -124,6 +124,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .brand-lockup { font-family: var(--font-archivo), Arial, sans-serif; font-variation-settings: "wdth" 78; font-weight: 800; }
 .brand-signal { background: currentColor; }
 .header-progress > span { transition: transform 80ms linear; }
+.route-leaving .header-progress > span { transform: scaleX(0) !important; transition: transform var(--d-2) var(--ease); }
 .nav-link { position: relative; }
 .nav-link::after {
   position: absolute;
@@ -156,13 +157,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   transition: font-variation-settings var(--d-3) var(--ease-settle), transform var(--d-2) var(--ease), opacity var(--d-2) var(--ease);
 }
 .route-leaving .site-main :is(.axis-display, .axis-heading) {
-  font-variation-settings: "wdth" 62;
+  /* 106 -> 70 keeps the exit under the 40 wdth-units/100ms ceiling with headroom. */
+  font-variation-settings: "wdth" 70;
   opacity: 0.18;
   transform: translateY(-16px);
 }
 .route-leaving .site-main p { transition: opacity var(--d-1) var(--ease) 80ms; opacity: 0.25; }
 .route-leaving .work-index-row { opacity: 0.12; transform: translateY(-10px); transition: opacity var(--d-2) var(--ease), transform var(--d-2) var(--ease); }
-.route-leaving .work-index-row .row-company { font-variation-settings: "wdth" 62; }
+.route-leaving .work-index-row .row-company { font-variation-settings: "wdth" 70; transition-duration: var(--d-3); }
 .route-leaving .work-index-row.is-transition-source { opacity: 0; }
 .route-entering .case-company { animation: name-resolve var(--d-3) var(--ease-settle) both; }
 .route-entering .case-headline { animation: case-headline-resolve var(--d-3) var(--ease-settle) var(--d-3) both; }
@@ -176,7 +178,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 }
 .travelling-name {
   position: fixed;
-  z-index: 100;
+  z-index: 30; /* beneath the sticky header (z-40): the name never flies over the masthead */
   margin: 0;
   color: var(--ink);
   pointer-events: none;
@@ -191,10 +193,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   transform: translate(var(--travel-x, 0), var(--travel-y, 0)) scale(var(--travel-scale, 1), var(--travel-scale-y, 1));
   font-variation-settings: "wdth" 106;
 }
-.travelling-name.is-fading { opacity: 0; }
 .travelling-active .case-company.handoff-target { animation: none !important; opacity: 0; }
-.travelling-active .case-company.handoff-target.is-revealed { opacity: 1; transition: none; }
-.route-entering .case-company.handoff-complete { animation: none; opacity: 1; }
+.route-entering .case-company.handoff-complete { animation: none; transition: none; opacity: 1; }
 .travelling-active .case-headline { animation-delay: 610ms; }
 
 /* Server-rendered reveal; no-JS and reduced-motion are always complete. */

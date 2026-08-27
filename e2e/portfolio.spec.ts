@@ -370,12 +370,12 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
         }
       }
       const fadedOpacity = Number.parseFloat(getComputedStyle(element).opacity);
-      if (element.classList.contains("is-fading") && fadedOpacity <= 0.05) {
-        resolve({ fadedOpacity, landed });
-        return;
-      }
       if (performance.now() - started >= 1_500 || !element.isConnected) {
-        resolve({ fadedOpacity, landed });
+        // The swap is atomic: the clone leaves at full opacity in the frame
+        // the arrival appears. Report whether the arrival was already visible.
+        const arrival = document.querySelector("[data-arrival-name]");
+        const arrivalVisible = arrival ? Number.parseFloat(getComputedStyle(arrival).opacity) : 0;
+        resolve({ fadedOpacity: element.isConnected ? fadedOpacity : arrivalVisible, landed });
         return;
       }
       requestAnimationFrame(sample);
@@ -421,7 +421,8 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
   expectWithin(completed.landed!.clone.y, completed.landed!.target.y, 8);
   expectWithin(completed.landed!.clone.width, completed.landed!.target.width, 8);
   expectWithin(completed.landed!.clone.height, completed.landed!.target.height, 8);
-  expect(completed.fadedOpacity).toBeLessThanOrEqual(0.05);
+  // Atomic handoff: by the time the clone is gone the arrival is fully visible.
+  expect(completed.fadedOpacity).toBeGreaterThanOrEqual(0.95);
   await expect(clone).toHaveCount(0, { timeout: 1_500 });
   await expect(page.locator("[data-arrival-name]")).toHaveCSS("opacity", "1");
 });
