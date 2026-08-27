@@ -7,6 +7,11 @@ Branch: `codex/lusion-experience-overhaul`
 Reference benchmark: [lusion.co](https://lusion.co/) on desktop and mobile
 Production baseline: [tomgreen.ai](https://tomgreen.ai/)
 
+> **Review status:** this roadmap records the first P0 art direction. Subsequent browser review
+> approved a cleaner white/black MVP baseline and explicitly removed the warm-paper/lime signal
+> treatment and overloaded Home proof line. Use `docs/FABLE-DESIGN-HANDOFF.md` as the current
+> brief; retain this roadmap for research, architecture, fallback and budget context.
+
 ## Executive direction
 
 ### Creative concept: **The operating field**

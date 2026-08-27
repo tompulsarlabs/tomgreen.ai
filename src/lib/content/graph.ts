@@ -91,7 +91,6 @@ const practiceNodes: GraphNode[] = [
     category: "craft",
     cluster: "practice",
     blurb: "Shape the team, decision rights and operating model around the outcome—not the inherited org chart.",
-    meta: "Practice",
   },
   {
     id: "recruiting-practice",
@@ -100,7 +99,6 @@ const practiceNodes: GraphNode[] = [
     category: "talent",
     cluster: "practice",
     blurb: "Executive, technical and scaled hiring designed as a product—not a queue.",
-    meta: "Practice",
   },
   {
     id: "operations-practice",
@@ -109,7 +107,6 @@ const practiceNodes: GraphNode[] = [
     category: "agents",
     cluster: "practice",
     blurb: "Cadence, decision rights and agent workflows that turn strategy into repeatable motion.",
-    meta: "Practice",
   },
 ];
 

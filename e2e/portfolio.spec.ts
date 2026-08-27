@@ -12,6 +12,11 @@ test("homepage communicates the proposition and the next steps", async ({ page }
     /I see the constraint\.\s*Design the system\.\s*Build what makes it move\./,
   );
   await expect(page.getByRole("figure").filter({ hasText: /A model of the work/ }).first()).toBeVisible();
+  await expect(page.locator(".operating-field .field-world")).toBeVisible();
+  await expect(page.locator(".operating-field .field-signal")).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
   await expect(page.getByRole("heading", { name: "Constraint becomes motion." })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems" })).toBeVisible();
@@ -26,6 +31,26 @@ test("homepage communicates the proposition and the next steps", async ({ page }
   await expect(page.locator("html")).not.toHaveClass(/entering/);
 });
 
+test("the Home display type keeps readable leading and an upright final line", async ({ page }) => {
+  await page.setViewportSize({ width: 1005, height: 940 });
+  await page.goto("/");
+
+  const lines = page.locator("#home-title .line");
+  const typography = await lines.evaluateAll((items) =>
+    items.map((item) => {
+      const style = getComputedStyle(item);
+      return {
+        fontSize: Number.parseFloat(style.fontSize),
+        fontStyle: style.fontStyle,
+        lineHeight: Number.parseFloat(style.lineHeight),
+      };
+    }),
+  );
+
+  expect(typography[1].lineHeight / typography[1].fontSize).toBeGreaterThanOrEqual(0.94);
+  expect(typography[2].fontStyle).toBe("normal");
+});
+
 test("Work is a tiered archive with an active navigation state", async ({ page }) => {
   await page.goto("/work");
 
@@ -34,6 +59,11 @@ test("Work is a tiered archive with an active navigation state", async ({ page }
     "page",
   );
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Proof is the system moving.");
+  await expect(page.locator("main header")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(
+    page.locator(".case-link").filter({ hasText: "Explore the case study" }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("Open the operating record", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /organisation from zero to 120/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /People Ops rebuilt on agents/i })).toBeVisible();
   await expect(
@@ -168,7 +198,25 @@ test("Contact gives every direct channel a clear destination", async ({ page }) 
     "href",
     "https://github.com/tompulsarlabs",
   );
+  await expect(page.getByRole("link", { name: /Email/ })).not.toContainText(
+    "tom@tomgreen.ai",
+  );
+  await expect(page.getByRole("link", { name: /LinkedIn/ })).not.toContainText(
+    "Professional profile",
+  );
+  await expect(page.getByRole("link", { name: /GitHub/ })).not.toContainText(
+    "@tompulsarlabs",
+  );
+  await expect(page.getByText("What you’re solving", { exact: true })).toBeVisible();
+  await expect(page.getByText("Where it’s blocked", { exact: true })).toBeVisible();
   await expect(page.locator("footer").getByRole("link")).toHaveCount(0);
+});
+
+test("Systems records avoid redundant practice classifications", async ({ page }) => {
+  await page.goto("/building");
+
+  await expect(page.locator("#building-practice")).toContainText("Organisation design");
+  await expect(page.getByText("Practice", { exact: true })).toHaveCount(0);
 });
 
 test("About keeps a complete linear journey under reduced motion", async ({ page }) => {

@@ -24,14 +24,14 @@ export default async function Home() {
         aria-labelledby="home-title"
         className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-paper"
       >
-        <div className="relative mx-auto grid min-h-[calc(100svh-var(--site-header-h))] max-w-6xl items-center gap-12 px-6 py-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12 lg:py-10">
-          <div className="relative z-10 max-w-3xl lg:pr-2">
+        <div className="relative mx-auto max-w-6xl px-6">
+          <div className="relative z-10 flex min-h-[calc(82svh-var(--site-header-h))] flex-col justify-center py-14 md:py-20">
             <p className="anim font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">
-              Tom Green / Executive talent leader × systems builder / {site.location}
+              Executive talent leader · Systems builder · {site.location}
             </p>
             <h1
               id="home-title"
-              className="mt-7 font-display text-[clamp(3.65rem,6.1vw,6.4rem)] leading-[0.86] tracking-[-0.055em]"
+              className="mt-8 font-display text-[clamp(4rem,7.2vw,7.3rem)] leading-[0.94] tracking-[-0.06em]"
             >
               <span className="line-mask block">
                 <span className="line block" style={{ "--line-i": 0 } as React.CSSProperties}>
@@ -45,47 +45,43 @@ export default async function Home() {
               </span>
               <span className="line-mask block">
                 <span
-                  className="line block italic text-accent"
+                  className="line block text-accent"
                   style={{ "--line-i": 2 } as React.CSSProperties}
                 >
                   Build what makes it move.
                 </span>
               </span>
             </h1>
-            <p
-              className="anim mt-8 max-w-2xl text-lg leading-relaxed text-ink-secondary"
-              style={{ "--anim-delay": "480ms" } as React.CSSProperties}
-            >
-              I build the teams, the operating model, and the software and agents that run it—at exceptional pace.
-            </p>
-            <p
-              className="anim mt-5 border-l-2 border-ink pl-4 font-mono text-[0.68rem] uppercase leading-relaxed tracking-[0.12em] text-muted"
-              style={{ "--anim-delay": "560ms" } as React.CSSProperties}
-            >
-              0 → 120 person AI organisation / six months · EU People Ops / one person
-            </p>
-            <div
-              className="anim mt-8 flex flex-wrap gap-3"
-              style={{ "--anim-delay": "620ms" } as React.CSSProperties}
-            >
-              <Link
-                href="/work"
-                className="group inline-flex min-h-12 items-center justify-center gap-4 bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5"
+            <div className="mt-10 grid max-w-4xl gap-7 border-t border-ink pt-6 md:grid-cols-[1fr_auto] md:items-end">
+              <p
+                className="anim max-w-2xl text-lg leading-relaxed text-ink-secondary md:text-xl"
+                style={{ "--anim-delay": "480ms" } as React.CSSProperties}
               >
-                View the work <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
-              <Link
-                href="/building"
-                className="inline-flex min-h-12 items-center justify-center border border-ink px-5 text-sm text-ink transition-colors hover:bg-ink hover:text-paper"
+                I design organisations and build the software and agents that make them move.
+              </p>
+              <div
+                className="anim flex flex-wrap gap-3"
+                style={{ "--anim-delay": "560ms" } as React.CSSProperties}
               >
-                Explore the systems
-              </Link>
+                <Link
+                  href="/work"
+                  className="group inline-flex min-h-12 items-center justify-center gap-4 bg-ink px-5 text-sm text-paper transition-transform hover:-translate-y-0.5"
+                >
+                  View the work <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+                </Link>
+                <Link
+                  href="/building"
+                  className="inline-flex min-h-12 items-center justify-center border border-ink px-5 text-sm text-ink transition-colors hover:bg-ink hover:text-paper"
+                >
+                  Explore the systems
+                </Link>
+              </div>
             </div>
           </div>
 
           <div
-            className="anim relative lg:-mr-10"
-            style={{ "--anim-delay": "720ms" } as React.CSSProperties}
+            className="anim relative"
+            style={{ "--anim-delay": "640ms" } as React.CSSProperties}
           >
             <OperatingField />
           </div>
