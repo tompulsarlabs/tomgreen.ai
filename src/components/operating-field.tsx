@@ -55,15 +55,6 @@ export function OperatingField() {
           <span className="field-signal" />
         </div>
 
-        <div className="field-input absolute left-5 top-20 z-10 max-w-36 border-l border-clay pl-3">
-          <p className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-paper/54">
-            01 / Constraint
-          </p>
-          <p className="mt-2 text-sm leading-snug text-paper/82">
-            The organisation that does not exist yet.
-          </p>
-        </div>
-
         <div className="field-core absolute left-1/2 top-1/2 z-10 w-52 text-center">
           <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-paper/68">
             02 / Design

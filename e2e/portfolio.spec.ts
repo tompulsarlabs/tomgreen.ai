@@ -9,8 +9,9 @@ test("homepage communicates the proposition and the next steps", async ({ page }
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /I see the constraint\.\s*Design the system\.\s*Build what makes it move\./,
+    /Identify constraints\.\s*Simplicity by design\.\s*Build a system that learns and compounds\./,
   );
+  await expect(page.getByText("The organisation that does not exist yet.", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("figure").filter({ hasText: /A model of the work/ }).first()).toBeVisible();
   await expect(page.locator(".operating-field .field-world")).toBeVisible();
   await expect(page.locator(".operating-field .field-signal")).toHaveCSS(

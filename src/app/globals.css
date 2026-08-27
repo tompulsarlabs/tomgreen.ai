@@ -275,7 +275,6 @@ button:focus-visible {
   transition: transform 700ms cubic-bezier(0.22, 0.72, 0.18, 1);
 }
 .field-plane,
-.field-input,
 .field-core,
 .field-output {
   transition: transform 440ms cubic-bezier(0.22, 0.72, 0.18, 1);
@@ -286,13 +285,6 @@ button:focus-visible {
     linear-gradient(90deg, color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px);
   background-size: 54px 54px;
   transform: translate3d(var(--field-x-back), var(--field-y-back), -90px) scale(1.12);
-}
-.field-input {
-  padding-top: 0.8rem;
-  padding-bottom: 0.8rem;
-  background: color-mix(in srgb, var(--ink) 78%, transparent);
-  box-shadow: 0 20px 45px -30px rgba(0, 0, 0, 0.9);
-  transform: translate3d(var(--field-x-back), var(--field-y-back), 42px);
 }
 .field-core {
   padding: 1.45rem 1rem 1.25rem;
@@ -526,7 +518,6 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .field-plane,
   .field-world,
-  .field-input,
   .field-core,
   .field-output,
   .header-progress > span,
