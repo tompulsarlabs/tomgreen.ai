@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Loader } from "@/components/loader";
 import { SiteHeader } from "@/components/site-header";
 import { isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
@@ -54,7 +53,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf9f6",
+  themeColor: "#f3f1e8",
 };
 
 const personJsonLd = {
@@ -83,8 +82,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      // The inline script below adds .js/.entering before hydration — the
-      // class attribute is expected to differ from the server render.
+      // The inline script below adds .js before hydration so scroll reveals
+      // can enhance a complete server-rendered document without hiding the
+      // no-JS experience.
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
@@ -101,16 +101,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        {/* .js gates scroll-reveal CSS (no-JS never hides content).
-            The entrance is first-session theater only; repeat visits and
-            direct hash destinations go straight to the requested content. */}
+        {/* .js gates scroll-reveal CSS; no-JS never hides content. */}
         <script
           dangerouslySetInnerHTML={{
-            __html:
-              "document.documentElement.classList.add('js');try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('tg-entered')){sessionStorage.setItem('tg-entered','1');if(!location.hash)document.documentElement.classList.add('entering')}}catch(e){}",
+            __html: "document.documentElement.classList.add('js')",
           }}
         />
-        <Loader />
         <SiteHeader />
         <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-6">
           {children}

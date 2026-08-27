@@ -17,24 +17,50 @@ export default function WorkIndex() {
   const foundation = caseStudies.filter((study) => study.tier === "foundation");
 
   return (
-    <div className="flex flex-col gap-24 py-16 md:gap-28 md:py-24">
-      <header className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted">Selected work</p>
-          <h1 className="mt-3 font-display text-5xl tracking-tight md:text-7xl">Outcomes, with the system exposed.</h1>
+    <div className="flex flex-col gap-24 pb-20 md:gap-32">
+      <header className="relative left-1/2 w-screen -translate-x-1/2 bg-ink text-paper">
+        <div className="mx-auto grid min-h-[calc(82svh-var(--site-header-h))] max-w-6xl gap-12 px-6 py-14 lg:grid-cols-[0.78fr_1.22fr] lg:items-end lg:py-16">
+          <div className="self-start">
+            <p className="anim font-mono text-[0.65rem] uppercase tracking-[0.18em] text-signal">
+              Evidence / selected operating records
+            </p>
+            <p className="anim mt-6 max-w-xs text-sm leading-relaxed text-paper/58" style={{ "--anim-delay": "80ms" } as React.CSSProperties}>
+              Organisation building, operating-model design, product operations and founder economics—under real constraints.
+            </p>
+          </div>
+          <div>
+            <h1 className="anim max-w-[10ch] font-display text-[clamp(4.5rem,9vw,9rem)] leading-[0.82] tracking-[-0.065em]">
+              Proof is the system moving.
+            </h1>
+            <p className="anim mt-8 max-w-2xl text-lg leading-relaxed text-paper/68" style={{ "--anim-delay": "160ms" } as React.CSSProperties}>
+              Start with the consequence. Then inspect the mandate, operating logic, judgment and evidence that produced it.
+            </p>
+          </div>
+          <dl className="grid border-t border-paper/16 pt-6 sm:grid-cols-3 lg:col-span-2">
+            {[
+              ["0 → 120", "AI organisation / six months"],
+              ["1 person", "EU People Ops / agent workflows"],
+              ["£1M", "Bootstrapped / two years"],
+            ].map(([value, label]) => (
+              <div key={label} className="border-b border-paper/12 py-4 sm:border-b-0 sm:border-l sm:px-5 sm:first:border-l-0 sm:first:pl-0">
+                <dt className="text-xs leading-relaxed text-paper/62">{label}</dt>
+                <dd className="mt-2 font-sans text-3xl font-semibold tracking-[-0.055em]">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-        <p className="max-w-2xl text-lg leading-relaxed text-ink-secondary lg:pb-2">
-          Two flagship stories show the core of my work: building Zalando’s 120-person AI organisation at speed, and redesigning Chapter 2’s People Ops around agents. The remaining stories show the operating range behind them.
-        </p>
       </header>
 
-      <section aria-labelledby="flagship-heading" className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
+      <section aria-labelledby="flagship-heading" className="grid gap-10 lg:grid-cols-[0.58fr_1.42fr]">
         <Reveal>
           <div className="lg:sticky lg:top-28">
-            <p className="text-xs uppercase tracking-[0.22em] text-accent">Flagship</p>
-            <h2 id="flagship-heading" className="mt-3 font-display text-3xl tracking-tight">
-              The organisation.<br />The operating model.
+            <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-accent">01 / Flagship</p>
+            <h2 id="flagship-heading" className="mt-4 max-w-[9ch] font-display text-5xl leading-[0.92] tracking-[-0.045em]">
+              Two constraints. Two systems in motion.
             </h2>
+            <p className="mt-6 max-w-sm leading-relaxed text-ink-secondary">
+              One built an AI organisation across four countries. One moved operating load from shared services into governed agent workflows.
+            </p>
           </div>
         </Reveal>
         <div>
@@ -46,12 +72,12 @@ export default function WorkIndex() {
         </div>
       </section>
 
-      <section aria-labelledby="range-heading" className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
+      <section aria-labelledby="range-heading" className="grid gap-10 lg:grid-cols-[0.58fr_1.42fr]">
         <Reveal>
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-muted">Supporting evidence</p>
-            <h2 id="range-heading" className="mt-3 font-display text-3xl tracking-tight">
-              Range under pressure.
+            <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">02 / Operating range</p>
+            <h2 id="range-heading" className="mt-4 font-display text-4xl leading-none tracking-[-0.04em]">
+              Build it. Then operate inside it.
             </h2>
           </div>
         </Reveal>
@@ -64,12 +90,12 @@ export default function WorkIndex() {
         </div>
       </section>
 
-      <section aria-labelledby="other-heading" className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
+      <section aria-labelledby="other-heading" className="grid gap-10 lg:grid-cols-[0.58fr_1.42fr]">
         <Reveal>
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-muted">The wider arc</p>
-            <h2 id="other-heading" className="mt-3 font-display text-3xl tracking-tight">
-              Current chapter and foundations.
+            <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">03 / Wider arc</p>
+            <h2 id="other-heading" className="mt-4 font-display text-4xl leading-none tracking-[-0.04em]">
+              Current work. Calibrated foundations.
             </h2>
           </div>
         </Reveal>
