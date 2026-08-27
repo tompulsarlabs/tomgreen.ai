@@ -715,96 +715,11 @@ test("Systems exposes a labelled maturity channel and semantic index", async ({ 
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
-  await expect(page.getByText("A procedural compression member · structure under load", { exact: true })).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 
-test("Systems defers its object and keeps route-arrival tasks below 200ms", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.addInitScript(() => {
-    const state: {
-      supported: boolean;
-      entries: Array<{ duration: number; startTime: number }>;
-    } = {
-      supported: PerformanceObserver.supportedEntryTypes.includes("longtask"),
-      entries: [],
-    };
-    (window as Window & { __buildingLongTasks?: typeof state }).__buildingLongTasks = state;
-    if (!state.supported) return;
-    const observer = new PerformanceObserver((list) => {
-      state.entries.push(...list.getEntries().map((entry) => ({
-        duration: entry.duration,
-        startTime: entry.startTime,
-      })));
-    });
-    observer.observe({ type: "longtask", buffered: true });
-  });
-
-  await page.goto("/");
-  await page.evaluate(() => {
-    const state = (window as Window & {
-      __buildingLongTasks?: { entries: Array<{ duration: number; startTime: number }> };
-    }).__buildingLongTasks;
-    if (state) state.entries.length = 0;
-    performance.mark("systems:route-start");
-  });
-  await page.locator('nav[aria-label="Primary navigation"] a[href="/building"]').click();
-  await expect(page).toHaveURL("/building");
-  await expect(page.locator(".load-bearing-canvas")).toHaveClass(/is-ready/, { timeout: 20_000 });
-  await page.waitForTimeout(100);
-  const result = await page.evaluate(() => {
-    const state = (window as Window & {
-      __buildingLongTasks?: {
-        supported: boolean;
-        entries: Array<{ duration: number; startTime: number }>;
-      };
-    }).__buildingLongTasks;
-    const importStart = performance.getEntriesByName("load-bearing:import-start").at(-1)?.startTime;
-    const readyAt = performance.getEntriesByName("load-bearing:ready").at(-1)?.startTime;
-    const routeStart = performance.getEntriesByName("systems:route-start").at(-1)?.startTime;
-    if (!state || importStart === undefined || readyAt === undefined || routeStart === undefined) {
-      return { supported: false, maximum: 0, importStart, readyAt, routeStart };
-    }
-    return {
-      supported: state.supported,
-      maximum: Math.max(
-        0,
-        ...state.entries
-          .filter((entry) =>
-            entry.startTime >= routeStart - 5 &&
-            entry.startTime + entry.duration <= importStart + 5,
-          )
-          .map((entry) => entry.duration),
-      ),
-      importStart,
-      readyAt,
-      routeStart,
-    };
-  });
-  expect(result.supported).toBe(true);
-  expect(result.importStart).toBeGreaterThan(result.routeStart! + 700);
-  expect(result.readyAt).toBeGreaterThan(result.importStart!);
-  expect(result.maximum).toBeLessThanOrEqual(200);
-});
-
-test("Systems uses its static object fallback on mobile", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/building");
-  const visual = page.locator(".load-bearing-object-visual");
-  const poster = visual.locator(".load-bearing-poster");
-  await expect(poster).toBeVisible();
-  await expect(visual).not.toHaveClass(/has-live-object/);
-  await expect(visual.locator(".load-bearing-canvas")).toHaveCount(0);
-  const imageState = await poster.locator("img").evaluate((element) => {
-    const image = element as HTMLImageElement;
-    return { complete: image.complete, naturalWidth: image.naturalWidth };
-  });
-  expect(imageState.complete).toBe(true);
-  expect(imageState.naturalWidth).toBeGreaterThan(0);
-});
-
-test("Systems no-JavaScript fallback keeps the poster and semantic index", async ({ browser }) => {
+test("Systems no-JavaScript fallback keeps the complete semantic index", async ({ browser }) => {
   const context = await browser.newContext({
     javaScriptEnabled: false,
     reducedMotion: "reduce",
@@ -813,33 +728,12 @@ test("Systems no-JavaScript fallback keeps the poster and semantic index", async
   const page = await context.newPage();
   await page.goto("/building");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
-  await expect(page.locator(".load-bearing-poster")).toBeVisible();
-  await expect(page.locator(".load-bearing-canvas")).toHaveCount(0);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator(".maturity-rows strong")).toHaveCount(3);
   await expect(page.getByRole("heading", { name: "Four domains. One operating story." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();
   await expect(page.locator("#ivy")).toBeAttached();
   await context.close();
-});
-
-test("Systems falls back to the static object when WebGL is unavailable", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.addInitScript(() => {
-    const original = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (
-      this: HTMLCanvasElement,
-      contextId: string,
-      ...args: unknown[]
-    ) {
-      if (contextId === "webgl" || contextId === "webgl2") return null;
-      return Reflect.apply(original, this, [contextId, ...args]);
-    } as typeof HTMLCanvasElement.prototype.getContext;
-  });
-  await page.goto("/building");
-  const visual = page.locator(".load-bearing-object-visual");
-  await expect(visual.locator(".load-bearing-poster")).toBeVisible();
-  await expect(visual).not.toHaveClass(/has-live-object/, { timeout: 2_000 });
-  await expect(visual.locator(".load-bearing-canvas")).not.toHaveClass(/is-ready/);
 });
 
 test("About is complete and linear in the local working environment", async ({ page }) => {

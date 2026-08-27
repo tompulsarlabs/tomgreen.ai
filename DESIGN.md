@@ -42,7 +42,7 @@ registers: operating results (Zalando 0→120 AI org, metrics) and built systems
 | `/` | Positioning → operating outcomes → flagship work → systems → live state → person → contact |
 | `/work` | Tiered archive: flagship, supporting evidence, current chapter, foundations |
 | `/work/[slug]` | Editorial case study with mandate, decisions, system model, outcomes, evidence note, next action |
-| `/building` | **Systems** in the UI: a code-native procedural compression member, a labelled width/maturity key, and a complete server-rendered systems index |
+| `/building` | **Systems** in the UI: a full-width type-led maturity channel and a complete server-rendered systems index |
 | `/about` | A local-only linear career record, references, the person, and a direct contact path; hidden on every Vercel deployment |
 
 Case studies are the core content unit. Each one: context → what Tom built/did →
@@ -81,12 +81,8 @@ This is a public repo, so **a git push is a publish**. Rules:
 - No client-side data fetching for content.
 - Vercel Analytics and Speed Insights provide privacy-conscious journey and performance
   telemetry; neither is used to gate rendering.
-- A small raw-WebGL renderer is isolated to `/building` and renders one agent-built procedural
-  compression member. The renderer is deferred until route arrival has finished and is not
-  requested on mobile, reduced-motion or Save-Data sessions. The object is not a data
-  visualisation: adjacent HTML carries the truthful maturity and systems information.
-- No external 3D artist, purchased model or motion-production vendor is required. Geometry,
-  material, lighting, interaction and the static fallback are repository-native.
+- `/building` has no canvas, WebGL or decorative object. Its truthful width/maturity channel is
+  the centerpiece, so the information and the visual idea are the same thing at every breakpoint.
 
 ## Design intent
 
@@ -120,22 +116,22 @@ steps and verified figures already present in the typed content module.
 Fable's post-P0 system-design retrospective returned **accept with corrections**. The review
 preserved the Load-Bearing Type direction while requiring corrections to motion scheduling,
 route continuity, evidence integrity, Systems coherence and accessibility coverage. Those
-corrections, Chapter 2 Evidence Object 2, the procedural Systems object and the About linear-axis
+corrections, Chapter 2 Evidence Object 2, the type-led Systems composition and the About linear-axis
 retype are implemented and validated on `codex/load-bearing-type`. The branch is review-ready;
 it is not merged or deployed.
 
-The procedural object is no longer an asset blocker. Portrait and artifact work are deliberately
-separate: About remains type-led unless Tom supplies a genuine rights-cleared portrait, and no
-artifact ships until its source, claims and public-use rights are approved.
+The rejected procedural object has been removed rather than cosmetically refined. Portrait and
+artifact work are deliberately separate: About remains type-led unless Tom supplies a genuine
+rights-cleared portrait, and no artifact ships until its source, claims and public-use rights are
+approved.
 
 ## Current quality gates
 
 1. Typed content and named-claim review remain the publishing gate.
-2. `npm run lint`, `npm run typecheck`, and 39 unit tests cover static quality, motion schedules,
-   procedural geometry and data parsing.
-3. The 41-test Playwright suite covers the visitor journey, route handoff geometry, mobile
-   overflow, flagship evidence, reduced motion, no JavaScript, WebGL/context-loss fallbacks,
-   keyboard behavior, lab performance gates and eight full-document Axe scans.
+2. `npm run lint`, `npm run typecheck`, and 35 unit tests cover static quality, motion schedules
+   and data parsing.
+3. The 38-test Playwright suite covers the visitor journey, route handoff geometry, mobile overflow,
+   flagship evidence, reduced motion, no JavaScript, keyboard behavior and full-document Axe scans.
 4. CI builds before running Playwright, so browser tests exercise the production server.
 5. The generated Open Graph image and Person JSON-LD make the site legible when shared or
    indexed outside the visual experience.

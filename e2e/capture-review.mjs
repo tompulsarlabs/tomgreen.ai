@@ -89,44 +89,6 @@ async function scrollSectionToStart(page, selector) {
   await waitForCssMotion(page, selector);
 }
 
-async function waitForPoster(page) {
-  await page.locator(".load-bearing-poster img").waitFor({ state: "visible" });
-  await page.waitForFunction(() => {
-    const image = document.querySelector(".load-bearing-poster img");
-    return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
-  });
-}
-
-async function waitForLiveObject(page) {
-  await page.locator(".load-bearing-canvas.is-ready").waitFor({
-    state: "visible",
-    timeout: 20_000,
-  });
-  await page.waitForFunction(() => document
-    .querySelector(".load-bearing-object-visual")
-    ?.classList.contains("has-live-object"));
-  await waitForNextPaint(page);
-}
-
-// The static fallback is rendered from the same procedural scene used by the
-// live centerpiece. This keeps desktop, mobile, reduced-motion and no-JS
-// states on one authored object without a separate art-production pipeline.
-const objectContext = await browser.newContext({
-  viewport: { width: 1440, height: 1000 },
-  deviceScaleFactor: 2,
-  reducedMotion: "no-preference",
-});
-const objectPage = await objectContext.newPage();
-await gotoSettled(objectPage, "/building");
-await waitForLiveObject(objectPage);
-await objectPage.locator(".systems-hero-copy").evaluate((element) => {
-  element.style.visibility = "hidden";
-});
-await objectPage.locator(".load-bearing-object-visual").screenshot({
-  path: "public/objects/load-bearing-object.png",
-});
-await objectContext.close();
-
 const viewports = [
   [1440, 900],
   [1005, 900],
@@ -169,7 +131,6 @@ await reviewPage.locator(".chapter-two-verification").scrollIntoViewIfNeeded();
 await waitForNextPaint(reviewPage);
 await reviewPage.screenshot({ path: `${output}/chapter-two-evidence-footer-1440.png` });
 await gotoSettled(reviewPage, "/building");
-await waitForLiveObject(reviewPage);
 await reviewPage.screenshot({ path: `${output}/systems-1440.png` });
 await gotoSettled(reviewPage, "/about");
 await reviewPage.screenshot({ path: `${output}/about-1440.png` });
@@ -205,7 +166,6 @@ await setSectionProgress(midReviewPage, ".zalando-evidence", 0.72);
 await waitForCustomProperty(midReviewPage, ".zalando-evidence", "--countries-arrive", 0.95);
 await midReviewPage.screenshot({ path: `${output}/zalando-evidence-1005.png` });
 await gotoSettled(midReviewPage, "/building");
-await waitForLiveObject(midReviewPage);
 await midReviewPage.screenshot({ path: `${output}/systems-1005.png` });
 await midReviewContext.close();
 
@@ -215,14 +175,7 @@ const tabletReviewContext = await browser.newContext({
 });
 const tabletReviewPage = await tabletReviewContext.newPage();
 await gotoSettled(tabletReviewPage, "/building");
-await waitForPoster(tabletReviewPage);
-await tabletReviewPage.waitForFunction(() => !document
-  .querySelector(".load-bearing-object-visual")
-  ?.classList.contains("has-live-object"));
 await tabletReviewPage.screenshot({ path: `${output}/systems-768.png` });
-await tabletReviewPage.locator(".load-bearing-object").scrollIntoViewIfNeeded();
-await waitForNextPaint(tabletReviewPage);
-await tabletReviewPage.screenshot({ path: `${output}/systems-object-768.png` });
 await tabletReviewContext.close();
 
 const mobileReviewContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -236,11 +189,7 @@ await gotoSettled(mobileReviewPage, "/work/chapter-2");
 await scrollSectionToStart(mobileReviewPage, ".chapter-two-evidence");
 await mobileReviewPage.screenshot({ path: `${output}/chapter-two-evidence-390.png` });
 await gotoSettled(mobileReviewPage, "/building");
-await waitForPoster(mobileReviewPage);
 await mobileReviewPage.screenshot({ path: `${output}/systems-390.png` });
-await mobileReviewPage.locator(".load-bearing-object").scrollIntoViewIfNeeded();
-await waitForNextPaint(mobileReviewPage);
-await mobileReviewPage.screenshot({ path: `${output}/systems-object-390.png` });
 await gotoSettled(mobileReviewPage, "/about");
 await mobileReviewPage.screenshot({ path: `${output}/about-390.png` });
 await gotoSettled(mobileReviewPage, "/contact");
@@ -255,39 +204,11 @@ const reducedPage = await reducedContext.newPage();
 await gotoSettled(reducedPage, "");
 await reducedPage.screenshot({ path: `${output}/home-reduced-motion-1005.png` });
 await gotoSettled(reducedPage, "/building");
-await waitForPoster(reducedPage);
 await reducedPage.screenshot({ path: `${output}/systems-reduced-motion-1005.png` });
 await gotoSettled(reducedPage, "/work/zalando");
 await scrollSectionToStart(reducedPage, ".zalando-evidence");
 await reducedPage.screenshot({ path: `${output}/zalando-reduced-motion-1005.png` });
 await reducedContext.close();
-
-const contextLossContext = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
-  reducedMotion: "no-preference",
-});
-const contextLossPage = await contextLossContext.newPage();
-await gotoSettled(contextLossPage, "/building");
-await waitForLiveObject(contextLossPage);
-await contextLossPage.locator(".load-bearing-canvas").evaluate((canvas) => {
-  canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
-});
-await contextLossPage.waitForFunction(() => {
-  const visual = document.querySelector(".load-bearing-object-visual");
-  const canvas = document.querySelector(".load-bearing-canvas");
-  return Boolean(
-    visual
-    && canvas
-    && !visual.classList.contains("has-live-object")
-    && !canvas.classList.contains("is-ready"),
-  );
-});
-await waitForPoster(contextLossPage);
-await waitForNextPaint(contextLossPage);
-await contextLossPage.screenshot({
-  path: `${output}/systems-webgl-context-loss-1440.png`,
-});
-await contextLossContext.close();
 
 const noJsContext = await browser.newContext({
   viewport: { width: 1005, height: 900 },
@@ -297,7 +218,6 @@ const noJsPage = await noJsContext.newPage();
 await noJsPage.goto(baseURL, { waitUntil: "load" });
 await noJsPage.screenshot({ path: `${output}/home-no-js-1005.png`, fullPage: true });
 await noJsPage.goto(`${baseURL}/building`, { waitUntil: "load" });
-await waitForPoster(noJsPage);
 await noJsPage.screenshot({ path: `${output}/systems-no-js-1005.png` });
 await noJsContext.close();
 

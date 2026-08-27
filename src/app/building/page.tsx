@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { LoadBearingObject } from "@/components/load-bearing-object";
 import { Reveal } from "@/components/reveal";
 import { projects } from "@/lib/content/building";
 import { caseStudies } from "@/lib/content/case-studies";
@@ -99,10 +98,12 @@ export default function Building() {
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
         <div className="systems-hero-copy">
           <p className="record">Systems / structure under load</p>
-          <h1 id="systems-title" className="axis-display">Systems.</h1>
-          <p className="systems-lead">
-            The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
-          </p>
+          <div className="systems-title-row">
+            <h1 id="systems-title" className="axis-display">Systems.</h1>
+            <p className="systems-lead">
+              The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
+            </p>
+          </div>
 
           <section className="maturity-index" aria-labelledby="maturity-heading">
             <h2 id="maturity-heading" className="record">System state / width is maturity</h2>
@@ -122,7 +123,6 @@ export default function Building() {
             </div>
           </section>
         </div>
-        <LoadBearingObject />
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">

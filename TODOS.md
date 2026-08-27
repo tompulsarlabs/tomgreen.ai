@@ -5,7 +5,8 @@ fully agentic P1 slice. Do not substitute invented assets, figures or evidence.
 
 ## Current branch
 
-- [x] Replace the orbital Systems field with one code-native procedural compression member.
+- [x] Remove the rejected procedural Systems object and promote the truthful type-led maturity
+  channel to the full-width centerpiece.
 - [x] Build Chapter 2 Evidence Object 2 from the five existing workflow steps and verified
   footer.
 - [x] Retype the local About career line in the width-axis record grammar.
@@ -14,7 +15,7 @@ fully agentic P1 slice. Do not substitute invented assets, figures or evidence.
   regressions.
 - [x] Run lint, typecheck, unit tests, the optimized production build and the full
   Playwright/accessibility suite against the completed branch.
-- [x] Visually QA 1440, 1005, 768 and 390px, reduced motion, no JavaScript and WebGL-loss paths;
+- [x] Visually QA 1440, 1005, 768 and 390px, reduced motion and no JavaScript;
   replace the review captures.
 - [x] Close or record every remaining Fable P0/P1 correction before publishing the review branch.
 
@@ -32,7 +33,6 @@ fully agentic P1 slice. Do not substitute invented assets, figures or evidence.
 - An existing genuine portrait with publication rights only if the optional portrait remains in
   scope.
 
-The Systems object and later motion-quality pass require no external artist, vendor or budget.
-The P1 geometry and validation are stable. The next bounded work is rights review for optional
+Systems has no 3D asset or external production dependency. The next bounded work is rights review for optional
 artifacts, optional supplied-portrait integration, real Safari/iOS/hardware verification, and the
 agentic P2 timing/easing pass.

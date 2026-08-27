@@ -37,23 +37,19 @@ channel: `62` constraint, `82` prototype, `92` index rest, `100` resolved, `106`
   canonical evidence note in the object's own frame.
 - Chapter 2: Evidence Object 2 splits governed agent work from accountable human judgment, using
   the five content-module workflow steps and verified footer only.
-- Systems: dark route, truthful `running 100 / shipped 92 / in the lab 82` maturity widths,
-  semantic index and one code-native procedural compression member. The object is a structural
-  metaphor, not a hidden data encoding.
+- Systems: dark route, truthful `running 100 / shipped 92 / in the lab 82` maturity widths and a
+  semantic index. The maturity channel is the visual centerpiece; there is no separate object.
 - About: local-only linear career record; no corridor.
 - Contact: direct mailto remains primary.
 
-## Systems object
+## Systems composition
 
-- One near-white matte compression member sits between a base and load plate on the shared
-  `#101410` ground.
-- No atom, particle system, orbital graph, glow, labels inside canvas or invented relationship
-  mapping. The semantic records remain HTML.
-- Desktop interaction is bounded drag orbit. The raw-WebGL module waits until route arrival and
-  an idle window; rendering sleeps when idle, hidden or offscreen, and DPR is capped at 1.5.
-- Mobile, reduced motion, Save Data, no WebGL, context loss and no JavaScript all resolve to one
-  deterministic responsive still plus the complete semantic index. The same still is visually
-  verified at 1440, 1005, 768 and 390px rather than duplicated into four identical payloads.
+- The title, short explanation and three maturity rows form one full-width composition on the
+  shared `#101410` ground.
+- Width is the information channel and the visual identity: production `100`, shipped `92`, lab
+  `82`, each paired with a visible text label.
+- There is no canvas, WebGL, poster, 3D metaphor or decorative replacement. Mobile, reduced
+  motion and no JavaScript therefore retain the same complete composition without a fallback fork.
 
 ## Cut list
 

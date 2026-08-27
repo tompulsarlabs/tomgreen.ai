@@ -18,10 +18,10 @@ direction and identified a bounded correction pass across Home scheduling, route
 evidence integrity, Systems coherence, accessibility and test coverage. The current branch combines
 that correction pass with the unblocked, fully agentic P1 work.
 
-The Systems object direction is now settled: one procedural compression member, not an atom,
-particle field or orbital graph. One object, one matte material, one bounded interaction and one
-meaning keep the route legible. The object's geometry and runtime are implemented in the repo; no
-external 3D artist, purchased model, paid asset or motion vendor is part of the plan.
+The procedural compression member failed visual review on a real 390px device: it was too literal,
+visually crude and dominant over the information. It has been removed completely, not polished.
+Systems now follows the first-principles solution: the truthful type-led maturity channel is the
+centerpiece, with no separate 3D metaphor, poster, canvas or rendering dependency.
 
 ## Current branch implementation
 
@@ -54,12 +54,9 @@ external 3D artist, purchased model, paid asset or motion vendor is part of the 
 
 ### Fully agentic P1 slice
 
-- **Systems centerpiece:** the previous orbital field is replaced by a deterministic faceted
-  compression member between base and load plates. The near-white matte object sits on the single
-  dark ground, supports bounded drag orbit, caps DPR below the stated budget, sleeps when idle or
-  offscreen, and provides a static-fallback path for mobile, reduced motion, no WebGL and context
-  loss. The adjacent width/maturity key and server-rendered records carry all information; the mesh
-  contains no hidden data encoding.
+- **Systems centerpiece:** the maturity channel now spans the full dark stage. Production,
+  shipped and lab states use the visible `100 / 92 / 82` Archivo widths and matching record labels.
+  The semantic index follows directly; no decorative object competes with it.
 - **Chapter 2 Evidence Object 2:** the typeset sentence fork separates routine agent work from
   exceptions, risk and decisions affecting people. Its five workflow beats and footer figures are
   sourced from the existing typed content module, with the reconstruction note kept in frame.
@@ -70,19 +67,17 @@ external 3D artist, purchased model, paid asset or motion vendor is part of the 
 ## Validation
 
 - `npm run lint`, `npm run typecheck`, `npm test` and the optimized Next.js production build pass.
-- Nine unit files pass with 39 tests covering content/data contracts, every motion schedule,
-  procedural geometry and raw-WebGL buffer generation.
-- All 41 Playwright tests pass against `next start`. They include real Work-to-case FLIP landing
+- Seven unit files pass with 35 tests covering content/data contracts and every motion schedule.
+- All 38 Playwright tests pass against `next start`. They include real Work-to-case FLIP landing
   within 8px, keyboard parity, 48px Work targets, Home/About geometry regressions, tall Chapter 2
-  motion, no-JavaScript, reduced-motion, mobile, no-WebGL and context-loss branches.
+  motion, no-JavaScript, reduced-motion and mobile branches.
 - Eight full-document Axe scans report no serious or critical violations. All required routes pass
   horizontal-overflow checks at 1440, 1005, 768 and 390px.
-- The lab Home gate observes a nonzero LCP below 1.8s and CLS below 0.02. Systems defers the object
-  beyond route arrival, whose measured long tasks remain below 200ms.
-- The three Latin font requests total 142,492 bytes. The deferred raw renderer is about 3.2KB gzip;
-  the authored redesign feature chunks remain below the 60KB gzip budget.
+- The lab Home gate observes a nonzero LCP below 1.8s and CLS below 0.02.
+- The three Latin font requests total 142,492 bytes; the authored redesign feature chunks remain
+  below the 60KB gzip budget.
 - Fresh review captures cover every required viewport plus reduced motion, no JavaScript, tall
-  Chapter motion, intermediate/final Zalando states, mobile/tablet object crops and WebGL loss.
+  Chapter motion and intermediate/final Zalando states.
 
 The Vercel-specific build contract passed separately because the local production build must keep
 About available. `VERCEL=1 npm run build` followed by `npm run test:vercel-contract` verifies that
@@ -91,13 +86,8 @@ merge or deployment is authorized by this report.
 
 ## Known gaps and remaining decisions
 
-- Local automation is Chromium-only. Firefox, Safari 16+, real iOS and a hardware-GPU pass remain
-  required before merge. Linux SwiftShader compiled the deferred object in roughly 240–280ms; the
-  work is intentionally outside route arrival, but its real-device cost and drag frame rate are
-  not claimed.
-- One deterministic responsive poster is used at all breakpoints and visually verified at 1440,
-  1005, 768 and 390px. This deliberately avoids four byte-identical assets; create authored crops
-  only if real-device review shows a composition failure.
+- Local automation is Chromium-only. Firefox, Safari 16+ and real iOS review remain required before
+  merge.
 - A redacted-artifact layer remains rights-dependent. No artifact can ship until the source,
   surviving names/dates/figures, public-use rights, redactions and reconstruction label are all
   approved.
@@ -114,7 +104,7 @@ merge or deployment is authorized by this report.
    then add the approved layer lazily below evidence objects. Defer cleanly if none pass review.
 2. If Tom supplies a genuine publication-cleared high-resolution portrait, add the responsive
    About masthead and provenance note. Otherwise keep the completed type-led masthead.
-3. Run the review branch on current Chrome/Firefox, Safari 16+ and real iOS hardware; verify shader
-   precision, context loss, touch drag, static fallbacks, frame rate and the Web Vitals/RUM gates.
+3. Run the review branch on current Chrome/Firefox, Safari 16+ and real iOS hardware; verify the
+   type composition, route motion and Web Vitals/RUM gates.
 4. Merge or deploy only after those review decisions. The later timing/easing pass remains fully
    agentic P2 work; no 3D artist or motion-specialist engagement is required.
