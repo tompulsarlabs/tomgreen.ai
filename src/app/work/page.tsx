@@ -39,7 +39,7 @@ export default function WorkIndex() {
           <dl className="grid border-t border-ink pt-6 sm:grid-cols-3 lg:col-span-2">
             {[
               ["0 → 120", "AI organisation / six months"],
-              ["1 person", "EU People Ops / agent workflows"],
+              ["€2.5M", "ARR won / first year"],
               ["£1M", "Bootstrapped / two years"],
             ].map(([value, label]) => (
               <div key={label} className="border-b border-hairline py-4 sm:border-b-0 sm:border-l sm:px-5 sm:first:border-l-0 sm:first:pl-0">
@@ -59,7 +59,7 @@ export default function WorkIndex() {
               Two constraints. Two systems in motion.
             </h2>
             <p className="mt-6 max-w-sm leading-relaxed text-ink-secondary">
-              One built an AI organisation across four countries. One moved operating load from shared services into governed agent workflows.
+              One built an AI organisation across four countries. One ran a European business, then rebuilt its People Ops around agents.
             </p>
           </div>
         </Reveal>
