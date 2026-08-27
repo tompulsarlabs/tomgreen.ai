@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CaseStudySignal } from "@/components/case-study-signal";
 import { CaseStudySystem } from "@/components/case-study-system";
 import { Reveal } from "@/components/reveal";
-import { StatTile } from "@/components/stat-tile";
 import { caseStudies, getCaseStudy } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
@@ -42,45 +42,54 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
   const next = caseStudies[(index + 1) % caseStudies.length];
 
   return (
-    <article className="flex flex-col gap-20 py-12 md:gap-28 md:py-20">
-      <header>
-        <Link href="/work" className="anim inline-flex min-h-11 items-center text-sm text-accent hover:underline">
-          ← All work
-        </Link>
-        <div className="mt-8 grid gap-8 lg:grid-cols-[0.68fr_1.32fr] lg:items-start">
-          <div className="anim" style={{ "--anim-delay": "60ms" } as React.CSSProperties}>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted">{study.company}</p>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-secondary">
-              {study.role}<br />{study.period}
-            </p>
+    <article className="flex flex-col gap-20 pb-20 md:gap-28">
+      <header className="case-opening relative left-1/2 w-screen -translate-x-1/2 text-paper">
+        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+          <Link href="/work" className="anim inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[0.14em] text-signal hover:underline">
+            ← Evidence index
+          </Link>
+          <div className="mt-10 grid gap-10 lg:grid-cols-[0.55fr_1.45fr] lg:items-start">
+            <div className="anim" style={{ "--anim-delay": "60ms" } as React.CSSProperties}>
+              <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-signal">
+                Operating record / {String(index + 1).padStart(2, "0")}
+              </p>
+              <p className="mt-5 max-w-xs text-sm leading-relaxed text-paper/62">
+                {study.company}<br />{study.role}<br />{study.period}
+              </p>
+            </div>
+            <div>
+              <h1
+                className="anim max-w-5xl font-display text-[clamp(3.8rem,7.2vw,7.5rem)] leading-[0.86] tracking-[-0.055em]"
+                style={{ "--anim-delay": "110ms" } as React.CSSProperties}
+              >
+                {study.headline}
+              </h1>
+              <p
+                className="anim mt-8 max-w-2xl text-lg leading-relaxed text-paper/68"
+                style={{ "--anim-delay": "180ms" } as React.CSSProperties}
+              >
+                {study.summary}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1
-              className="anim max-w-4xl font-display text-4xl leading-[1.04] tracking-[-0.035em] md:text-6xl"
-              style={{ "--anim-delay": "110ms" } as React.CSSProperties}
-            >
-              {study.headline}
-            </h1>
-            <p
-              className="anim mt-6 max-w-2xl text-lg leading-relaxed text-ink-secondary"
-              style={{ "--anim-delay": "180ms" } as React.CSSProperties}
-            >
-              {study.summary}
-            </p>
-          </div>
-        </div>
 
-        {study.metrics.length > 0 && (
-          <div
-            className="anim mt-12 grid grid-cols-2 gap-x-8 gap-y-7 border-y border-hairline py-8 md:grid-cols-4"
-            style={{ "--anim-delay": "240ms" } as React.CSSProperties}
-          >
-            {study.metrics.map((metric) => (
-              <StatTile key={metric.label} value={metric.value} label={metric.label} />
-            ))}
-          </div>
-        )}
+          {study.metrics.length > 0 && (
+            <dl
+              className="anim mt-12 grid grid-cols-2 gap-x-6 gap-y-7 border-t border-paper/16 pt-7 md:grid-cols-4"
+              style={{ "--anim-delay": "240ms" } as React.CSSProperties}
+            >
+              {study.metrics.map((metric) => (
+                <div key={metric.label}>
+                  <dd className="font-sans text-3xl font-semibold tracking-[-0.055em] md:text-4xl">{metric.value}</dd>
+                  <dt className="mt-2 max-w-40 text-xs leading-relaxed text-paper/62">{metric.label}</dt>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
       </header>
+
+      <CaseStudySignal study={study} />
 
       <Reveal>
         <section aria-labelledby="mandate-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">

@@ -1,23 +1,60 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { site } from "@/lib/content/site";
+
+const routeMeta = [
+  { match: "/work", index: "01", label: "Evidence" },
+  { match: "/building", index: "02", label: "Systems" },
+  { match: "/about", index: "03", label: "Through-line" },
+  { match: "/contact", index: "04", label: "Contact" },
+] as const;
+
+function PendingMark() {
+  const { pending } = useLinkStatus();
+  return <span aria-hidden className={`nav-pending ${pending ? "is-pending" : ""}`} />;
+}
 
 export function SiteHeader() {
   const pathname = usePathname();
   const isSystems = pathname === "/building";
+  const [progress, setProgress] = useState(0);
+  const current =
+    routeMeta.find((route) => pathname.startsWith(route.match)) ??
+    ({ index: "00", label: "Operating field" } as const);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const range = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(range > 0 ? Math.min(Math.max(window.scrollY / range, 0), 1) : 0);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [pathname]);
 
   return (
     <header
-      className={`sticky top-0 z-40 h-[var(--site-header-h)] backdrop-blur-md transition-colors ${
+      className={`site-header sticky top-0 z-40 h-[var(--site-header-h)] transition-colors ${
         isSystems
-          ? "border-b border-white/8 bg-[#080b10]/96 text-white"
-          : "bg-paper/90 text-ink"
+          ? "site-header-dark bg-[#080b10]/96 text-white"
+          : "bg-paper/94 text-ink"
       }`}
     >
       <div
-        className={`flex h-full items-center justify-between gap-4 ${
+        className={`grid h-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 ${
           isSystems
             ? "w-full px-5 sm:px-7 md:px-9"
             : "mx-auto max-w-6xl px-6"
@@ -25,15 +62,26 @@ export function SiteHeader() {
       >
         <Link
           href="/"
-          className="inline-flex min-h-11 shrink-0 items-center font-sans text-base font-semibold uppercase leading-none tracking-[-0.055em]"
+          className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2 font-sans uppercase leading-none"
           aria-label="Tom Green, home"
         >
-          <span className="sm:hidden">TG</span>
-          <span className="hidden sm:inline">{site.name}</span>
+          <span className="grid text-[0.82rem] font-bold tracking-[-0.065em]">
+            <span>TOM</span>
+            <span>GREEN</span>
+          </span>
+          <span aria-hidden className="brand-signal h-8 w-1 bg-current transition-transform group-hover:scale-y-75" />
         </Link>
+        <div className="ml-1 hidden min-w-0 border-l border-current/16 pl-4 sm:block">
+          <p className="font-mono text-[0.58rem] uppercase tracking-[0.18em] opacity-55">
+            Field / {current.index}
+          </p>
+          <p className="mt-1 truncate text-[0.68rem] uppercase tracking-[0.13em]">
+            {current.label}
+          </p>
+        </div>
         <nav
           aria-label="Primary navigation"
-          className={`flex items-center gap-3 text-sm sm:gap-5 ${
+          className={`col-start-3 row-start-1 ml-auto flex items-center gap-3 text-xs sm:gap-5 sm:text-sm ${
             isSystems ? "text-white/64" : "text-ink-secondary"
           }`}
         >
@@ -52,10 +100,17 @@ export function SiteHeader() {
                 }`}
               >
                 {item.label}
+                <PendingMark />
               </Link>
             );
           })}
         </nav>
+      </div>
+      <div aria-hidden className="header-progress absolute inset-x-0 bottom-0 h-px bg-current/10">
+        <span
+          className="block h-full origin-left bg-signal will-change-transform"
+          style={{ transform: `scaleX(${progress})` }}
+        />
       </div>
     </header>
   );

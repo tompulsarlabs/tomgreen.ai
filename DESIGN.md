@@ -89,10 +89,11 @@ This is a public repo, so **a git push is a publish**. Rules:
 
 ## Design intent
 
-Motion, theme, and experience are specified in [DESIGN-MOTION.md](DESIGN-MOTION.md)
-(2026-08-26): paper editorial pages with one bounded near-black interaction field,
-a fixed motion vocabulary,
-and three rationed set pieces.
+The experience thesis, route specifications, budgets and phased roadmap live in
+[docs/EXPERIENCE-ROADMAP.md](docs/EXPERIENCE-ROADMAP.md). The implementation contract
+is summarised in [DESIGN-MOTION.md](DESIGN-MOTION.md): a warm-paper editorial field,
+green-black operating states, persistent route coordinates and motion that explains
+causal change rather than decorating it.
 
 Editorial and restrained: strong typography, generous whitespace, one accent color,
 dark-mode aware. The live-data elements are quiet instruments, not dashboards. The

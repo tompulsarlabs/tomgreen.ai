@@ -9,8 +9,10 @@ test("homepage communicates the proposition and the next steps", async ({ page }
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /I build the teams,\s*the operating model,\s*and the agents to run it\./,
+    /I see the constraint\.\s*Design the system\.\s*Build what makes it move\./,
   );
+  await expect(page.getByRole("figure").filter({ hasText: /A model of the work/ }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Constraint becomes motion." })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Subscribe on Substack/ })).toHaveAttribute(
@@ -20,6 +22,7 @@ test("homepage communicates the proposition and the next steps", async ({ page }
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toContainText(
     "WorkSystemsAboutContact",
   );
+  await expect(page.getByRole("link", { name: "Tom Green, home" })).toBeVisible();
   await expect(page.locator("html")).not.toHaveClass(/entering/);
 });
 
@@ -30,13 +33,13 @@ test("Work is a tiered archive with an active navigation state", async ({ page }
     "aria-current",
     "page",
   );
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Outcomes");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Proof is the system moving.");
   await expect(page.getByRole("heading", { name: /organisation from zero to 120/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /People Ops rebuilt on agents/i })).toBeVisible();
   await expect(
     page.getByText("Runs EU People Ops from Germany", { exact: true }).last(),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Current chapter and foundations." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Current work. Calibrated foundations." })).toBeVisible();
 });
 
 test("flagship case studies expose the operating system and a next action", async ({ page }) => {
@@ -48,9 +51,33 @@ test("flagship case studies expose the operating system and a next action", asyn
       name: "A talent system built around the organisation—not a list of vacancies.",
     }),
   ).toBeVisible();
+  await expect(page.getByText("Reconstructed six-month build signal")).toBeVisible();
+  await expect(page.getByText(/Verified endpoints\. The sequence shows operating logic/)).toBeVisible();
   await expect(page.getByText("Reconstructed operating model")).toBeVisible();
   await expect(page.getByText(/The diagram is a confidentiality-safe reconstruction/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Tell me what is hard" })).toBeVisible();
+});
+
+test("reduced motion exposes the complete operating sequence without a scroll dependency", async ({ page }) => {
+  await page.goto("/");
+
+  const sequence = page.locator(".operating-sequence");
+  await sequence.scrollIntoViewIfNeeded();
+  await expect(sequence.getByRole("listitem")).toHaveCount(3);
+  await expect(sequence.getByText("Start with what the organisation must become.")).toBeVisible();
+  await expect(sequence.getByText("Build the organisation around the outcome.")).toBeVisible();
+  await expect(sequence.getByText("Let agents carry load. Keep people on judgment.")).toBeVisible();
+
+  const steps = await sequence.locator(".sequence-step").evaluateAll((items) =>
+    items.map((item) => ({
+      position: getComputedStyle(item).position,
+      top: item.getBoundingClientRect().top,
+      bottom: item.getBoundingClientRect().bottom,
+    })),
+  );
+  expect(steps.every((step) => step.position !== "absolute")).toBe(true);
+  expect(steps[0].bottom).toBeLessThanOrEqual(steps[1].top);
+  expect(steps[1].bottom).toBeLessThanOrEqual(steps[2].top);
 });
 
 test("mobile navigation and content remain inside the viewport", async ({ page }) => {
@@ -73,10 +100,35 @@ test("mobile navigation and content remain inside the viewport", async ({ page }
     page.getByRole("heading", { name: "Tell me what’s hard." }),
   ).toBeVisible();
 
-  for (const route of ["/work", "/work/zalando", "/work/chapter-2", "/about", "/building", "/contact"]) {
+  for (const route of [
+    "/work",
+    "/work/zalando",
+    "/work/chapter-2",
+    "/work/audibene",
+    "/work/wave",
+    "/work/wer",
+    "/work/campbell-north",
+    "/about",
+    "/building",
+    "/contact",
+  ]) {
     await page.goto(route);
     const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(documentWidth, `${route} should not widen the 390px viewport`).toBeLessThanOrEqual(390);
+  }
+});
+
+test("key journeys hold their layout at intermediate breakpoints", async ({ page }) => {
+  const routes = ["/", "/work", "/work/zalando", "/building", "/about", "/contact"];
+
+  for (const width of [1005, 768]) {
+    await page.setViewportSize({ width, height: width === 1005 ? 900 : 1024 });
+    for (const route of routes) {
+      await page.goto(route);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(documentWidth, `${route} should not widen the ${width}px viewport`).toBeLessThanOrEqual(width);
+    }
   }
 });
 

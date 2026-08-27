@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 /*
- * Two grounds, one grammar (DESIGN-MOTION.md). The site's default ground is
- * paper — warm off-white, dark ink — for the landing and reading pages. The
- * Systems route opens into a full-bleed near-black orbital field before the
- * paper record. Type, motion and accent remain one grammar across both.
- *
- * Validated with the dataviz palette validator: heat ramp light vs #faf9f6
- * and dark vs #070908 (ordinal); category trio all-pairs on both grounds.
+ * The operating field: warm paper, green-black machinery and one signal
+ * colour. Systems uses the same grammar inverted rather than a separate
+ * visual identity. Colour is never the only carrier of state.
  */
 :root {
   color-scheme: light;
   --site-header-h: 4.75rem;
-  --paper: #ffffff;
-  --ink: #191815;
-  --ink-secondary: #55534c;
-  --muted: #68665f;
-  --hairline: #eae8e1;
-  --card: #fbfaf7;
-  --accent: #156d40;
-  --accent-ink: #0d5c33;
-  --visited: #704f7e;
+  --paper: #f3f1e8;
+  --paper-high: #fbfaf4;
+  --ink: #101410;
+  --ink-secondary: #4f554d;
+  --muted: #62675f;
+  --hairline: #d9d8ce;
+  --card: #ebe9df;
+  --signal: #c8ff45;
+  --accent: #174f35;
+  --accent-ink: #103c28;
+  --clay: #e45b3d;
+  --blue: #7087ff;
+  --visited: #654878;
 
   --heat-0: #edebe3;
   --heat-1: #74c194;
@@ -41,6 +41,10 @@
   --color-muted: var(--muted);
   --color-hairline: var(--hairline);
   --color-card: var(--card);
+  --color-paper-high: var(--paper-high);
+  --color-signal: var(--signal);
+  --color-clay: var(--clay);
+  --color-blue: var(--blue);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --font-sans: var(--font-geist-sans);
@@ -53,6 +57,10 @@ body {
   color: var(--ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-padding-top: calc(var(--site-header-h) + 1rem);
 }
 
 ::selection {
@@ -79,7 +87,7 @@ button:focus-visible {
 
 /*
  * Motion vocabulary (DESIGN-MOTION.md): one easing family, durations from
- * {200, 400, 700, 1100}ms. Everything collapses to settled states under
+ * {160, 280, 440, 700}ms. Everything collapses to settled states under
  * prefers-reduced-motion; scroll reveals additionally gate on .js so
  * nothing is ever hidden without JavaScript.
  */
@@ -173,35 +181,23 @@ button:focus-visible {
   }
 }
 
-/* First-visit entrance: html.entering paints the ground instantly (set by an
-   inline script before first paint); the Loader component animates and lifts
-   it. Without JS the class is never set. While the ground is up, the page's
-   own entrance choreography holds — it plays when the cover lifts, not
-   invisibly beneath it. */
-.entering .anim,
-.entering .line-mask .line {
-  animation-play-state: paused;
+/* Persistent operating header. */
+.site-header {
+  border-bottom: 1px solid color-mix(in srgb, currentColor 13%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.brand-signal {
+  background: var(--signal);
+}
+.site-header-dark .brand-signal {
+  background: var(--signal);
+}
+.header-progress > span {
+  transition: transform 80ms linear;
 }
 
-.entering body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: var(--paper);
-  /* If hydration ever fails, the cover releases itself — the entrance can
-     never become a wall. (The gate and loader paint their own surfaces.) */
-  animation: entering-release 0.4s ease 5s both;
-}
-
-@keyframes entering-release {
-  to {
-    opacity: 0;
-    visibility: hidden;
-  }
-}
-
-/* Nav links: accent underline draws in from the left. */
+/* Nav links: the route is a coordinate, not a floating underline. */
 .nav-link {
   position: relative;
 }
@@ -210,14 +206,41 @@ button:focus-visible {
   position: absolute;
   left: 0;
   right: 100%;
-  bottom: -3px;
+  bottom: 6px;
   height: 1px;
-  background: var(--accent);
-  transition: right 0.2s ease;
+  background: var(--signal);
+  transition: right 160ms ease;
+}
+.nav-pending {
+  position: absolute;
+  right: -0.4rem;
+  top: 0.65rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: scale(0.5);
+}
+.nav-pending.is-pending {
+  animation: pending-mark 700ms ease 100ms infinite alternate;
+}
+@keyframes pending-mark {
+  to {
+    opacity: 0.8;
+    transform: scale(1);
+  }
 }
 .nav-link:hover::after,
+.nav-link:focus-visible::after,
 .nav-link[aria-current="page"]::after {
   right: 0;
+}
+
+.site-header-dark a:focus-visible,
+.case-opening a:focus-visible,
+.systems-stage :is(a, button):focus-visible {
+  outline-color: var(--signal);
 }
 
 /* Cards: quiet lift on hover. */
@@ -226,6 +249,227 @@ button:focus-visible {
     transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1),
     border-color 0.4s ease,
     box-shadow 0.4s ease;
+}
+
+/* Home operating field: three meaningful depth planes, pointer driven. */
+.operating-field {
+  --field-x: 0px;
+  --field-y: 0px;
+  --field-x-back: 0px;
+  --field-y-back: 0px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--paper) 7%, transparent) 1px, transparent 1px),
+    var(--ink);
+  background-size: 46px 46px;
+}
+.field-plane,
+.field-input,
+.field-core,
+.field-output {
+  transition: transform 440ms cubic-bezier(0.22, 0.72, 0.18, 1);
+}
+.field-plane {
+  transform: translate3d(var(--field-x-back), var(--field-y-back), 0);
+}
+.field-input {
+  transform: translate3d(var(--field-x-back), var(--field-y-back), 0);
+}
+.field-core {
+  transform: translate3d(calc(-50% + var(--field-x)), calc(-50% + var(--field-y)), 0);
+}
+.field-output {
+  transform: translate3d(var(--field-x), var(--field-y), 0);
+}
+.field-rule {
+  position: absolute;
+  display: block;
+  height: 1px;
+  transform-origin: left;
+  background: color-mix(in srgb, var(--paper) 22%, transparent);
+}
+.field-rule-a {
+  left: 8%;
+  right: 16%;
+  top: 43%;
+  transform: rotate(17deg);
+}
+.field-rule-b {
+  left: 26%;
+  right: 6%;
+  top: 66%;
+  transform: rotate(-14deg);
+}
+.field-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  border: 1px solid color-mix(in srgb, var(--paper) 18%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+}
+.field-orbit-a {
+  width: 76%;
+  height: 38%;
+}
+.field-orbit-b {
+  width: 48%;
+  height: 74%;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--signal) 38%, transparent);
+  transform: translate(-50%, -50%) rotate(28deg);
+}
+.field-signal {
+  position: absolute;
+  left: calc(50% - 0.45rem);
+  top: calc(50% - 0.45rem);
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--signal) 12%, transparent);
+}
+
+/* The desktop sequence is deliberately bounded to two viewport-heights of
+   travel. Mobile and reduced motion use the canonical linear record. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .operating-sequence {
+    height: 280vh;
+  }
+  .sequence-stage {
+    position: sticky;
+    top: var(--site-header-h);
+    display: grid;
+    height: calc(100svh - var(--site-header-h));
+    grid-template-columns: 0.58fr 1.42fr;
+    align-items: center;
+    gap: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+  .sequence-intro {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px solid color-mix(in srgb, var(--paper) 14%, transparent);
+    border-bottom: 0;
+    padding-right: 2.5rem;
+    padding-bottom: 0;
+  }
+  .sequence-steps {
+    min-height: 31rem;
+    margin-top: 0;
+  }
+  .sequence-step {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    transform: translateY(24px);
+    visibility: hidden;
+    transition:
+      opacity 280ms ease,
+      transform 440ms cubic-bezier(0.22, 0.72, 0.18, 1),
+      visibility 0s linear 440ms;
+  }
+  .sequence-step.is-active {
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+    transition-delay: 0ms;
+  }
+}
+
+.evidence-link {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.evidence-link::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--ink);
+  content: "";
+  transform: translateY(calc(100% - 2px));
+  transition: transform 440ms cubic-bezier(0.22, 0.72, 0.18, 1);
+}
+.evidence-link:hover::before,
+.evidence-link:focus-visible::before {
+  transform: none;
+}
+.evidence-link:hover,
+.evidence-link:focus-visible {
+  color: var(--paper);
+}
+.evidence-link:hover .evidence-muted,
+.evidence-link:focus-visible .evidence-muted {
+  color: color-mix(in srgb, var(--paper) 66%, transparent);
+}
+
+.case-opening {
+  background:
+    linear-gradient(color-mix(in srgb, var(--paper) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--paper) 6%, transparent) 1px, transparent 1px),
+    var(--ink);
+  background-size: 52px 52px;
+}
+
+.case-signal-track {
+  background: linear-gradient(90deg, var(--clay), var(--signal));
+}
+
+@media (max-width: 767px) {
+  .operating-field {
+    min-height: 34rem;
+  }
+  .field-core {
+    left: 1.25rem;
+    top: 13rem;
+    width: 11rem;
+    transform: none;
+    text-align: left;
+  }
+  .field-core-title {
+    font-size: 2.35rem;
+  }
+  .field-core > div {
+    justify-content: flex-start;
+  }
+  .field-output {
+    bottom: 6.4rem;
+    transform: none;
+  }
+  .field-orbit-a {
+    width: 116%;
+    height: 34%;
+  }
+  .field-orbit-b {
+    width: 74%;
+    height: 58%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-plane,
+  .field-input,
+  .field-core,
+  .field-output,
+  .header-progress > span,
+  .evidence-link::before {
+    transition: none;
+  }
+  .nav-pending.is-pending {
+    animation: none;
+    opacity: 0.8;
+    transform: none;
+  }
 }
 @media (prefers-reduced-motion: no-preference) {
   .card-lift:hover {

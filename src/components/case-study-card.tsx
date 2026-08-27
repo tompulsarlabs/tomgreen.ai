@@ -17,35 +17,35 @@ export function CaseStudyCard({
       href={`/work/${study.slug}`}
       className={
         featured
-          ? "group case-link grid h-full gap-8 border-t border-hairline py-7 transition-colors hover:border-accent md:grid-cols-[auto_1fr_auto] md:items-start"
-          : "group case-link flex h-full flex-col gap-3 border-t border-hairline py-5 transition-colors hover:border-accent"
+          ? "group evidence-link case-link grid min-h-72 gap-8 border-t border-ink px-1 py-8 transition-colors md:grid-cols-[4rem_1fr_auto] md:items-start md:px-6 md:py-10"
+          : "group evidence-link case-link flex min-h-64 h-full flex-col gap-3 border-t border-hairline px-1 py-6 transition-colors md:px-5"
       }
     >
       {index !== undefined && (
-        <span className="font-mono text-xs tabular-nums text-muted">
+        <span className="evidence-muted font-mono text-xs tabular-nums text-muted transition-colors">
           {String(index + 1).padStart(2, "0")}
         </span>
       )}
       <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-muted">
+        <p className="evidence-muted font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted transition-colors">
           {study.company} · {study.period}
         </p>
         <h3
-          className={`${featured ? "mt-3 text-2xl md:text-3xl" : "mt-2 text-xl"} font-display leading-tight tracking-tight transition-colors group-hover:text-accent`}
+          className={`${featured ? "mt-4 max-w-[18ch] text-3xl md:text-5xl" : "mt-3 text-2xl"} font-display leading-[0.98] tracking-[-0.035em]`}
         >
           {study.headline}
         </h3>
-        <p className="mt-3 max-w-2xl leading-relaxed text-ink-secondary">
+        <p className="evidence-muted mt-5 max-w-2xl leading-relaxed text-ink-secondary transition-colors">
           {study.summary}
         </p>
         {featured && leadMetric && (
           <div className="mt-5 border-l border-hairline pl-4 md:hidden">
             <p className="text-3xl font-semibold tracking-tight">{leadMetric.value}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">{leadMetric.label}</p>
+            <p className="evidence-muted mt-1 text-xs leading-relaxed text-muted transition-colors">{leadMetric.label}</p>
           </div>
         )}
-        <span className="mt-5 inline-flex items-center gap-2 text-sm text-accent">
-          Read the story <span aria-hidden>→</span>
+        <span className="mt-6 inline-flex items-center gap-3 text-sm font-medium text-accent group-hover:text-signal group-focus-visible:text-signal">
+          Open the operating record <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
         </span>
       </div>
       {featured && leadMetric && (
@@ -53,7 +53,7 @@ export function CaseStudyCard({
           <p className="text-3xl font-semibold tracking-tight md:text-4xl">
             {leadMetric.value}
           </p>
-          <p className="mt-1 max-w-36 text-xs leading-relaxed text-muted md:ml-auto">
+          <p className="evidence-muted mt-1 max-w-36 text-xs leading-relaxed text-muted transition-colors md:ml-auto">
             {leadMetric.label}
           </p>
         </div>
