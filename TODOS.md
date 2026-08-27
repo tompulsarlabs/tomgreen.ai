@@ -5,15 +5,17 @@ for the blocked inputs.
 
 1. Build Chapter 2 Evidence Object 2: the typeset human/agent sentence fork, using the existing
    five workflow steps and verified footer.
-2. Integrate the commissioned matte object on Systems with drag orbit, DPR at most 2,
-   idle/offscreen sleep and a pre-rendered context-loss/no-WebGL still.
+2. Design and build the Systems matte object agentically as code-native procedural geometry, with
+   drag orbit, DPR at most 2, idle/offscreen sleep and a pre-rendered context-loss/no-WebGL still.
+   Use no external 3D artist, purchased model or paid asset dependency.
 3. Add the legal-cleared, lazy redacted-artifact layer.
 4. Retype the local About career line fully in the width-axis grammar.
-5. Add the approved portrait masthead with responsive crops and provenance.
+5. Add a supplied genuine portrait masthead with responsive crops and provenance, or defer it if
+   no rights-cleared source exists. Do not generate a synthetic likeness.
 
 ## Inputs still required from Tom
 
-- Matte-object brief and budget approval.
-- Portrait shoot or approved source image and publication rights.
+- Approval of one agent-generated, code-feasible matte-object direction.
+- An existing genuine portrait with publication rights, if the portrait remains in scope.
 - Artifact selection, legal clearance and claim-by-claim approval.
-- Motion-specialist engagement for the later P2 curve pass.
+- The later P2 timing and easing pass remains fully agentic.
