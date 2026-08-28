@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { HomeResolve } from "@/components/home-resolve";
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { isAboutPublic } from "@/lib/site-env";
@@ -32,16 +31,9 @@ export default function Home() {
     <div className="home-page">
       <div className="home-landing">
         <HomeResolve />
+        {/* Just the system — the capsule and the planets are the doors. */}
         <section className="home-orbit">
           <OperatingOrbit bodies={orbitBodies} />
-          {/* The third statement carries the sentence; down here only
-              the two doors remain. */}
-          <div className="home-orbit-copy">
-            <div className="home-actions">
-              <Link href="/work" className="action action-dark">View the work →</Link>
-              <Link href="/building" className="action action-light">Explore the Lab</Link>
-            </div>
-          </div>
         </section>
       </div>
     </div>

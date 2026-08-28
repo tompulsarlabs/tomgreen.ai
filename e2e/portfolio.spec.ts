@@ -71,8 +71,8 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine of growth.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore the Lab", exact: true })).toBeVisible();
+  // The capsule and the planets are the only doors — no action pills.
+  await expect(page.locator(".home-actions")).toHaveCount(0);
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
 
@@ -90,6 +90,10 @@ test("Home's statements resolve on their own clock, then yield to the map", asyn
   await expect(hero).toHaveClass(/is-done/, { timeout: 10_000 });
   await expect(hero).toHaveCSS("visibility", "hidden");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  // One dark sheet: the landing is the whole document — no footer strip,
+  // nothing below the fold.
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
+  await expect(page.locator(".site-footer")).toBeHidden();
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
 });
 
@@ -101,33 +105,6 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await page.mouse.wheel(0, 24);
   await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 3_000 });
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
-});
-
-test("Home actions reveal fully when reached by keyboard at scroll-top", async ({ page }) => {
-  test.setTimeout(60_000);
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
-  // Let the map's first expensive frames pass before driving keys —
-  // shader compile is CPU-bound on software GL.
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  await page.waitForTimeout(600);
-  const action = page.locator(".home-actions").getByRole("link", { name: "View the work →" });
-  // Home's tab inventory: skip link, brand, four capsule links, four
-  // planet nameplates, then the first action — eleven stops. The first
-  // keystroke also skips the sequence.
-  for (let index = 0; index < 11; index += 1) {
-    await page.keyboard.press("Tab");
-  }
-  await expect(action).toBeFocused();
-  await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
-  await expect(page.locator(".home-actions")).toHaveCSS("opacity", "1");
-  const focusStyle = await action.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
-  });
-  expect(focusStyle.outlineStyle).not.toBe("none");
-  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
 });
 
 test("skip link is the first visible keyboard target", async ({ page }) => {
@@ -161,14 +138,13 @@ test("reduced motion renders Home as a resolved linear document", async ({ page 
   );
   expect(displays.every((value) => value.includes("100"))).toBe(true);
   await expect(page.locator(".scroll-cue")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   // The planetary map still lands, as its linked poster.
   await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
   await expect(page.locator('.orbit-poster a[href="/building"]')).toBeAttached();
 });
 
-test("no JavaScript keeps every Home sentence and action available", async ({ browser }) => {
+test("no JavaScript keeps every Home sentence and planet link available", async ({ browser }) => {
   const context = await browser.newContext({
     javaScriptEnabled: false,
     reducedMotion: "reduce",
@@ -179,7 +155,7 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine of growth.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
+  await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),
   );
@@ -375,12 +351,15 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
   const journeys = [
     { from: "/", selector: 'nav[aria-label="Primary navigation"] a[href="/work"]', to: "/work" },
     { from: "/work", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
-    { from: "/", selector: '.home-actions a[href="/building"]', to: "/building" },
+    // Home's in-content door is a poster planet now — an SVG link, so it
+    // takes a native click (SVGAElement has no .click()).
+    { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
   ];
 
   for (const journey of journeys) {
     await gotoReduced(page, journey.from);
-    await page.locator(journey.selector).evaluate((element) => (element as HTMLElement).click());
+    if (journey.native) await page.locator(journey.selector).click();
+    else await page.locator(journey.selector).evaluate((element) => (element as HTMLElement).click());
     await expect(page.locator(".travelling-name")).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveClass(/route-leaving|travelling-active/);
     await expect(page).toHaveURL(journey.to);
@@ -784,10 +763,7 @@ test("the 390px Home sets the production spine without overflow", async ({ page 
     "Then subtract.",
   ]);
   await expect(page.getByRole("heading", { level: 1, name: "Identify the constraint. Then subtract." })).toBeVisible();
-  const actionWidths = await page.locator(".home-actions .action").evaluateAll((items) =>
-    items.map((item) => item.getBoundingClientRect().width),
-  );
-  expect(actionWidths.every((width) => width > 300)).toBe(true);
+  await expect(page.locator(".home-actions")).toHaveCount(0);
 });
 
 test("the 390px Home renders the statements resolved, no journey", async ({ page }) => {

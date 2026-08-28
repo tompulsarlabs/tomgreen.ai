@@ -626,16 +626,16 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         const along = toCore.dot(scratch.v3);
         const closest = Math.sqrt(Math.max(toCore.lengthSq() - along * along, 0));
         const occluded = closest < CORE_RADIUS * 1.05 && cameraDistance > cameraToCore;
-        // Narrow fields let far labels recede harder, so the crowded
-        // centre stays readable and near names win. A captured planet
-        // takes its nameplate down with it.
-        const base = ((narrow ? 0.14 : 0.3) + 0.5 * near) * (occluded ? 0.3 : 1);
+        // Nameplates stay near-white on space: depth and occlusion cue
+        // them, but never bury them. A captured planet takes its
+        // nameplate down with it.
+        const base = ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
         const opacity =
           (base + (1 - base) * nextEase) * s.reveal * (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         const labelWidth = label.offsetWidth || 70;
-        const rightX = x + bodyPx + 8;
+        const rightX = x + bodyPx + 10;
         const flip = rightX + labelWidth > width - 6;
-        label.style.transform = `translate3d(${(flip ? x - bodyPx - 8 - labelWidth : rightX).toFixed(1)}px, ${(y - 6).toFixed(1)}px, 0)`;
+        label.style.transform = `translate3d(${(flip ? x - bodyPx - 10 - labelWidth : rightX).toFixed(1)}px, ${(y - 8).toFixed(1)}px, 0)`;
         label.style.opacity = opacity.toFixed(3);
       }
     });
@@ -651,7 +651,7 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     const coreLabel = s.labels.get(NUCLEUS_ID);
     if (coreLabel) {
       coreLabel.style.transform = `translate3d(${(coreX + corePx + 10).toFixed(1)}px, ${(coreY - 6).toFixed(1)}px, 0)`;
-      coreLabel.style.opacity = ((0.75 + 0.25 * membraneUniforms.uWake.value) * s.reveal).toFixed(3);
+      coreLabel.style.opacity = ((0.9 + 0.1 * membraneUniforms.uWake.value) * s.reveal).toFixed(3);
     }
 
     // Orbit paths stay quiet — the membrane carries the depth.

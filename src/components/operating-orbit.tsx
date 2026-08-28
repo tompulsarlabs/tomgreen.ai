@@ -142,8 +142,8 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
               x={(cx + projected.x + radius + 6).toFixed(1)}
               y={(cy + projected.y + 3).toFixed(1)}
               className="orbit-svg-label"
-              fontSize={(9.5 * projected.scale).toFixed(1)}
-              fill={`rgba(226, 232, 242, ${depthAlpha(projected.depth, 0.9, 0.7).toFixed(3)})`}
+              fontSize={(12 * projected.scale).toFixed(1)}
+              fill={`rgba(240, 245, 252, ${depthAlpha(projected.depth, 0.97, 0.82).toFixed(3)})`}
             >
               {body.label.toUpperCase()}
             </text>
@@ -207,8 +207,8 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
             x={(cx + nucleus.x + nucleus.radius + 7).toFixed(1)}
             y={(cy + nucleus.y + 3).toFixed(1)}
             className="orbit-svg-label"
-            fontSize="9.5"
-            fill="rgba(226, 232, 242, 0.88)"
+            fontSize="12"
+            fill="rgba(240, 245, 252, 0.95)"
           >
             {NUCLEUS_LABEL.toUpperCase()}
           </text>

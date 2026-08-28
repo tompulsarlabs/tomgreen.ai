@@ -236,8 +236,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 }
 
 /* Home resolve */
-.home-page { padding-bottom: 5rem; }
-.home-page > .reveal { margin-top: clamp(4.5rem, 7.5vw, 7rem); }
 .home-resolve { position: relative; background: var(--paper); }
 .home-resolve-stage { max-width: 1360px; margin: 0 auto; padding: 4rem max(22px, 6vw) 6rem; }
 .home-eyebrow { color: var(--ink-secondary); }
@@ -259,12 +257,12 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
    planetary map — the sections in orbit around talent — with the
    support line and actions resting at its foot. */
 .home-landing { position: relative; }
+/* Home is a single dark sheet: no paper strip below the system. */
+body:has(.home-landing) .site-footer { display: none; }
 .home-orbit { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(46rem, 82svh); }
-.home-orbit-copy { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; gap: 1.5rem 2.5rem; padding: 0 0 2.25rem; }
-.home-orbit-copy .home-actions { margin: 0; }
 
 @media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
-  .js .home-landing { display: flex; flex-direction: column; height: calc(100svh - var(--site-header-h)); min-height: 38rem; }
+  .js .home-landing { display: flex; flex-direction: column; height: 100svh; min-height: 38rem; margin-top: calc(-1 * var(--site-header-h)); }
   .js .home-landing .home-orbit { flex: 1 1 auto; min-height: 0; }
   /* The sequence is a stage over the map: it plays on its own clock,
      then yields — opacity out, hit-testing off, map beneath already
@@ -507,11 +505,23 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
    links are the navigation. */
 .orbit-labels { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; }
 .orbit-field[data-live="true"] .orbit-labels { display: block; }
-.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(226, 232, 242, 0.92); text-decoration: none; will-change: transform, opacity; }
+.orbit-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: rgba(242, 246, 252, 0.97);
+  text-decoration: none;
+  will-change: transform, opacity;
+}
 a.orbit-label { pointer-events: auto; cursor: pointer; }
 a.orbit-label:hover { color: #ffffff; }
 a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2px solid #e8edf5; outline-offset: 3px; }
-.orbit-svg-label { font-family: var(--font-geist-mono), monospace; letter-spacing: 0.12em; }
+.orbit-svg-label { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 500; letter-spacing: 0.18em; }
 .orbit-poster a { cursor: pointer; }
 .orbit-poster a:focus-visible circle { stroke: #e8edf5; stroke-width: 2; }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }
@@ -588,7 +598,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
   .home-resolve-stage { padding-right: 22px; padding-left: 22px; }
   .resolve-lines { gap: 5rem; margin-top: 3rem; }
-  .home-orbit-copy { flex-direction: column; align-items: stretch; }
   .home-actions { display: grid; width: 100%; }
   .home-actions .action { width: 100%; }
   .proof-band dl { grid-template-columns: repeat(2, 1fr); }
