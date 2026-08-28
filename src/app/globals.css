@@ -741,6 +741,22 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .js .resolve-lines .axis-display { font-size: clamp(3rem, 12.5vh, 8.75rem); }
 }
 
+/* Reduced motion changes the choreography, never the architecture: the
+   landing is still one viewport with the map reachable without a scroll.
+   The statements are simply shown resolved and compact, above it. */
+@media (min-width: 769px) and (prefers-reduced-motion: reduce) {
+  .js .home-landing { display: flex; flex-direction: column; height: 100svh; min-height: 38rem; }
+  .js .home-resolve { flex: none; }
+  .js .home-resolve-stage { padding: 1.75rem max(22px, 6vw) 0; }
+  .js .resolve-lines { gap: 0.3rem; margin-top: 0.9rem; }
+  .js .resolve-lines .axis-display {
+    max-width: none;
+    font-size: clamp(1.5rem, 3.1vw, 2.4rem);
+    line-height: 1.06;
+  }
+  .js .home-orbit { flex: 1 1 auto; min-height: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   .resolve-lines { gap: 2.5rem; }

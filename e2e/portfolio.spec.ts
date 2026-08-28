@@ -239,11 +239,23 @@ test("skip link is the first visible keyboard target", async ({ page }) => {
 });
 
 test("reduced motion renders Home as a resolved linear document", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await gotoReduced(page, "/");
 
   const hero = page.locator(".home-resolve");
   const journeyRatio = await hero.evaluate((element) => (element as HTMLElement).offsetHeight / window.innerHeight);
   expect(journeyRatio).toBeLessThan(2);
+  // Reduced motion changes the choreography, not the architecture: the
+  // landing is still one viewport and the planets stay clickable without
+  // a scroll, so "land and click" holds for these visitors too.
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
+  const reachable = await page.evaluate(() =>
+    [...document.querySelectorAll(".orbit-poster a")].filter((link) => {
+      const box = link.getBoundingClientRect();
+      return box.width > 0 && box.top >= 0 && box.bottom <= window.innerHeight;
+    }).length,
+  );
+  expect(reachable).toBeGreaterThanOrEqual(3);
   const displays = await hero.locator(".axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),
   );
