@@ -31,7 +31,7 @@ import {
  * for reduced-motion, Save-Data, no-JS and no-WebGL visitors.
  */
 
-const INK = new THREE.Color("#101410");
+const INK = new THREE.Color("#dbe2ee");
 const CORE_COLOR = new THREE.Color("#141414");
 
 /** The membrane: level far out, collapsing into a throat at the core. */
@@ -451,7 +451,7 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         label.style.opacity = "0";
       });
     };
-  }, [field, gl, bodies, elements]);
+  }, [field, gl, bodies, elements, setFrameloop]);
 
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.4), []);
@@ -727,7 +727,7 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         <Line
           key={path.id}
           points={path.points}
-          color="#101410"
+          color="#dbe2ee"
           lineWidth={1}
           transparent
           opacity={0}
@@ -747,7 +747,7 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
             [0, 0, 0],
             [0, CORE_Y, 0],
           ]}
-          color="#101410"
+          color="#dbe2ee"
           lineWidth={1}
           transparent
           opacity={0}

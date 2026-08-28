@@ -106,8 +106,8 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
   const cy = VIEW.height / 2 - (minY + maxY) / 2;
 
   const strokeChunks = (chunks: StrokeChunk[], front: boolean, kind: "orbit" | "well") => {
-    const near = kind === "orbit" ? 0.3 : 0.07;
-    const far = kind === "orbit" ? 0.1 : 0.02;
+    const near = kind === "orbit" ? 0.36 : 0.11;
+    const far = kind === "orbit" ? 0.14 : 0.04;
     const weight = kind === "orbit" ? 0.62 : 0.42;
     return chunks
       .filter((chunk) => chunk.front === front)
@@ -116,7 +116,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
           key={`${kind}-${front ? "f" : "b"}-${index}`}
           d={chunkPath(chunk, cx, cy)}
           fill="none"
-          stroke={`rgba(16, 20, 16, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
+          stroke={`rgba(219, 226, 238, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
           strokeWidth={(weight * chunk.meanScale * chunk.meanScale).toFixed(2)}
         />
       ));
@@ -136,14 +136,14 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
               r={radius.toFixed(2)}
               fill={`url(#orb-${body.id})`}
             />
-            {/* Nameplates are links now: depth still cues them, but
-                never below readable contrast on paper. */}
+            {/* Nameplates are links: depth still cues them, but never
+                below readable contrast on the space panel. */}
             <text
               x={(cx + projected.x + radius + 6).toFixed(1)}
               y={(cy + projected.y + 3).toFixed(1)}
               className="orbit-svg-label"
               fontSize={(9.5 * projected.scale).toFixed(1)}
-              fill={`rgba(16, 20, 16, ${depthAlpha(projected.depth, 0.85, 0.66).toFixed(3)})`}
+              fill={`rgba(226, 232, 242, ${depthAlpha(projected.depth, 0.9, 0.7).toFixed(3)})`}
             >
               {body.label.toUpperCase()}
             </text>
@@ -187,7 +187,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
             cx={cx + nucleus.x}
             cy={cy + nucleus.y}
             r={nucleus.radius + 1.5}
-            fill="#ffffff"
+            fill="#070a12"
           />
           <circle
             cx={cx + nucleus.x}
@@ -200,7 +200,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
             cy={cy + nucleus.y}
             r={nucleus.radius}
             fill="none"
-            stroke="rgba(16, 20, 16, 0.9)"
+            stroke="rgba(219, 226, 238, 0.85)"
             strokeWidth="2"
           />
           <text
@@ -208,7 +208,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
             y={(cy + nucleus.y + 3).toFixed(1)}
             className="orbit-svg-label"
             fontSize="9.5"
-            fill="rgba(16, 20, 16, 0.85)"
+            fill="rgba(226, 232, 242, 0.88)"
           >
             {NUCLEUS_LABEL.toUpperCase()}
           </text>

@@ -20,7 +20,9 @@ function PendingMark() {
 export function SiteHeader({ showAbout }: { showAbout: boolean }) {
   const pathname = usePathname();
   const [progress, setProgress] = useState(0);
+  const [condensed, setCondensed] = useState(false);
   const stableScrollY = useRef(0);
+  const lastY = useRef(0);
   const current =
     routeMeta.find((route) => pathname.startsWith(route.match)) ??
     ({ index: "00", label: "Home" } as const);
@@ -32,6 +34,14 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
       stableScrollY.current = window.scrollY;
       const range = document.documentElement.scrollHeight - window.innerHeight;
       setProgress(range > 0 ? Math.min(Math.max(window.scrollY / range, 0), 1) : 0);
+      // The capsule recedes while the reader travels down and magnifies
+      // back the moment they turn — the floating-window behaviour.
+      const y = window.scrollY;
+      const delta = y - lastY.current;
+      lastY.current = y;
+      if (y < 80) setCondensed(false);
+      else if (delta > 2) setCondensed(true);
+      else if (delta < -2) setCondensed(false);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -64,7 +74,9 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
     >
       {/* The menu is a floating glass capsule — detached from the page
           edges, suspended over the content. */}
-      <div className="nav-capsule mt-3.5 flex max-w-[calc(100vw-24px)] items-center gap-2 sm:mt-4 sm:gap-4">
+      <div
+        className={`nav-capsule ${condensed ? "is-condensed " : ""}mt-3.5 flex max-w-[calc(100vw-24px)] items-center gap-2 sm:mt-4 sm:gap-4`}
+      >
         <Link
           href="/"
           className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2 font-sans uppercase leading-none"

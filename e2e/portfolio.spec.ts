@@ -66,148 +66,68 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "Identify constraints.",
+    name: "Identify the constraint. Then subtract.",
     exact: true,
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build a talent engine that compounds.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Make talent the engine of growth.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the Lab", exact: true })).toBeVisible();
-  await expect(page.getByLabel("Selected outcomes")).toContainText("0 → 120");
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
 
-test("Home restores the live execution record with its methodology caveat", async ({ page }) => {
-  await gotoReduced(page, "/");
-  await expect(page.getByRole("heading", { name: "I build—and ship—at speed." })).toBeVisible();
-  await expect(page.getByText("Ship streak", { exact: true })).toBeVisible();
-  await expect(page.getByText(/A ship day is verified, non-bot work on a real project/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /Inspect Ivy and the shipping record/ })).toHaveAttribute(
-    "href",
-    "https://github.com/tompulsarlabs/ivy",
-  );
-  await expect(page.locator(".proof-band")).toContainText("Zalando");
-  await expect(page.getByRole("link", { name: "From the flagship case study →" })).toBeVisible();
-});
-
-test("Home owns one width-axis cluster at each scroll checkpoint", async ({ page }) => {
+test("Home's statements resolve on their own clock, then yield to the map", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   await waitForFonts(page);
 
   const hero = page.locator(".home-resolve");
-  // 200svh: the same three-stage choreography (checkpoints are track
-  // fractions) over a shorter pin, so a plain scroll never feels held.
-  const journeyRatio = await hero.evaluate((element) => (element as HTMLElement).offsetHeight / window.innerHeight);
-  expect(journeyRatio).toBeGreaterThanOrEqual(1.9);
-  expect(journeyRatio).toBeLessThanOrEqual(2.2);
-
-  await setSectionProgress(page, ".home-resolve", 0);
-  expectWithin(await customProperty(hero, "--axis-constraint"), 62, 0.75);
-  expectWithin(await customProperty(hero, "--system-arrive"), 0, 0.02);
-  expectWithin(await customProperty(hero, "--release-arrive"), 0, 0.02);
-
-  await setSectionProgress(page, ".home-resolve", 0.12);
-  expectWithin(await customProperty(hero, "--axis-constraint"), 81, 1);
-  expectWithin(await customProperty(hero, "--axis-system"), 62, 0.75);
-  expectWithin(await customProperty(hero, "--axis-release"), 106, 0.75);
-
-  await setSectionProgress(page, ".home-resolve", 0.3);
-  expectWithin(await customProperty(hero, "--axis-constraint"), 100, 0.75);
-  expectWithin(await customProperty(hero, "--constraint-recede"), 0.5, 0.05);
-  expectWithin(await customProperty(hero, "--system-arrive"), 0, 0.02);
-
-  await setSectionProgress(page, ".home-resolve", 0.47);
-  expectWithin(await customProperty(hero, "--axis-constraint"), 100, 0.75);
-  expectWithin(await customProperty(hero, "--axis-system"), 84, 1.25);
-  expectWithin(await customProperty(hero, "--axis-release"), 106, 0.75);
-  expect(await customProperty(hero, "--constraint-recede")).toBeGreaterThan(0.98);
-
-  await setSectionProgress(page, ".home-resolve", 0.6);
-  expectWithin(await customProperty(hero, "--axis-system"), 106, 0.75);
-  expectWithin(await customProperty(hero, "--release-arrive"), 0, 0.02);
-
-  await setSectionProgress(page, ".home-resolve", 0.87);
-  expectWithin(await customProperty(hero, "--axis-system"), 106, 0.75);
-  expectWithin(await customProperty(hero, "--axis-release"), 125, 0.75);
-  expect(await customProperty(hero, "--system-recede")).toBeGreaterThan(0.98);
-
-  await setSectionProgress(page, ".home-resolve", 0.9);
-  expectWithin(await customProperty(hero, "--axis-release"), 125, 0.75);
-  expectWithin(await customProperty(hero, "--release-arrive"), 1, 0.02);
-
-  await setSectionProgress(page, ".home-resolve", 0.96);
-  expect(await customProperty(hero, "--stage-exit")).toBeGreaterThan(0.45);
+  // The same three-beat choreography, driven by time instead of scroll:
+  // the release beat lands and the stage yields with the page unmoved.
+  await expect.poll(async () => customProperty(hero, "--axis-release"), { timeout: 10_000 })
+    .toBeGreaterThan(124);
+  await expect(hero).toHaveClass(/is-done/, { timeout: 10_000 });
+  await expect(hero).toHaveCSS("visibility", "hidden");
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
 });
 
-test("Home release has no visible ink or action intersection at its final beat", async ({ page }) => {
+test("any input skips the Home sequence straight to the map", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   await waitForFonts(page);
-  await setSectionProgress(page, ".home-resolve", 0.9);
-
-  const system = page.locator(".system-line");
-  const release = page.locator(".release-line");
-  await expect(system).toHaveCSS("opacity", "0");
-  await expect(release).toHaveCSS("opacity", "1");
-  const intersections = await page.evaluate(() => {
-    const textRects = (element: Element) => {
-      const rectangles: DOMRect[] = [];
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-      while (walker.nextNode()) {
-        const node = walker.currentNode;
-        if (!node.textContent?.trim()) continue;
-        const range = document.createRange();
-        range.selectNodeContents(node);
-        rectangles.push(...Array.from(range.getClientRects()));
-      }
-      return rectangles;
-    };
-    const intersects = (a: DOMRect, b: DOMRect) =>
-      Math.min(a.right, b.right) > Math.max(a.left, b.left) &&
-      Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top);
-    const systemLine = document.querySelector<HTMLElement>(".system-line");
-    const releaseLine = document.querySelector<HTMLElement>(".release-line");
-    if (!systemLine || !releaseLine) throw new Error("Home release clusters are missing");
-    const systemOpacity = Number.parseFloat(getComputedStyle(systemLine).opacity);
-    const releaseOpacity = Number.parseFloat(getComputedStyle(releaseLine).opacity);
-    const releaseRects = textRects(releaseLine);
-    return {
-      releaseActions: releaseOpacity > 0.05 && releaseRects.some((releaseRect) =>
-        Array.from(document.querySelectorAll<HTMLElement>(".home-actions .action"))
-          .some((action) => intersects(releaseRect, action.getBoundingClientRect())),
-      ),
-      systemRelease: systemOpacity > 0.05 && releaseOpacity > 0.05 &&
-        textRects(systemLine).some((systemRect) =>
-          textRects(releaseLine).some((releaseRect) => intersects(systemRect, releaseRect)),
-        ),
-    };
-  });
-  expect(intersections.systemRelease).toBe(false);
-  expect(intersections.releaseActions).toBe(false);
+  await page.mouse.wheel(0, 24);
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 3_000 });
+  await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
 });
 
 test("Home actions reveal fully when reached by keyboard at scroll-top", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  for (const width of [1440, 1005]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    const action = page.locator(".home-actions").getByRole("link", { name: "View the work →" });
-    for (let index = 0; index < 12; index += 1) {
-      if (await action.evaluate((element) => element === document.activeElement)) break;
-      await page.keyboard.press("Tab");
-    }
-    await expect(action).toBeFocused();
-    await expect(page.locator(".home-actions")).toHaveCSS("opacity", "1");
-    const focusStyle = await action.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
-    });
-    expect(focusStyle.outlineStyle).not.toBe("none");
-    expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  // Let the map's first expensive frames pass before driving keys —
+  // shader compile is CPU-bound on software GL.
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await page.waitForTimeout(600);
+  const action = page.locator(".home-actions").getByRole("link", { name: "View the work →" });
+  // Home's tab inventory: skip link, brand, four capsule links, four
+  // planet nameplates, then the first action — eleven stops. The first
+  // keystroke also skips the sequence.
+  for (let index = 0; index < 11; index += 1) {
+    await page.keyboard.press("Tab");
   }
+  await expect(action).toBeFocused();
+  await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
+  await expect(page.locator(".home-actions")).toHaveCSS("opacity", "1");
+  const focusStyle = await action.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle.outlineStyle).not.toBe("none");
+  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
 });
 
 test("skip link is the first visible keyboard target", async ({ page }) => {
@@ -240,8 +160,12 @@ test("reduced motion renders Home as a resolved linear document", async ({ page 
     items.map((item) => getComputedStyle(item).fontVariationSettings),
   );
   expect(displays.every((value) => value.includes("100"))).toBe(true);
-  await expect(page.locator(".scroll-cue")).toBeHidden();
+  await expect(page.locator(".scroll-cue")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
+  // The planetary map still lands, as its linked poster.
+  await expect(page.locator(".orbit-poster")).toBeVisible();
+  await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
+  await expect(page.locator('.orbit-poster a[href="/building"]')).toBeAttached();
 });
 
 test("no JavaScript keeps every Home sentence and action available", async ({ browser }) => {
@@ -254,7 +178,7 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build a talent engine that compounds.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Make talent the engine of growth.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),
@@ -488,6 +412,10 @@ test("reduced-motion Work to case arrival exposes the headline immediately", asy
 test("motion-enabled header navigation exposes and clears its pending mark", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
+  // Home lands on the map now: let its first expensive frames pass so
+  // the route push is measured on a settled page (software GL).
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await page.waitForTimeout(600);
   const link = page.locator('nav[aria-label="Primary navigation"] a[href="/work"]');
   await link.evaluate((element) => (element as HTMLElement).click());
   await expect(link.locator(".nav-pending")).toHaveClass(/is-pending/);
@@ -568,7 +496,7 @@ test("case studies keep the complete editorial record without JavaScript", async
 
 test("Home and the Lab use one continuous editorial ground", async ({ page }) => {
   await gotoReduced(page, "/");
-  await expect(page.locator(".systems-bridge")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
@@ -610,6 +538,23 @@ test("every section lands on the solar system", async ({ page }) => {
   }
 });
 
+test("Home shows the planetary map after the three statements", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  // The sections are Home's planets, and the map follows the spine.
+  await expect(page.locator('a.orbit-label[data-body="work"]')).toHaveAttribute("href", "/work");
+  await expect(page.locator('a.orbit-label[data-body="lab"]')).toHaveAttribute("href", "/building");
+  await expect(page.locator('a.orbit-label[data-body="contact"]')).toHaveAttribute("href", "/contact");
+  const mapFollowsSpine = await page.evaluate(() => {
+    const spine = document.querySelector(".home-resolve");
+    const map = document.querySelector(".home-orbit");
+    if (!spine || !map) return false;
+    return Boolean(spine.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(mapFollowsSpine).toBe(true);
+});
+
 test("clicking a planet pulls it into the black hole, then travels", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/work");
@@ -618,7 +563,7 @@ test("clicking a planet pulls it into the black hole, then travels", async ({ pa
   await expect(label).toHaveAttribute("href", "/work/zalando");
   // The capture spirals the planet into the core (~0.75s), then the
   // site travels to the case study.
-  await label.click({ force: true });
+  await label.evaluate((element) => (element as HTMLElement).click());
   await expect(page).toHaveURL(/\/work\/zalando$/, { timeout: 8000 });
 });
 
@@ -765,7 +710,9 @@ test("the career corridor travels between stations and stops resolved", async ({
   // Mid-leg the stations empty out and the streak field carries the travel.
   await setSectionProgress(page, ".corridor-track", 5 / 12);
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
-  await expect.poll(() => customProperty(stations.nth(2), "--presence"), { timeout: 6000 }).toBeLessThan(0.2);
+  // The spring advances per frame, so software-GL runners need wall-clock
+  // headroom to converge.
+  await expect.poll(() => customProperty(stations.nth(2), "--presence"), { timeout: 12_000 }).toBeLessThan(0.2);
   // No station is interactive mid-leg — an invisible station must never
   // swallow the travel scroll with its own overflow.
   await expect(page.locator(".corridor-station.is-stop")).toHaveCount(0);
@@ -831,39 +778,27 @@ test("Contact keeps direct channels and mailto primary", async ({ page }) => {
 test("the 390px Home sets the production spine without overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReduced(page, "/");
-  await expect(page.locator(".desktop-constraint > span")).toHaveText(["Identify", "constraints."]);
-  await expect(page.getByRole("heading", { level: 1, name: "Identify constraints." })).toBeVisible();
+  await expect(page.locator(".desktop-constraint > span")).toHaveText([
+    "Identify the",
+    "constraint.",
+    "Then subtract.",
+  ]);
+  await expect(page.getByRole("heading", { level: 1, name: "Identify the constraint. Then subtract." })).toBeVisible();
   const actionWidths = await page.locator(".home-actions .action").evaluateAll((items) =>
     items.map((item) => item.getBoundingClientRect().width),
   );
   expect(actionWidths.every((width) => width > 300)).toBe(true);
 });
 
-test("the 390px Home resolves its bounded mobile width axis", async ({ page }) => {
+test("the 390px Home renders the statements resolved, no journey", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  const hero = page.locator(".home-resolve");
-  await expect.poll(async () => Math.abs(await customProperty(hero, "--axis-mobile") - 62))
-    .toBeLessThanOrEqual(0.75);
-
-  await hero.evaluate((element) => {
-    const top = window.scrollY + element.getBoundingClientRect().top;
-    window.scrollTo(0, top + window.innerHeight * 0.3);
-  });
-  await page.evaluate(() => new Promise<void>((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-  }));
-  expectWithin(await customProperty(hero, "--axis-mobile"), 81, 1);
-
-  await hero.evaluate((element) => {
-    const top = window.scrollY + element.getBoundingClientRect().top;
-    window.scrollTo(0, top + window.innerHeight * 0.6);
-  });
-  await page.evaluate(() => new Promise<void>((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-  }));
-  expectWithin(await customProperty(hero, "--axis-mobile"), 100, 0.75);
+  const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
+    items.map((item) => getComputedStyle(item).fontVariationSettings),
+  );
+  expect(axes.every((value) => value.includes("100"))).toBe(true);
+  await expect(page.locator(".orbit-poster, .orbit-canvas").first()).toBeAttached();
 });
 
 test("required responsive compositions do not overflow", async ({ page }) => {
@@ -968,7 +903,7 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "Identify constraints.",
+    name: "Identify the constraint. Then subtract.",
     exact: true,
   })).toBeVisible();
 });

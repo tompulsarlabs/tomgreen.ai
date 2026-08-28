@@ -127,8 +127,32 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   background: color-mix(in srgb, var(--paper) 82%, transparent);
   backdrop-filter: blur(18px) saturate(1.3);
   -webkit-backdrop-filter: blur(18px) saturate(1.3);
-  box-shadow: 0 12px 40px rgba(16, 20, 16, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  /* Real elevation: a tight contact shadow, a mid throw and a long soft
+     cast — the capsule floats over the page like the iOS picture-in-
+     picture window, not a bar printed on it. */
+  box-shadow:
+    0 1px 2px rgba(16, 20, 16, 0.07),
+    0 10px 28px rgba(16, 20, 16, 0.13),
+    0 30px 70px rgba(16, 20, 16, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transform-origin: top center;
+  will-change: transform;
+  /* A touch of overshoot so magnifying back in feels sprung, not eased. */
+  transition:
+    transform 360ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 360ms var(--ease);
 }
+/* Travelling down, the capsule recedes — smaller, higher, lighter.
+   The first upward turn magnifies it back. */
+.nav-capsule.is-condensed {
+  transform: translateY(-5px) scale(0.9);
+  box-shadow:
+    0 1px 2px rgba(16, 20, 16, 0.06),
+    0 6px 18px rgba(16, 20, 16, 0.1),
+    0 16px 40px rgba(16, 20, 16, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.nav-capsule:focus-within { transform: none; }
 .brand-lockup { font-family: var(--font-archivo), Arial, sans-serif; font-variation-settings: "wdth" 78; font-weight: 800; }
 .brand-signal { background: currentColor; }
 .header-progress > span { transition: transform 80ms linear; }
@@ -214,13 +238,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 /* Home resolve */
 .home-page { padding-bottom: 5rem; }
 .home-page > .reveal { margin-top: clamp(4.5rem, 7.5vw, 7rem); }
-.home-resolve {
-  position: relative;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
-  background: var(--paper);
-}
+.home-resolve { position: relative; background: var(--paper); }
 .home-resolve-stage { max-width: 1360px; margin: 0 auto; padding: 4rem max(22px, 6vw) 6rem; }
 .home-eyebrow { color: var(--ink-secondary); }
 .resolve-lines { display: grid; gap: 4rem; margin-top: 4rem; }
@@ -229,39 +247,39 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .resolve-lines .line-mask, .resolve-lines .line-mask > span, .system-line > span { display: block; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
-.constraint-line { word-spacing: var(--constraint-word-space, 0); }
-/* Six words now — one step below the system line so "Build a talent"
-   holds one line at wdth 125 and the final beat composes as three. */
+.constraint-line { max-width: 15ch; word-spacing: var(--constraint-word-space, 0); font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }
+/* Six words — one step below the display size so "Make talent" and its
+   fellows compose as three lines at wdth 125. */
 .release-line { max-width: 19ch; font-size: clamp(2.75rem, 8.35vw, 7.6rem); line-height: 0.88; }
 /* The middle line grew to a sentence — it takes a display step down so
    the linear document stays inside two viewports on every renderer. */
 .system-line { max-width: 15ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
-.home-resolve-support {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  margin-top: 4rem;
-  border-top: 1px solid var(--ink);
-  padding-top: 1.5rem;
-}
-.home-resolve-support p { max-width: 46rem; font-size: clamp(1rem, 1.6vw, 1.25rem); line-height: 1.6; color: var(--ink-secondary); }
-.scroll-cue { display: none; flex: none; }
-.js .scroll-cue { display: inline; }
-.home-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 3rem; }
+.home-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+/* Home is one landing, no scroll: the statements resolve over the
+   planetary map — the sections in orbit around talent — with the
+   support line and actions resting at its foot. */
+.home-landing { position: relative; }
+.home-orbit { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(46rem, 82svh); }
+.home-orbit-copy { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; gap: 1.5rem 2.5rem; padding: 0 0 2.25rem; }
+.home-orbit-copy .home-actions { margin: 0; }
 
 @media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
-  .js .home-resolve { height: 200svh; }
-  .js .home-resolve-stage { position: sticky; top: var(--site-header-h); height: calc(100svh - var(--site-header-h)); padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
+  .js .home-landing { display: flex; flex-direction: column; height: calc(100svh - var(--site-header-h)); min-height: 38rem; }
+  .js .home-landing .home-orbit { flex: 1 1 auto; min-height: 0; }
+  /* The sequence is a stage over the map: it plays on its own clock,
+     then yields — opacity out, hit-testing off, map beneath already
+     composed. */
+  /* z 6: the stage must out-stack the field's canvas and nameplate
+     layers (labels carry z 2 and their own contexts). */
+  .js .home-resolve { position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; z-index: 6; background: var(--paper); transition: opacity var(--d-4) var(--ease), visibility 0s var(--d-4) linear; }
+  .js .home-resolve.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+  .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
   .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 15%; display: block; margin: 0; }
   .js .constraint-line, .js .system-line, .js .release-line { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
   .js .constraint-line { --axis: var(--axis-constraint, 62); opacity: calc(1 - var(--constraint-recede, 0)); transform: translateY(calc(var(--constraint-recede, 0) * -31vh)) scale(calc(1 - var(--constraint-recede, 0) * 0.48)); transform-origin: left top; }
   .js .system-line { --axis: var(--axis-system, 62); opacity: min(var(--system-arrive, 0), calc(1 - var(--system-recede, 0))); transform: translateY(calc((1 - var(--system-arrive, 0)) * 28px)); }
   .js .release-line { --axis: var(--axis-release, 106); max-width: 19ch; opacity: var(--release-arrive, 0); transform: translateY(calc((1 - var(--release-arrive, 0)) * 24px)); }
   .js .resolve-lines, .js .home-eyebrow { opacity: calc(1 - var(--stage-exit, 0)); }
-  .js .home-resolve-support { position: absolute; right: max(22px, 6vw); bottom: 2rem; left: max(22px, 6vw); opacity: calc(1 - var(--stage-exit, 0)); }
-  .js .scroll-cue { opacity: calc(1 - var(--release-arrive, 0)); }
-  .js .home-actions { position: absolute; right: max(22px, 6vw); bottom: 8.5rem; left: auto; justify-content: flex-end; margin: 0; opacity: min(var(--release-arrive, 0), calc(1 - var(--stage-exit, 0))); transform: translateY(calc((1 - var(--release-arrive, 0)) * 16px)); }
-  .js .home-actions:focus-within { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -461,11 +479,23 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: calc(84svh - var(--site-header-h));
+  gap: clamp(1.5rem, 3vh, 2.5rem);
+  min-height: calc(92svh - var(--site-header-h));
   border-bottom: 1px solid var(--ink);
-  padding: 2.5rem 0 clamp(2rem, 4vw, 3rem);
+  padding: 0 0 clamp(2rem, 4vw, 3rem);
 }
-.orbit-field { position: absolute; inset: 0 0 16% 8%; user-select: none; -webkit-user-select: none; }
+.orbit-field {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  min-height: min(34rem, 56svh);
+  /* Deep space behind the planetary animation — a still, near-black
+     blue, vignetting darker at the edges. */
+  background: radial-gradient(115% 85% at 50% 40%, #141a29 0%, #0a0e18 56%, #05070d 100%);
+  user-select: none;
+  -webkit-user-select: none;
+}
 /* While the orbit is being dragged, nothing on the page may select. */
 body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 .orbit-field svg, .orbit-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -477,13 +507,13 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
    links are the navigation. */
 .orbit-labels { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; }
 .orbit-field[data-live="true"] .orbit-labels { display: block; }
-.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(16, 20, 16, 0.9); text-decoration: none; will-change: transform, opacity; }
+.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(226, 232, 242, 0.92); text-decoration: none; will-change: transform, opacity; }
 a.orbit-label { pointer-events: auto; cursor: pointer; }
-a.orbit-label:hover { color: var(--ink); }
-a.orbit-label:focus-visible { opacity: 1 !important; color: var(--ink); outline: 2px solid var(--ink); outline-offset: 3px; }
+a.orbit-label:hover { color: #ffffff; }
+a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2px solid #e8edf5; outline-offset: 3px; }
 .orbit-svg-label { font-family: var(--font-geist-mono), monospace; letter-spacing: 0.12em; }
 .orbit-poster a { cursor: pointer; }
-.orbit-poster a:focus-visible circle { stroke: var(--ink); stroke-width: 2; }
+.orbit-poster a:focus-visible circle { stroke: #e8edf5; stroke-width: 2; }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }
 .orbit-canvas:active { cursor: grabbing; }
 .orbit-field[data-live="true"] .orbit-poster { display: none; }
@@ -557,11 +587,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: var(--ink); outline:
   .axis-display { font-size: clamp(2.75rem, 11.8vw, 4.5rem); line-height: 0.84; }
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
   .home-resolve-stage { padding-right: 22px; padding-left: 22px; }
-  .js .constraint-line { --axis: var(--axis-mobile, 62); }
   .resolve-lines { gap: 5rem; margin-top: 3rem; }
-  .home-resolve-support { flex-direction: column; }
-  .js .scroll-cue { display: none; }
-  .home-actions { display: grid; }
+  .home-orbit-copy { flex-direction: column; align-items: stretch; }
+  .home-actions { display: grid; width: 100%; }
   .home-actions .action { width: 100%; }
   .proof-band dl { grid-template-columns: repeat(2, 1fr); }
   .proof-band dl > div { min-height: 8rem; border-top: 1px solid var(--hairline); }
@@ -578,7 +606,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: var(--ink); outline:
   .systems-title-row { grid-template-columns: 1fr; gap: 1.75rem; }
   .systems-lead { max-width: 34rem; padding-bottom: 0; }
   .systems-hero { min-height: auto; padding-top: 2rem; }
-  .orbit-field { position: relative; inset: auto; height: clamp(320px, 46svh, 430px); margin: 0 0 0.5rem; order: -1; }
+  .orbit-field { flex: none; min-height: 0; height: clamp(320px, 46svh, 430px); margin-top: 0; margin-bottom: 0.5rem; order: -1; }
   .about-opening, .career-line-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
   .station-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .station-metrics > div:nth-child(odd) { border-left: 0; padding-left: 0; }
@@ -605,5 +633,4 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: var(--ink); outline:
   .constraint-line, .system-line, .release-line { font-variation-settings: "wdth" 100; }
   .case-company { font-variation-settings: "wdth" 106 !important; }
   .route-entering :is(.case-company, .case-headline) { animation: none !important; opacity: 1; transform: none; }
-  .scroll-cue { display: none !important; }
 }

@@ -71,15 +71,12 @@ export default function About() {
           )}
 
           <div className="about-contact">
-            <p>
-              If you are building an ambitious team or the operating system behind it, I’d like
-              to hear what is difficult.
-            </p>
+            <p>Want to build, hire elite talent, or just network?</p>
             <a
               href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
               className="action action-dark"
             >
-              Start a conversation
+              Let’s Chat
             </a>
           </div>
         </div>
