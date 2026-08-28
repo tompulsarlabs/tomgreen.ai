@@ -27,8 +27,22 @@ function chunkPath(chunk: StrokeChunk, cx: number, cy: number): string {
  */
 export function OperatingOrbit() {
   const scene = resolvedScene(300);
-  const cx = VIEW.width / 2 - 30;
-  const cy = VIEW.height / 2;
+  // Balance the sculpture in the frame: centre the cluster's bounding
+  // box, not the origin — the projected origin sits off the visual mass.
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const chunk of scene.orbitChunks) {
+    for (const point of chunk.points) {
+      if (point.x < minX) minX = point.x;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.y > maxY) maxY = point.y;
+    }
+  }
+  const cx = VIEW.width / 2 - (minX + maxX) / 2;
+  const cy = VIEW.height / 2 - (minY + maxY) / 2;
   const nucleusDepth = scene.nucleus.depth;
 
   const strokeChunks = (chunks: StrokeChunk[], front: boolean, thread: boolean) =>

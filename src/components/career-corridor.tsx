@@ -51,7 +51,9 @@ export function CareerCorridor({
     const stations = Array.from(section.querySelectorAll<HTMLElement>(".corridor-station"));
     const railButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".corridor-rail button"));
     if (!track || !stage || stations.length === 0) return;
-    track.style.height = `${stations.length * 92}svh`;
+    // 74svh per station: enough travel for the streaks to breathe, short
+    // enough that plain scrolling never feels like dead road.
+    track.style.height = `${stations.length * 74}svh`;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     let width = 0;
