@@ -1,4 +1,5 @@
 import { OperatingOrbitCanvas } from "./operating-orbit-canvas";
+import { OrbitMist } from "./orbit-mist";
 import {
   DOMAINS,
   NUCLEUS_QUOTE,
@@ -83,6 +84,7 @@ export function OperatingOrbit() {
 
   return (
     <div className="orbit-field" aria-hidden="true">
+      <OrbitMist />
       <svg
         className="orbit-poster"
         viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
