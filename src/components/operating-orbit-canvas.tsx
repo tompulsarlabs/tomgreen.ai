@@ -34,6 +34,9 @@ type Primitive =
   | { kind: "disc"; x: number; y: number; r: number; depth: number }
   | { kind: "ring"; x: number; y: number; r: number; depth: number };
 
+/** Everything wakeable: the ten domains, plus the nucleus — judgment. */
+type WakeId = DomainId | "judgment";
+
 const LINKS_BY_DOMAIN = new Map<DomainId, Set<DomainId>>();
 for (const [a, b] of LINKS) {
   if (!LINKS_BY_DOMAIN.has(a)) LINKS_BY_DOMAIN.set(a, new Set());
@@ -65,9 +68,9 @@ export function OperatingOrbitCanvas() {
     if (!context) return;
 
     field.dataset.live = "true";
-    const labels = new Map<DomainId, HTMLElement>();
+    const labels = new Map<WakeId, HTMLElement>();
     field.querySelectorAll<HTMLElement>(".orbit-label").forEach((label) => {
-      labels.set(label.dataset.domain as DomainId, label);
+      labels.set(label.dataset.domain as WakeId, label);
     });
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -107,20 +110,24 @@ export function OperatingOrbitCanvas() {
     let hoverYawTarget = 0;
     let hoverPitchTarget = 0;
 
-    // Wake state: which domain the pointer is on (or a tap pinned), and a
-    // per-domain eased presence used for threads, radii and nameplates.
-    let hoverId: DomainId | null = null;
-    let pinnedId: DomainId | null = null;
+    // Wake state: which domain (or the nucleus) the pointer is on, or a
+    // tap pinned; a per-target eased presence drives threads, radii and
+    // nameplates. Waking the nucleus — judgment — lifts every domain.
+    let hoverId: WakeId | null = null;
+    let pinnedId: WakeId | null = null;
     let wakeStart = 0;
-    const wake = new Map<DomainId, number>(DOMAINS.map((domain) => [domain.id, 0]));
-    const projectedBodies = new Map<DomainId, Projected & { r: number }>();
+    const wake = new Map<WakeId, number>([
+      ...DOMAINS.map((domain) => [domain.id, 0] as [WakeId, number]),
+      ["judgment", 0],
+    ]);
+    const projectedBodies = new Map<WakeId, Projected & { r: number }>();
     let downAt: { x: number; y: number; time: number } | null = null;
 
-    const nearestDomain = (clientX: number, clientY: number): DomainId | null => {
+    const nearestDomain = (clientX: number, clientY: number): WakeId | null => {
       const bounds = field.getBoundingClientRect();
       const px = clientX - bounds.left - centerX;
       const py = clientY - bounds.top - centerY;
-      let best: DomainId | null = null;
+      let best: WakeId | null = null;
       let bestDistance = Infinity;
       for (const [id, p] of projectedBodies) {
         const distance = Math.hypot(p.x - px, p.y - py);
@@ -235,26 +242,39 @@ export function OperatingOrbitCanvas() {
         distance: clamp(DEFAULT_CAMERA.distance - 0.35 * engage, 2.5, DEFAULT_CAMERA.distance),
       };
 
-      // The woken domain: pointer hover wins, a pinned tap holds otherwise.
+      // The woken target: pointer hover wins, a pinned tap holds otherwise.
       const wokenId = hoverId ?? pinnedId;
-      const adjacent = wokenId ? LINKS_BY_DOMAIN.get(wokenId) : undefined;
+      const judgmentWoken = wokenId === "judgment";
+      const adjacent =
+        wokenId && !judgmentWoken ? LINKS_BY_DOMAIN.get(wokenId as DomainId) : undefined;
       let maxWake = 0;
       for (const domain of DOMAINS) {
-        const target = domain.id === wokenId ? 1 : adjacent?.has(domain.id) ? 0.45 : 0;
+        // Judgment touches everything: waking the nucleus lifts all domains.
+        const target =
+          domain.id === wokenId ? 1 : judgmentWoken ? 0.35 : adjacent?.has(domain.id) ? 0.45 : 0;
         const current = wake.get(domain.id)!;
         const next = current + (target - current) * Math.min(1, dt * 8);
         wake.set(domain.id, next);
         if (next > maxWake) maxWake = next;
       }
+      const judgmentPrevious = wake.get("judgment")!;
+      const judgmentWake =
+        judgmentPrevious + ((judgmentWoken ? 1 : 0) - judgmentPrevious) * Math.min(1, dt * 8);
+      wake.set("judgment", judgmentWake);
+      // The nucleus never dims the field — it illuminates it.
+      const dimWake = judgmentWoken ? 0 : maxWake;
       const wakeElapsed = (now - wakeStart) / 1000;
 
       primitives.length = 0;
 
-      // Nucleus: a paper disc (the occluder) under an ink ring.
+      // Nucleus: a paper disc (the occluder) under an ink ring — human
+      // judgment, at the centre of everything, wakeable like the domains.
       const nucleus = project([0, 0, 0], camera, scalePx);
-      const nucleusRadius = 8 * nucleus.scale;
+      const nucleusRadius = (8 + 1.6 * judgmentWake) * nucleus.scale;
       primitives.push({ kind: "disc", x: nucleus.x, y: nucleus.y, r: nucleusRadius + 1.5, depth: nucleus.depth });
       primitives.push({ kind: "ring", x: nucleus.x, y: nucleus.y, r: nucleusRadius, depth: nucleus.depth });
+      projectedBodies.clear();
+      projectedBodies.set("judgment", { ...nucleus, r: nucleusRadius });
 
       // Orbit paths: per-segment depth fade + perspective-true ink weight.
       for (let orbitIndex = 0; orbitIndex < ORBITS.length; orbitIndex += 1) {
@@ -306,7 +326,8 @@ export function OperatingOrbitCanvas() {
             const current = project(ordered[index], camera, scalePx);
             const depth = (previous.depth + current.depth) / 2;
             const scaleAvg = (previous.scale + current.scale) / 2;
-            const idleAlpha = depthAlpha(depth, 0.1, 0.02) * latticeIn * (1 - 0.45 * maxWake);
+            const idleAlpha =
+              depthAlpha(depth, 0.1, 0.02) * latticeIn * (1 - 0.45 * dimWake) * (1 + 1.1 * judgmentWake);
             const wokenAlpha = depthAlpha(depth, 0.55, 0.14);
             primitives.push({
               kind: "seg",
@@ -324,7 +345,6 @@ export function OperatingOrbitCanvas() {
       }
 
       // Bodies: ink only, radius from true perspective scale.
-      projectedBodies.clear();
       for (const domain of DOMAINS) {
         const projected = project(positions.get(domain.id)!, camera, scalePx);
         const wakeLevel = wake.get(domain.id)!;
@@ -338,7 +358,7 @@ export function OperatingOrbitCanvas() {
           depth: projected.depth,
           alpha:
             depthAlpha(projected.depth, 1, 0.38) *
-            (1 - 0.45 * maxWake * (1 - Math.max(wakeLevel, domain.id === wokenId ? 1 : 0))),
+            (1 - 0.45 * dimWake * (1 - Math.max(wakeLevel, domain.id === wokenId ? 1 : 0))),
         });
       }
 
@@ -379,15 +399,14 @@ export function OperatingOrbitCanvas() {
       context.restore();
 
       // Nameplates: DOM .record labels riding the projection, wake-gated.
-      for (const domain of DOMAINS) {
-        const label = labels.get(domain.id);
-        if (!label) continue;
-        const wakeLevel = wake.get(domain.id)!;
+      for (const [id, label] of labels) {
+        const wakeLevel = wake.get(id) ?? 0;
         if (wakeLevel <= 0.01) {
           if (label.style.opacity !== "0") label.style.opacity = "0";
           continue;
         }
-        const p = projectedBodies.get(domain.id)!;
+        const p = projectedBodies.get(id);
+        if (!p) continue;
         label.style.transform = `translate3d(${(centerX + p.x + p.r + 7).toFixed(1)}px, ${(centerY + p.y - 6).toFixed(1)}px, 0) scale(${clamp(p.scale, 0.85, 1.25).toFixed(3)})`;
         label.style.opacity = (wakeLevel * depthAlpha(p.depth, 1, 0.25)).toFixed(3);
       }

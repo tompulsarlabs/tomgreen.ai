@@ -110,7 +110,7 @@ export default function Building() {
         <p className="record orbit-caption">
           <span className="orbit-caption-mark" aria-hidden />
           <span>
-            Conceptual — ten operating domains, one connected system. Drag to rotate; wake a domain to see its threads.
+            Conceptual — ten operating domains executing agentically around one centre of human judgment. Drag to rotate; wake a domain to see its threads.
             <span className="orbit-legend">
               Talent · Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents
             </span>

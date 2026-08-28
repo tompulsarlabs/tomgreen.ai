@@ -84,6 +84,9 @@ export function OperatingOrbit() {
             {domain.label}
           </span>
         ))}
+        <span className="record orbit-label" data-domain="judgment">
+          Human judgment
+        </span>
       </div>
       <OperatingOrbitCanvas />
     </div>
