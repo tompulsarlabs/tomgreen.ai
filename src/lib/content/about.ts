@@ -106,7 +106,7 @@ export const career: CareerStop[] = [
 ];
 
 export const aboutIntro: string[] = [
-  "For fifteen years I’ve built teams and the systems around them: as a founder, a Managing Director with P&L ownership, a global talent leader, a product operator, and now an advisor to AI companies.",
+  "For fifteen years I’ve built teams and the systems around them: as a founder, a Managing Director with P&L ownership, a global talent leader, a product operator, and an advisor to startups and AI companies.",
   "That range matters. I understand the search, the organisation, the operating model and the economics—and I can build the software and agent workflows that make each work better. Based in Berlin; away from work, I’m usually building agents, following startups and venture, thinking about nutrition, or making music.",
 ];
 
