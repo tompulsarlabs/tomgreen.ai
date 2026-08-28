@@ -354,6 +354,8 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
     // Home's in-content door is a poster planet now — an SVG link, so it
     // takes a native click (SVGAElement has no .click()).
     { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
+    // The brand lockup always returns to the landing.
+    { from: "/work", selector: "a.brand-lockup", to: "/" },
   ];
 
   for (const journey of journeys) {

@@ -27,6 +27,15 @@ export function HomeResolve() {
       window.matchMedia("(min-width: 769px)").matches;
     if (!timed) return;
 
+    // The sequence is a first-arrival moment: returning to the landing
+    // (the brand lockup, a back button) goes straight to the map.
+    let played = false;
+    try {
+      played = window.sessionStorage.getItem("tg-sequence-played") === "1";
+    } catch {
+      played = false;
+    }
+
     let frame = 0;
     let holdTimer = 0;
     let finished = false;
@@ -52,7 +61,19 @@ export function HomeResolve() {
       window.clearTimeout(holdTimer);
       apply(1);
       section.classList.add("is-done");
+      try {
+        window.sessionStorage.setItem("tg-sequence-played", "1");
+      } catch {
+        // Private windows may refuse storage; the sequence just replays.
+      }
     };
+
+    if (played) {
+      finish();
+      return () => {
+        section.classList.remove("is-done");
+      };
+    }
 
     const start = performance.now();
     const tick = (now: number) => {

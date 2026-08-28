@@ -145,7 +145,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
               fontSize={(12 * projected.scale).toFixed(1)}
               fill={`rgba(240, 245, 252, ${depthAlpha(projected.depth, 0.97, 0.82).toFixed(3)})`}
             >
-              {body.label.toUpperCase()}
+              {body.label}
             </text>
           </g>
         </a>
@@ -210,7 +210,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
             fontSize="12"
             fill="rgba(240, 245, 252, 0.95)"
           >
-            {NUCLEUS_LABEL.toUpperCase()}
+            {NUCLEUS_LABEL}
           </text>
           {strokeChunks(orbitChunks, true, "orbit")}
         </g>
@@ -223,14 +223,14 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
         {bodies.map((body) => (
           <a
             key={body.id}
-            className="record orbit-label"
+            className="orbit-label"
             data-body={body.id}
             href={targetHref(body.target)}
           >
             {body.label}
           </a>
         ))}
-        <span className="record orbit-label" data-body={NUCLEUS_ID} aria-hidden="true">
+        <span className="orbit-label" data-body={NUCLEUS_ID} aria-hidden="true">
           {NUCLEUS_LABEL}
         </span>
       </div>

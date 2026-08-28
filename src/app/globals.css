@@ -118,6 +118,25 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 /* Header — a floating glass capsule menu, suspended over the page. */
 .site-header { pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .nav-float {
+    animation:
+      capsule-arrive 640ms var(--ease-settle) both,
+      capsule-float 6s ease-in-out 640ms infinite alternate;
+    will-change: transform;
+  }
+  /* Interacting stills the levitation so the target never drifts. */
+  .nav-float:hover, .nav-float:focus-within { animation-play-state: running, paused; }
+}
+@keyframes capsule-arrive {
+  from { opacity: 0; transform: translateY(-18px) scale(0.9); filter: blur(6px); }
+  62% { opacity: 1; transform: translateY(2px) scale(1.015); filter: blur(0); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes capsule-float {
+  from { transform: translateY(0); }
+  to { transform: translateY(3.5px); }
+}
 .nav-capsule {
   position: relative;
   pointer-events: auto;
@@ -152,6 +171,16 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
     0 16px 40px rgba(16, 20, 16, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
+/* Reaching for the island magnifies it; pressing gives under the hand. */
+.nav-capsule:hover {
+  transform: translateY(-2px) scale(1.035);
+  box-shadow:
+    0 2px 3px rgba(16, 20, 16, 0.08),
+    0 14px 34px rgba(16, 20, 16, 0.15),
+    0 36px 80px rgba(16, 20, 16, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.nav-capsule:active { transform: translateY(-1px) scale(0.98); transition-duration: 140ms; }
 .nav-capsule:focus-within { transform: none; }
 .brand-lockup { font-family: var(--font-archivo), Arial, sans-serif; font-variation-settings: "wdth" 78; font-weight: 800; }
 .brand-signal { background: currentColor; }
@@ -513,7 +542,7 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
   color: rgba(242, 246, 252, 0.97);
   text-decoration: none;
   will-change: transform, opacity;
@@ -521,7 +550,7 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 a.orbit-label { pointer-events: auto; cursor: pointer; }
 a.orbit-label:hover { color: #ffffff; }
 a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2px solid #e8edf5; outline-offset: 3px; }
-.orbit-svg-label { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 500; letter-spacing: 0.18em; }
+.orbit-svg-label { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 500; letter-spacing: 0.1em; }
 .orbit-poster a { cursor: pointer; }
 .orbit-poster a:focus-visible circle { stroke: #e8edf5; stroke-width: 2; }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }

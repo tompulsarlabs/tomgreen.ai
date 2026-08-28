@@ -74,9 +74,12 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
     >
       {/* The menu is a floating glass capsule — detached from the page
           edges, suspended over the content. */}
-      <div
-        className={`nav-capsule ${condensed ? "is-condensed " : ""}mt-3.5 flex max-w-[calc(100vw-24px)] items-center gap-2 sm:mt-4 sm:gap-4`}
-      >
+      {/* Two layers: the float wrapper levitates on its own slow clock;
+          the capsule inside handles condense, hover and press. */}
+      <div className="nav-float mt-3.5 sm:mt-4">
+        <div
+          className={`nav-capsule ${condensed ? "is-condensed " : ""}flex max-w-[calc(100vw-24px)] items-center gap-2 sm:gap-4`}
+        >
         <Link
           href="/"
           className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2 font-sans uppercase leading-none"
@@ -127,6 +130,7 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
             className="block h-full origin-left bg-current will-change-transform"
             style={{ transform: `scaleX(${progress})` }}
           />
+        </div>
         </div>
       </div>
     </header>
