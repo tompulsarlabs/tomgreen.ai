@@ -133,7 +133,8 @@ test("the navigation island rests as a visible compact pill", async ({ page }) =
 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await expect(island.locator("a.island-brand")).toHaveText("Hi, I’m Tom");
+  await expect(island.locator("a.island-brand .island-orb")).toBeVisible();
+  await expect(island.getByRole("link", { name: "Tom Green, home" })).toBeVisible();
 
   // At rest it is a real surface — ground, rounded rim, border, elevation
   // and padding — never bare text on the page.
@@ -157,8 +158,11 @@ test("the navigation island rests as a visible compact pill", async ({ page }) =
   expect(resting.shadow).not.toBe("none");
   expect(resting.padX).toBeGreaterThanOrEqual(12);
   expect(resting.padY).toBeGreaterThanOrEqual(4);
-  expect(resting.width).toBeGreaterThan(80);
-  expect(resting.height).toBeGreaterThan(40);
+  // At rest the pill closes to a circle around the sphere, and stays a
+  // comfortable tap target.
+  expect(resting.width).toBeGreaterThanOrEqual(44);
+  expect(resting.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(resting.width - resting.height)).toBeLessThanOrEqual(2);
 });
 
 test("the island expands on hover and returns when the pointer leaves", async ({ page }) => {
@@ -608,7 +612,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator("a.island-brand")).toHaveText("Hi, I’m Tom");
+  await expect(page.locator("a.island-brand .island-orb")).toBeVisible();
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 

@@ -18,13 +18,14 @@ function PendingMark() {
 }
 
 /**
- * The navigation island. At rest it is a compact pill carrying the
- * greeting — a real surface with its own ground, border and elevation,
- * never bare text. Hovering it, focusing into it, or tapping it widens
- * the same pill into the full navigation; the background and the
- * rounded shape are continuous across that transition because only the
- * revealed track's width animates. It collapses when the pointer
- * leaves, focus moves out, Escape is pressed, or a tap lands elsewhere.
+ * The navigation island. At rest it is a compact pill carrying one
+ * carbon sphere — the same body the orbit turns around — on its own
+ * ground, with border and elevation. Hovering it, focusing into it, or
+ * tapping it widens the same pill into the full navigation; the
+ * background and the rounded shape are continuous across that
+ * transition because only the revealed track's width animates. It
+ * collapses when the pointer leaves, focus moves out, Escape is
+ * pressed, or a tap lands elsewhere.
  */
 export function SiteHeader({ showAbout }: { showAbout: boolean }) {
   const pathname = usePathname();
@@ -94,7 +95,8 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
         <Link
           href="/"
           className="island-brand"
-          // While collapsed the greeting is the disclosure trigger: the
+          aria-label="Tom Green, home"
+          // While collapsed the sphere is the disclosure trigger: the
           // route interceptor is told to leave it alone so a touch tap
           // opens the island instead of travelling.
           data-island-trigger={expanded ? undefined : "true"}
@@ -106,7 +108,9 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
             }
           }}
         >
-          Hi, I’m Tom
+          {/* The island's resting face: the same carbon body the orbit
+              turns around, lit from the upper left. */}
+          <span aria-hidden className="island-orb" />
         </Link>
 
         {/* The revealed track: its width animates from nothing to its
