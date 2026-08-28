@@ -230,10 +230,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
 .constraint-line { word-spacing: var(--constraint-word-space, 0); }
-.release-line { max-width: 14ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
-/* The middle line grew to a sentence — it takes the release line's
-   display step so the linear document stays inside two viewports on
-   every renderer. */
+/* Six words now — one step below the system line so "Build a talent"
+   holds one line at wdth 125 and the final beat composes as three. */
+.release-line { max-width: 19ch; font-size: clamp(2.75rem, 8.35vw, 7.6rem); line-height: 0.88; }
+/* The middle line grew to a sentence — it takes a display step down so
+   the linear document stays inside two viewports on every renderer. */
 .system-line { max-width: 15ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
 .home-resolve-support {
   display: flex;
@@ -255,7 +256,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .js .constraint-line, .js .system-line, .js .release-line { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
   .js .constraint-line { --axis: var(--axis-constraint, 62); opacity: calc(1 - var(--constraint-recede, 0)); transform: translateY(calc(var(--constraint-recede, 0) * -31vh)) scale(calc(1 - var(--constraint-recede, 0) * 0.48)); transform-origin: left top; }
   .js .system-line { --axis: var(--axis-system, 62); opacity: min(var(--system-arrive, 0), calc(1 - var(--system-recede, 0))); transform: translateY(calc((1 - var(--system-arrive, 0)) * 28px)); }
-  .js .release-line { --axis: var(--axis-release, 106); max-width: 16ch; opacity: var(--release-arrive, 0); transform: translateY(calc((1 - var(--release-arrive, 0)) * 24px)); }
+  .js .release-line { --axis: var(--axis-release, 106); max-width: 19ch; opacity: var(--release-arrive, 0); transform: translateY(calc((1 - var(--release-arrive, 0)) * 24px)); }
   .js .resolve-lines, .js .home-eyebrow { opacity: calc(1 - var(--stage-exit, 0)); }
   .js .home-resolve-support { position: absolute; right: max(22px, 6vw); bottom: 2rem; left: max(22px, 6vw); opacity: calc(1 - var(--stage-exit, 0)); }
   .js .scroll-cue { opacity: calc(1 - var(--release-arrive, 0)); }

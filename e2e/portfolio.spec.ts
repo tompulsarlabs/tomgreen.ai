@@ -70,7 +70,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
     exact: true,
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Build a talent engine that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the Lab", exact: true })).toBeVisible();
   await expect(page.getByLabel("Selected outcomes")).toContainText("0 → 120");
@@ -254,7 +254,7 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Build a talent engine that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),

@@ -72,7 +72,7 @@ export function HomeResolve() {
           <p className="axis-display system-line" aria-label="Subtract before you build.">
             <span>Subtract</span><span className="system-word">before you build.</span>
           </p>
-          <p className="axis-display release-line">Build a system that compounds.</p>
+          <p className="axis-display release-line">Build a talent engine that compounds.</p>
         </div>
         <div className="home-resolve-support">
           <p>I design organisations and build the software and agents that make them move.</p>
