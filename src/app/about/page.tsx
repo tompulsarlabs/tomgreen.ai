@@ -22,7 +22,7 @@ export default function About() {
       <header className="about-opening">
         <div>
           <p className="record">About / operating record</p>
-          <h1 className="axis-display">A career built at the crossover.</h1>
+          <h1 className="axis-display">A career at the intersection.</h1>
         </div>
         <div className="about-intro">
           {aboutIntro.map((paragraph) => (
