@@ -14,6 +14,7 @@ import {
   pointOnOrbit,
   project,
   threadPoints,
+  wellPolylines,
   type DomainId,
   type Projected,
   type Vec3,
@@ -50,6 +51,9 @@ type Wisp = {
   size: number;
   seed: number;
 };
+
+/** The gravity well fabric, sampled once — projected fresh every frame. */
+const WELL_LINES = wellPolylines();
 
 const LINKS_BY_DOMAIN = new Map<DomainId, Set<DomainId>>();
 for (const [a, b] of LINKS) {
@@ -337,6 +341,33 @@ export function OperatingOrbitCanvas() {
       projectedBodies.clear();
       projectedBodies.set(NUCLEUS_ID, { ...nucleus, r: nucleusRadius });
 
+      // The gravity well: hairline rings and meridians of the fabric the
+      // field rests on, bending toward talent. Same projection as the
+      // orbits, so the curvature turns with the camera as one object.
+      // Waking the nucleus deepens the fabric's ink.
+      const wellIn = clamp((elapsed - 0.5) / 1.4, 0, 1);
+      if (wellIn > 0) {
+        for (const line of WELL_LINES) {
+          let previous = project(line[0], camera, scalePx);
+          for (let index = 1; index < line.length; index += 1) {
+            const current = project(line[index], camera, scalePx);
+            const depth = (previous.depth + current.depth) / 2;
+            const scaleAvg = (previous.scale + current.scale) / 2;
+            primitives.push({
+              kind: "seg",
+              x1: previous.x,
+              y1: previous.y,
+              x2: current.x,
+              y2: current.y,
+              depth,
+              alpha: depthAlpha(depth, 0.085, 0.022) * wellIn * (1 + 0.6 * nucleusWake),
+              width: 0.42 * scaleAvg * scaleAvg,
+            });
+            previous = current;
+          }
+        }
+      }
+
       // Orbit paths: per-segment depth fade + perspective-true ink weight.
       for (let orbitIndex = 0; orbitIndex < ORBITS.length; orbitIndex += 1) {
         const orbit = ORBITS[orbitIndex];
@@ -504,25 +535,42 @@ export function OperatingOrbitCanvas() {
           context.lineWidth = primitive.width;
           context.stroke();
         } else if (primitive.kind === "body") {
-          // A lit ink sphere: monochrome radial shading, never a new hue.
+          // A graphite sphere: paper-bright specular core falling to full
+          // ink at the rim. Monochrome shading, never a new hue.
           const sphere = context.createRadialGradient(
-            primitive.x - primitive.r * 0.38,
-            primitive.y - primitive.r * 0.42,
-            primitive.r * 0.12,
+            primitive.x - primitive.r * 0.36,
+            primitive.y - primitive.r * 0.44,
+            primitive.r * 0.08,
             primitive.x,
             primitive.y,
             primitive.r,
           );
-          sphere.addColorStop(0, `rgba(${INK}, ${(primitive.alpha * 0.4).toFixed(3)})`);
+          sphere.addColorStop(0, `rgba(${INK}, ${(primitive.alpha * 0.05).toFixed(3)})`);
+          sphere.addColorStop(0.32, `rgba(${INK}, ${(primitive.alpha * 0.8).toFixed(3)})`);
           sphere.addColorStop(1, `rgba(${INK}, ${primitive.alpha.toFixed(3)})`);
           context.beginPath();
           context.arc(primitive.x, primitive.y, primitive.r, 0, Math.PI * 2);
           context.fillStyle = sphere;
           context.fill();
         } else if (primitive.kind === "disc") {
+          // The nucleus is a polished paper stone: opaque paper first (the
+          // occluder), then the faintest ink shading for its curvature.
           context.beginPath();
           context.arc(primitive.x, primitive.y, primitive.r, 0, Math.PI * 2);
           context.fillStyle = "#ffffff";
+          context.fill();
+          const stone = context.createRadialGradient(
+            primitive.x - primitive.r * 0.3,
+            primitive.y - primitive.r * 0.34,
+            primitive.r * 0.1,
+            primitive.x,
+            primitive.y,
+            primitive.r,
+          );
+          stone.addColorStop(0, `rgba(${INK}, 0)`);
+          stone.addColorStop(0.55, `rgba(${INK}, 0.04)`);
+          stone.addColorStop(1, `rgba(${INK}, 0.16)`);
+          context.fillStyle = stone;
           context.fill();
         } else {
           context.beginPath();

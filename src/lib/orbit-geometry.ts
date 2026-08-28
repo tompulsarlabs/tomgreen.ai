@@ -115,6 +115,42 @@ export const LINKS: [DomainId, DomainId][] = [
   ["building", "agents"],
 ];
 
+/**
+ * The gravity well — the fabric the field rests on, bending toward the
+ * nucleus. Concentric rings and meridians sampled as world polylines so
+ * both renderers draw the curvature in the same projection as the
+ * orbits: one object, never a backdrop. Structured hairlines only.
+ */
+export const WELL_RING_RADII = [0.14, 0.24, 0.36, 0.5, 0.68, 0.86, 1.05];
+export const WELL_MERIDIANS = 12;
+const WELL_DROP = 0.44;
+const WELL_THROAT = 0.32;
+
+/** The sheet's height at radius r: level far out, dipping into the throat. */
+function wellY(r: number): number {
+  return WELL_DROP * (1 - Math.exp(-(r * r) / (WELL_THROAT * WELL_THROAT)));
+}
+
+export function wellPolylines(ringSamples = 60, meridianSamples = 16): Vec3[][] {
+  const lines: Vec3[][] = WELL_RING_RADII.map((radius) =>
+    Array.from({ length: ringSamples + 1 }, (_, index) => {
+      const angle = (index / ringSamples) * Math.PI * 2;
+      return [Math.cos(angle) * radius, wellY(radius), Math.sin(angle) * radius] as Vec3;
+    }),
+  );
+  const rMax = WELL_RING_RADII[WELL_RING_RADII.length - 1];
+  for (let meridian = 0; meridian < WELL_MERIDIANS; meridian += 1) {
+    const angle = (meridian / WELL_MERIDIANS) * Math.PI * 2;
+    lines.push(
+      Array.from({ length: meridianSamples + 1 }, (_, index) => {
+        const radius = 0.1 + (rMax - 0.1) * (index / meridianSamples);
+        return [Math.cos(angle) * radius, wellY(radius), Math.sin(angle) * radius] as Vec3;
+      }),
+    );
+  }
+  return lines;
+}
+
 export const DEFAULT_CAMERA: Camera = { yaw: 0.62, pitch: 0.42, distance: 2.9 };
 
 /** How far drag may pitch the field, keeping it an instrument, not a toy. */
@@ -221,6 +257,7 @@ export function splitByNucleusDepth(points: Projected[], nucleusDepth: number): 
 export type ResolvedScene = {
   orbitChunks: StrokeChunk[];
   threadChunks: StrokeChunk[];
+  wellChunks: StrokeChunk[];
   bodies: (Projected & { size: number; id: DomainId; label: string })[];
   nucleus: Projected & { radius: number };
 };
@@ -255,12 +292,19 @@ export function resolvedScene(scalePx: number, samples = 120): ResolvedScene {
     ),
   );
 
+  const wellChunks = wellPolylines().flatMap((line) =>
+    splitByNucleusDepth(
+      line.map((point) => project(point, DEFAULT_CAMERA, scalePx)),
+      nucleus.depth,
+    ),
+  );
+
   const bodies = DOMAINS.map((domain) => {
     const projected = project(home.get(domain.id)!, DEFAULT_CAMERA, scalePx);
     return { ...projected, size: domain.size, id: domain.id, label: domain.label };
   }).sort((first, second) => second.depth - first.depth);
 
-  return { orbitChunks, threadChunks, bodies, nucleus };
+  return { orbitChunks, threadChunks, wellChunks, bodies, nucleus };
 }
 
 /** Depth-cued ink alpha for paths and bodies: near is present, far recedes. */

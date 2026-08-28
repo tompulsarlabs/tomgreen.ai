@@ -599,8 +599,8 @@ test("the Operating Orbit poster is server-rendered for no-JS visitors", async (
   // Orbit + thread chunks split around the nucleus: at least one path per
   // orbit (3) and per link (14); the exact count varies with the camera.
   expect(await page.locator(".orbit-poster path").count()).toBeGreaterThanOrEqual(17);
-  // Ten ink domains + the nucleus paper disc and ink ring.
-  await expect(page.locator(".orbit-poster circle")).toHaveCount(12);
+  // Ten graphite domains + the nucleus paper disc, stone shading and ink ring.
+  await expect(page.locator(".orbit-poster circle")).toHaveCount(13);
   // The poster names every domain and the nucleus in real SVG text.
   await expect(page.locator(".orbit-poster text")).toHaveCount(11);
   await context.close();

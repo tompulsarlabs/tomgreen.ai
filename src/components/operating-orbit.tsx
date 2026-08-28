@@ -35,7 +35,7 @@ export function OperatingOrbit() {
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-  for (const chunk of scene.orbitChunks) {
+  for (const chunk of [...scene.orbitChunks, ...scene.wellChunks]) {
     for (const point of chunk.points) {
       if (point.x < minX) minX = point.x;
       if (point.x > maxX) maxX = point.x;
@@ -47,18 +47,26 @@ export function OperatingOrbit() {
   const cy = VIEW.height / 2 - (minY + maxY) / 2;
   const nucleusDepth = scene.nucleus.depth;
 
-  const strokeChunks = (chunks: StrokeChunk[], front: boolean, thread: boolean) =>
-    chunks
+  const strokeChunks = (
+    chunks: StrokeChunk[],
+    front: boolean,
+    kind: "orbit" | "thread" | "well",
+  ) => {
+    const near = kind === "orbit" ? 0.3 : kind === "thread" ? 0.1 : 0.07;
+    const far = kind === "orbit" ? 0.1 : kind === "thread" ? 0.03 : 0.02;
+    const weight = kind === "orbit" ? 0.62 : kind === "thread" ? 0.5 : 0.42;
+    return chunks
       .filter((chunk) => chunk.front === front)
       .map((chunk, index) => (
         <path
-          key={`${thread ? "t" : "o"}-${front ? "f" : "b"}-${index}`}
+          key={`${kind}-${front ? "f" : "b"}-${index}`}
           d={chunkPath(chunk, cx, cy)}
           fill="none"
-          stroke={`rgba(16, 20, 16, ${depthAlpha(chunk.meanDepth, thread ? 0.1 : 0.3, thread ? 0.03 : 0.1).toFixed(3)})`}
-          strokeWidth={((thread ? 0.5 : 0.62) * chunk.meanScale * chunk.meanScale).toFixed(2)}
+          stroke={`rgba(16, 20, 16, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
+          strokeWidth={(weight * chunk.meanScale * chunk.meanScale).toFixed(2)}
         />
       ));
+  };
 
   const bodies = (behind: boolean) =>
     scene.bodies
@@ -91,20 +99,35 @@ export function OperatingOrbit() {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Monochrome sphere shading: lit ink, never a new hue. */}
-          <radialGradient id="orb-sphere" cx="0.38" cy="0.34" r="0.95">
-            <stop offset="0" stopColor="#101410" stopOpacity="0.45" />
+          {/* Graphite sphere shading: paper-bright specular core to full
+              ink at the rim — monochrome, never a new hue. */}
+          <radialGradient id="orb-sphere" cx="0.32" cy="0.26" r="1">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.92" />
+            <stop offset="0.32" stopColor="#101410" stopOpacity="0.8" />
             <stop offset="1" stopColor="#101410" stopOpacity="1" />
           </radialGradient>
+          {/* The nucleus: a polished paper stone. */}
+          <radialGradient id="orb-stone" cx="0.35" cy="0.3" r="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="0.55" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#deded8" />
+          </radialGradient>
         </defs>
-        {strokeChunks(scene.orbitChunks, false, false)}
-        {strokeChunks(scene.threadChunks, false, true)}
+        {strokeChunks(scene.wellChunks, false, "well")}
+        {strokeChunks(scene.orbitChunks, false, "orbit")}
+        {strokeChunks(scene.threadChunks, false, "thread")}
         {bodies(true)}
         <circle
           cx={cx + scene.nucleus.x}
           cy={cy + scene.nucleus.y}
           r={scene.nucleus.radius + 1.5}
           fill="#ffffff"
+        />
+        <circle
+          cx={cx + scene.nucleus.x}
+          cy={cy + scene.nucleus.y}
+          r={scene.nucleus.radius}
+          fill="url(#orb-stone)"
         />
         <circle
           cx={cx + scene.nucleus.x}
@@ -123,8 +146,9 @@ export function OperatingOrbit() {
         >
           {NUCLEUS_LABEL.toUpperCase()}
         </text>
-        {strokeChunks(scene.orbitChunks, true, false)}
-        {strokeChunks(scene.threadChunks, true, true)}
+        {strokeChunks(scene.wellChunks, true, "well")}
+        {strokeChunks(scene.orbitChunks, true, "orbit")}
+        {strokeChunks(scene.threadChunks, true, "thread")}
         {bodies(false)}
       </svg>
       <div className="orbit-labels" aria-hidden="true">
