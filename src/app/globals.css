@@ -484,13 +484,10 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
   transition: opacity var(--d-3) var(--ease);
   will-change: transform, opacity;
 }
-.orbit-legend { display: block; margin-top: 0.4rem; letter-spacing: 0.1em; color: var(--muted); }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }
 .orbit-canvas:active { cursor: grabbing; }
 .orbit-field[data-live="true"] .orbit-poster { display: none; }
 .orbit-field[data-live="true"] .orbit-canvas { display: block; }
-.orbit-caption { position: relative; z-index: 1; display: flex; align-items: baseline; gap: 0.65rem; margin-top: 2.25rem; border-top: 1px solid var(--hairline); padding-top: 1rem; color: var(--muted); }
-.orbit-caption-mark { width: 3px; align-self: stretch; background: var(--mark); }
 .systems-hero-copy { position: relative; z-index: 1; }
 .systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: end; margin-top: 1.25rem; }
 .systems-hero h1 { --axis: 100; max-width: 7ch; }

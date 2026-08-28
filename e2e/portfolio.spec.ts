@@ -575,9 +575,8 @@ test("the Operating Orbit runs with motion and falls back to its poster", async 
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
   await expect(page.locator(".orbit-poster")).toBeHidden();
   await expect(page.locator(".orbit-field")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.getByText(/Conceptual — ten domains in orbit around one centre of gravity: talent/)).toBeVisible();
-  // Every domain name exists as real text, and as a wake nameplate.
-  await expect(page.getByText(/Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents · Human judgment/)).toBeVisible();
+  // The field is a pure visual signature — no caption strip (owner cut).
+  await expect(page.locator(".orbit-caption")).toHaveCount(0);
   // Ten domain nameplates plus the nucleus — talent — and a
   // pinnable one-line note for each.
   await expect(page.locator(".orbit-label")).toHaveCount(11);

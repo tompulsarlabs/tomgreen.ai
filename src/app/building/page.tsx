@@ -107,15 +107,6 @@ export default function Building() {
             </p>
           </div>
         </div>
-        <p className="record orbit-caption">
-          <span className="orbit-caption-mark" aria-hidden />
-          <span>
-            Conceptual — ten domains in orbit around one centre of gravity: talent. Drag to rotate; wake a domain to see its threads.
-            <span className="orbit-legend">
-              Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents · Human judgment
-            </span>
-          </span>
-        </p>
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
