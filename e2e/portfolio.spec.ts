@@ -47,6 +47,24 @@ function expectWithin(actual: number, expected: number, tolerance: number) {
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
 }
 
+async function settleIsland(page: Page) {
+  // The island widens by transitioning a grid track. Polling boundingBox in
+  // a tight loop starves the compositor on these WebGL pages, so wait for
+  // the transition to actually finish before measuring.
+  await page.locator(".nav-island").evaluate((element) => new Promise<void>((resolve) => {
+    const reveal = element.querySelector(".island-reveal");
+    if (!reveal) return resolve();
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    reveal.addEventListener("transitionend", done, { once: true });
+    setTimeout(done, 2000);
+  }));
+}
+
 async function inkedCanvasPixels(page: Page, selector: string) {
   return page.locator(selector).evaluate((element) => {
     const canvas = element as HTMLCanvasElement;
@@ -158,14 +176,16 @@ test("the island expands on hover and returns when the pointer leaves", async ({
   await island.hover();
   await expect(island).toHaveAttribute("data-expanded", "true");
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
-  await expect.poll(widthOf).toBeGreaterThan(compact * 2);
+  await settleIsland(page);
+  expect(await widthOf()).toBeGreaterThan(compact * 2);
   // The pill keeps its ground and its height while it widens.
   expectWithin(await heightOf(), restingHeight, 1);
   await expect(island).toHaveCSS("border-radius", "999px");
 
   await page.mouse.move(720, 600);
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await expect.poll(widthOf).toBeLessThan(compact * 1.2);
+  await settleIsland(page);
+  expect(await widthOf()).toBeLessThan(compact * 1.2);
   // The trigger never disappears — it can always be reopened.
   await expect(island.locator("a.island-brand")).toBeVisible();
   await island.hover();
