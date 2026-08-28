@@ -54,14 +54,14 @@ export const projects: Project[] = [
     stack: ["Agent skills", "Social content", "Markdown"],
   },
   {
-    slug: "margaux-en-tutor",
-    name: "margaux-en-tutor",
+    slug: "brightpaws",
+    name: "BrightPaws",
     status: "shipped",
-    tagline: "An English-learning game for a seven-year-old",
+    tagline: "An English-learning game built for one young learner",
     description: [
-      "A touch-based English-learning game built for a specific seven-year-old and her iPad. The best product spec is a single user you know well.",
+      "A touch-based English-learning game built for one specific young learner and their iPad. The best product spec is a single user you know well.",
     ],
-    repo: "https://github.com/tompulsarlabs/margaux-en-tutor",
+    repo: "https://github.com/tompulsarlabs/BrightPaws",
     stack: ["Expo", "React Native", "TypeScript"],
   },
 ];

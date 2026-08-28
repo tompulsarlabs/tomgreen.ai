@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { OperatingOrbit } from "@/components/operating-orbit";
 import { Reveal } from "@/components/reveal";
 import { projects } from "@/lib/content/building";
 import { caseStudies } from "@/lib/content/case-studies";
@@ -39,7 +40,7 @@ function RecordLink({ node }: { node: GraphNode }) {
 
   return external ? (
     <a href={node.href} target="_blank" rel="noreferrer" className={className}>
-      {node.kind === "content" ? "Read on Substack ↗" : "View project ↗"}
+      {node.kind === "content" ? "Read on Substack ↗" : "Inspect the system ↗"}
     </a>
   ) : (
     <Link href={node.href} className={className}>
@@ -96,6 +97,7 @@ export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
+        <OperatingOrbit />
         <div className="systems-hero-copy">
           <p className="record">Systems</p>
           <div className="systems-title-row">
@@ -104,8 +106,11 @@ export default function Building() {
               The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
             </p>
           </div>
-
         </div>
+        <p className="record orbit-caption">
+          <span className="orbit-caption-mark" aria-hidden />
+          Conceptual — repeatable work orbits. Exceptions come to a person.
+        </p>
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
@@ -115,10 +120,10 @@ export default function Building() {
             id="systems-index-heading"
             className="axis-heading max-w-3xl"
           >
-            The work behind the outcomes.
+            The systems behind the outcomes.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method tangible. Writing turns the lessons into something others can use.
+            Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method inspectable. Writing turns the lessons into something others can use.
           </p>
         </div>
       </section>
@@ -183,7 +188,7 @@ export default function Building() {
                     rel="noreferrer"
                     className="mt-3 inline-flex min-h-11 items-center text-sm text-accent hover:underline"
                   >
-                    View project ↗
+                    Inspect the system ↗
                   </a>
                 )}
               </article>

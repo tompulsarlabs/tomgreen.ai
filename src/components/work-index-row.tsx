@@ -13,6 +13,7 @@ export function WorkIndexRow({ study, index }: { study: CaseStudy; index: number
       <span className="row-copy">
         <strong className="axis-index row-company" data-travel-name>{study.company}</strong>
         <span className="row-headline">{study.headline}</span>
+        <span className="row-summary">{study.summary}</span>
       </span>
       <span className="record row-period">{study.period}</span>
     </Link>

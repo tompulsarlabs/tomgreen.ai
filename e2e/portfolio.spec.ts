@@ -47,20 +47,47 @@ function expectWithin(actual: number, expected: number, tolerance: number) {
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
 }
 
+async function inkedCanvasPixels(page: Page, selector: string) {
+  return page.locator(selector).evaluate((element) => {
+    const canvas = element as HTMLCanvasElement;
+    const context = canvas.getContext("2d");
+    if (!context || !canvas.width || !canvas.height) return 0;
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let inked = 0;
+    for (let index = 3; index < data.length; index += 4) {
+      if (data[index] > 8) inked += 1;
+    }
+    return inked;
+  });
+}
+
 test("Home presents the complete Load-Bearing Type journey", async ({ page }) => {
   await gotoReduced(page, "/");
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "I see the constraint.",
+    name: "Identify constraints.",
     exact: true,
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems", exact: true })).toBeVisible();
   await expect(page.getByLabel("Selected outcomes")).toContainText("0 → 120");
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
+});
+
+test("Home restores the live execution record with its methodology caveat", async ({ page }) => {
+  await gotoReduced(page, "/");
+  await expect(page.getByRole("heading", { name: "I build—and ship—at speed." })).toBeVisible();
+  await expect(page.getByText("Ship streak", { exact: true })).toBeVisible();
+  await expect(page.getByText(/A ship day is verified, non-bot work on a real project/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Inspect Ivy and the shipping record/ })).toHaveAttribute(
+    "href",
+    "https://github.com/tompulsarlabs/ivy",
+  );
+  await expect(page.locator(".proof-band")).toContainText("Zalando");
+  await expect(page.getByRole("link", { name: "From the flagship case study →" })).toBeVisible();
 });
 
 test("Home owns one width-axis cluster at each scroll checkpoint", async ({ page }) => {
@@ -225,7 +252,7 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),
@@ -236,8 +263,10 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
 
 test("Work is a six-row evidence index with clear hierarchy", async ({ page }) => {
   await gotoReduced(page, "/work");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Selected work.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Weighed by opportunity cost.");
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
+  await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
+  await expect(page.locator(".work-metric-rail")).toContainText("ARR won / first year");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(page.getByRole("link", { name: /Zalando/ })).toContainText("2022 – 2025");
   await expect(page.getByRole("link", { name: "Work", exact: true })).toHaveAttribute("aria-current", "page");
@@ -352,12 +381,12 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
         }
       }
       const fadedOpacity = Number.parseFloat(getComputedStyle(element).opacity);
-      if (element.classList.contains("is-fading") && fadedOpacity <= 0.05) {
-        resolve({ fadedOpacity, landed });
-        return;
-      }
       if (performance.now() - started >= 1_500 || !element.isConnected) {
-        resolve({ fadedOpacity, landed });
+        // The swap is atomic: the clone leaves at full opacity in the frame
+        // the arrival appears. Report whether the arrival was already visible.
+        const arrival = document.querySelector("[data-arrival-name]");
+        const arrivalVisible = arrival ? Number.parseFloat(getComputedStyle(arrival).opacity) : 0;
+        resolve({ fadedOpacity: element.isConnected ? fadedOpacity : arrivalVisible, landed });
         return;
       }
       requestAnimationFrame(sample);
@@ -403,7 +432,8 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
   expectWithin(completed.landed!.clone.y, completed.landed!.target.y, 8);
   expectWithin(completed.landed!.clone.width, completed.landed!.target.width, 8);
   expectWithin(completed.landed!.clone.height, completed.landed!.target.height, 8);
-  expect(completed.fadedOpacity).toBeLessThanOrEqual(0.05);
+  // Atomic handoff: by the time the clone is gone the arrival is fully visible.
+  expect(completed.fadedOpacity).toBeGreaterThanOrEqual(0.95);
   await expect(clone).toHaveCount(0, { timeout: 1_500 });
   await expect(page.locator("[data-arrival-name]")).toHaveCSS("opacity", "1");
 });
@@ -482,7 +512,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
     "AI organisation",
   ]);
   await expect(page.getByText(
-    "Source note · Metrics are drawn from the project records for this work; selected references and supporting context are available privately.",
+    "Evidence note · Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
@@ -504,7 +534,7 @@ test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => 
   ]);
   await expect(system.getByText("Human judgment", { exact: true })).toBeVisible();
   await expect(page.getByText(
-    "Source note · Metrics are drawn from the project records for this work; selected references are available privately.",
+    "Evidence note · Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|sentence that splits|classified →|workflow reconstructed/i)).toHaveCount(0);
@@ -522,7 +552,7 @@ test("case studies keep the complete editorial record without JavaScript", async
     await page.goto(route);
     await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
     await expect(page.locator('[aria-label="How the operating system worked"] ol > li')).toHaveCount(5);
-    await expect(page.getByText("The outcome", { exact: true })).toBeVisible();
+    await expect(page.getByText(/· What changed/)).toBeVisible();
   }
   await context.close();
 });
@@ -537,10 +567,34 @@ test("Home and Systems use one continuous white editorial ground", async ({ page
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
+test("the Operating Orbit runs with motion and falls back to its poster", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/building");
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await expect(page.locator(".orbit-poster")).toBeHidden();
+  await expect(page.locator(".orbit-field")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.getByText(/Conceptual — repeatable work orbits/)).toBeVisible();
+});
+
+test("reduced motion serves the Operating Orbit poster, not the canvas", async ({ page }) => {
+  await gotoReduced(page, "/building");
+  await expect(page.locator(".orbit-poster")).toBeVisible();
+  await expect(page.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
+});
+
+test("the Operating Orbit poster is server-rendered for no-JS visitors", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
+  const page = await context.newPage();
+  await page.goto("/building");
+  await expect(page.locator(".orbit-poster path")).toHaveCount(3);
+  await expect(page.locator(".orbit-poster circle")).toHaveCount(7);
+  await context.close();
+});
+
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.getByRole("heading", { name: "Systems.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeAttached();
   }
@@ -560,7 +614,10 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
-  await expect(page.locator("canvas")).toHaveCount(0);
+  // The only canvas on the route is the aria-hidden Operating Orbit;
+  // the pre-signature "no canvas" contract was superseded by owner decision.
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect(page.locator(".orbit-field canvas")).toHaveCount(1);
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 
@@ -573,20 +630,97 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   const page = await context.newPage();
   await page.goto("/building");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
-  await expect(page.locator("canvas")).toHaveCount(0);
+  // Without JavaScript the canvas never activates: the poster carries the field.
+  await expect(page.locator(".orbit-canvas")).toBeHidden();
+  await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();
   await expect(page.locator("#ivy")).toBeAttached();
   await context.close();
 });
 
-test("About is complete and linear in the local working environment", async ({ page }) => {
+test("About under reduced motion is the complete linear record", async ({ page }) => {
   await gotoReduced(page, "/about");
   await expect(page.getByRole("heading", { name: "The work, in sequence." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Zalando/ })).toBeVisible();
-  await expect(page.locator('[aria-label="Interactive CV, reverse chronological"]')).toHaveCount(0);
+  const corridor = page.locator('[aria-label="Interactive CV, reverse chronological"]');
+  await expect(corridor).toBeVisible();
+  await expect(corridor).not.toHaveAttribute("data-live", "true");
+  // The corridor's own DOM is the fallback: every station and every
+  // achievement present, nothing gated, no canvas, no rail.
+  await expect(corridor.locator(".corridor-station")).toHaveCount(7);
+  await expect(corridor.locator(".station-achievements li")).toHaveCount(13);
+  await expect(corridor.getByRole("heading", { name: "Zalando" })).toBeVisible();
+  await expect(corridor.getByText(/Rated Delivering Breakthroughs/)).toBeVisible();
+  await expect(corridor.locator(".corridor-canvas")).toBeHidden();
+  await expect(corridor.locator(".corridor-rail")).toBeHidden();
+  // The retired pre-recovery implementation stays retired.
   await expect(page.locator("[data-career-hyperspace]")).toHaveCount(0);
+});
+
+test("About without JavaScript serves the complete linear CV", async ({ browser }) => {
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { width: 1280, height: 900 },
+  });
+  const page = await context.newPage();
+  await page.goto("/about");
+  const corridor = page.locator(".career-corridor");
+  await expect(corridor).not.toHaveAttribute("data-live", "true");
+  await expect(corridor.locator(".corridor-station")).toHaveCount(7);
+  await expect(corridor.locator(".station-achievements li")).toHaveCount(13);
+  await expect(corridor.locator(".corridor-canvas")).toBeHidden();
+  await expect(corridor.locator(".corridor-rail")).toBeHidden();
+  await context.close();
+});
+
+test("the career corridor travels between stations and stops resolved", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/about");
+  await waitForFonts(page);
+  const corridor = page.locator(".career-corridor");
+  await expect(corridor).toHaveAttribute("data-live", "true");
+  const stations = corridor.locator(".corridor-station");
+  await expect(corridor.locator(".corridor-rail button")).toHaveCount(7);
+
+  // Parked at the first station: fully resolved, the rest inert for AT.
+  await setSectionProgress(page, ".corridor-track", 0);
+  await expect(stations.first()).toHaveClass(/is-stop/);
+  await expect.poll(() => customProperty(stations.first(), "--station-axis")).toBeGreaterThan(99);
+  await expect(stations.nth(1)).toHaveAttribute("inert", "");
+  await expect(corridor.locator(".corridor-rail button").first()).toHaveAttribute("aria-current", "true");
+
+  // Mid-leg the stations empty out and the streak field carries the travel.
+  await setSectionProgress(page, ".corridor-track", 5 / 12);
+  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
+  await expect.poll(() => customProperty(stations.nth(2), "--presence"), { timeout: 6000 }).toBeLessThan(0.2);
+  // No station is interactive mid-leg — an invisible station must never
+  // swallow the travel scroll with its own overflow.
+  await expect(page.locator(".corridor-station.is-stop")).toHaveCount(0);
+
+  // Arriving at Zalando: resolved to wdth 100, linked to the evidence,
+  // and the canvas settles back to stillness.
+  await setSectionProgress(page, ".corridor-track", 2 / 6);
+  await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
+  await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
+  await expect(stations.nth(2).getByRole("link", { name: "Read the case study →" })).toHaveAttribute("href", "/work/zalando");
+  await expect(stations.nth(2).getByRole("link", { name: "In the systems map ↗" })).toHaveAttribute("href", "/building#zalando");
+  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBe(0);
+});
+
+test("the corridor year rail jumps the traveller to a chosen station", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/about");
+  await waitForFonts(page);
+  const corridor = page.locator(".career-corridor");
+  await expect(corridor).toHaveAttribute("data-live", "true");
+  const rail = corridor.locator(".corridor-rail button");
+  await rail.nth(2).click();
+  await expect(corridor.locator(".corridor-station").nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
+  await expect(rail.nth(2)).toHaveAttribute("aria-current", "true");
+  await expect(rail.first()).toHaveAttribute("aria-current", "false");
 });
 
 test("About masthead and introduction do not intersect at 1440px", async ({ page }) => {
@@ -620,11 +754,11 @@ test("Contact keeps direct channels and mailto primary", async ({ page }) => {
   await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/tompulsarlabs");
 });
 
-test("the 390px Home uses the intentional three-line constraint turn", async ({ page }) => {
+test("the 390px Home sets the production spine without overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReduced(page, "/");
-  await expect(page.locator(".mobile-constraint")).toBeVisible();
-  await expect(page.locator(".mobile-constraint > span")).toHaveText(["I see", "the con—", "straint."]);
+  await expect(page.locator(".desktop-constraint > span")).toHaveText(["Identify", "constraints."]);
+  await expect(page.getByRole("heading", { level: 1, name: "Identify constraints." })).toBeVisible();
   const actionWidths = await page.locator(".home-actions .action").evaluateAll((items) =>
     items.map((item) => item.getBoundingClientRect().width),
   );
@@ -760,7 +894,7 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "I see the constraint.",
+    name: "Identify constraints.",
     exact: true,
   })).toBeVisible();
 });

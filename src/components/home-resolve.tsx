@@ -64,18 +64,15 @@ export function HomeResolve() {
         </p>
         <div className="resolve-lines">
           <h1 id="home-title" className="axis-display constraint-line">
-            <span className="sr-only">I see the constraint.</span>
+            <span className="sr-only">Identify constraints.</span>
             <span className="line-mask desktop-constraint" aria-hidden="true">
-              <span><span>I see the</span></span><span><span>constraint.</span></span>
-            </span>
-            <span className="line-mask mobile-constraint" aria-hidden="true">
-              <span><span>I see</span></span><span><span>the con—</span></span><span><span>straint.</span></span>
+              <span><span>Identify</span></span><span><span>constraints.</span></span>
             </span>
           </h1>
-          <p className="axis-display system-line" aria-label="Design the system.">
-            <span>Design the</span><span className="system-word">system.</span>
+          <p className="axis-display system-line" aria-label="Simplicity by design.">
+            <span>Simplicity</span><span className="system-word">by design.</span>
           </p>
-          <p className="axis-display release-line">Build what makes it move.</p>
+          <p className="axis-display release-line">Build a system that compounds.</p>
         </div>
         <div className="home-resolve-support">
           <p>I design organisations and build the software and agents that make them move.</p>

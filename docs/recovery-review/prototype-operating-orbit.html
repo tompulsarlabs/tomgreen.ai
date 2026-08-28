@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype — The Operating Orbit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #ffffff; --ink: #101410; --reading: #4f554d; --muted: #6a7068;
+    --ghost: #b9bdb4; --hairline: #deded8; --live: #3fa06c; --clay: #e45b3d;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: "Geist Mono", ui-monospace, monospace;
+  }
+  .stage {
+    position: relative; max-width: 1360px; margin: 0 auto;
+    padding: 3.5rem max(22px, 6vw) 4rem; min-height: 100svh;
+    display: grid; grid-template-rows: auto 1fr auto;
+  }
+  .record {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; line-height: 1.4; color: var(--muted);
+  }
+  .rule { border: 0; border-top: 1px solid var(--hairline); margin-top: 0.9rem; }
+  .masthead { display: grid; gap: 1.2rem; align-content: start; margin-top: 3.2rem; }
+  h1 {
+    font-family: "Archivo", Arial, sans-serif; font-weight: 800;
+    font-variation-settings: "wdth" 106;
+    font-size: clamp(3.5rem, 11.8vw, 10.75rem);
+    line-height: 0.82; letter-spacing: -0.075em; text-transform: uppercase;
+  }
+  .lead {
+    font-family: ui-sans-serif, system-ui, sans-serif; color: var(--reading);
+    font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; max-width: 42rem;
+  }
+  .field { position: relative; min-height: 380px; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .caption {
+    display: flex; align-items: baseline; gap: 0.65rem; justify-content: flex-end;
+    padding-top: 1.2rem; border-top: 1px solid var(--hairline);
+  }
+  .caption .mark { width: 3px; align-self: stretch; background: var(--clay); }
+  @media (max-width: 768px) {
+    .field { min-height: 300px; }
+    .caption { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header>
+    <p class="record">Prototype · Direction A · The Operating Orbit — conceptual, not production</p>
+    <hr class="rule">
+    <div class="masthead">
+      <p class="record" style="color:var(--reading)">Systems</p>
+      <h1>Systems.</h1>
+      <p class="lead">The products, operating models and agents behind the outcomes.</p>
+    </div>
+  </header>
+
+  <div class="field" aria-hidden="true"><canvas id="orbit"></canvas></div>
+
+  <footer class="caption">
+    <span class="mark" aria-hidden="true"></span>
+    <span class="record">Conceptual — repeatable work orbits. Exceptions come to a person.</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("orbit");
+  const ctx = canvas.getContext("2d");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const DPR = Math.min(devicePixelRatio || 1, 2);
+  const TAU = Math.PI * 2;
+
+  // Orbit paths: elliptical, multi-period, tilted — instrument drawing, not Bohr rings.
+  const ORBITS = [
+    { rx: 0.46, ry: 0.15, tilt: -0.24, tone: "#deded8" },
+    { rx: 0.34, ry: 0.23, tilt:  0.38, tone: "#deded8" },
+    { rx: 0.22, ry: 0.09, tilt: -0.66, tone: "#b9bdb4" },
+  ];
+  // Bodies: phase on their orbit; the green one is the single "running" body.
+  const BODIES = [
+    { o: 0, phase: 0.08, r: 4.0, tone: "#101410" },
+    { o: 0, phase: 0.55, r: 3.0, tone: "#101410" },
+    { o: 1, phase: 0.20, r: 3.5, tone: "#101410" },
+    { o: 1, phase: 0.72, r: 4.0, tone: "#3fa06c" },
+    { o: 2, phase: 0.35, r: 2.8, tone: "#101410" },
+    { o: 2, phase: 0.86, r: 3.2, tone: "#101410" },
+  ];
+
+  let W = 0, H = 0, CX = 0, CY = 0, S = 0;
+  function resize() {
+    const box = canvas.parentElement.getBoundingClientRect();
+    W = Math.round(box.width); H = Math.round(box.height);
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // Field sits in the right two-thirds on wide screens, centred on narrow.
+    CX = W > 900 ? W * 0.62 : W * 0.5;
+    CY = H * 0.52;
+    S = Math.min(W > 900 ? W * 0.42 : W * 0.62, H * 1.15);
+  }
+
+  function pointOn(orbit, phase, settle) {
+    // settle < 1 scatters the path during the resolve.
+    const a = phase * TAU;
+    const wobble = (1 - settle) * 0.16 * Math.sin(a * 3 + orbit.tilt * 7);
+    const rx = orbit.rx * S * (1 + wobble), ry = orbit.ry * S * (1 - wobble);
+    const x = Math.cos(a) * rx, y = Math.sin(a) * ry;
+    const c = Math.cos(orbit.tilt), s = Math.sin(orbit.tilt);
+    return [CX + x * c - y * s, CY + x * s + y * c];
+  }
+
+  // Exception cycle: one body leaves orbit, travels to the nucleus, returns.
+  const EXC = { body: 5, t: -6 }; // starts a few seconds in
+  const easeSettle = (t) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
+
+  let start;
+  function draw(now) {
+    if (start === undefined) start = now;
+    const t = (now - start) / 1000;
+    const settle = reduced ? 1 : easeSettle(t / 1.6);
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Paths.
+    for (const orbit of ORBITS) {
+      ctx.beginPath();
+      for (let i = 0; i <= 120; i++) {
+        const [x, y] = pointOn(orbit, i / 120, settle);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.strokeStyle = orbit.tone; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    // Nucleus: an ink ring, not a filled ball.
+    ctx.beginPath(); ctx.arc(CX, CY, 8, 0, TAU);
+    ctx.strokeStyle = "#101410"; ctx.lineWidth = 2; ctx.stroke();
+
+    // Exception state machine: 4s in-orbit pause → 2.4s travel in → 1.2s hold → 2.4s return; period 14s.
+    const cycle = reduced ? 3.0 : ((t - EXC.t) % 14 + 14) % 14;
+    let excProgress = 0; // 0 = on orbit, 1 = at nucleus
+    if (cycle > 4 && cycle <= 6.4) excProgress = easeSettle((cycle - 4) / 2.4);
+    else if (cycle > 6.4 && cycle <= 7.6) excProgress = 1;
+    else if (cycle > 7.6 && cycle <= 10) excProgress = 1 - easeSettle((cycle - 7.6) / 2.4);
+
+    // Bodies: slow crawl; one body at a time takes a gentle eased advance (round-robin, 2s each).
+    const beat = Math.floor(t / 2.6) % BODIES.length;
+    BODIES.forEach((body, index) => {
+      const crawl = reduced ? 0 : t * 0.004;
+      const localBeat = !reduced && index === beat ? easeSettle((t % 2.6) / 2.0) * 0.035 : 0;
+      const phase = body.phase + crawl + localBeat;
+      let [x, y] = pointOn(ORBITS[body.o], phase % 1, settle);
+
+      if (index === EXC.body && excProgress > 0) {
+        // Travel inward along a curve; draw a dotted trace while moving.
+        const mx = (x + CX) / 2 + 26, my = (y + CY) / 2 - 22;
+        const p = excProgress, ip = 1 - p;
+        const tx = ip * ip * x + 2 * ip * p * mx + p * p * (CX + 14);
+        const ty = ip * ip * y + 2 * ip * p * my + p * p * (CY - 4);
+        ctx.beginPath(); ctx.setLineDash([1, 5]);
+        ctx.moveTo(x, y); ctx.quadraticCurveTo(mx, my, tx, ty);
+        ctx.strokeStyle = "#101410"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.setLineDash([]);
+        x = tx; y = ty;
+      }
+
+      ctx.beginPath(); ctx.arc(x, y, body.r, 0, TAU);
+      ctx.fillStyle = body.tone; ctx.fill();
+    });
+
+    if (!reduced && !document.hidden) requestAnimationFrame(draw);
+  }
+
+  resize();
+  addEventListener("resize", () => { resize(); if (reduced) requestAnimationFrame(draw); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && !reduced) { start = undefined; requestAnimationFrame(draw); }
+  });
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

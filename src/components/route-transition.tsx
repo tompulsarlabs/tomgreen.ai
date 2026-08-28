@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 
 const EXIT_MS = 280;
 
@@ -15,6 +15,27 @@ export function RouteTransition({ children }: { children: ReactNode }) {
   const navigating = useRef(false);
   const travelling = useRef<HTMLElement | null>(null);
   const recoveryTimer = useRef<number | null>(null);
+  const pushTimer = useRef<number | null>(null);
+
+  // Back/forward during the exit window cancels the pending push instead of
+  // silently reversing the user's history action.
+  useEffect(() => {
+    const cancelPending = () => {
+      if (!navigating.current) return;
+      navigating.current = false;
+      if (pushTimer.current) window.clearTimeout(pushTimer.current);
+      pushTimer.current = null;
+      if (recoveryTimer.current) window.clearTimeout(recoveryTimer.current);
+      recoveryTimer.current = null;
+      document.documentElement.classList.remove("route-leaving", "travelling-active");
+      document.querySelectorAll(".nav-pending.is-pending").forEach((mark) => mark.classList.remove("is-pending"));
+      document.querySelectorAll(".work-index-row.is-transition-source").forEach((row) => row.classList.remove("is-transition-source"));
+      travelling.current?.remove();
+      travelling.current = null;
+    };
+    window.addEventListener("popstate", cancelPending);
+    return () => window.removeEventListener("popstate", cancelPending);
+  }, []);
 
   useLayoutEffect(() => {
     navigating.current = false;
@@ -46,17 +67,18 @@ export function RouteTransition({ children }: { children: ReactNode }) {
         clone.classList.add("is-travelling");
       });
 
+      // Atomic swap: the arrival becomes visible (transition suppressed via
+      // .handoff-complete) in the same frame the clone leaves — the page's
+      // largest element is never the last thing to resolve.
       timers.push(window.setTimeout(() => {
-        clone.classList.add("is-fading");
-      }, 440));
-      timers.push(window.setTimeout(() => {
-        target.classList.add("is-revealed");
         target.classList.add("handoff-complete");
-        target.classList.remove("handoff-target", "is-revealed");
-        clone.remove();
-        travelling.current = null;
-        document.documentElement.classList.remove("travelling-active");
-      }, 610));
+        target.classList.remove("handoff-target");
+        requestAnimationFrame(() => {
+          clone.remove();
+          travelling.current = null;
+          document.documentElement.classList.remove("travelling-active");
+        });
+      }, 460));
     } else {
       clone?.remove();
       travelling.current = null;
@@ -69,17 +91,20 @@ export function RouteTransition({ children }: { children: ReactNode }) {
   function onClickCapture(event: ReactMouseEvent<HTMLDivElement>) {
     const native = event.nativeEvent;
     if (isModified(native)) return;
-    if (navigating.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
     const anchor = (event.target as Element).closest("a");
     if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
 
     const url = new URL(anchor.href, window.location.href);
     if (url.origin !== window.location.origin || url.protocol !== window.location.protocol) return;
     if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+
+    // Guard only competing same-origin route navigations; mailto, external,
+    // download and non-anchor clicks pass through untouched mid-exit.
+    if (navigating.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
 
     event.preventDefault();
     event.stopPropagation();
@@ -118,7 +143,8 @@ export function RouteTransition({ children }: { children: ReactNode }) {
       document.documentElement.classList.add("travelling-active");
     }
 
-    window.setTimeout(() => {
+    pushTimer.current = window.setTimeout(() => {
+      pushTimer.current = null;
       router.push(`${url.pathname}${url.search}${url.hash}`);
     }, EXIT_MS);
 

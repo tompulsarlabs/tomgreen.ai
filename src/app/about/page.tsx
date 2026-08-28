@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Reveal } from "@/components/reveal";
+import { CareerCorridor } from "@/components/career-corridor";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
-import { careerPeriodLabel } from "@/lib/career-corridor-state";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
+import { sceneNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { testimonials } from "@/lib/content/testimonials";
 import { isAboutPublic } from "@/lib/site-env";
@@ -12,7 +11,7 @@ import { isAboutPublic } from "@/lib/site-env";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Fifteen years building teams — the career, as a linear journey through the experience and the numbers.",
+    "Fifteen years building teams — travel the career stop by stop, then jump into the case studies and systems behind it.",
 };
 
 export default function About() {
@@ -23,7 +22,7 @@ export default function About() {
       <header className="about-opening">
         <div>
           <p className="record">About / operating record</p>
-          <h1 className="axis-display">A career built at the crossover.</h1>
+          <h1 className="axis-display">A career at the intersection.</h1>
         </div>
         <div className="about-intro">
           {aboutIntro.map((paragraph) => (
@@ -42,57 +41,7 @@ export default function About() {
           </p>
         </div>
 
-        <ol>
-          {career.map((stop, index) => (
-            <li key={`${stop.company}-${stop.period}`} className="career-record">
-              <Reveal delay={Math.min(index * 40, 160)}>
-                <div className="career-record-grid">
-                  <span className="record">{String(index + 1).padStart(2, "0")}</span>
-                  <div className="career-period">
-                    <span className="record">{careerPeriodLabel(stop.period, stop.current)}</span>
-                    {stop.current ? (
-                      <span className="record career-current">
-                        <i className="live-node" aria-hidden="true" /> In production
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="career-record-body">
-                    <h3>
-                      {stop.href ? <Link href={stop.href}>{stop.company}</Link> : stop.company}
-                      <span> / {stop.role}</span>
-                    </h3>
-                    <p className="career-note">{stop.note}</p>
-
-                    {stop.achievements.length > 0 ? (
-                      <ul className="career-achievements">
-                        {stop.achievements.map((achievement) => (
-                          <li key={achievement}>{achievement}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-
-                    {stop.metrics?.length ? (
-                      <dl className="career-metrics">
-                        {stop.metrics.map((metric) => (
-                          <div key={metric.label}>
-                            <dt>{metric.label}</dt>
-                            <dd>{metric.value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
-
-                    {stop.href ? (
-                      <Link href={stop.href} className="career-case-link">
-                        Read the case study <span aria-hidden="true">→</span>
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
-              </Reveal>
-            </li>
-          ))}
-        </ol>
+        <CareerCorridor stops={career} systemsIds={[...sceneNodeIds]} />
       </section>
 
       <section aria-labelledby="references-heading" className="about-references">

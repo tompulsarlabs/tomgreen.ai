@@ -76,7 +76,7 @@ export const clusterOrder: ClusterId[] = [
 export const projectCategory: Record<string, CategoryId> = {
   ivy: "agents",
   sybil: "products",
-  "margaux-en-tutor": "products",
+  brightpaws: "products",
   "writing-voice-skill": "craft",
   "this-site": "craft",
 };

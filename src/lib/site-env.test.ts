@@ -6,7 +6,11 @@ describe("About route visibility", () => {
     expect(isAboutAvailable({})).toBe(true);
   });
 
-  it("hides About on every Vercel deployment", () => {
-    expect(isAboutAvailable({ VERCEL: "1" })).toBe(false);
+  it("keeps About reviewable on protected preview deployments", () => {
+    expect(isAboutAvailable({ VERCEL: "1", VERCEL_ENV: "preview" })).toBe(true);
+  });
+
+  it("hides About on Vercel production", () => {
+    expect(isAboutAvailable({ VERCEL: "1", VERCEL_ENV: "production" })).toBe(false);
   });
 });

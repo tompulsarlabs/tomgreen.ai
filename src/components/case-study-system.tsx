@@ -42,7 +42,7 @@ export function CaseStudySystem({ system }: { system: CaseStudySystemData }) {
       </ol>
 
       <figcaption className="mt-8 grid gap-3 md:ml-[34%] md:grid-cols-[3rem_minmax(0,1fr)] md:gap-6">
-        <span className="record text-muted">Result</span>
+        <span className="record text-muted">Durable outcome</span>
         <span className="axis-index max-w-3xl text-lg leading-snug text-ink-secondary">
           {system.outcome}
         </span>
