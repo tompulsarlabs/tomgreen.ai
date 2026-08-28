@@ -42,6 +42,14 @@ export function planetColor(index: number): string {
   return PLANET_PALETTE[index % PLANET_PALETTE.length];
 }
 
+/**
+ * Nameplate casing: labels read in caps, but a word carrying brand
+ * casing — an internal capital, like WeR — is left exactly as authored.
+ */
+export function displayLabel(label: string): string {
+  return /[a-z][A-Z]/.test(label) ? label : label.toUpperCase();
+}
+
 /** World-unit body radius, gently varied so no two planets read equal. */
 export function defaultBodySize(index: number): number {
   return 0.088 + 0.026 * hash(index * 17 + 7);

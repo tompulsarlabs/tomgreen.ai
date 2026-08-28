@@ -173,7 +173,6 @@ test("Work is a six-row evidence index with clear hierarchy", async ({ page }) =
   await expect(
     page.locator("[data-work-row]").filter({ hasText: "Zalando" }),
   ).toContainText("2022 – 2025");
-  await expect(page.getByRole("link", { name: "Work", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("Work preserves flagship hierarchy and 48px targets at 390px", async ({ page }) => {
@@ -349,13 +348,13 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
 
 test("reduced-motion header, row and in-content navigation use the direct fallback", async ({ page }) => {
   const journeys = [
-    { from: "/", selector: 'nav[aria-label="Primary navigation"] a[href="/work"]', to: "/work" },
+    // The chrome is gone: poster planets are the doors on every landing —
+    // SVG links, so they take a native click (SVGAElement has no .click()).
+    { from: "/", selector: '.orbit-poster a[href="/work"]', to: "/work", native: true },
     { from: "/work", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
-    // Home's in-content door is a poster planet now — an SVG link, so it
-    // takes a native click (SVGAElement has no .click()).
     { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
-    // The brand lockup always returns to the landing.
-    { from: "/work", selector: "a.brand-lockup", to: "/" },
+    // The greeting always returns to the landing.
+    { from: "/work", selector: "a.brand-mark", to: "/" },
   ];
 
   for (const journey of journeys) {
@@ -388,22 +387,6 @@ test("reduced-motion Work to case arrival exposes the headline immediately", asy
   expect(style.animationName).toBe("none");
   expect(style.opacity).toBe("1");
   expect(style.visibility).toBe("visible");
-});
-
-test("motion-enabled header navigation exposes and clears its pending mark", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
-  // Home lands on the map now: let its first expensive frames pass so
-  // the route push is measured on a settled page (software GL).
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  await page.waitForTimeout(600);
-  const link = page.locator('nav[aria-label="Primary navigation"] a[href="/work"]');
-  await link.evaluate((element) => (element as HTMLElement).click());
-  await expect(link.locator(".nav-pending")).toHaveClass(/is-pending/);
-  await expect(page.locator("html")).toHaveClass(/route-leaving/);
-  await expect(page).toHaveURL("/work");
-  await expect(page.locator('nav[aria-label="Primary navigation"] a[href="/work"] .nav-pending'))
-    .not.toHaveClass(/is-pending/);
 });
 
 test("Zalando reads as a clear case study with verified outcomes", async ({ page }) => {
@@ -481,7 +464,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator(".site-header")).toHaveCSS("color", "rgb(16, 20, 16)");
+  await expect(page.locator("a.brand-mark")).toHaveText("Hi, I’m Tom");
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
