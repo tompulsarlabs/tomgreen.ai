@@ -15,8 +15,6 @@ export type GraphNode = {
   meta?: string;
 };
 
-export type GraphEdge = readonly [string, string];
-
 export const categories: Record<CategoryId, { label: string; blurb: string }> = {
   agents: {
     label: "Agent systems",
@@ -44,7 +42,7 @@ export const clusters: Record<
 > = {
   companies: {
     label: "Where I’ve worked",
-    eyebrow: "Evidence in context",
+    eyebrow: "Work in context",
     blurb:
       "The organisations, businesses and operating environments where the outcomes were built.",
   },
@@ -78,7 +76,7 @@ export const clusterOrder: ClusterId[] = [
 export const projectCategory: Record<string, CategoryId> = {
   ivy: "agents",
   sybil: "products",
-  "margaux-en-tutor": "products",
+  brightpaws: "products",
   "writing-voice-skill": "craft",
   "this-site": "craft",
 };
@@ -183,20 +181,3 @@ export const sceneNodeIds = [
   "tom-green-labs",
   "stop-hiding-behind-culture",
 ] as const;
-
-export const graphEdges: GraphEdge[] = [
-  ["zalando", "chapter-2"],
-  ["chapter-2", "wer"],
-  ["audibene", "wave"],
-  ["building-practice", "recruiting-practice"],
-  ["recruiting-practice", "operations-practice"],
-  ["operations-practice", "building-practice"],
-  ["ivy", "this-site"],
-  ["ivy", "sybil"],
-  ["tom-green-labs", "stop-hiding-behind-culture"],
-  ["recruiting-practice", "zalando"],
-  ["operations-practice", "chapter-2"],
-  ["building-practice", "wave"],
-  ["operations-practice", "ivy"],
-  ["this-site", "tom-green-labs"],
-];

@@ -42,8 +42,8 @@ registers: operating results (Zalando 0→120 AI org, metrics) and built systems
 | `/` | Positioning → operating outcomes → flagship work → systems → live state → person → contact |
 | `/work` | Tiered archive: flagship, supporting evidence, current chapter, foundations |
 | `/work/[slug]` | Editorial case study with mandate, decisions, system model, outcomes, evidence note, next action |
-| `/building` | **Systems** in the UI: a direct-manipulation orbital field plus a complete server-rendered detail layer |
-| `/about` | Career arc, references, the person, and a direct contact path |
+| `/building` | **Systems** in the UI: a clean, white, server-rendered index of work, operating models, agents and writing |
+| `/about` | A local-only linear career record, references, the person, and a direct contact path; hidden on every Vercel deployment |
 
 Case studies are the core content unit. Each one: context → what Tom built/did →
 measurable outcome → what it demonstrates. Initial set (strongest first):
@@ -75,28 +75,26 @@ This is a public repo, so **a git push is a publish**. Rules:
   Static-first: everything prerendered except the live-data components.
 - Content as typed TS/MDX modules in the repo — no CMS. The repo *is* the CMS; edits
   are commits, which feeds the "readable history" goal.
-- **Live data** so the site reads as alive:
-  - GitHub contribution activity for `tompulsarlabs` (public API, ISR-cached).
-  - Ivy system state from the public repo's `state.json`
-    (raw.githubusercontent.com, ISR-cached) — verified ship days, current streak,
-    and last outcome. The visible streak is derived from the daily record when
-    the late-evening checkpoint is one day behind.
-  - Each live component is isolated with a static fallback; an API failure can never
-    break the page.
+- Typed, tested GitHub and Ivy data adapters remain available in the repository, but the current
+  Load-Bearing Type slice does not surface live counters. Any later reintroduction must be
+  isolated behind a complete static fallback and cannot gate rendering.
 - No client-side data fetching for content.
 - Vercel Analytics and Speed Insights provide privacy-conscious journey and performance
   telemetry; neither is used to gate rendering.
+- `/building` has no canvas, WebGL, decorative object or inverted route. Status is attached in
+  plain language to the relevant project and the full index remains usable at every breakpoint.
 
 ## Design intent
 
-The experience thesis, route specifications, budgets and phased roadmap live in
-[docs/EXPERIENCE-ROADMAP.md](docs/EXPERIENCE-ROADMAP.md). The implementation contract
-is summarised in [DESIGN-MOTION.md](DESIGN-MOTION.md): a warm-paper editorial field,
-green-black operating states, persistent route coordinates and motion that explains
-causal change rather than decorating it.
+The historical experience roadmap lives in
+[docs/EXPERIENCE-ROADMAP.md](docs/EXPERIENCE-ROADMAP.md). The current implementation contract
+is [DESIGN-MOTION.md](DESIGN-MOTION.md): a continuous white editorial field where Archivo's width
+axis quietly carries constraint, resolution and release. Persistent route coordinates,
+semantic fallbacks and motion that explains causal change remain part of the system.
 
-Editorial and restrained: strong typography, generous whitespace, one accent color,
-dark-mode aware. The live-data elements are quiet instruments, not dashboards. The
+Editorial and restrained: strong typography, generous whitespace and two semantic accents only:
+green for live production state and clay for reconstruction labels. The live-data elements are
+quiet instruments, not dashboards. The
 site should feel like it was designed by someone with taste and built by someone who
 ships — because both must be true for the positioning to hold.
 
@@ -105,16 +103,30 @@ The product model is deliberately simple:
 > **Work proves the outcomes. Systems proves the method. About proves the person.
 > Contact makes the next step obvious.**
 
-Visual evidence follows one rule: conceptual or reconstructed system diagrams are
-labelled as such. They are never presented as internal operational artifacts.
+Case studies follow one readable sequence: verified outcomes, challenge, work, operating model,
+decisions, result and source note. Conceptual or reconstructed material must still be labelled,
+but no special visual object is required to make the work credible.
+
+## Current implementation status
+
+Fable's handoff was implemented far enough to test its design hypotheses in context. Product
+review rejected the inverted Systems route and both flagship evidence-object treatments because
+they made visitors decode design language instead of the work. The authoritative branch now uses
+one white editorial ground and one linear case-study model. The branch is review-ready; it is not
+merged or deployed.
+
+The procedural 3D object, maturity legend, M01–M06 ruler, generic role crowd and Chapter 2 sentence
+fork have been removed rather than cosmetically refined. No external artist or paid asset is
+required. About remains complete locally and hidden on every Vercel deployment.
 
 ## Current quality gates
 
 1. Typed content and named-claim review remain the publishing gate.
-2. `npm run lint`, `npm run typecheck`, and `npm test` cover static quality and live-data parsing.
-3. `npm run test:e2e` covers the visitor journey, mobile overflow, active navigation,
-   flagship evidence, reduced motion, direct Systems selection, semantic WebGL fallback, and serious/critical WCAG
-   violations.
+2. `npm run lint`, `npm run typecheck`, and 30 unit tests cover static quality, motion schedules
+   and data parsing.
+3. The 35-test Playwright suite covers the visitor journey, route handoff geometry, mobile overflow,
+   linear flagship stories, the continuous white ground, reduced motion, no JavaScript, keyboard
+   behavior and full-document Axe scans.
 4. CI builds before running Playwright, so browser tests exercise the production server.
 5. The generated Open Graph image and Person JSON-LD make the site legible when shared or
    indexed outside the visual experience.

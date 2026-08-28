@@ -1,493 +1,286 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { careerPeriodLabel } from "@/lib/career-corridor-state";
 import type { CareerStop } from "@/lib/content/about";
 import {
-  CAREER_SPACING,
-  careerPeriodLabel,
-  careerVisualDepth,
-  focusedCareerIndex,
-  spokenCareerPeriod,
-} from "@/lib/career-corridor-state";
+  buildStreaks,
+  clamp01,
+  nearestStation,
+  stationCentre,
+  stationState,
+  travelIntensity,
+} from "@/lib/corridor-motion";
+
+const INK = "16, 20, 16";
+const STREAKS = buildStreaks(56);
 
 /**
- * The career as a corridor (DESIGN-MOTION.md): a sticky perspective stage
- * the reader walks through with one continuous scroll — chapters approach
- * from a persistent vanishing point, settle into a crisp reading plane, then
- * pass the viewer. A restrained tunnel remains visible at rest; camera
- * velocity stretches its markers into hyperspace rays. The nearest chapter
- * owns the readable and interactive plane at every scroll position.
- * Wide-screen only; the linear timeline is the fallback everywhere else.
+ * The career corridor — an interactive CV the visitor travels through.
+ * Scroll (or the year rail) moves the traveller; motion lives between
+ * stations as a streak field and settles to stillness at every stop,
+ * where the station's links jump to the case study and the systems map.
+ *
+ * The same DOM is the fallback: without JavaScript or with reduced
+ * motion the stations render as the complete linear career document —
+ * every achievement and metric, no canvas, no rail, nothing gated.
  */
-const VH_PER_STOP = 0.95;
-const HYPERSPACE_PARTICLES = Array.from({ length: 72 }, (_, index) => {
-  const angle = (index * 2.399963229728653) % (Math.PI * 2);
-  const radius = 0.32 + ((index * 11) % 17) * 0.045;
-  return {
-    x: Math.cos(angle) * radius,
-    y: Math.sin(angle) * radius * 0.68,
-    depth: ((index * 29) % 71) / 71,
-    accent: index % 11 === 0,
-  };
-});
-const TUNNEL_GATE_COUNT = 6;
-
-export function CareerCorridor({ stops }: { stops: CareerStop[] }) {
+export function CareerCorridor({
+  stops,
+  systemsIds,
+}: {
+  stops: CareerStop[];
+  systemsIds: string[];
+}) {
   const sectionRef = useRef<HTMLElement>(null);
-  const chaptersRef = useRef<(HTMLDivElement | null)[]>([]);
-  const contentsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const hyperspaceRef = useRef<HTMLCanvasElement>(null);
-  const hintRef = useRef<HTMLParagraphElement>(null);
-  const activeIndexRef = useRef(0);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const scrollToStop = (index: number) => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const clamped = Math.max(0, Math.min(stops.length - 1, index));
-    const sectionTop = window.scrollY + section.getBoundingClientRect().top;
-    const headerHeight =
-      document.querySelector("body > header")?.getBoundingClientRect().height ?? 76;
-    const stageHeight = Math.max(window.innerHeight - headerHeight, 1);
-    const scrollable = Math.max(section.offsetHeight - stageHeight, 0);
-    const progress = stops.length > 1 ? clamped / (stops.length - 1) : 0;
-    window.scrollTo({
-      top: sectionTop - headerHeight + scrollable * progress,
-      behavior: "smooth",
-    });
-  };
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const systems = new Set(systemsIds);
 
   useEffect(() => {
     const section = sectionRef.current;
-    if (!section) return;
-    const total = (stops.length - 1) * CAREER_SPACING;
-    let cam = 0;
-    let target = 0;
-    let raf = 0;
-    let running = false;
-    let initialized = false;
-    let intersecting = false;
-    let streakIntensity = 0;
-    let streakDirection = 1;
-    let lastFrameTime = 0;
+    const canvas = canvasRef.current;
+    if (!section || !canvas) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
 
-    const hyperspace = hyperspaceRef.current;
-    const context = hyperspace?.getContext("2d") ?? null;
-    let canvasWidth = 0;
-    let canvasHeight = 0;
+    section.dataset.live = "true";
+    const track = section.querySelector<HTMLElement>(".corridor-track");
+    const stage = section.querySelector<HTMLElement>(".corridor-stage");
+    const stations = Array.from(section.querySelectorAll<HTMLElement>(".corridor-station"));
+    const railButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".corridor-rail button"));
+    if (!track || !stage || stations.length === 0) return;
+    track.style.height = `${stations.length * 92}svh`;
 
-    const sizeHyperspace = () => {
-      if (!hyperspace || !context) return;
-      const rect = hyperspace.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      canvasWidth = rect.width;
-      canvasHeight = rect.height;
-      hyperspace.width = Math.max(1, Math.round(canvasWidth * dpr));
-      hyperspace.height = Math.max(1, Math.round(canvasHeight * dpr));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let width = 0;
+    let height = 0;
+    const resize = () => {
+      const bounds = stage.getBoundingClientRect();
+      width = Math.round(bounds.width);
+      height = Math.round(bounds.height);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
+    const observer = new ResizeObserver(resize);
+    observer.observe(stage);
+    resize();
 
-    const clearHyperspace = () => {
-      context?.clearRect(0, 0, canvasWidth, canvasHeight);
+    const count = stations.length;
+    let progress = 0;
+    let smoothedProgress = 0;
+    let lastArrival = -1;
+    let pulse: { start: number } | null = null;
+    let frame = 0;
+    let running = true;
+    let visible = true;
+
+    const measureProgress = () => {
+      const bounds = track.getBoundingClientRect();
+      const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
+      progress = clamp01(-bounds.top / travel);
     };
 
-    const drawHyperspace = (
-      normalizedVelocity: number,
-      position: number,
-      deltaSeconds: number,
-    ) => {
-      if (!context) return;
+    const applyStations = (active: number, intensity: number) => {
+      stations.forEach((station, index) => {
+        const state = stationState(index, smoothedProgress, count);
+        station.style.setProperty("--presence", state.presence.toFixed(4));
+        station.style.setProperty("--station-scale", state.scale.toFixed(4));
+        station.style.setProperty("--station-axis", state.axis.toFixed(2));
+        station.style.setProperty("--station-drift", `${(state.offset * -7).toFixed(3)}vh`);
+        const isActive = index === active;
+        // Interactive (and internally scrollable) only once arrived —
+        // mid-leg an invisible station must never swallow the travel
+        // scroll with its own overflow.
+        station.classList.toggle("is-stop", isActive && intensity < 0.35);
+        // Keyboard/AT never land inside a station that is visually away.
+        station.inert = !isActive;
+      });
+      railButtons.forEach((button, index) => {
+        button.setAttribute("aria-current", index === active ? "true" : "false");
+      });
+    };
 
-      const motion = Math.min(Math.abs(normalizedVelocity) / 2.2, 1);
-      const response = motion > streakIntensity ? 18 : 7;
-      streakIntensity +=
-        (motion - streakIntensity) * (1 - Math.exp(-response * deltaSeconds));
-      if (Math.abs(normalizedVelocity) > 0.01) {
-        streakDirection = Math.sign(normalizedVelocity);
-      }
-      clearHyperspace();
-
-      const centerX = canvasWidth * 0.47;
-      const centerY = canvasHeight * 0.48;
-      const scale = Math.min(canvasWidth, canvasHeight);
-      const cameraStops = position / CAREER_SPACING;
-
-      // Six repeated gates provide a persistent corridor at rest. Their
-      // projection is tied directly to camera position, so they expand and
-      // pass the viewport rather than merely flaring on scroll.
-      for (let index = 0; index < TUNNEL_GATE_COUNT; index += 1) {
-        const depth = ((index / TUNNEL_GATE_COUNT + cameraStops / 5) % 1 + 1) % 1;
-        const projection = 0.04 + Math.pow(depth, 1.8) * 0.95;
-        const width = scale * 1.2 * projection;
-        const height = scale * 0.72 * projection;
-        context.strokeStyle = `rgba(25, 24, 21, ${0.018 + depth * 0.032})`;
-        context.lineWidth = depth > 0.72 ? 0.9 : 0.6;
-        context.strokeRect(centerX - width / 2, centerY - height / 2, width, height);
-      }
-
-      // Deterministic particles are projected through the same camera. At
-      // rest they are tiny depth marks; normalized velocity lengthens their
-      // inward/outward trails without allocating gradients every frame.
-      for (let band = 0; band < 3; band += 1) {
-        for (const accent of [false, true]) {
+    const drawStreaks = (now: number, intensity: number) => {
+      context.clearRect(0, 0, width, height);
+      const vanishX = width * 0.52;
+      const vanishY = height * 0.42;
+      const reach = Math.hypot(width, height) * 0.5;
+      // Streaks only exist while travelling — a station stop is still
+      // paper. The gate also keeps the final settled frame clean.
+      if (intensity >= 0.01) {
+        for (const streak of STREAKS) {
+          const wobble = Math.sin(now / 900 + streak.jitter * 9) * 0.02;
+          const inner = reach * (0.12 + streak.radius * 0.5);
+          const length = reach * (0.02 + intensity * (0.2 + streak.jitter * 0.12));
+          const cos = Math.cos(streak.angle + wobble);
+          const sin = Math.sin(streak.angle + wobble);
           context.beginPath();
-          for (const particle of HYPERSPACE_PARTICLES) {
-            const depth =
-              ((particle.depth + cameraStops / 3.5) % 1 + 1) % 1;
-            const particleBand = Math.min(2, Math.floor(depth * 3));
-            if (particleBand !== band || particle.accent !== accent) continue;
-
-            const projection = 0.045 + Math.pow(depth, 1.7) * 0.92;
-            const x = centerX + particle.x * scale * projection;
-            const y = centerY + particle.y * scale * projection;
-            const magnitude = Math.hypot(particle.x, particle.y) || 1;
-            const unitX = particle.x / magnitude;
-            const unitY = particle.y / magnitude;
-            const length =
-              1.4 + depth * 1.8 + scale * (0.025 + depth * 0.08) * streakIntensity;
-            const tailDirection = streakDirection > 0 ? -1 : 1;
-
-            context.moveTo(
-              x + unitX * length * tailDirection,
-              y + unitY * length * tailDirection,
-            );
-            context.lineTo(x, y);
-          }
-
-          const alpha =
-            [0.035, 0.05, 0.07][band] + streakIntensity * (accent ? 0.17 : 0.1);
-          context.strokeStyle = accent
-            ? `rgba(21, 109, 64, ${alpha})`
-            : `rgba(25, 24, 21, ${alpha})`;
-          context.lineWidth = band === 2 ? 1 : 0.75;
+          context.moveTo(vanishX + cos * inner, vanishY + sin * inner);
+          context.lineTo(vanishX + cos * (inner + length), vanishY + sin * (inner + length));
+          context.strokeStyle = `rgba(${INK}, ${(0.08 + intensity * 0.3 * streak.jitter).toFixed(3)})`;
+          context.lineWidth = 0.8 + streak.jitter * 0.8;
+          context.stroke();
+        }
+      }
+      if (pulse) {
+        const t = (now - pulse.start) / 460;
+        if (t >= 1) pulse = null;
+        else {
+          const eased = 1 - Math.pow(1 - t, 3);
+          context.beginPath();
+          context.arc(vanishX, vanishY, 26 + eased * reach * 0.5, 0, Math.PI * 2);
+          context.strokeStyle = `rgba(${INK}, ${(0.2 * (1 - eased)).toFixed(3)})`;
+          context.lineWidth = 1;
           context.stroke();
         }
       }
     };
 
-    sizeHyperspace();
-
-    const measure = () => {
-      const rect = section.getBoundingClientRect();
-      const headerHeight =
-        document.querySelector("body > header")?.getBoundingClientRect().height ?? 76;
-      const stageHeight = Math.max(window.innerHeight - headerHeight, 1);
-      const scrollable = section.offsetHeight - stageHeight;
-      const progress = Math.min(
-        Math.max((headerHeight - rect.top) / Math.max(scrollable, 1), 0),
-        1,
-      );
-      target = progress * total;
-      if (!initialized) {
-        cam = target;
-        initialized = true;
+    const tick = (now: number) => {
+      frame = 0;
+      if (!running || !visible) return;
+      measureProgress();
+      // A light spring keeps rail-jumps and fast scrolls inside the
+      // width-velocity budget instead of teleporting the stations.
+      smoothedProgress += (progress - smoothedProgress) * 0.16;
+      if (Math.abs(progress - smoothedProgress) < 0.0004) smoothedProgress = progress;
+      const active = nearestStation(smoothedProgress, count);
+      const intensity = travelIntensity(smoothedProgress, count);
+      applyStations(active, intensity);
+      // Arrival = the corridor settling into a stop, not the mid-leg
+      // handover of "nearest" — one quiet ring, then stillness.
+      if (intensity < 0.08 && active !== lastArrival) {
+        lastArrival = active;
+        pulse = { start: now };
       }
+      drawStreaks(now, intensity);
+      const settled = smoothedProgress === progress && intensity < 0.01 && !pulse;
+      if (!settled) request();
+    };
+    const request = () => {
+      if (!frame && running && visible) frame = requestAnimationFrame(tick);
     };
 
-    const apply = (time: number) => {
-      if (!running) return;
-      const deltaSeconds = lastFrameTime
-        ? Math.min(Math.max((time - lastFrameTime) / 1000, 1 / 240), 0.05)
-        : 1 / 60;
-      lastFrameTime = time;
-      const previousCam = cam;
-      cam += (target - cam) * (1 - Math.exp(-9.2 * deltaSeconds));
-      if (Math.abs(target - cam) < 0.1) cam = target;
-      const normalizedVelocity =
-        (cam - previousCam) / CAREER_SPACING / deltaSeconds;
-      drawHyperspace(normalizedVelocity, cam, deltaSeconds);
-
-      const focusIndex = focusedCareerIndex(cam, stops.length);
-      if (focusIndex !== activeIndexRef.current) {
-        activeIndexRef.current = focusIndex;
-        setActiveIndex(focusIndex);
-      }
-
-      for (const [i, el] of chaptersRef.current.entries()) {
-        if (!el) continue;
-        const z = cam - i * CAREER_SPACING;
-        const focused = i === focusIndex;
-        // The full chapter follows one continuous approach/pass curve.
-        // Only the nearest entry exposes copy and interaction.
-        const atmosphericPresence = Math.max(
-          0,
-          0.2 * (1 - Math.abs(z) / (CAREER_SPACING * 1.45)),
-        );
-        const presence = focused ? 1 : atmosphericPresence;
-        const visualZ = careerVisualDepth(z);
-        el.style.transform = `translate3d(0, 0, ${visualZ}px)`;
-        el.style.opacity = presence.toFixed(3);
-        el.style.visibility = presence <= 0.001 ? "hidden" : "visible";
-
-        // Exactly one full-viewport layer owns text and pointer events.
-        const content = contentsRef.current[i];
-        if (content) {
-          const focusDistance = Math.min(
-            Math.abs(z) / (CAREER_SPACING * 0.5),
-            1,
-          );
-          content.style.opacity = focused
-            ? (0.84 + (1 - focusDistance) * 0.16).toFixed(3)
-            : "0";
-          content.style.transform = focused
-            ? `translateY(${(focusDistance * 8).toFixed(2)}px)`
-            : "translateY(18px)";
-          content.style.pointerEvents = focused ? "auto" : "none";
-          content.inert = !focused;
-          content.setAttribute("aria-hidden", focused ? "false" : "true");
-        }
-      }
-
-      const p = total > 0 ? cam / total : 0;
-      if (hintRef.current) {
-        hintRef.current.style.opacity = p > 0.02 ? "0" : "1";
-      }
-
-      if (Math.abs(target - cam) < 0.1 && streakIntensity < 0.004) {
-        cam = target;
-        streakIntensity = 0;
-        drawHyperspace(0, cam, deltaSeconds);
-        running = false;
-        lastFrameTime = 0;
-        return;
-      }
-      raf = requestAnimationFrame(apply);
-    };
-
-    const start = () => {
-      if (running || !intersecting || document.hidden) return;
-      running = true;
-      measure();
-      lastFrameTime = 0;
-      raf = requestAnimationFrame(apply);
-    };
-    const stop = (clear = true) => {
-      running = false;
-      cancelAnimationFrame(raf);
-      lastFrameTime = 0;
-      if (clear) clearHyperspace();
-    };
-    const onScroll = () => {
-      measure();
-      start();
-    };
-    const onResize = () => {
-      sizeHyperspace();
-      measure();
-      start();
-    };
-    const onVisibilityChange = () => {
-      if (document.hidden) stop();
-      else start();
-    };
-    const io = new IntersectionObserver(([entry]) => {
-      intersecting = entry.isIntersecting;
-      if (intersecting) start();
-      else stop();
+    const intersection = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting && !document.hidden;
+      if (visible) request();
     });
-    io.observe(section);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    measure();
-    return () => {
-      cancelAnimationFrame(raf);
-      io.disconnect();
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+    intersection.observe(section);
+    const onVisibility = () => {
+      visible = !document.hidden;
+      if (visible) request();
     };
-  }, [stops]);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("scroll", request, { passive: true });
+    window.addEventListener("resize", request);
+
+    const onRailClick = (event: Event) => {
+      const button = (event.target as Element).closest("button");
+      if (!button) return;
+      const index = railButtons.indexOf(button as HTMLButtonElement);
+      if (index < 0) return;
+      const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: top + stationCentre(index, count) * travel, behavior: "smooth" });
+    };
+    section.querySelector(".corridor-rail")?.addEventListener("click", onRailClick);
+
+    request();
+    return () => {
+      running = false;
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      intersection.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("scroll", request);
+      window.removeEventListener("resize", request);
+      section.querySelector(".corridor-rail")?.removeEventListener("click", onRailClick);
+      stations.forEach((station) => {
+        station.inert = false;
+        station.classList.remove("is-stop");
+      });
+      delete section.dataset.live;
+      track.style.removeProperty("height");
+    };
+  }, []);
 
   return (
     <section
       ref={sectionRef}
+      className="career-corridor"
+      data-corridor
       aria-label="Interactive CV, reverse chronological"
-      className="relative left-1/2 w-screen -translate-x-1/2"
-      style={{ height: `${stops.length * VH_PER_STOP * 100}vh` }}
     >
-      <div className="corridor-stage sticky top-[var(--site-header-h)] h-[calc(100dvh-var(--site-header-h))] overflow-hidden">
-        <canvas
-          ref={hyperspaceRef}
-          aria-hidden="true"
-          data-career-hyperspace
-          className="pointer-events-none absolute inset-0 h-full w-full"
-        />
-
-        <div
-          className="pointer-events-none absolute top-6 z-20"
-          style={{ left: "max(1.5rem, calc((100vw - 72rem) / 2 + 1.5rem))" }}
-        >
-          <p className="text-xs font-medium uppercase tracking-[0.22em] text-ink">
-            Interactive CV
-          </p>
-          <p className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted">
-            Selected experience · newest first
-          </p>
-        </div>
-
-        {stops.map((stop, i) => (
-          <div
-            key={`${stop.company}-${stop.period}`}
-            ref={(el) => {
-              chaptersRef.current[i] = el;
-            }}
-            className="corridor-chapter pointer-events-none absolute inset-0 flex items-center justify-center"
-            style={{ transformStyle: "preserve-3d", opacity: 0 }}
-          >
-            <div
-              aria-hidden
-              className="corridor-chapter-frame pointer-events-none absolute left-[42%] top-1/2 h-[min(68vh,34rem)] w-[min(43rem,62vw)]"
-            />
-
-            {/* Ordinal, not a year: chapters are equally spaced CV entries. */}
-            <span
-              aria-hidden
-              className="corridor-ordinal pointer-events-none absolute left-[42%] top-1/2 select-none font-display text-[18rem] leading-none tracking-tight text-ink opacity-[0.035]"
-            >
-              {String(i + 1).padStart(2, "0")}
-            </span>
-
-            <div
-              ref={(el) => {
-                contentsRef.current[i] = el;
-                if (el) {
-                  el.inert = i !== 0;
-                  el.setAttribute("aria-hidden", i === 0 ? "false" : "true");
-                }
-              }}
-              data-career-entry
-              className="corridor-panel relative -left-[8vw] w-[min(36rem,56vw)] p-6 md:p-7"
-              style={{ opacity: 0 }}
-            >
-              <p className="text-xs uppercase tracking-widest text-muted">
-                {careerPeriodLabel(stop.period, stop.current)}
-              </p>
-              <h3 className="mt-1 font-display text-4xl tracking-tight">
-                {stop.href ? (
-                  <Link
-                    href={stop.href}
-                    className="transition-colors hover:text-accent"
-                  >
-                    {stop.company}
-                  </Link>
-                ) : (
-                  stop.company
-                )}
-                <span className="text-ink-secondary"> — {stop.role}</span>
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{stop.note}</p>
-              {stop.achievements.length > 0 && (
-                <ul className="mt-4 flex flex-col gap-2">
-                  {stop.achievements.slice(0, 2).map((a, j) => (
-                    <li
-                      key={j}
-                      className="corridor-achievement border-l-2 border-hairline pl-4 text-sm leading-relaxed text-ink-secondary"
-                    >
-                      {a}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {(stop.metrics || stop.href) && (
-                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  {stop.metrics?.map((m) => (
-                    <span
-                      key={m.label}
-                      className="inline-flex items-baseline gap-1.5 rounded-full border border-hairline bg-card px-3 py-1 text-xs text-ink-secondary"
-                    >
-                      <span className="font-semibold text-ink">{m.value}</span>
-                      {m.label}
-                    </span>
-                  ))}
-                  {stop.href && (
-                    <Link href={stop.href} className="text-sm text-accent hover:underline">
-                      Read the case study →
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        <nav
-          aria-label="Career chapters"
-          className="absolute top-1/2 z-20 w-52 -translate-y-1/2"
-          style={{ right: "max(1.5rem, calc((100vw - 72rem) / 2 + 1.5rem))" }}
-        >
-          <p
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="mb-3 text-right text-[0.65rem] uppercase tracking-widest text-muted"
-          >
-            {String(activeIndex + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")} · {stops[activeIndex].company} · {spokenCareerPeriod(stops[activeIndex].period, stops[activeIndex].current)}
-          </p>
-
-          <ol className="border-l border-hairline bg-paper/55">
-            {stops.map((stop, i) => {
-              const active = i === activeIndex;
-              const visiblePeriod = careerPeriodLabel(stop.period, stop.current);
-              const spokenPeriod = spokenCareerPeriod(stop.period, stop.current);
-
+      <div className="corridor-track">
+        <div className="corridor-stage">
+          <canvas ref={canvasRef} className="corridor-canvas" aria-hidden="true" />
+          <ol className="corridor-stations">
+            {stops.map((stop, index) => {
+              const slug = stop.href?.split("/").pop();
               return (
-                <li key={`${stop.company}-${stop.period}`}>
-                  <button
-                    type="button"
-                    aria-current={active ? "step" : undefined}
-                    aria-label={`View ${stop.company}, ${spokenPeriod}`}
-                    onClick={() => scrollToStop(i)}
-                    className={`-ml-px grid min-h-11 w-[calc(100%+1px)] grid-cols-[1.6rem_1fr] items-center gap-2 border-l px-2.5 py-1.5 text-left transition-colors ${
-                      active
-                        ? "border-accent text-ink"
-                        : "border-transparent text-muted hover:border-hairline hover:text-ink"
-                    }`}
-                  >
-                    <span className="text-[0.6rem] tabular-nums tracking-widest">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-xs font-medium">{stop.company}</span>
-                      <span className="block text-[0.6rem] uppercase tracking-wider">
-                        {visiblePeriod}
+                <li key={`${stop.company}-${stop.period}`} className="corridor-station">
+                  <p className="record station-index">
+                    {String(index + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")}
+                  </p>
+                  <p className="record station-period">
+                    {careerPeriodLabel(stop.period, stop.current)}
+                    {stop.current && (
+                      <span className="station-current">
+                        <i className="live-node" aria-hidden="true" /> In production
                       </span>
-                    </span>
-                  </button>
+                    )}
+                  </p>
+                  <h3 className="station-company axis-index">{stop.company}</h3>
+                  <p className="station-role">{stop.role}</p>
+                  <p className="station-note">{stop.note}</p>
+                  {stop.achievements.length > 0 && (
+                    <ul className="station-achievements">
+                      {stop.achievements.map((achievement) => (
+                        <li key={achievement}>{achievement}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {stop.metrics?.length ? (
+                    <dl className="station-metrics">
+                      {stop.metrics.map((metric) => (
+                        <div key={metric.label}>
+                          <dt>{metric.label}</dt>
+                          <dd className="axis-index">{metric.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+                  {(stop.href || (slug && systems.has(slug))) && (
+                    <p className="station-links">
+                      {stop.href && (
+                        <Link href={stop.href} className="text-link">
+                          Read the case study →
+                        </Link>
+                      )}
+                      {slug && systems.has(slug) && (
+                        <Link href={`/building#${slug}`} className="text-link">
+                          In the systems map ↗
+                        </Link>
+                      )}
+                    </p>
+                  )}
                 </li>
               );
             })}
           </ol>
-
-          <div className="mt-3 flex justify-end gap-2">
-            <button
-              type="button"
-              aria-label="Previous career chapter"
-              disabled={activeIndex === 0}
-              onClick={() => scrollToStop(activeIndex - 1)}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              aria-label="Next career chapter"
-              disabled={activeIndex === stops.length - 1}
-              onClick={() => scrollToStop(activeIndex + 1)}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-hairline text-sm text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              →
-            </button>
-          </div>
-        </nav>
-
-        <p
-          ref={hintRef}
-          className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.25em] text-muted transition-opacity duration-400"
-        >
-          Scroll to travel · select any entry
-        </p>
+          <nav className="corridor-rail" aria-label="Career timeline">
+            {stops.map((stop, index) => (
+              <button key={`${stop.company}-${index}`} type="button">
+                <span aria-hidden className="rail-dot" />
+                <span className="record">{stop.period.split("–")[0].trim()}</span>
+                <span className="sr-only">{stop.company}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
     </section>
   );

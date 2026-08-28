@@ -9,15 +9,16 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "typecheck": "next typegen && tsc --noEmit"
+    "test:vercel-contract": "node e2e/verify-vercel-about.mjs",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:content": "node e2e/content-guard.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "next": "16.3.2",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "three": "^0.185.1"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -26,7 +27,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/three": "^0.185.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
     "tailwindcss": "^4",

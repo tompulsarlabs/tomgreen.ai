@@ -10,6 +10,8 @@ export const size = {
 
 export const contentType = "image/png";
 
+// The share card speaks the site's own system: paper ground, ink display
+// type, record voice, hairlines. No off-palette colour, no decoration.
 export default function Image() {
   return new ImageResponse(
     (
@@ -18,99 +20,77 @@ export default function Image() {
           width: "100%",
           height: "100%",
           display: "flex",
-          position: "relative",
-          overflow: "hidden",
+          flexDirection: "column",
           background: "#ffffff",
-          color: "#191815",
-          padding: "64px 72px",
+          color: "#101410",
+          padding: "56px 72px 48px",
           fontFamily: "sans-serif",
         }}
       >
         <div
           style={{
-            position: "absolute",
-            width: 520,
-            height: 520,
-            right: -40,
-            top: 54,
-            border: "1px solid #eae8e1",
-            borderRadius: 999,
             display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1px solid #deded8",
+            paddingBottom: 28,
           }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            width: 340,
-            height: 340,
-            right: 50,
-            top: 144,
-            border: "1px dashed #74c194",
-            borderRadius: 999,
-            display: "flex",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            width: 124,
-            height: 124,
-            right: 158,
-            top: 252,
-            border: "2px solid #156d40",
-            borderRadius: 999,
-            display: "flex",
-            background: "#fbfaf7",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            width: 18,
-            height: 18,
-            right: 211,
-            top: 305,
-            borderRadius: 999,
-            display: "flex",
-            background: "#156d40",
-          }}
-        />
-        <div style={{ display: "flex", flexDirection: "column", width: 760 }}>
-          <div
-            style={{
-              fontSize: 25,
-              fontWeight: 650,
-              letterSpacing: "-0.055em",
-              textTransform: "uppercase",
-            }}
-          >
-            Tom Green
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div
+              style={{
+                fontSize: 30,
+                fontWeight: 800,
+                letterSpacing: "-0.06em",
+                textTransform: "uppercase",
+                display: "flex",
+              }}
+            >
+              Tom Green
+            </div>
+            <div style={{ width: 7, height: 34, background: "#101410", display: "flex" }} />
           </div>
           <div
             style={{
-              marginTop: 90,
-              fontSize: 67,
-              lineHeight: 1.02,
-              letterSpacing: "-0.045em",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <span>I build the teams,</span>
-            <span>the operating model,</span>
-            <span style={{ color: "#156d40" }}>and the agents to run it.</span>
-          </div>
-          <div
-            style={{
-              marginTop: "auto",
               fontSize: 17,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "#77746d",
+              color: "#6a7068",
+              display: "flex",
             }}
           >
-            AI organisations · People systems · Agent workflows
+            tomgreen.ai
           </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 64,
+            fontSize: 84,
+            fontWeight: 800,
+            lineHeight: 1.0,
+            letterSpacing: "-0.045em",
+            textTransform: "uppercase",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <span>I build the teams,</span>
+          <span>the operating model,</span>
+          <span>and the agents to run it.</span>
+        </div>
+
+        <div
+          style={{
+            marginTop: "auto",
+            fontSize: 17,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "#4f554d",
+            display: "flex",
+          }}
+        >
+          AI organisations · People systems · Agent workflows
         </div>
       </div>
     ),

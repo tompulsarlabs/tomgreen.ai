@@ -45,11 +45,8 @@ export function ProofStrip({
       className="grid overflow-hidden border-y border-ink lg:grid-cols-[0.72fr_1.28fr]"
     >
       <div className="py-9 lg:border-r lg:border-ink lg:py-12 lg:pr-10">
-        <p className="text-xs uppercase tracking-[0.22em] text-muted">Execution in public</p>
-        <h2
-          id="proof-heading"
-          className="mt-4 max-w-[12ch] font-sans text-4xl font-medium leading-[0.98] tracking-[-0.055em] md:text-6xl"
-        >
+        <p className="record text-muted">Execution in public</p>
+        <h2 id="proof-heading" className="axis-heading mt-4 max-w-[12ch]">
           I build—and ship—at speed.
         </h2>
         <p className="mt-6 max-w-md leading-relaxed text-ink-secondary">
@@ -58,7 +55,7 @@ export function ProofStrip({
         </p>
         <a
           href="https://github.com/tompulsarlabs/ivy"
-          className="text-link mt-6 inline-flex min-h-11 items-center gap-2 text-sm text-accent hover:underline"
+          className="text-link mt-6 inline-flex min-h-11 items-center gap-2 text-sm underline underline-offset-4 hover:no-underline"
         >
           Inspect Ivy and the shipping record <span aria-hidden>↗</span>
         </a>
@@ -68,20 +65,24 @@ export function ProofStrip({
         <div className="grid gap-7 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
             <div className="flex items-baseline gap-3">
-              <p className="font-sans text-[clamp(5rem,13vw,9.5rem)] font-semibold leading-[0.72] tracking-[-0.09em]">
+              <p className="axis-index text-[clamp(5rem,13vw,9.5rem)] leading-[0.78]">
                 {ivy ? ivy.streak : "—"}
               </p>
               {ivy && (
-                <p className="pb-1 text-sm uppercase tracking-[0.18em] text-muted">
+                <p className="record pb-1 text-muted">
                   {ivy.streak === 1 ? "day" : "days"}
                 </p>
               )}
             </div>
-            <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em]">Ship streak</p>
+            <p className="record mt-5">Ship streak</p>
           </div>
           <div className="sm:text-right">
-            <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted">
-              <span className={`size-2 rounded-full ${ivy ? "bg-accent" : "bg-muted"}`} />
+            <p className="record inline-flex items-center gap-2 text-muted">
+              <span
+                aria-hidden
+                className="size-2 rounded-full"
+                style={{ background: ivy ? "var(--live)" : "var(--ghost)" }}
+              />
               {verifiedLabel}
             </p>
             {contributionLabel && (
@@ -92,9 +93,9 @@ export function ProofStrip({
 
         <div className="mt-10 border-t border-hairline pt-6">
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted">Public build record</p>
+            <p className="record text-muted">Public build record</p>
             {contributions?.total !== null && contributions?.total !== undefined && (
-              <p className="font-mono text-xs tabular-nums text-muted">
+              <p className="record tabular-nums text-muted">
                 {contributions.total.toLocaleString("en-GB")} contributions · past year
               </p>
             )}
@@ -106,7 +107,7 @@ export function ProofStrip({
               Activity remains available at{" "}
               <a
                 href="https://github.com/tompulsarlabs"
-                className="text-link text-accent hover:underline"
+                className="text-link underline underline-offset-4 hover:no-underline"
               >
                 github.com/tompulsarlabs
               </a>

@@ -1,11 +1,18 @@
 import type { ContributionDay } from "@/lib/data/github";
 
-const HEAT = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)", "var(--heat-4)"];
+// Sequential single-hue ramp in ink opacities. The old green heat palette is
+// on the contract cut list; the record survives, the palette does not.
+const RAMP = [
+  "rgba(16, 20, 16, 0.05)",
+  "rgba(16, 20, 16, 0.18)",
+  "rgba(16, 20, 16, 0.4)",
+  "rgba(16, 20, 16, 0.68)",
+  "rgba(16, 20, 16, 1)",
+];
 
 /**
- * GitHub-style contribution heatmap. Sequential encoding: one green hue,
- * light→dark (ramps validated against both surfaces). Weeks are columns,
- * split on Sundays, matching GitHub's own layout.
+ * GitHub-style contribution record. Weeks are columns, split on Sundays,
+ * matching GitHub's own layout.
  */
 export function ContributionGraph({ days }: { days: ContributionDay[] }) {
   const weeks: (ContributionDay | null)[][] = [];
@@ -22,18 +29,14 @@ export function ContributionGraph({ days }: { days: ContributionDay[] }) {
     <div className="overflow-x-auto">
       <div className="flex gap-[3px]" role="img" aria-label="GitHub contribution activity, past year">
         {weeks.map((week, i) => (
-          <div
-            key={i}
-            className="heat-col flex flex-col gap-[3px]"
-            style={{ "--heat-delay": `${i * 8}ms` } as React.CSSProperties}
-          >
+          <div key={i} className="flex flex-col gap-[3px]">
             {week.map((day, j) =>
               day ? (
                 <div
                   key={day.date}
                   title={`${day.date} — activity level ${day.level} of 4`}
-                  className="size-[10px] rounded-[2px]"
-                  style={{ background: HEAT[day.level] }}
+                  className="size-[10px]"
+                  style={{ background: RAMP[day.level] }}
                 />
               ) : (
                 <div key={`pad-${j}`} className="size-[10px]" aria-hidden />

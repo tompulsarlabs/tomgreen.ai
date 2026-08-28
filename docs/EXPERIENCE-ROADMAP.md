@@ -2,15 +2,16 @@
 
 Date: 27 August 2026
 
-Branch: `codex/lusion-experience-overhaul`
+Historical branch: `codex/lusion-experience-overhaul`
 
 Reference benchmark: [lusion.co](https://lusion.co/) on desktop and mobile
 Production baseline: [tomgreen.ai](https://tomgreen.ai/)
 
-> **Review status:** this roadmap records the first P0 art direction. Subsequent browser review
-> approved a cleaner white/black MVP baseline and explicitly removed the warm-paper/lime signal
-> treatment and overloaded Home proof line. Use `docs/FABLE-DESIGN-HANDOFF.md` as the current
-> brief; retain this roadmap for research, architecture, fallback and budget context.
+> **Archive status:** this roadmap records the first P0 art direction and is not an implementation
+> brief. Subsequent reviews removed its warm palette, Newsreader display face, operating/orbital
+> fields and About corridor. The current contract is `DESIGN-MOTION.md`; current implementation
+> status is recorded in `docs/IMPLEMENTATION-REPORT.md`. Retain the material below as historical
+> research, architecture, fallback and budget context only.
 
 ## Executive direction
 
@@ -408,7 +409,10 @@ paint. About uses a 2D canvas only as an optional atmospheric layer behind seman
 - CSS enhancement features must fail to the settled layout.
 - Validate at 1440px, 1005px, tablet (768px) and 390px.
 
-## Delivery plan
+## Historical delivery plan (superseded)
+
+The delivery plan below describes the earlier operating-field direction. It is retained for
+decision provenance and must not be used as the current tranche.
 
 ### P0 — this sprint
 
@@ -474,7 +478,9 @@ desktop enhancement is never slower to understand than its linear fallback; Syst
 real or explicitly reconstructed; journey changes respond to observed behavior rather than
 decorative preference.
 
-## Exact next tranche after this sprint
+## Historical next tranche (superseded)
+
+For the current tranche and remaining gates, use `docs/IMPLEMENTATION-REPORT.md` and `TODOS.md`.
 
 1. Create the Chapter 2 agent/human boundary plate using an approved workflow inventory.
 2. Recompose About around three career eras and shorten corridor travel to ≤0.8 viewport per
