@@ -589,7 +589,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  .resolve-lines { gap: 3rem; }
+  .resolve-lines { gap: 2.5rem; }
   .constraint-line, .system-line, .release-line { font-variation-settings: "wdth" 100; }
   .case-company { font-variation-settings: "wdth" 106 !important; }
   .route-entering :is(.case-company, .case-headline) { animation: none !important; opacity: 1; transform: none; }
