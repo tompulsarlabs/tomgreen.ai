@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { SVGProps } from "react";
+import { OperatingOrbit } from "@/components/operating-orbit";
 import { site } from "@/lib/content/site";
+import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -60,29 +62,41 @@ const channels = [
   },
 ] as const;
 
+/** The Contact page's planets: its channels, orbiting talent. */
+const orbitBodies: OrbitBody[] = channels.map((channel, index) => ({
+  id: channel.label.toLowerCase(),
+  label: channel.label,
+  color: planetColor(index),
+  target: { kind: "link", href: channel.href },
+  size: defaultBodySize(index),
+}));
+
 export default function ContactPage() {
   return (
     <div className="flex min-h-[calc(100svh-4.75rem)] flex-col">
-      <header className="grid gap-10 border-b border-ink py-16 md:py-24 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
-        <div>
+      <header className="systems-hero">
+        <OperatingOrbit bodies={orbitBodies} />
+        <div className="systems-hero-copy">
           <p className="record text-muted">
             Contact / {site.location} · global
           </p>
-          <h1 className="contact-title axis-display mt-4 max-w-3xl">
-            Tell me what’s hard.
-          </h1>
-        </div>
-        <div className="max-w-2xl lg:pb-2">
-          <p className="text-lg leading-relaxed text-ink-secondary md:text-xl">
-            An AI organisation to scale. A hiring system that is creaking. An agent workflow that needs to work outside a demo. Start with the constraint.
-          </p>
-          <a
-            href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
-            className="action action-dark group mt-8 gap-4"
-          >
-            Start a conversation
-            <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-          </a>
+          <div className="systems-title-row">
+            <h1 className="contact-title axis-display hero-title-long">
+              Tell me what’s hard.
+            </h1>
+            <div className="systems-lead">
+              <p>
+                An AI organisation to scale. A hiring system that is creaking. An agent workflow that needs to work outside a demo. Start with the constraint.
+              </p>
+              <a
+                href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
+                className="action action-dark group mt-6 gap-4"
+              >
+                Start a conversation
+                <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+              </a>
+            </div>
+          </div>
         </div>
       </header>
 

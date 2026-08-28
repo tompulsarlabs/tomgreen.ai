@@ -12,6 +12,7 @@ import {
   sceneNodeIds,
   type GraphNode,
 } from "@/lib/content/graph";
+import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Lab",
@@ -20,6 +21,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = { themeColor: "#ffffff" };
+
+/** The Lab's planets: its section headings, orbiting talent. */
+const orbitBodies: OrbitBody[] = [
+  ...clusterOrder.map((clusterId, index) => ({
+    id: `cluster-${clusterId}`,
+    label: clusters[clusterId].label,
+    color: planetColor(index),
+    target: { kind: "anchor" as const, id: `cluster-${clusterId}` },
+    size: defaultBodySize(index),
+  })),
+  {
+    id: "more-projects",
+    label: "More projects",
+    color: planetColor(clusterOrder.length),
+    target: { kind: "anchor", id: "more-projects" },
+    size: defaultBodySize(clusterOrder.length),
+  },
+];
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
@@ -97,7 +116,7 @@ export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
-        <OperatingOrbit />
+        <OperatingOrbit bodies={orbitBodies} />
         <div className="systems-hero-copy">
           <p className="record">Lab</p>
           <div className="systems-title-row">
@@ -140,7 +159,7 @@ export default function Building() {
               </p>
               <h2
                 id={`cluster-${clusterId}`}
-                className="axis-index mt-4 flex max-w-xs items-start gap-3 text-2xl leading-tight"
+                className="axis-index mt-4 flex max-w-xs scroll-mt-24 items-start gap-3 text-2xl leading-tight"
               >
                 {cluster.label}
               </h2>
@@ -160,7 +179,7 @@ export default function Building() {
         );
       })}
 
-      <section className="grid gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
+      <section id="more-projects" className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
         <p className="record text-muted">More projects</p>
         <div className="grid gap-x-8 md:grid-cols-2">
           {projects

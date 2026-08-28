@@ -270,7 +270,9 @@ test("Work is a six-row evidence index with clear hierarchy", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
   await expect(page.locator(".work-metric-rail")).toContainText("ARR won / first year");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
-  await expect(page.getByRole("link", { name: /Zalando/ })).toContainText("2022 – 2025");
+  await expect(
+    page.locator("[data-work-row]").filter({ hasText: "Zalando" }),
+  ).toContainText("2022 – 2025");
   await expect(page.getByRole("link", { name: "Work", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
@@ -316,8 +318,13 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/work");
   await waitForFonts(page);
+  // Let the orbit landing finish its first expensive frames (shader
+  // compile is CPU-bound on software GL) so the handoff choreography is
+  // measured on a settled page, as a visitor would reach it.
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await page.waitForTimeout(600);
 
-  const row = page.getByRole("link", { name: /Zalando/ });
+  const row = page.locator("[data-work-row]").filter({ hasText: "Zalando" });
   const sourceName = row.locator("[data-travel-name]");
   const source = await sourceName.boundingBox();
   const sourceFontSize = await sourceName.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
@@ -569,39 +576,89 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
-test("the Operating Orbit runs with motion and falls back to its poster", async ({ page }) => {
+test("the solar-system navigation runs with motion on the Lab", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/building");
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
   await expect(page.locator(".orbit-poster")).toBeHidden();
-  await expect(page.locator(".orbit-field")).toHaveAttribute("aria-hidden", "true");
-  // The field is a pure visual signature — no caption strip (owner cut).
+  // The orbit is navigation now — a labelled landmark, never decoration.
+  await expect(page.locator("nav.orbit-field")).toHaveAttribute("aria-label", "Orbit navigation");
+  // No caption strip (owner cut), no pinned quotes (nav replaced them).
   await expect(page.locator(".orbit-caption")).toHaveCount(0);
-  // Ten domain nameplates plus the nucleus — talent — and a
-  // pinnable one-line note for each.
-  await expect(page.locator(".orbit-label")).toHaveCount(11);
-  await expect(page.locator(".orbit-quote")).toHaveCount(11);
+  await expect(page.locator(".orbit-quote")).toHaveCount(0);
+  // The Lab's five section planets ride as live links, plus the nucleus
+  // nameplate — talent, the black hole, a destination and not a control.
+  await expect(page.locator("a.orbit-label")).toHaveCount(5);
+  await expect(page.locator(".orbit-label")).toHaveCount(6);
+  await expect(page.locator('a.orbit-label[data-body="cluster-companies"]')).toHaveAttribute(
+    "href",
+    "#cluster-companies",
+  );
+  await expect(page.locator('a.orbit-label[data-body="more-projects"]')).toHaveAttribute(
+    "href",
+    "#more-projects",
+  );
   // The wrapper line sits on every page, in the footer.
   await expect(page.locator(".site-footer").getByText("Agentic execution · Human judgment")).toBeVisible();
 });
 
-test("reduced motion serves the Operating Orbit poster, not the canvas", async ({ page }) => {
+test("every section lands on the solar system", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  for (const route of ["/work", "/building", "/about", "/contact"]) {
+    await page.goto(route);
+    await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  }
+});
+
+test("clicking a planet pulls it into the black hole, then travels", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/work");
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  const label = page.locator('a.orbit-label[data-body="zalando"]');
+  await expect(label).toHaveAttribute("href", "/work/zalando");
+  // The capture spirals the planet into the core (~0.75s), then the
+  // site travels to the case study.
+  await label.click({ force: true });
+  await expect(page).toHaveURL(/\/work\/zalando$/, { timeout: 8000 });
+});
+
+test("reduced motion serves the linked poster sky, not the canvas", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
+  // The poster's planets are real links: navigation without any script.
+  await expect(page.locator('.orbit-poster a[href="#cluster-companies"]')).toBeAttached();
+  await expect(page.locator('.orbit-poster a[href="#more-projects"]')).toBeAttached();
 });
 
-test("the Operating Orbit poster is server-rendered for no-JS visitors", async ({ browser }) => {
+test("the poster is server-rendered for no-JS visitors", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
   const page = await context.newPage();
   await page.goto("/building");
-  // Orbit + thread chunks split around the nucleus: at least one path per
-  // orbit (3) and per link (14); the exact count varies with the camera.
-  expect(await page.locator(".orbit-poster path").count()).toBeGreaterThanOrEqual(17);
-  // Ten graphite domains + the nucleus paper disc, stone shading and ink ring.
-  await expect(page.locator(".orbit-poster circle")).toHaveCount(13);
-  // The poster names every domain and the nucleus in real SVG text.
-  await expect(page.locator(".orbit-poster text")).toHaveCount(11);
+  // Well lattice (19 polylines) + five orbit ellipses, split into
+  // front/behind chunks around the nucleus; the count varies with camera.
+  expect(await page.locator(".orbit-poster path").count()).toBeGreaterThanOrEqual(20);
+  // Five planets + the nucleus paper disc, stone shading and ink ring.
+  await expect(page.locator(".orbit-poster circle")).toHaveCount(8);
+  // The poster names every planet and the nucleus in real SVG text.
+  await expect(page.locator(".orbit-poster text")).toHaveCount(6);
+  await expect(page.locator(".orbit-poster a")).toHaveCount(5);
+  await context.close();
+});
+
+test("each page's headers are its planets", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
+  const page = await context.newPage();
+  await page.goto("/work");
+  await expect(page.locator(".orbit-poster a")).toHaveCount(6);
+  await expect(page.locator('.orbit-poster a[href="/work/zalando"]')).toBeAttached();
+  await expect(page.locator('.orbit-poster a[href="/work/chapter-2"]')).toBeAttached();
+  await page.goto("/contact");
+  await expect(page.locator(".orbit-poster a")).toHaveCount(3);
+  await expect(page.locator('.orbit-poster a[href^="mailto:"]')).toBeAttached();
+  await page.goto("/about");
+  await expect(page.locator(".orbit-poster a")).toHaveCount(7);
+  await expect(page.locator('.orbit-poster a[href="#station-0"]')).toBeAttached();
   await context.close();
 });
 
@@ -742,7 +799,7 @@ test("About masthead and introduction do not intersect at 1440px", async ({ page
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/about");
   await waitForFonts(page);
-  const heading = page.locator(".about-opening h1");
+  const heading = page.locator(".about-opening-hero h1");
   const introduction = page.locator(".about-intro");
   await expect(heading).toHaveCSS("opacity", "1");
   await expect(introduction).toHaveCSS("opacity", "1");
@@ -763,9 +820,12 @@ test("About masthead and introduction do not intersect at 1440px", async ({ page
 test("Contact keeps direct channels and mailto primary", async ({ page }) => {
   await gotoReduced(page, "/contact");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell me what’s hard.");
-  await expect(page.getByRole("link", { name: /Email/ })).toHaveAttribute("href", /^mailto:tom@tomgreen\.ai/);
-  await expect(page.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute("href", "https://linkedin.com/in/tomegreen");
-  await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/tompulsarlabs");
+  // Scoped to the channel list: the orbit poster carries the same three
+  // names as planet links.
+  const channels = page.locator('[aria-labelledby="contact-channels"]');
+  await expect(channels.getByRole("link", { name: /Email/ })).toHaveAttribute("href", /^mailto:tom@tomgreen\.ai/);
+  await expect(channels.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute("href", "https://linkedin.com/in/tomegreen");
+  await expect(channels.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/tompulsarlabs");
 });
 
 test("the 390px Home sets the production spine without overflow", async ({ page }) => {

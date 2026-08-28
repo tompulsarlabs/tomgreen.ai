@@ -42,6 +42,28 @@ export function planetColor(index: number): string {
   return PLANET_PALETTE[index % PLANET_PALETTE.length];
 }
 
+/** World-unit body radius, gently varied so no two planets read equal. */
+export function defaultBodySize(index: number): number {
+  return 0.088 + 0.026 * hash(index * 17 + 7);
+}
+
+/**
+ * The href a body resolves to with no script running — the poster's
+ * labels are real links, so navigation works before (or without) the
+ * WebGL scene and its pull-in capture.
+ */
+export function targetHref(target: OrbitTarget): string {
+  switch (target.kind) {
+    case "route":
+    case "link":
+      return target.href;
+    case "anchor":
+      return `#${target.id}`;
+    case "station":
+      return `#${target.anchorId}`;
+  }
+}
+
 export type OrbitElements = {
   a: number;
   e: number;

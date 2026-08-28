@@ -223,7 +223,11 @@ export function CareerCorridor({
             {stops.map((stop, index) => {
               const slug = stop.href?.split("/").pop();
               return (
-                <li key={`${stop.company}-${stop.period}`} className="corridor-station">
+                <li
+                  key={`${stop.company}-${stop.period}`}
+                  id={`station-${index}`}
+                  className="corridor-station scroll-mt-24"
+                >
                   <p className="record station-index">
                     {String(index + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")}
                   </p>

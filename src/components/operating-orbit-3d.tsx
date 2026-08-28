@@ -9,23 +9,26 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
+import { useRouter } from "next/navigation";
+import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 import {
-  DOMAINS,
-  NUCLEUS_ID,
-  type DomainId,
-} from "@/lib/orbit-geometry";
+  navOrbitElements,
+  type OrbitBody,
+  type OrbitElements,
+  type OrbitTarget,
+} from "@/lib/orbit-nav";
 
 /**
- * The Operating Orbit, third dimension — a real-time WebGL scene
- * (three.js via React Three Fiber). One dense core of talent sits in
- * the throat of a spacetime membrane that collapses into a gravity
- * well; the ten domains ride their own inclined ellipses through it.
- * Everything is true geometry under perspective projection: rotating
- * the system reveals depth, inclination and front-to-back occlusion.
- * The canvas stays transparent over the paper; every label remains the
- * existing crisp HTML nameplate, anchored to its body by projection.
- * The server-rendered SVG poster is the composed static frame for
- * reduced-motion, Save-Data, no-JS and no-WebGL visitors.
+ * The solar system as navigation, third dimension — a real-time WebGL
+ * scene (three.js via React Three Fiber). The page's headers ride their
+ * own inclined ellipses as mineral planets around one dense core in the
+ * throat of a spacetime membrane: talent, the black hole every section
+ * orbits. Clicking a planet — body or nameplate — spirals it down into
+ * the core, then the site travels to that header's destination. The
+ * canvas stays transparent over the paper; every label remains a crisp
+ * HTML link, anchored to its body by projection. The server-rendered
+ * SVG poster is the composed static frame — same links, zero script —
+ * for reduced-motion, Save-Data, no-JS and no-WebGL visitors.
  */
 
 const INK = new THREE.Color("#101410");
@@ -39,31 +42,11 @@ const wellDepth = (r: number) =>
 const CORE_RADIUS = 0.34;
 const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
 
-/** Per-domain orbital elements: each body owns its ellipse. */
-type Elements = {
-  a: number;
-  e: number;
-  incl: number;
-  node: number;
-  speed: number;
-  size: number;
-  phase: number;
-};
-const ORBIT_ELEMENTS: Record<DomainId, Elements> = {
-  revenue: { a: 3.05, e: 0.16, incl: 0.42, node: 0.4, speed: 0.14, size: 0.1, phase: 0.1 },
-  "hr-tech": { a: 2.85, e: 0.22, incl: 0.3, node: 2.2, speed: 0.15, size: 0.085, phase: 2.4 },
-  ai: { a: 2.6, e: 0.1, incl: 0.55, node: 4.3, speed: 0.17, size: 0.11, phase: 4.2 },
-  agents: { a: 2.35, e: 0.18, incl: 0.36, node: 5.4, speed: 0.19, size: 0.095, phase: 1.2 },
-  product: { a: 2.1, e: 0.12, incl: 0.48, node: 1.1, speed: 0.22, size: 0.105, phase: 3.6 },
-  eng: { a: 1.95, e: 0.24, incl: 0.28, node: 3.3, speed: 0.24, size: 0.095, phase: 5.3 },
-  growth: { a: 1.75, e: 0.08, incl: 0.62, node: 5.9, speed: 0.27, size: 0.09, phase: 0.8 },
-  judgment: { a: 1.55, e: 0.15, incl: 0.4, node: 0.9, speed: 0.31, size: 0.1, phase: 2.9 },
-  ops: { a: 1.35, e: 0.2, incl: 0.33, node: 2.8, speed: 0.35, size: 0.095, phase: 4.7 },
-  building: { a: 1.18, e: 0.1, incl: 0.52, node: 4.6, speed: 0.4, size: 0.09, phase: 1.9 },
-};
+/** How long a clicked planet takes to spiral into the core. */
+const CAPTURE_SECONDS = 0.75;
 
-/** Position on an ellipse at parameter t, world space (y up). */
-function orbitPoint(el: Elements, t: number, out: THREE.Vector3): THREE.Vector3 {
+/** Position on a body's ellipse at parameter t, world space (y up). */
+function orbitPoint(el: OrbitElements, t: number, out: THREE.Vector3): THREE.Vector3 {
   const b = el.a * Math.sqrt(1 - el.e * el.e);
   const px = el.a * (Math.cos(t) - el.e * 0.6);
   const pz = b * Math.sin(t);
@@ -183,10 +166,35 @@ void main() {
 type SceneProps = {
   field: HTMLElement;
   narrow: boolean;
+  bodies: OrbitBody[];
 };
 
-function OrbitScene({ field, narrow }: SceneProps) {
+type Capture = {
+  id: string;
+  progress: number;
+  /** true while spiralling in; false while easing back out. */
+  active: boolean;
+  navigated: boolean;
+};
+
+function OrbitScene({ field, narrow, bodies }: SceneProps) {
   const { camera, gl, size } = useThree();
+  const setFrameloop = useThree((state) => state.setFrameloop);
+  const router = useRouter();
+
+  const elements = useMemo(
+    () => bodies.map((_, index) => navOrbitElements(index, bodies.length)),
+    [bodies],
+  );
+  const bodyById = useMemo(() => new Map(bodies.map((body) => [body.id, body])), [bodies]);
+
+  // Route destinations warm up while the visitor is still orbiting, so
+  // the travel after a capture is immediate.
+  useEffect(() => {
+    for (const body of bodies) {
+      if (body.target.kind === "route") router.prefetch(body.target.href);
+    }
+  }, [bodies, router]);
 
   const membraneGeometry = useMemo(() => {
     const rings = narrow ? 90 : 140;
@@ -245,22 +253,22 @@ function OrbitScene({ field, narrow }: SceneProps) {
 
   const orbitPaths = useMemo(
     () =>
-      DOMAINS.map((domain) => {
-        const el = ORBIT_ELEMENTS[domain.id];
+      bodies.map((body, index) => {
+        const el = elements[index];
         const samples = narrow ? 96 : 160;
         const points: THREE.Vector3[] = [];
         const v = new THREE.Vector3();
-        for (let index = 0; index <= samples; index += 1) {
-          points.push(orbitPoint(el, (index / samples) * Math.PI * 2, v).clone());
+        for (let sample = 0; sample <= samples; sample += 1) {
+          points.push(orbitPoint(el, (sample / samples) * Math.PI * 2, v).clone());
         }
-        return { id: domain.id, points };
+        return { id: body.id, points };
       }),
-    [narrow],
+    [bodies, elements, narrow],
   );
 
-  const bodyRefs = useRef(new Map<DomainId, THREE.Group>());
-  const bodyMaterials = useRef(new Map<DomainId, THREE.MeshPhysicalMaterial>());
-  const filamentRefs = useRef(new Map<DomainId, { line: { visible: boolean }; material: { opacity: number }; setPoints: (points: THREE.Vector3[]) => void }>());
+  const bodyRefs = useRef(new Map<string, THREE.Group>());
+  const bodyMaterials = useRef(new Map<string, THREE.MeshPhysicalMaterial>());
+  const filamentRefs = useRef(new Map<string, { line: { visible: boolean }; material: { opacity: number }; setPoints: (points: THREE.Vector3[]) => void }>());
   const coreRef = useRef<THREE.Mesh>(null);
   const coreMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
   const pathMaterials = useRef<{ opacity: number }[]>([]);
@@ -268,13 +276,11 @@ function OrbitScene({ field, narrow }: SceneProps) {
   // Interaction state — all refs, never React state inside the loop.
   const state = useRef({
     labels: new Map<string, HTMLElement>(),
-    quotes: new Map<string, HTMLElement>(),
-    hover: null as DomainId | typeof NUCLEUS_ID | null,
-    hoverEase: new Map<DomainId, number>(),
+    hover: null as string | null,
+    hoverEase: new Map<string, number>(),
     coreWake: 0,
-    pinned: null as string | null,
-    shownQuote: null as string | null,
-    angles: new Map<DomainId, number>(),
+    capture: null as Capture | null,
+    angles: new Map<string, number>(),
     dragging: false,
     drift: 0.58,
     offsetAzimuth: 0,
@@ -295,23 +301,90 @@ function OrbitScene({ field, narrow }: SceneProps) {
     pointerStrength: 0,
   });
 
-  // Wire up the existing HTML nameplates and quotes, the reveal
-  // observer, and the drag surface.
+  const startCapture = (id: string) => {
+    const s = state.current;
+    if (s.capture?.active) return;
+    if (!bodyById.has(id)) return;
+    s.capture = { id, progress: 0, active: true, navigated: false };
+  };
+  const startCaptureRef = useRef(startCapture);
+
+  const navigate = (target: OrbitTarget) => {
+    switch (target.kind) {
+      case "route":
+        router.push(target.href);
+        break;
+      case "anchor":
+        document.getElementById(target.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      case "link":
+        window.location.assign(target.href);
+        break;
+      case "station": {
+        // The corridor's rail already knows how to travel to a stop; the
+        // anchor is the fallback when the rail is not live.
+        const rail = document.querySelectorAll<HTMLButtonElement>(".corridor-rail button");
+        const button = rail.item(target.index);
+        if (button) button.click();
+        else document.getElementById(target.anchorId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      }
+    }
+  };
+  const navigateRef = useRef(navigate);
+  // Refs, not closures, reach the frame loop and DOM handlers — synced
+  // after render so neither ever goes stale.
+  useEffect(() => {
+    startCaptureRef.current = startCapture;
+    navigateRef.current = navigate;
+  });
+
+  // Wire up the HTML nameplate links, the reveal observer, and the drag
+  // surface.
   useEffect(() => {
     const s = state.current;
+    const removers: (() => void)[] = [];
     field.querySelectorAll<HTMLElement>(".orbit-label").forEach((label) => {
-      s.labels.set(label.dataset.domain!, label);
+      const id = label.dataset.body!;
+      s.labels.set(id, label);
+      if (id === NUCLEUS_ID) return;
+      // The nameplate is a real link; a plain activation becomes the
+      // capture, while modified clicks (new tab, download) pass through
+      // untouched.
+      const onClick = (event: MouseEvent) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        event.preventDefault();
+        startCaptureRef.current(id);
+      };
+      const onEnter = () => {
+        s.hover = id;
+      };
+      const onLeave = () => {
+        if (s.hover === id) s.hover = null;
+      };
+      label.addEventListener("click", onClick);
+      label.addEventListener("mouseenter", onEnter);
+      label.addEventListener("mouseleave", onLeave);
+      label.addEventListener("focus", onEnter);
+      label.addEventListener("blur", onLeave);
+      removers.push(() => {
+        label.removeEventListener("click", onClick);
+        label.removeEventListener("mouseenter", onEnter);
+        label.removeEventListener("mouseleave", onLeave);
+        label.removeEventListener("focus", onEnter);
+        label.removeEventListener("blur", onLeave);
+      });
     });
-    field.querySelectorAll<HTMLElement>(".orbit-quote").forEach((quote) => {
-      s.quotes.set(quote.dataset.domain!, quote);
-    });
-    for (const domain of DOMAINS) s.angles.set(domain.id, ORBIT_ELEMENTS[domain.id].phase);
+    bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        s.revealTarget = entry.isIntersecting ? 1 : s.revealTarget;
+        if (entry.intersectionRatio >= 0.2) s.revealTarget = 1;
+        // Offscreen, the scene stops rendering entirely — the page below
+        // (and the corridor's own canvas on About) gets every frame.
+        setFrameloop(entry.isIntersecting ? "always" : "never");
       },
-      { threshold: 0.2 },
+      { threshold: [0, 0.2] },
     );
     observer.observe(field);
 
@@ -367,6 +440,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
     dom.addEventListener("pointerleave", onPointerLeave);
     return () => {
       observer.disconnect();
+      for (const remove of removers) remove();
       dom.removeEventListener("pointerdown", onPointerDown);
       dom.removeEventListener("pointermove", onPointerMove);
       dom.removeEventListener("pointerup", onPointerUp);
@@ -376,11 +450,8 @@ function OrbitScene({ field, narrow }: SceneProps) {
       s.labels.forEach((label) => {
         label.style.opacity = "0";
       });
-      s.quotes.forEach((quote) => {
-        quote.style.opacity = "0";
-      });
     };
-  }, [field, gl]);
+  }, [field, gl, bodies, elements]);
 
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.4), []);
@@ -403,6 +474,31 @@ function OrbitScene({ field, narrow }: SceneProps) {
 
     // Entry: the well deepens, the system condenses, the camera settles.
     s.reveal += (s.revealTarget - s.reveal) * lerpIn(1.6);
+
+    // Capture: the clicked planet spirals into the core; at the bottom
+    // the site travels. Anchor travel keeps the scene alive, so the
+    // planet climbs back out of the well afterwards.
+    let captureEased = 0;
+    if (s.capture) {
+      const c = s.capture;
+      if (c.active) {
+        c.progress = Math.min(1, c.progress + dt / CAPTURE_SECONDS);
+        if (c.progress >= 1 && !c.navigated) {
+          c.navigated = true;
+          const target = bodyById.get(c.id)?.target;
+          if (target) navigateRef.current(target);
+          if (target && (target.kind === "anchor" || target.kind === "station")) {
+            c.active = false;
+          }
+        }
+      } else {
+        c.progress = Math.max(0, c.progress - dt / 0.9);
+        if (c.progress === 0) s.capture = null;
+      }
+      if (s.capture) {
+        captureEased = s.capture.progress ** 3;
+      }
+    }
 
     // Camera: the slow idle drift carries underneath; a drag adds a
     // sprung offset with inertia and a clamped vertical range; after
@@ -440,7 +536,8 @@ function OrbitScene({ field, narrow }: SceneProps) {
     membraneUniforms.uReveal.value = 1 - Math.pow(1 - s.reveal, 3);
     membraneUniforms.uOpacity.value = s.reveal;
     s.coreWake += ((s.hover === NUCLEUS_ID ? 1 : 0) - s.coreWake) * lerpIn(6);
-    membraneUniforms.uWake.value = s.coreWake;
+    // A capture feeds the core: the well wakes as the planet goes in.
+    membraneUniforms.uWake.value = Math.max(s.coreWake, captureEased);
 
     // Pointer → world point on the fabric plane, for the tension dent.
     if (s.parallaxYawTarget !== 0 || s.parallaxPitchTarget !== 0) {
@@ -462,42 +559,48 @@ function OrbitScene({ field, narrow }: SceneProps) {
     if (coreMaterialRef.current) coreMaterialRef.current.opacity = s.reveal;
 
     // Bodies: deterministic travel, hover slow-and-swell, projection to
-    // the existing HTML nameplates, occlusion-aware label presence.
+    // the HTML nameplate links, occlusion-aware label presence.
     const width = size.width;
     const height = size.height;
     scratch.core.set(0, CORE_Y, 0);
     const cameraToCore = scratch.v3.copy(scratch.core).sub(camera.position).length();
     let hoverTheta = 0;
     let hoverStrength = 0;
-    let bodyIndex = 0;
 
-    for (const domain of DOMAINS) {
-      const el = ORBIT_ELEMENTS[domain.id];
-      const hovered = s.hover === domain.id;
-      const ease = s.hoverEase.get(domain.id) ?? 0;
+    bodies.forEach((body, index) => {
+      const el = elements[index];
+      const hovered = s.hover === body.id;
+      const ease = s.hoverEase.get(body.id) ?? 0;
       const nextEase = ease + ((hovered ? 1 : 0) - ease) * lerpIn(6);
-      s.hoverEase.set(domain.id, nextEase);
+      s.hoverEase.set(body.id, nextEase);
 
-      const angle = (s.angles.get(domain.id) ?? 0) + dt * el.speed * (1 - 0.4 * nextEase);
-      s.angles.set(domain.id, angle);
-      const group = bodyRefs.current.get(domain.id);
-      if (!group) continue;
+      const captured = s.capture?.id === body.id;
+      const suction = captured ? captureEased : 0;
+      // The spiral: as the planet falls it also runs faster around.
+      const speedBoost = captured ? 1 + 9 * (s.capture?.progress ?? 0) : 1;
+      const angle =
+        (s.angles.get(body.id) ?? 0) + dt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
+      s.angles.set(body.id, angle);
+      const group = bodyRefs.current.get(body.id);
+      if (!group) return;
       orbitPoint(el, angle, scratch.v1);
+      if (suction > 0) scratch.v1.lerp(scratch.core, suction);
       group.position.copy(scratch.v1);
-      // Feed the membrane's contact shading.
-      membraneUniforms.uBodies.value[bodyIndex].copy(scratch.v1);
-      bodyIndex += 1;
-      const swell = (1 + 0.08 * nextEase) * (0.35 + 0.65 * s.reveal);
-      group.scale.setScalar(swell);
-      const material = bodyMaterials.current.get(domain.id);
+      // Feed the membrane's contact shading (first ten bodies).
+      if (index < 10) membraneUniforms.uBodies.value[index].copy(scratch.v1);
+      const swell =
+        (1 + 0.08 * nextEase) * (0.35 + 0.65 * s.reveal) * (1 - 0.85 * suction);
+      group.scale.setScalar(Math.max(swell, 0.001));
+      const material = bodyMaterials.current.get(body.id);
       if (material) material.opacity = s.reveal;
 
-      // Filament to the core, surfacing on hover.
-      const filament = filamentRefs.current.get(domain.id);
+      // Filament to the core: surfacing on hover, taut during capture.
+      const filament = filamentRefs.current.get(body.id);
       if (filament) {
-        filament.material.opacity = nextEase * 0.32 * s.reveal;
-        filament.line.visible = nextEase > 0.02;
-        if (nextEase > 0.02) {
+        const strength = Math.max(nextEase * 0.32, suction * 0.5) * s.reveal;
+        filament.material.opacity = strength;
+        filament.line.visible = strength > 0.006;
+        if (filament.line.visible) {
           filament.setPoints([scratch.v1.clone(), scratch.core.clone()]);
         }
       }
@@ -511,11 +614,11 @@ function OrbitScene({ field, narrow }: SceneProps) {
       scratch.v2.copy(scratch.v1).project(camera);
       const x = ((scratch.v2.x + 1) / 2) * width;
       const y = ((1 - scratch.v2.y) / 2) * height;
-      const label = s.labels.get(domain.id);
+      const label = s.labels.get(body.id);
       if (label) {
         const cameraDistance = scratch.v3.copy(scratch.v1).sub(camera.position).length();
         const pxScale = height / 2 / (Math.tan((40 * Math.PI) / 360) * cameraDistance);
-        const bodyPx = el.size * swell * pxScale;
+        const bodyPx = body.size * swell * pxScale;
         const near = THREE.MathUtils.clamp(1 - (cameraDistance - 5.2) / 5.2, 0, 1);
         // Behind the core: the ray to the body grazes the sphere.
         scratch.v3.copy(scratch.v1).sub(camera.position).normalize();
@@ -524,24 +627,18 @@ function OrbitScene({ field, narrow }: SceneProps) {
         const closest = Math.sqrt(Math.max(toCore.lengthSq() - along * along, 0));
         const occluded = closest < CORE_RADIUS * 1.05 && cameraDistance > cameraToCore;
         // Narrow fields let far labels recede harder, so the crowded
-        // centre stays readable and near names win.
+        // centre stays readable and near names win. A captured planet
+        // takes its nameplate down with it.
         const base = ((narrow ? 0.14 : 0.3) + 0.5 * near) * (occluded ? 0.3 : 1);
-        const opacity = (base + (1 - base) * nextEase) * s.reveal;
+        const opacity =
+          (base + (1 - base) * nextEase) * s.reveal * (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         const labelWidth = label.offsetWidth || 70;
         const rightX = x + bodyPx + 8;
         const flip = rightX + labelWidth > width - 6;
         label.style.transform = `translate3d(${(flip ? x - bodyPx - 8 - labelWidth : rightX).toFixed(1)}px, ${(y - 6).toFixed(1)}px, 0)`;
         label.style.opacity = opacity.toFixed(3);
       }
-      if (s.shownQuote === domain.id) {
-        const quote = s.quotes.get(domain.id);
-        if (quote) {
-          const flip = x > width * 0.62;
-          const quoteWidth = quote.offsetWidth || 200;
-          quote.style.transform = `translate3d(${(flip ? x - 12 - quoteWidth : x + 12).toFixed(1)}px, ${(y + 14).toFixed(1)}px, 0)`;
-        }
-      }
-    }
+    });
     membraneUniforms.uHoverTheta.value = hoverTheta;
     membraneUniforms.uHoverStrength.value = hoverStrength;
 
@@ -554,38 +651,16 @@ function OrbitScene({ field, narrow }: SceneProps) {
     const coreLabel = s.labels.get(NUCLEUS_ID);
     if (coreLabel) {
       coreLabel.style.transform = `translate3d(${(coreX + corePx + 10).toFixed(1)}px, ${(coreY - 6).toFixed(1)}px, 0)`;
-      coreLabel.style.opacity = ((0.75 + 0.25 * s.coreWake) * s.reveal).toFixed(3);
-    }
-    if (s.shownQuote === NUCLEUS_ID) {
-      const quote = s.quotes.get(NUCLEUS_ID);
-      if (quote) {
-        quote.style.transform = `translate3d(${(coreX + 18).toFixed(1)}px, ${(coreY + 14).toFixed(1)}px, 0)`;
-      }
-    }
-
-    // Pin transitions surface the one-line notes.
-    if (s.pinned !== s.shownQuote) {
-      if (s.shownQuote) {
-        const previous = s.quotes.get(s.shownQuote);
-        if (previous) previous.style.opacity = "0";
-      }
-      s.shownQuote = s.pinned;
-      if (s.pinned) {
-        const quote = s.quotes.get(s.pinned);
-        if (quote) quote.style.opacity = "1";
-      }
+      coreLabel.style.opacity = ((0.75 + 0.25 * membraneUniforms.uWake.value) * s.reveal).toFixed(3);
     }
 
     // Orbit paths stay quiet — the membrane carries the depth.
     for (const material of pathMaterials.current) material.opacity = 0.1 * s.reveal;
   });
 
-  const setHover = (id: DomainId | typeof NUCLEUS_ID | null) => {
+  const setHover = (id: string | null) => {
     state.current.hover = id;
     if (!state.current.dragging) gl.domElement.style.cursor = id ? "pointer" : "grab";
-  };
-  const togglePin = (id: DomainId | typeof NUCLEUS_ID) => {
-    state.current.pinned = state.current.pinned === id ? null : id;
   };
 
   return (
@@ -607,7 +682,8 @@ function OrbitScene({ field, narrow }: SceneProps) {
         <primitive object={membraneMaterial} attach="material" />
       </mesh>
 
-      {/* The core: polished obsidian, dense and materially real. */}
+      {/* The core: polished obsidian, dense and materially real. The
+          black hole is the destination, not a control — no click. */}
       <mesh
         ref={coreRef}
         position={[0, CORE_Y, 0]}
@@ -616,10 +692,6 @@ function OrbitScene({ field, narrow }: SceneProps) {
           setHover(NUCLEUS_ID);
         }}
         onPointerOut={() => setHover(null)}
-        onClick={(event) => {
-          event.stopPropagation();
-          togglePin(NUCLEUS_ID);
-        }}
       >
         <sphereGeometry args={[CORE_RADIUS, 72, 72]} />
         <meshPhysicalMaterial
@@ -667,10 +739,10 @@ function OrbitScene({ field, narrow }: SceneProps) {
         />
       ))}
 
-      {/* Hover filaments: body to core. */}
-      {DOMAINS.map((domain) => (
+      {/* Capture filaments: body to core, also surfacing on hover. */}
+      {bodies.map((body) => (
         <Line
-          key={`f-${domain.id}`}
+          key={`f-${body.id}`}
           points={[
             [0, 0, 0],
             [0, CORE_Y, 0],
@@ -684,7 +756,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
           visible={false}
           ref={(line) => {
             if (line) {
-              filamentRefs.current.set(domain.id, {
+              filamentRefs.current.set(body.id, {
                 line,
                 material: line.material as unknown as { opacity: number },
                 setPoints: (points: THREE.Vector3[]) => {
@@ -696,62 +768,59 @@ function OrbitScene({ field, narrow }: SceneProps) {
         />
       ))}
 
-      {/* The domains: individually modelled graphite bodies. */}
-      {DOMAINS.map((domain) => {
-        const el = ORBIT_ELEMENTS[domain.id];
-        return (
-          <group key={domain.id} ref={(group) => {
-            if (group) bodyRefs.current.set(domain.id, group);
-          }}>
-            <mesh
-              onPointerOver={(event) => {
-                event.stopPropagation();
-                setHover(domain.id);
+      {/* The planets: the page's headers, individually modelled. */}
+      {bodies.map((body) => (
+        <group key={body.id} ref={(group) => {
+          if (group) bodyRefs.current.set(body.id, group);
+        }}>
+          <mesh
+            onPointerOver={(event) => {
+              event.stopPropagation();
+              setHover(body.id);
+            }}
+            onPointerOut={() => setHover(null)}
+            onClick={(event) => {
+              event.stopPropagation();
+              startCaptureRef.current(body.id);
+            }}
+          >
+            <sphereGeometry args={[body.size, 48, 48]} />
+            <meshPhysicalMaterial
+              ref={(material) => {
+                if (material) bodyMaterials.current.set(body.id, material);
               }}
-              onPointerOut={() => setHover(null)}
-              onClick={(event) => {
-                event.stopPropagation();
-                togglePin(domain.id);
-              }}
-            >
-              <sphereGeometry args={[el.size, 48, 48]} />
-              <meshPhysicalMaterial
-                ref={(material) => {
-                  if (material) bodyMaterials.current.set(domain.id, material);
-                }}
-                color={domain.color}
-                roughness={0.42}
-                metalness={0.05}
-                clearcoat={0.55}
-                clearcoatRoughness={0.35}
-                envMapIntensity={0.85}
-                transparent
-              />
-            </mesh>
-            {/* A generous invisible hit target around each small body. */}
-            <mesh
-              visible={false}
-              onPointerOver={(event) => {
-                event.stopPropagation();
-                setHover(domain.id);
-              }}
-              onPointerOut={() => setHover(null)}
-              onClick={(event) => {
-                event.stopPropagation();
-                togglePin(domain.id);
-              }}
-            >
-              <sphereGeometry args={[el.size * 2.6, 12, 12]} />
-              <meshBasicMaterial visible={false} />
-            </mesh>
-          </group>
-        );
-      })}
+              color={body.color}
+              roughness={0.42}
+              metalness={0.05}
+              clearcoat={0.55}
+              clearcoatRoughness={0.35}
+              envMapIntensity={0.85}
+              transparent
+            />
+          </mesh>
+          {/* A generous invisible hit target around each small body. */}
+          <mesh
+            visible={false}
+            onPointerOver={(event) => {
+              event.stopPropagation();
+              setHover(body.id);
+            }}
+            onPointerOut={() => setHover(null)}
+            onClick={(event) => {
+              event.stopPropagation();
+              startCaptureRef.current(body.id);
+            }}
+          >
+            <sphereGeometry args={[body.size * 2.6, 12, 12]} />
+            <meshBasicMaterial visible={false} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
 
-export function OperatingOrbit3D({ field, narrow }: SceneProps) {
+export function OperatingOrbit3D({ field, narrow, bodies }: SceneProps) {
   return (
     <Canvas
       className="orbit-canvas"
@@ -773,7 +842,7 @@ export function OperatingOrbit3D({ field, narrow }: SceneProps) {
           (distance fading and line dissolve) instead, and bloom is a
           no-op on white paper — additive highlights cannot exceed the
           page. */}
-      <OrbitScene field={field} narrow={narrow} />
+      <OrbitScene field={field} narrow={narrow} bodies={bodies} />
     </Canvas>
   );
 }

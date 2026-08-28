@@ -1,13 +1,22 @@
 import { OperatingOrbitLive } from "./operating-orbit-live";
 import {
-  DOMAINS,
+  DEFAULT_CAMERA,
   NUCLEUS_ID,
   NUCLEUS_LABEL,
-  NUCLEUS_QUOTE,
+  NUCLEUS_RADIUS,
   depthAlpha,
-  resolvedScene,
+  project,
+  splitByNucleusDepth,
+  wellPolylines,
   type StrokeChunk,
+  type Vec3,
 } from "@/lib/orbit-geometry";
+import {
+  navOrbitElements,
+  navOrbitPoint,
+  targetHref,
+  type OrbitBody,
+} from "@/lib/orbit-nav";
 
 const VIEW = { width: 1000, height: 640 };
 
@@ -25,25 +34,67 @@ function chunkPath(chunk: StrokeChunk, cx: number, cy: number): string {
     .join(" ");
 }
 
+/** Poster px per world unit of body radius. */
+const BODY_PX = 38;
+
 /**
- * The Operating Orbit — the Systems signature. Ten domains and the
- * threads that connect them, in orbit around one centre of gravity:
- * talent. The server renders the field at its resolved state
- * as inline SVG — named, connected, occluded — so no-JS, reduced-motion
- * and Save-Data visitors get the same drawing with zero script; the
- * client canvas replaces it only when motion is allowed. The canvas and
- * SVG are aria-hidden — the visible caption and legend carry the meaning
- * in real text.
+ * The solar system as navigation — every section lands here. The page's
+ * headers are the planets, each on its own inclined ellipse around the
+ * black hole: talent, the centre of gravity. The server renders the
+ * system at rest as inline SVG whose labels are real links, so no-JS,
+ * reduced-motion and Save-Data visitors navigate the same sky with zero
+ * script; the WebGL scene replaces it only when motion is allowed, and
+ * clicking a planet there pulls it into the core before the site
+ * travels. Bodies come from the page: each declares its own headers.
  */
-export function OperatingOrbit() {
-  const scene = resolvedScene(300);
+export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
+  const elements = bodies.map((_, index) => navOrbitElements(index, bodies.length));
+  // Normalise the nav-scene world (a up to ~3.2) into the poster's field
+  // scale, where the well lattice reaches 1.05.
+  const maxExtent = Math.max(
+    ...elements.map((el) => el.a * (1 + 0.6 * el.e)),
+  );
+  const norm = 1.05 / maxExtent;
+  const scalePx = 300;
+
+  const nucleusProjected = project([0, 0, 0], DEFAULT_CAMERA, scalePx);
+  const nucleus = { ...nucleusProjected, radius: NUCLEUS_RADIUS * nucleusProjected.scale };
+
+  const navPoint = (elIndex: number, t: number): Vec3 => {
+    const [x, y, z] = navOrbitPoint(elements[elIndex], t);
+    return [x * norm, y * norm, z * norm];
+  };
+
+  const orbitChunks = elements.flatMap((_, index) =>
+    splitByNucleusDepth(
+      Array.from({ length: 121 }, (_, sample) =>
+        project(navPoint(index, (sample / 120) * Math.PI * 2), DEFAULT_CAMERA, scalePx),
+      ),
+      nucleus.depth,
+    ),
+  );
+
+  const wellChunks = wellPolylines().flatMap((line) =>
+    splitByNucleusDepth(
+      line.map((point) => project(point, DEFAULT_CAMERA, scalePx)),
+      nucleus.depth,
+    ),
+  );
+
+  const placed = bodies
+    .map((body, index) => {
+      const projected = project(navPoint(index, elements[index].phase), DEFAULT_CAMERA, scalePx);
+      return { body, projected, radius: body.size * BODY_PX * projected.scale };
+    })
+    .sort((first, second) => second.projected.depth - first.projected.depth);
+
   // Balance the sculpture in the frame: centre the cluster's bounding
   // box, not the origin — the projected origin sits off the visual mass.
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-  for (const chunk of [...scene.orbitChunks, ...scene.wellChunks]) {
+  for (const chunk of [...orbitChunks, ...wellChunks]) {
     for (const point of chunk.points) {
       if (point.x < minX) minX = point.x;
       if (point.x > maxX) maxX = point.x;
@@ -53,16 +104,11 @@ export function OperatingOrbit() {
   }
   const cx = VIEW.width / 2 - (minX + maxX) / 2;
   const cy = VIEW.height / 2 - (minY + maxY) / 2;
-  const nucleusDepth = scene.nucleus.depth;
 
-  const strokeChunks = (
-    chunks: StrokeChunk[],
-    front: boolean,
-    kind: "orbit" | "thread" | "well",
-  ) => {
-    const near = kind === "orbit" ? 0.3 : kind === "thread" ? 0.1 : 0.07;
-    const far = kind === "orbit" ? 0.1 : kind === "thread" ? 0.03 : 0.02;
-    const weight = kind === "orbit" ? 0.62 : kind === "thread" ? 0.5 : 0.42;
+  const strokeChunks = (chunks: StrokeChunk[], front: boolean, kind: "orbit" | "well") => {
+    const near = kind === "orbit" ? 0.3 : 0.07;
+    const far = kind === "orbit" ? 0.1 : 0.02;
+    const weight = kind === "orbit" ? 0.62 : 0.42;
     return chunks
       .filter((chunk) => chunk.front === front)
       .map((chunk, index) => (
@@ -76,31 +122,37 @@ export function OperatingOrbit() {
       ));
   };
 
-  const bodies = (behind: boolean) =>
-    scene.bodies
-      .filter((body) => (body.depth > nucleusDepth) === behind)
-      .map((body) => (
-        <g key={body.id} opacity={depthAlpha(body.depth, 1, 0.38).toFixed(3)}>
-          <circle
-            cx={cx + body.x}
-            cy={cy + body.y}
-            r={(body.size * body.scale * body.scale).toFixed(2)}
-            fill={`url(#orb-${body.id})`}
-          />
-          <text
-            x={(cx + body.x + body.size * body.scale * body.scale + 6).toFixed(1)}
-            y={(cy + body.y + 3).toFixed(1)}
-            className="orbit-svg-label"
-            fontSize={(9.5 * body.scale).toFixed(1)}
-            fill={`rgba(16, 20, 16, ${depthAlpha(body.depth, 0.85, 0.3).toFixed(3)})`}
-          >
-            {body.label.toUpperCase()}
-          </text>
-        </g>
+  // Each planet is a link: circle and nameplate together, navigable
+  // before any script runs.
+  const planets = (behind: boolean) =>
+    placed
+      .filter(({ projected }) => (projected.depth > nucleus.depth) === behind)
+      .map(({ body, projected, radius }) => (
+        <a key={body.id} href={targetHref(body.target)} aria-label={body.label}>
+          <g opacity={depthAlpha(projected.depth, 1, 0.38).toFixed(3)}>
+            <circle
+              cx={cx + projected.x}
+              cy={cy + projected.y}
+              r={radius.toFixed(2)}
+              fill={`url(#orb-${body.id})`}
+            />
+            {/* Nameplates are links now: depth still cues them, but
+                never below readable contrast on paper. */}
+            <text
+              x={(cx + projected.x + radius + 6).toFixed(1)}
+              y={(cy + projected.y + 3).toFixed(1)}
+              className="orbit-svg-label"
+              fontSize={(9.5 * projected.scale).toFixed(1)}
+              fill={`rgba(16, 20, 16, ${depthAlpha(projected.depth, 0.85, 0.66).toFixed(3)})`}
+            >
+              {body.label.toUpperCase()}
+            </text>
+          </g>
+        </a>
       ));
 
   return (
-    <div className="orbit-field" aria-hidden="true">
+    <nav className="orbit-field" aria-label="Orbit navigation">
       <svg
         className="orbit-poster"
         viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
@@ -108,12 +160,12 @@ export function OperatingOrbit() {
       >
         <defs>
           {/* Planetary sphere shading: a lit specular core into each
-              domain's own mineral colour, darkening at the rim. */}
-          {DOMAINS.map((domain) => (
-            <radialGradient key={`g-${domain.id}`} id={`orb-${domain.id}`} cx="0.32" cy="0.26" r="1">
+              body's own mineral colour, darkening at the rim. */}
+          {bodies.map((body) => (
+            <radialGradient key={`g-${body.id}`} id={`orb-${body.id}`} cx="0.32" cy="0.26" r="1">
               <stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
-              <stop offset="0.42" stopColor={domain.color} />
-              <stop offset="1" stopColor={shade(domain.color, 0.5)} />
+              <stop offset="0.42" stopColor={body.color} />
+              <stop offset="1" stopColor={shade(body.color, 0.5)} />
             </radialGradient>
           ))}
           {/* The nucleus: polished obsidian. */}
@@ -124,63 +176,65 @@ export function OperatingOrbit() {
           </radialGradient>
         </defs>
         {/* The fabric is the ground layer: all of it paints behind the field. */}
-        {strokeChunks(scene.wellChunks, false, "well")}
-        {strokeChunks(scene.wellChunks, true, "well")}
-        {strokeChunks(scene.orbitChunks, false, "orbit")}
-        {strokeChunks(scene.threadChunks, false, "thread")}
-        {bodies(true)}
-        <circle
-          cx={cx + scene.nucleus.x}
-          cy={cy + scene.nucleus.y}
-          r={scene.nucleus.radius + 1.5}
-          fill="#ffffff"
-        />
-        <circle
-          cx={cx + scene.nucleus.x}
-          cy={cy + scene.nucleus.y}
-          r={scene.nucleus.radius}
-          fill="url(#orb-stone)"
-        />
-        <circle
-          cx={cx + scene.nucleus.x}
-          cy={cy + scene.nucleus.y}
-          r={scene.nucleus.radius}
-          fill="none"
-          stroke="rgba(16, 20, 16, 0.9)"
-          strokeWidth="2"
-        />
-        <text
-          x={(cx + scene.nucleus.x + scene.nucleus.radius + 7).toFixed(1)}
-          y={(cy + scene.nucleus.y + 3).toFixed(1)}
-          className="orbit-svg-label"
-          fontSize="9.5"
-          fill="rgba(16, 20, 16, 0.85)"
-        >
-          {NUCLEUS_LABEL.toUpperCase()}
-        </text>
-        {strokeChunks(scene.orbitChunks, true, "orbit")}
-        {strokeChunks(scene.threadChunks, true, "thread")}
-        {bodies(false)}
+        <g aria-hidden="true">
+          {strokeChunks(wellChunks, false, "well")}
+          {strokeChunks(wellChunks, true, "well")}
+          {strokeChunks(orbitChunks, false, "orbit")}
+        </g>
+        {planets(true)}
+        <g aria-hidden="true">
+          <circle
+            cx={cx + nucleus.x}
+            cy={cy + nucleus.y}
+            r={nucleus.radius + 1.5}
+            fill="#ffffff"
+          />
+          <circle
+            cx={cx + nucleus.x}
+            cy={cy + nucleus.y}
+            r={nucleus.radius}
+            fill="url(#orb-stone)"
+          />
+          <circle
+            cx={cx + nucleus.x}
+            cy={cy + nucleus.y}
+            r={nucleus.radius}
+            fill="none"
+            stroke="rgba(16, 20, 16, 0.9)"
+            strokeWidth="2"
+          />
+          <text
+            x={(cx + nucleus.x + nucleus.radius + 7).toFixed(1)}
+            y={(cy + nucleus.y + 3).toFixed(1)}
+            className="orbit-svg-label"
+            fontSize="9.5"
+            fill="rgba(16, 20, 16, 0.85)"
+          >
+            {NUCLEUS_LABEL.toUpperCase()}
+          </text>
+          {strokeChunks(orbitChunks, true, "orbit")}
+        </g>
+        {planets(false)}
       </svg>
-      <div className="orbit-labels" aria-hidden="true">
-        {DOMAINS.map((domain) => (
-          <span key={domain.id} className="record orbit-label" data-domain={domain.id}>
-            {domain.label}
-          </span>
+      {/* The live scene hides the SVG and takes over these labels — the
+          same links, repositioned by projection every frame. Hidden (and
+          out of the tab order) until the scene mounts. */}
+      <div className="orbit-labels">
+        {bodies.map((body) => (
+          <a
+            key={body.id}
+            className="record orbit-label"
+            data-body={body.id}
+            href={targetHref(body.target)}
+          >
+            {body.label}
+          </a>
         ))}
-        <span className="record orbit-label" data-domain={NUCLEUS_ID}>
+        <span className="record orbit-label" data-body={NUCLEUS_ID} aria-hidden="true">
           {NUCLEUS_LABEL}
         </span>
-        {DOMAINS.map((domain) => (
-          <span key={`q-${domain.id}`} className="orbit-quote" data-domain={domain.id}>
-            {domain.quote}
-          </span>
-        ))}
-        <span className="orbit-quote" data-domain={NUCLEUS_ID}>
-          {NUCLEUS_QUOTE}
-        </span>
       </div>
-      <OperatingOrbitLive />
-    </div>
+      <OperatingOrbitLive bodies={bodies} />
+    </nav>
   );
 }

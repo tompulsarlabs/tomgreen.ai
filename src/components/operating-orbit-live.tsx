@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import type { OrbitBody } from "@/lib/orbit-nav";
 
 const OperatingOrbit3D = dynamic(
   () => import("./operating-orbit-3d").then((module) => module.OperatingOrbit3D),
@@ -15,7 +16,7 @@ const OperatingOrbit3D = dynamic(
  * static frame with every label and note present. WebGL never runs on
  * the server: the scene module itself is imported client-side only.
  */
-export function OperatingOrbitLive() {
+export function OperatingOrbitLive({ bodies }: { bodies: OrbitBody[] }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState<{ field: HTMLElement; narrow: boolean } | null>(null);
 
@@ -42,7 +43,7 @@ export function OperatingOrbitLive() {
 
   return (
     <div ref={hostRef} className="orbit-live" aria-hidden="true">
-      {live ? <OperatingOrbit3D field={live.field} narrow={live.narrow} /> : null}
+      {live ? <OperatingOrbit3D field={live.field} narrow={live.narrow} bodies={bodies} /> : null}
     </div>
   );
 }

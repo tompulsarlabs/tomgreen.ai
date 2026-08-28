@@ -265,13 +265,12 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .route-entering :is(.work-index-header h1, .systems-hero h1, .about-opening h1, .contact-title) {
+  .route-entering :is(.systems-hero h1, .contact-title) {
     animation: route-display-resolve var(--d-3) var(--ease-settle) both;
   }
-  .route-entering .work-index-header h1 { --arrival-axis: 106; }
   .route-entering :is(.systems-hero h1, .contact-title) { --arrival-axis: 100; }
   .route-entering .about-opening h1 { --arrival-axis: 82; }
-  .route-entering :is(.work-index-header > p:last-child, .systems-lead, .about-intro) {
+  .route-entering :is(.systems-lead, .about-intro) {
     animation: route-reading-in var(--d-2) var(--ease) var(--d-3) both;
   }
   .js .home-eyebrow { animation: arrival-eyebrow var(--d-3) var(--ease) both; }
@@ -423,10 +422,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 /* Work index */
 .work-index-page { padding: clamp(3.5rem, 7vw, 7rem) 0 6rem; }
-.work-index-header { min-height: min(54rem, calc(82svh - var(--site-header-h))); border-bottom: 1px solid var(--ink); padding-bottom: 3rem; }
-.work-index-header h1 { --axis: 106; max-width: 14ch; font-size: clamp(3rem, 9.8vw, 8.75rem); margin-top: clamp(3rem, 8vw, 7rem); }
-.work-index-support { max-width: 24rem; margin-top: 1.5rem; font-size: 0.875rem; line-height: 1.6; color: var(--ink-secondary); }
-.work-index-header > p:last-child { max-width: 42rem; margin-top: 2.5rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
+/* Below the Work hero: the inspection note and the outcome rail. */
+.work-metric-band { border-bottom: 1px solid var(--hairline); padding: 2.25rem 0 2.5rem; }
 .work-index-list { margin-top: 5rem; }
 .work-index-row {
   display: grid;
@@ -474,21 +471,19 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 .orbit-field svg, .orbit-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .orbit-live { position: absolute; inset: 0; pointer-events: none; }
 .orbit-field[data-live="true"] .orbit-live { pointer-events: auto; }
-.orbit-labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(16, 20, 16, 0.9); will-change: transform, opacity; }
+/* The nameplate layer exists for the live scene: the same links the SVG
+   poster carries, repositioned by projection every frame. Until the
+   scene mounts the layer stays out of the document — the poster's SVG
+   links are the navigation. */
+.orbit-labels { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; }
+.orbit-field[data-live="true"] .orbit-labels { display: block; }
+.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(16, 20, 16, 0.9); text-decoration: none; will-change: transform, opacity; }
+a.orbit-label { pointer-events: auto; cursor: pointer; }
+a.orbit-label:hover { color: var(--ink); }
+a.orbit-label:focus-visible { opacity: 1 !important; color: var(--ink); outline: 2px solid var(--ink); outline-offset: 3px; }
 .orbit-svg-label { font-family: var(--font-geist-mono), monospace; letter-spacing: 0.12em; }
-.orbit-quote {
-  position: absolute;
-  top: 0;
-  left: 0;
-  max-width: 13rem;
-  opacity: 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: rgba(16, 20, 16, 0.85);
-  transition: opacity var(--d-3) var(--ease);
-  will-change: transform, opacity;
-}
+.orbit-poster a { cursor: pointer; }
+.orbit-poster a:focus-visible circle { stroke: var(--ink); stroke-width: 2; }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }
 .orbit-canvas:active { cursor: grabbing; }
 .orbit-field[data-live="true"] .orbit-poster { display: none; }
@@ -496,6 +491,11 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 .systems-hero-copy { position: relative; z-index: 1; }
 .systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: end; margin-top: 1.25rem; }
 .systems-hero h1 { --axis: 100; max-width: 7ch; }
+/* Sections whose titles are sentences, not a word: the same hero, one
+   display step down so the line composes over the orbit. */
+.systems-hero h1.hero-title-long { max-width: 14ch; font-size: clamp(2.6rem, 6.4vw, 6rem); line-height: 0.92; }
+.hero-lead-stack { display: grid; gap: 0.9rem; }
+.hero-lead-stack p { margin: 0; }
 .systems-lead { max-width: 31rem; padding-bottom: 0.55rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
 .live-node { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--live); box-shadow: 0 0 8px rgba(63, 160, 108, 0.45); }
 .system-record-title { display: flex; align-items: center; gap: 0.65rem; }
@@ -555,7 +555,6 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
   :root { --site-header-h: 4.75rem; }
   .site-main { padding-right: 22px; padding-left: 22px; }
   .axis-display { font-size: clamp(2.75rem, 11.8vw, 4.5rem); line-height: 0.84; }
-  .work-index-header h1 { font-size: clamp(2.5rem, 10.9vw, 4.25rem); }
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
   .home-resolve-stage { padding-right: 22px; padding-left: 22px; }
   .js .constraint-line { --axis: var(--axis-mobile, 62); }
@@ -570,7 +569,6 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
   .work-bridge, .systems-bridge, .home-contact { grid-template-columns: 1fr; }
   .systems-bridge { padding-right: 22px; padding-left: 22px; }
   .bridge-record { grid-template-columns: 2rem 1fr auto; padding-right: 0.5rem; padding-left: 0.5rem; }
-  .work-index-header { min-height: auto; }
   .work-index-row { grid-template-columns: 2rem minmax(0, 1fr); min-height: 9rem; gap: 1rem; padding-right: 0.5rem; padding-left: 0.5rem; }
   .work-index-row.is-flagship { min-height: 11rem; }
   .work-index-row.is-flagship .row-company { font-size: clamp(2.5rem, 12vw, 3rem); }
