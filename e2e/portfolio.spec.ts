@@ -629,10 +629,10 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
-  // The only canvas on the route is the aria-hidden Operating Orbit;
-  // the pre-signature "no canvas" contract was superseded by owner decision.
-  await expect(page.locator("canvas")).toHaveCount(1);
-  await expect(page.locator(".orbit-field canvas")).toHaveCount(1);
+  // Under reduced motion the WebGL orbit never mounts — no context is
+  // created at all — and the server-rendered poster carries the field.
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 

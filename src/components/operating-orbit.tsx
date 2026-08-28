@@ -1,4 +1,4 @@
-import { OperatingOrbitCanvas } from "./operating-orbit-canvas";
+import { OperatingOrbitLive } from "./operating-orbit-live";
 import {
   DOMAINS,
   NUCLEUS_ID,
@@ -170,7 +170,7 @@ export function OperatingOrbit() {
           {NUCLEUS_QUOTE}
         </span>
       </div>
-      <OperatingOrbitCanvas />
+      <OperatingOrbitLive />
     </div>
   );
 }
