@@ -7,7 +7,7 @@ import { site } from "@/lib/content/site";
 
 const routeMeta = [
   { match: "/work", index: "01", label: "Evidence" },
-  { match: "/building", index: "02", label: "The Lab" },
+  { match: "/building", index: "02", label: "Lab" },
   { match: "/about", index: "03", label: "Through-line" },
   { match: "/contact", index: "04", label: "Contact" },
 ] as const;

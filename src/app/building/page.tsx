@@ -14,7 +14,7 @@ import {
 } from "@/lib/content/graph";
 
 export const metadata: Metadata = {
-  title: "The Lab",
+  title: "Lab",
   description:
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
@@ -99,9 +99,9 @@ export default function Building() {
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
         <OperatingOrbit />
         <div className="systems-hero-copy">
-          <p className="record">The Lab</p>
+          <p className="record">Lab</p>
           <div className="systems-title-row">
-            <h1 id="systems-title" className="axis-display">The Lab.</h1>
+            <h1 id="systems-title" className="axis-display">Lab.</h1>
             <p className="systems-lead">
               The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
             </p>

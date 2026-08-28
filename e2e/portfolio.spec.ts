@@ -607,7 +607,7 @@ test("the Operating Orbit poster is server-rendered for no-JS visitors", async (
 
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
-  await expect(page.getByRole("heading", { name: "The Lab.", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lab.", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeAttached();
