@@ -45,8 +45,10 @@ off the tomgreen.ai domain until this checklist closes.
 ## Projects (/building)
 
 - [x] **Sybil** described as "in the lab" (repo stays private, no link). OK?
-- [x] **margaux-en-tutor** — mentions it was built for a seven-year-old (no name
-      beyond the repo's own). OK, or describe more generically?
+- [x] **BrightPaws** — renamed from the child-named repo (28 Aug 2026, owner
+      decision) to protect the child's identity online; the site now describes
+      it generically ("one specific young learner", no name, no age). The
+      GitHub repo is renamed to tompulsarlabs/BrightPaws.
 
 ## Launch bundle (after all boxes close)
 
