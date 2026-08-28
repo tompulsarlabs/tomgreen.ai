@@ -75,7 +75,7 @@ export default async function Home() {
           <div>
             <h2 id="systems-bridge-title" className="axis-heading">The operating model is the product.</h2>
             <p>
-              Explore the agents, products, talent systems and craft behind the outcomes as one connected map—not a pile of tools.
+              Explore the agents, products, talent systems and craft behind the outcomes as one connected map.
             </p>
             <Link href="/building" className="action action-dark">Enter the systems map →</Link>
           </div>
