@@ -107,6 +107,117 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
 });
 
+test("the navigation island rests as a visible compact pill", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  const island = page.locator(".nav-island");
+  await expect(island).toHaveAttribute("data-expanded", "false");
+  await expect(island.locator("a.island-brand")).toHaveText("Hi, I’m Tom");
+
+  // At rest it is a real surface — ground, rounded rim, border, elevation
+  // and padding — never bare text on the page.
+  const resting = await island.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const box = element.getBoundingClientRect();
+    return {
+      alpha: Number.parseFloat(style.backgroundColor.split(/[ ,/)]+/).filter(Boolean).pop() ?? "1"),
+      radius: Number.parseFloat(style.borderTopLeftRadius),
+      border: Number.parseFloat(style.borderTopWidth),
+      shadow: style.boxShadow,
+      padX: Number.parseFloat(style.paddingLeft),
+      padY: Number.parseFloat(style.paddingTop),
+      width: box.width,
+      height: box.height,
+    };
+  });
+  expect(resting.alpha).toBeGreaterThan(0.5);
+  expect(resting.radius).toBeGreaterThanOrEqual(20);
+  expect(resting.border).toBeGreaterThanOrEqual(1);
+  expect(resting.shadow).not.toBe("none");
+  expect(resting.padX).toBeGreaterThanOrEqual(12);
+  expect(resting.padY).toBeGreaterThanOrEqual(4);
+  expect(resting.width).toBeGreaterThan(80);
+  expect(resting.height).toBeGreaterThan(40);
+});
+
+test("the island expands on hover and returns when the pointer leaves", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  const island = page.locator(".nav-island");
+  const widthOf = async () => (await island.boundingBox())!.width;
+  const heightOf = async () => (await island.boundingBox())!.height;
+  const compact = await widthOf();
+  const restingHeight = await heightOf();
+
+  await island.hover();
+  await expect(island).toHaveAttribute("data-expanded", "true");
+  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await expect.poll(widthOf).toBeGreaterThan(compact * 2);
+  // The pill keeps its ground and its height while it widens.
+  expectWithin(await heightOf(), restingHeight, 1);
+  await expect(island).toHaveCSS("border-radius", "999px");
+
+  await page.mouse.move(720, 600);
+  await expect(island).toHaveAttribute("data-expanded", "false");
+  await expect.poll(widthOf).toBeLessThan(compact * 1.2);
+  // The trigger never disappears — it can always be reopened.
+  await expect(island.locator("a.island-brand")).toBeVisible();
+  await island.hover();
+  await expect(island).toHaveAttribute("data-expanded", "true");
+});
+
+test("keyboard focus opens the island and leaving it closes again", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  const island = page.locator(".nav-island");
+  await page.keyboard.press("Tab"); // skip link
+  await page.keyboard.press("Tab"); // the island's greeting
+  await expect(island.locator("a.island-brand")).toBeFocused();
+  await expect(island).toHaveAttribute("data-expanded", "true");
+
+  // Every navigation link is reachable once open.
+  for (const name of ["Work", "Lab", "Contact"]) {
+    await expect(island.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  await expect(island.locator(".island-nav a").first()).toHaveJSProperty("tabIndex", 0);
+
+  await page.keyboard.press("Escape");
+  await expect(island).toHaveAttribute("data-expanded", "false");
+});
+
+test("a touch tap opens the island instead of navigating, and tapping away closes it", async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  const island = page.locator(".nav-island");
+  await expect(island).toHaveAttribute("data-expanded", "false");
+  await island.locator("a.island-brand").tap();
+  await expect(island).toHaveAttribute("data-expanded", "true");
+  // The collapsed greeting is a disclosure trigger first: the tap must
+  // not travel home.
+  await expect(page).toHaveURL(/\/work$/);
+
+  await page.locator("body").tap({ position: { x: 40, y: 600 } });
+  await expect(island).toHaveAttribute("data-expanded", "false");
+  await expect(island.locator("a.island-brand")).toBeVisible();
+  await context.close();
+});
+
 test("skip link is the first visible keyboard target", async ({ page }) => {
   await gotoReduced(page, "/");
   const skipLink = page.getByRole("link", { name: "Skip to content" });
@@ -353,8 +464,9 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
     { from: "/", selector: '.orbit-poster a[href="/work"]', to: "/work", native: true },
     { from: "/work", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
     { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
-    // The greeting always returns to the landing.
-    { from: "/work", selector: "a.brand-mark", to: "/" },
+    // The greeting always returns to the landing (a mouse click, so the
+    // island is already open and the link travels rather than opening).
+    { from: "/work", selector: "a.island-brand", to: "/" },
   ];
 
   for (const journey of journeys) {
@@ -464,7 +576,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator("a.brand-mark")).toHaveText("Hi, I’m Tom");
+  await expect(page.locator("a.island-brand")).toHaveText("Hi, I’m Tom");
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
