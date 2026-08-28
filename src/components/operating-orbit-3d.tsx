@@ -83,6 +83,8 @@ uniform float uPointerStrength;
 varying float vR;
 varying float vTheta;
 varying float vViewDist;
+varying vec2 vXZ;
+varying float vY;
 
 const float DROP = ${WELL.drop.toFixed(3)};
 const float SHOULDER = ${WELL.shoulder.toFixed(3)};
@@ -93,6 +95,7 @@ void main() {
   float r = length(p.xz);
   vR = r;
   vTheta = atan(p.z, p.x);
+  vXZ = p.xz;
   // The well collapses in with the reveal; the fabric holds a faint
   // physical tension — low-amplitude, slow, never a ripple.
   float depth = -DROP * pow(SHOULDER / (SHOULDER + r), POWER) * uReveal;
@@ -100,6 +103,7 @@ void main() {
   // Pointer proximity dents the fabric slightly, like touched material.
   float dent = -0.05 * uPointerStrength * exp(-pow(distance(p.xz, uPointer.xz) / 0.55, 2.0));
   p.y = depth + tension + dent;
+  vY = p.y;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vViewDist = -mv.z;
   gl_Position = projectionMatrix * mv;
@@ -112,9 +116,12 @@ uniform float uOpacity;
 uniform float uWake;
 uniform float uHoverTheta;
 uniform float uHoverStrength;
+uniform vec3 uBodies[10];
 varying float vR;
 varying float vTheta;
 varying float vViewDist;
+varying vec2 vXZ;
+varying float vY;
 
 const float R_MAX = ${WELL.radius.toFixed(1)};
 
@@ -133,11 +140,17 @@ float lineMask(float coord, float widthPx) {
 
 void main() {
   // Contours compress toward the throat: sample radius through a power
-  // curve so rings tighten where gravity steepens.
+  // curve so rings tighten where gravity steepens. A major line every
+  // fifth ring gives the lattice a drawn, instrument-like rhythm.
   float rn = pow(vR / R_MAX, 0.62);
-  float contour = lineMask(rn * 26.0, 0.6 + 0.5 * (1.0 - rn));
-  // Radial filaments — the pull lines — converge into the centre.
-  float filament = lineMask((vTheta / 6.2831853) * 48.0, 0.55);
+  float cIdx = rn * 26.0;
+  float contour = max(
+    lineMask(cIdx, 0.5 + 0.4 * (1.0 - rn)) * 0.8,
+    lineMask(cIdx / 5.0, 0.8 + 0.5 * (1.0 - rn)));
+  // Radial filaments — the pull lines — converge into the centre, with
+  // a stronger filament every sixth.
+  float fIdx = (vTheta / 6.2831853) * 48.0;
+  float filament = max(lineMask(fIdx, 0.5) * 0.75, lineMask(fIdx / 6.0, 0.7));
   // Hover: the filament nearest the woken body strengthens.
   float dTheta = abs(atan(sin(vTheta - uHoverTheta), cos(vTheta - uHoverTheta)));
   float hoverBoost = uHoverStrength * exp(-pow(dTheta / 0.35, 2.0)) * filament;
@@ -149,10 +162,18 @@ void main() {
   float innerFade = smoothstep(0.16, 0.34, vR);
   float distanceFade = mix(1.0, 0.5, smoothstep(4.5, 9.5, vViewDist));
   // Contact shading: the throat holds a little more ink where the core
-  // presses into the fabric.
+  // presses into the fabric, and each body prints a soft shadow onto
+  // the lattice as it passes close to the surface.
   float throat = 1.0 + 0.5 * (1.0 - smoothstep(0.3, 1.3, vR));
+  float contact = 0.0;
+  for (int i = 0; i < 10; i += 1) {
+    float horizontal = exp(-pow(distance(vXZ, uBodies[i].xz) / 0.5, 2.0));
+    float vertical = clamp(1.0 - abs(uBodies[i].y - vY) / 1.1, 0.0, 1.0);
+    contact += horizontal * vertical;
+  }
+  contact = min(contact, 0.6);
 
-  float alpha = lattice * rimFade * innerFade * distanceFade * throat
+  float alpha = lattice * rimFade * innerFade * distanceFade * throat * (1.0 + 0.8 * contact)
     * (0.34 + 0.12 * uWake) * uOpacity + hoverBoost * 0.3 * uOpacity;
   if (alpha < 0.004) discard;
   gl_FragColor = vec4(uInk, alpha);
@@ -204,6 +225,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
       uWake: { value: 0 },
       uHoverTheta: { value: 0 },
       uHoverStrength: { value: 0 },
+      uBodies: { value: Array.from({ length: 10 }, () => new THREE.Vector3(99, 0, 99)) },
     }),
     [],
   );
@@ -441,6 +463,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
     const cameraToCore = scratch.v3.copy(scratch.core).sub(camera.position).length();
     let hoverTheta = 0;
     let hoverStrength = 0;
+    let bodyIndex = 0;
 
     for (const domain of DOMAINS) {
       const el = ORBIT_ELEMENTS[domain.id];
@@ -455,6 +478,9 @@ function OrbitScene({ field, narrow }: SceneProps) {
       if (!group) continue;
       orbitPoint(el, angle, scratch.v1);
       group.position.copy(scratch.v1);
+      // Feed the membrane's contact shading.
+      membraneUniforms.uBodies.value[bodyIndex].copy(scratch.v1);
+      bodyIndex += 1;
       const swell = (1 + 0.08 * nextEase) * (0.35 + 0.65 * s.reveal);
       group.scale.setScalar(swell);
       const material = bodyMaterials.current.get(domain.id);
@@ -491,7 +517,9 @@ function OrbitScene({ field, narrow }: SceneProps) {
         const along = toCore.dot(scratch.v3);
         const closest = Math.sqrt(Math.max(toCore.lengthSq() - along * along, 0));
         const occluded = closest < CORE_RADIUS * 1.05 && cameraDistance > cameraToCore;
-        const base = (0.3 + 0.5 * near) * (occluded ? 0.3 : 1);
+        // Narrow fields let far labels recede harder, so the crowded
+        // centre stays readable and near names win.
+        const base = ((narrow ? 0.14 : 0.3) + 0.5 * near) * (occluded ? 0.3 : 1);
         const opacity = (base + (1 - base) * nextEase) * s.reveal;
         const labelWidth = label.offsetWidth || 70;
         const rightX = x + bodyPx + 8;
@@ -733,6 +761,12 @@ export function OperatingOrbit3D({ field, narrow }: SceneProps) {
       style={{ background: "transparent" }}
       eventPrefix="client"
     >
+      {/* No post-processing chain: a composer pass renders the canvas
+          opaque — the one failure the transparent-paper integration
+          cannot survive. Depth softening lives in the membrane shader
+          (distance fading and line dissolve) instead, and bloom is a
+          no-op on white paper — additive highlights cannot exceed the
+          page. */}
       <OrbitScene field={field} narrow={narrow} />
     </Canvas>
   );
