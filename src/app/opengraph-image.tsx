@@ -21,8 +21,8 @@ export default function Image() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "#0c0d0c",
-          color: "#f2f3ef",
+          background: "#ffffff",
+          color: "#101410",
           padding: "56px 72px 48px",
           fontFamily: "sans-serif",
         }}
@@ -32,7 +32,7 @@ export default function Image() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px solid #242724",
+            borderBottom: "1px solid #deded8",
             paddingBottom: 28,
           }}
         >
@@ -48,14 +48,14 @@ export default function Image() {
             >
               Tom Green
             </div>
-            <div style={{ width: 7, height: 34, background: "#f2f3ef", display: "flex" }} />
+            <div style={{ width: 7, height: 34, background: "#101410", display: "flex" }} />
           </div>
           <div
             style={{
               fontSize: 17,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "#8b908a",
+              color: "#6a7068",
               display: "flex",
             }}
           >
@@ -86,7 +86,7 @@ export default function Image() {
             fontSize: 17,
             letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: "#b9bdb3",
+            color: "#4f554d",
             display: "flex",
           }}
         >

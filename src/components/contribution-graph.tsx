@@ -3,11 +3,11 @@ import type { ContributionDay } from "@/lib/data/github";
 // Sequential single-hue ramp in ink opacities. The old green heat palette is
 // on the contract cut list; the record survives, the palette does not.
 const RAMP = [
-  "rgba(242, 243, 239, 0.07)",
-  "rgba(242, 243, 239, 0.2)",
-  "rgba(242, 243, 239, 0.42)",
-  "rgba(242, 243, 239, 0.68)",
-  "rgba(242, 243, 239, 1)",
+  "rgba(16, 20, 16, 0.05)",
+  "rgba(16, 20, 16, 0.18)",
+  "rgba(16, 20, 16, 0.4)",
+  "rgba(16, 20, 16, 0.68)",
+  "rgba(16, 20, 16, 1)",
 ];
 
 /**

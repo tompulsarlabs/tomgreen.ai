@@ -28,7 +28,7 @@ import {
  * reduced-motion, Save-Data, no-JS and no-WebGL visitors.
  */
 
-const INK = new THREE.Color("#f2f3ef");
+const INK = new THREE.Color("#101410");
 const CORE_COLOR = new THREE.Color("#141414");
 
 /** The membrane: level far out, collapsing into a throat at the core. */
@@ -596,8 +596,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
       <Environment resolution={128} frames={1}>
         <Lightformer intensity={2.6} position={[-3, 6, 4]} scale={[7, 5, 1]} form="rect" />
         <Lightformer intensity={0.9} position={[5, 2, -4]} scale={[6, 4, 1]} form="rect" />
-        <Lightformer intensity={2.2} position={[0, -4, -6]} scale={[9, 2, 1]} form="rect" color="#ffffff" />
-        <Lightformer intensity={1.6} position={[2, 5, -6]} scale={[5, 3, 1]} form="rect" color="#ffffff" />
+        <Lightformer intensity={1.4} position={[0, -4, -6]} scale={[9, 2, 1]} form="rect" color="#ffffff" />
       </Environment>
       <directionalLight position={[-4, 7, 5]} intensity={1.5} />
       <ambientLight intensity={0.55} />
@@ -626,11 +625,11 @@ function OrbitScene({ field, narrow }: SceneProps) {
         <meshPhysicalMaterial
           ref={coreMaterialRef}
           color={CORE_COLOR}
-          roughness={0.3}
-          metalness={0.15}
+          roughness={0.32}
+          metalness={0.12}
           clearcoat={1}
-          clearcoatRoughness={0.18}
-          envMapIntensity={1.6}
+          clearcoatRoughness={0.22}
+          envMapIntensity={1.1}
           transparent
         />
       </mesh>
@@ -645,7 +644,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
             ior={1.5}
             roughness={0.1}
             transparent
-            opacity={0.26}
+            opacity={0.38}
             depthWrite={false}
           />
         </mesh>
@@ -656,7 +655,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
         <Line
           key={path.id}
           points={path.points}
-          color="#f2f3ef"
+          color="#101410"
           lineWidth={1}
           transparent
           opacity={0}
@@ -676,7 +675,7 @@ function OrbitScene({ field, narrow }: SceneProps) {
             [0, 0, 0],
             [0, CORE_Y, 0],
           ]}
-          color="#f2f3ef"
+          color="#101410"
           lineWidth={1}
           transparent
           opacity={0}

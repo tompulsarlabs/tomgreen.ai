@@ -1,27 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  /* The dark system — near-black ground, light type, product-glow
-     restraint. "Ink" now means light on dark; the names keep their
-     roles so every component inverts through the tokens. */
-  color-scheme: dark;
+  color-scheme: light;
   --site-header-h: 5.25rem;
-  --paper: #0c0d0c;
-  --ink: #f2f3ef;
-  --ink-secondary: #b9bdb3;
-  --muted: #8b908a;
-  --ghost: #4c514b;
-  --hairline: #242724;
-  --card: #131513;
-  --paper-high: #161816;
-  --signal: #111311;
-  --accent: #f2f3ef;
-  --accent-ink: #0c0d0c;
-  --live: #4ecb87;
-  --mark: #f06a4b;
+  --paper: #ffffff;
+  --ink: #101410;
+  --ink-secondary: #4f554d;
+  --muted: #6a7068;
+  --ghost: #b9bdb4;
+  --hairline: #deded8;
+  --card: #f5f5f1;
+  --paper-high: #ffffff;
+  --signal: #f4f4ef;
+  --accent: #101410;
+  --accent-ink: #101410;
+  --live: #3fa06c;
+  --mark: #e45b3d;
   --clay: var(--mark);
   --blue: var(--ink);
-  --visited: #b9bdb3;
+  --visited: #4f554d;
   --d-1: 160ms;
   --d-2: 280ms;
   --d-3: 440ms;
@@ -119,11 +116,18 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .action-dark:focus-visible { outline-color: var(--ink); }
 .action-light:hover, .action-light:focus-visible { background: var(--ink); color: var(--paper); }
 
-/* Header */
-.site-header {
-  border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* Header — a floating glass capsule menu, suspended over the page. */
+.site-header { pointer-events: none; }
+.nav-capsule {
+  position: relative;
+  pointer-events: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 0.45rem 0.55rem 0.45rem 1.1rem;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow: 0 12px 40px rgba(16, 20, 16, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 .brand-lockup { font-family: var(--font-archivo), Arial, sans-serif; font-variation-settings: "wdth" 78; font-weight: 800; }
 .brand-signal { background: currentColor; }
@@ -470,7 +474,7 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 .orbit-live { position: absolute; inset: 0; pointer-events: none; }
 .orbit-field[data-live="true"] .orbit-live { pointer-events: auto; }
 .orbit-labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(242, 243, 239, 0.9); will-change: transform, opacity; }
+.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(16, 20, 16, 0.9); will-change: transform, opacity; }
 .orbit-svg-label { font-family: var(--font-geist-mono), monospace; letter-spacing: 0.12em; }
 .orbit-quote {
   position: absolute;
@@ -480,7 +484,7 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
   opacity: 0;
   font-size: 0.75rem;
   line-height: 1.45;
-  color: rgba(242, 243, 239, 0.85);
+  color: rgba(16, 20, 16, 0.85);
   transition: opacity var(--d-3) var(--ease);
   will-change: transform, opacity;
 }
@@ -492,7 +496,7 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 .systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: end; margin-top: 1.25rem; }
 .systems-hero h1 { --axis: 100; max-width: 7ch; }
 .systems-lead { max-width: 31rem; padding-bottom: 0.55rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
-.live-node { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--live); box-shadow: 0 0 10px rgba(78, 203, 135, 0.5); }
+.live-node { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--live); box-shadow: 0 0 8px rgba(63, 160, 108, 0.45); }
 .system-record-title { display: flex; align-items: center; gap: 0.65rem; }
 .system-record-title .live-node { flex: none; }
 

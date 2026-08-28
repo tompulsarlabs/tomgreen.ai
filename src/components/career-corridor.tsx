@@ -13,7 +13,7 @@ import {
   travelIntensity,
 } from "@/lib/corridor-motion";
 
-const INK = "242, 243, 239";
+const INK = "16, 20, 16";
 const STREAKS = buildStreaks(56);
 
 /**

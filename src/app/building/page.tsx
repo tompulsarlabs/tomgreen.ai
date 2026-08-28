@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
 
-export const viewport: Viewport = { themeColor: "#0c0d0c" };
+export const viewport: Viewport = { themeColor: "#ffffff" };
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));

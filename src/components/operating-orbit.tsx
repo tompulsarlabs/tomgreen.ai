@@ -70,7 +70,7 @@ export function OperatingOrbit() {
           key={`${kind}-${front ? "f" : "b"}-${index}`}
           d={chunkPath(chunk, cx, cy)}
           fill="none"
-          stroke={`rgba(242, 243, 239, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
+          stroke={`rgba(16, 20, 16, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
           strokeWidth={(weight * chunk.meanScale * chunk.meanScale).toFixed(2)}
         />
       ));
@@ -92,7 +92,7 @@ export function OperatingOrbit() {
             y={(cy + body.y + 3).toFixed(1)}
             className="orbit-svg-label"
             fontSize={(9.5 * body.scale).toFixed(1)}
-            fill={`rgba(242, 243, 239, ${depthAlpha(body.depth, 0.85, 0.3).toFixed(3)})`}
+            fill={`rgba(16, 20, 16, ${depthAlpha(body.depth, 0.85, 0.3).toFixed(3)})`}
           >
             {body.label.toUpperCase()}
           </text>
@@ -133,7 +133,7 @@ export function OperatingOrbit() {
           cx={cx + scene.nucleus.x}
           cy={cy + scene.nucleus.y}
           r={scene.nucleus.radius + 1.5}
-          fill="#0c0d0c"
+          fill="#ffffff"
         />
         <circle
           cx={cx + scene.nucleus.x}
@@ -146,7 +146,7 @@ export function OperatingOrbit() {
           cy={cy + scene.nucleus.y}
           r={scene.nucleus.radius}
           fill="none"
-          stroke="rgba(242, 243, 239, 0.9)"
+          stroke="rgba(16, 20, 16, 0.9)"
           strokeWidth="2"
         />
         <text
@@ -154,7 +154,7 @@ export function OperatingOrbit() {
           y={(cy + scene.nucleus.y + 3).toFixed(1)}
           className="orbit-svg-label"
           fontSize="9.5"
-          fill="rgba(242, 243, 239, 0.85)"
+          fill="rgba(16, 20, 16, 0.85)"
         >
           {NUCLEUS_LABEL.toUpperCase()}
         </text>

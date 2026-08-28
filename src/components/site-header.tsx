@@ -55,47 +55,54 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
     });
   };
 
+  const navItems = site.nav.filter((item) => showAbout || item.href !== "/about");
+
   return (
     <header
-      className="site-header sticky top-0 z-40 h-[var(--site-header-h)] bg-paper/94 text-ink transition-colors"
+      className="site-header sticky top-0 z-40 flex h-[var(--site-header-h)] items-start justify-center text-ink"
       onFocusCapture={preserveScrollOnHeaderFocus}
     >
-      <div
-        className="mx-auto grid h-full w-full max-w-[1360px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-[max(22px,6vw)]"
-      >
+      {/* The menu is a floating glass capsule — detached from the page
+          edges, suspended over the content. */}
+      <div className="nav-capsule mt-3.5 flex max-w-[calc(100vw-24px)] items-center gap-2 sm:mt-4 sm:gap-4">
         <Link
           href="/"
-          className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2.5 font-sans uppercase leading-none"
+          className="brand-lockup group inline-grid min-h-11 shrink-0 grid-cols-[auto_auto] items-center gap-2 font-sans uppercase leading-none"
           aria-label="Tom Green, home"
         >
-          <span className="whitespace-nowrap text-[1rem] tracking-[-0.04em] sm:text-[1.4rem]">
+          <span className="whitespace-nowrap text-[0.9rem] tracking-[-0.04em] sm:text-[1.05rem]">
             TOM GREEN
           </span>
-          <span aria-hidden className="brand-signal h-8 w-1.5 bg-current sm:h-10" />
+          <span aria-hidden className="brand-signal h-6 w-1 bg-current sm:h-7 sm:w-[5px]" />
         </Link>
-        <div className="ml-1 hidden min-w-0 border-l border-current/16 pl-4 sm:block">
-          <p className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-ink-secondary">
+        <div className="hidden min-w-0 border-l border-current/16 pl-3 md:block">
+          <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-ink-secondary">
             Field / {current.index}
           </p>
-          <p className="mt-1 truncate text-[0.68rem] uppercase tracking-[0.13em]">
+          <p className="mt-0.5 truncate text-[0.6rem] uppercase tracking-[0.13em]">
             {current.label}
           </p>
         </div>
         <nav
           aria-label="Primary navigation"
-          className="col-start-3 row-start-1 ml-auto flex items-center gap-3 text-xs text-ink-secondary sm:gap-5 sm:text-sm"
+          className="flex items-center gap-2.5 text-xs text-ink-secondary sm:gap-4 sm:text-sm"
         >
-          {site.nav.filter((item) => showAbout || item.href !== "/about").map((item) => {
+          {navItems.map((item) => {
             const isCurrent =
               (pathname === item.href ||
                 pathname.startsWith(`${item.href}/`));
+            const isCta = item.href === "/contact";
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={isCurrent ? "page" : undefined}
-                className="nav-link inline-flex min-h-11 items-center transition-colors hover:text-ink"
+                className={
+                  isCta
+                    ? "nav-cta inline-flex min-h-9 items-center rounded-full bg-ink px-3.5 text-paper transition-colors hover:bg-ink-secondary sm:px-4"
+                    : "nav-link inline-flex min-h-11 items-center transition-colors hover:text-ink"
+                }
               >
                 {item.label}
                 <PendingMark />
@@ -103,12 +110,12 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
             );
           })}
         </nav>
-      </div>
-      <div aria-hidden className="header-progress absolute inset-x-0 bottom-0 h-px bg-current/10">
-        <span
-          className="block h-full origin-left bg-current will-change-transform"
-          style={{ transform: `scaleX(${progress})` }}
-        />
+        <div aria-hidden className="header-progress absolute inset-x-5 bottom-0 h-px overflow-hidden rounded-full bg-current/10">
+          <span
+            className="block h-full origin-left bg-current will-change-transform"
+            style={{ transform: `scaleX(${progress})` }}
+          />
+        </div>
       </div>
     </header>
   );
