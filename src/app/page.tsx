@@ -47,7 +47,7 @@ export default async function Home() {
       <Reveal>
         <section aria-labelledby="work-bridge-title" className="work-bridge">
           <div className="bridge-intro">
-            <p className="record">Selected work</p>
+            <p className="record">Evidence / 01</p>
             <h2 id="work-bridge-title" className="axis-heading">The outcome. The system behind it.</h2>
             <p className="bridge-lead">
               Two operating records show the range of the method: build the organisation at speed, then redesign how its work moves.
@@ -71,13 +71,13 @@ export default async function Home() {
 
       <Reveal>
         <section aria-labelledby="systems-bridge-title" className="systems-bridge">
-          <p className="record">Systems</p>
+          <p className="record">Method / 02</p>
           <div>
             <h2 id="systems-bridge-title" className="axis-heading">The operating model is the product.</h2>
             <p>
-              Explore the agents, products, talent systems and practical work behind the outcomes.
+              Explore the agents, products, talent systems and craft behind the outcomes as one connected map—not a pile of tools.
             </p>
-            <Link href="/building" className="action action-dark">Explore the systems →</Link>
+            <Link href="/building" className="action action-dark">Enter the systems map →</Link>
           </div>
         </section>
       </Reveal>
@@ -135,7 +135,7 @@ export default async function Home() {
           <p className="record">Work together</p>
           <div>
             <h2 id="contact-heading" className="axis-heading">
-              Building the team, or the operating model behind it?
+              Building the team—or the operating model behind it?
             </h2>
             <p>
               If you’re working on an ambitious AI company, a talent system that needs to scale, or an agent workflow that must survive real operations, I’d like to hear what is hard.

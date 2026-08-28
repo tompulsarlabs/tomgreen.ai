@@ -221,9 +221,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .resolve-lines .line-mask, .resolve-lines .line-mask > span, .system-line > span { display: block; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
-.mobile-constraint { display: none !important; }
 .constraint-line { word-spacing: var(--constraint-word-space, 0); }
-.release-line { max-width: 16ch; }
+.release-line { max-width: 14ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
 .home-resolve-support {
   display: flex;
   justify-content: space-between;
@@ -356,6 +355,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .work-index-page { padding: clamp(3.5rem, 7vw, 7rem) 0 6rem; }
 .work-index-header { min-height: min(54rem, calc(82svh - var(--site-header-h))); border-bottom: 1px solid var(--ink); padding-bottom: 3rem; }
 .work-index-header h1 { --axis: 106; max-width: 12ch; margin-top: clamp(3rem, 8vw, 7rem); }
+.work-index-support { max-width: 24rem; margin-top: 1.5rem; font-size: 0.875rem; line-height: 1.6; color: var(--ink-secondary); }
 .work-index-header > p:last-child { max-width: 42rem; margin-top: 2.5rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
 .work-index-list { margin-top: 5rem; }
 .work-index-row {
@@ -467,7 +467,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
   :root { --site-header-h: 4.75rem; }
   .site-main { padding-right: 22px; padding-left: 22px; }
-  .axis-display { font-size: clamp(3.5rem, 17vw, 5rem); line-height: 0.82; }
+  .axis-display { font-size: clamp(2.75rem, 11.8vw, 4.5rem); line-height: 0.84; }
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
   .home-resolve-stage { padding-right: 22px; padding-left: 22px; }
   .js .constraint-line { --axis: var(--axis-mobile, 62); }
@@ -502,8 +502,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 }
 
 @media (max-width: 520px) {
-  .desktop-constraint { display: none !important; }
-  .mobile-constraint { display: block !important; }
   .about-opening h1 { word-spacing: 0.14em; }
 }
 

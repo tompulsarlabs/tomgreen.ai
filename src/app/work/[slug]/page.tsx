@@ -45,12 +45,12 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <header className="case-opening relative left-1/2 w-screen -translate-x-1/2">
         <div className="mx-auto max-w-[1360px] px-[max(22px,6vw)] py-12 md:py-20">
           <Link href="/work" className="record inline-flex min-h-11 items-center hover:underline">
-            ← All work
+            ← Evidence index
           </Link>
           <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(16rem,0.42fr)_minmax(0,1.58fr)] lg:items-end">
             <div>
               <p className="record evidence-mark">
-                Case study / {String(index + 1).padStart(2, "0")}
+                Operating record / {String(index + 1).padStart(2, "0")}
               </p>
               <p className="mt-5 max-w-xs text-sm leading-relaxed text-ink-secondary">
                 {study.role}<br />{study.period}
@@ -86,8 +86,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <Reveal>
         <section aria-labelledby="mandate-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
-            <p className="record text-muted">The challenge</p>
-            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">What needed to change.</h2>
+            <p className="record text-muted">01 · The mandate</p>
+            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">The problem worth solving.</h2>
           </div>
           <p className="max-w-2xl text-lg leading-relaxed text-ink-secondary">{study.context}</p>
         </section>
@@ -96,8 +96,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <Reveal>
         <section aria-labelledby="work-built-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
-            <p className="record text-muted">What I did</p>
-            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">What I built and led.</h2>
+            <p className="record text-muted">02 · What I built and led</p>
+            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">Decisions, not theatre.</h2>
           </div>
           <div className="flex max-w-2xl flex-col gap-6 text-lg leading-relaxed text-ink-secondary">
             {study.body.map((paragraph, paragraphIndex) => (
@@ -119,8 +119,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
         <Reveal>
           <section aria-labelledby="judgment-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
             <div>
-              <p className="record text-muted">Key decisions</p>
-              <h2 id="judgment-heading" className="axis-index mt-3 text-3xl">The choices that shaped it.</h2>
+              <p className="record text-muted">03 · Tradeoffs and judgment</p>
+              <h2 id="judgment-heading" className="axis-index mt-3 text-3xl">The choices that shaped the system.</h2>
             </div>
             <ol className="border-t border-hairline">
               {study.decisions.map((decision, decisionIndex) => (
@@ -141,7 +141,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
 
       <Reveal>
         <section className="grid gap-8 border-y border-ink py-10 lg:grid-cols-[0.68fr_1.32fr]">
-          <p className="record">The outcome</p>
+          <p className="record">{study.system ? "04" : "03"} · What changed</p>
           <div>
             {/* The diagram's figcaption already carries system.outcome; this
                 section closes with what the work demonstrates instead. */}
@@ -150,7 +150,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
             </p>
             {study.evidenceNote && (
               <p className="mt-6 max-w-2xl border-t border-hairline pt-4 text-xs leading-relaxed text-muted">
-                Source note · {study.evidenceNote}
+                Evidence note · {study.evidenceNote}
               </p>
             )}
           </div>
@@ -160,7 +160,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <Reveal>
         <footer className="grid gap-10 lg:grid-cols-[1fr_1fr]">
           <Link href={`/work/${next.slug}`} className="group border-t border-hairline py-6 hover:border-ink">
-            <p className="record text-muted">Next case study</p>
+            <p className="record text-muted">Next story</p>
             <p className="axis-index mt-3 text-2xl leading-tight group-hover:underline">
               {next.company} — {next.headline}
             </p>

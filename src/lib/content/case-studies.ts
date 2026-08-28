@@ -116,7 +116,7 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     evidenceNote:
-      "Metrics are drawn from the project records for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
+      "Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
   },
   {
     slug: "chapter-2",
@@ -143,7 +143,7 @@ export const caseStudies: CaseStudy[] = [
       "Commercial leadership and operating design in the same role: grow the business, then redesign the work behind it.",
     tier: "flagship",
     system: {
-      eyebrow: "Reconstructed People Ops workflow",
+      eyebrow: "Reconstructed service workflow",
       title: "Repeatable work moved to agents. Sensitive decisions stayed with people.",
       description:
         "Agents handle the routine work and keep a record of what happened. A person steps in for exceptions, approvals and decisions that affect people.",
@@ -195,7 +195,7 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     evidenceNote:
-      "Metrics are drawn from the project records for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
+      "Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
   },
   {
     slug: "audibene",

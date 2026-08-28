@@ -52,11 +52,11 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "I see the constraint.",
+    name: "Identify constraints.",
     exact: true,
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the systems", exact: true })).toBeVisible();
   await expect(page.getByLabel("Selected outcomes")).toContainText("0 → 120");
@@ -241,7 +241,7 @@ test("no JavaScript keeps every Home sentence and action available", async ({ br
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Build what makes it move.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),
@@ -501,7 +501,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
     "AI organisation",
   ]);
   await expect(page.getByText(
-    "Source note · Metrics are drawn from the project records for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
+    "Evidence note · Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
@@ -523,7 +523,7 @@ test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => 
   ]);
   await expect(system.getByText("Human judgment", { exact: true })).toBeVisible();
   await expect(page.getByText(
-    "Source note · Metrics are drawn from the project records for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
+    "Evidence note · Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|sentence that splits|classified →|workflow reconstructed/i)).toHaveCount(0);
@@ -541,7 +541,7 @@ test("case studies keep the complete editorial record without JavaScript", async
     await page.goto(route);
     await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
     await expect(page.locator('[aria-label="How the operating system worked"] ol > li')).toHaveCount(5);
-    await expect(page.getByText("The outcome", { exact: true })).toBeVisible();
+    await expect(page.getByText(/· What changed/)).toBeVisible();
   }
   await context.close();
 });
@@ -583,7 +583,7 @@ test("the Operating Orbit poster is server-rendered for no-JS visitors", async (
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.getByRole("heading", { name: "Systems.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeAttached();
   }
@@ -623,7 +623,7 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   await expect(page.locator(".orbit-canvas")).toBeHidden();
   await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();
   await expect(page.locator("#ivy")).toBeAttached();
   await context.close();
@@ -668,11 +668,11 @@ test("Contact keeps direct channels and mailto primary", async ({ page }) => {
   await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/tompulsarlabs");
 });
 
-test("the 390px Home uses the intentional three-line constraint turn", async ({ page }) => {
+test("the 390px Home sets the production spine without overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReduced(page, "/");
-  await expect(page.locator(".mobile-constraint")).toBeVisible();
-  await expect(page.locator(".mobile-constraint > span")).toHaveText(["I see", "the con—", "straint."]);
+  await expect(page.locator(".desktop-constraint > span")).toHaveText(["Identify", "constraints."]);
+  await expect(page.getByRole("heading", { level: 1, name: "Identify constraints." })).toBeVisible();
   const actionWidths = await page.locator(".home-actions .action").evaluateAll((items) =>
     items.map((item) => item.getBoundingClientRect().width),
   );
@@ -808,7 +808,7 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "I see the constraint.",
+    name: "Identify constraints.",
     exact: true,
   })).toBeVisible();
 });

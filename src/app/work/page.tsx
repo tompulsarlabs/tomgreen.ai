@@ -39,8 +39,11 @@ export default function WorkIndex() {
   return (
     <div className="work-index-page">
       <header className="work-index-header">
-        <p className="record">Selected work / operating records</p>
+        <p className="record">Evidence / selected operating records</p>
         <h1 className="axis-display">Proof is the system moving.</h1>
+        <p className="work-index-support">
+          Organisation building, operating-model design, product operations and founder economics—under real constraints.
+        </p>
         <p>
           Start with the consequence. Then inspect the mandate, operating logic, judgment and evidence that produced it.
         </p>

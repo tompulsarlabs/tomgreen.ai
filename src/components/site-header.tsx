@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
 
 const routeMeta = [
-  { match: "/work", index: "01", label: "Work" },
+  { match: "/work", index: "01", label: "Evidence" },
   { match: "/building", index: "02", label: "Systems" },
   { match: "/about", index: "03", label: "Through-line" },
   { match: "/contact", index: "04", label: "Contact" },
@@ -75,7 +75,7 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
         </Link>
         <div className="ml-1 hidden min-w-0 border-l border-current/16 pl-4 sm:block">
           <p className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-ink-secondary">
-            Section / {current.index}
+            Field / {current.index}
           </p>
           <p className="mt-1 truncate text-[0.68rem] uppercase tracking-[0.13em]">
             {current.label}
