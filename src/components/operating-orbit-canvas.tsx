@@ -15,6 +15,7 @@ import {
   project,
   threadPoints,
   wellPolylines,
+  WELL_RING_RADII,
   type DomainId,
   type Projected,
   type Vec3,
@@ -342,25 +343,50 @@ export function OperatingOrbitCanvas() {
       projectedBodies.set(NUCLEUS_ID, { ...nucleus, r: nucleusRadius });
 
       // The gravity well: hairline rings and meridians of the fabric the
-      // field rests on, bending toward talent. Same projection as the
-      // orbits, so the curvature turns with the camera as one object.
-      // Waking the nucleus deepens the fabric's ink.
+      // field rests on, pulled into a throat at talent. The fabric is the
+      // GROUND, not part of the tumble: it ignores the idle drift, follows
+      // a drag at a quarter of the field's rate, and its pitch is held in
+      // a near-horizontal band — so it always reads as a level sheet with
+      // lines running inward. The meridians carry a slow ink pulse
+      // flowing toward the centre; waking the nucleus deepens the fabric.
       const wellIn = clamp((elapsed - 0.5) / 1.4, 0, 1);
       if (wellIn > 0) {
-        for (const line of WELL_LINES) {
-          let previous = project(line[0], camera, scalePx);
+        const wellCamera = {
+          yaw: DEFAULT_CAMERA.yaw + (dragYaw + (dragging ? 0 : hoverYaw)) * 0.25,
+          pitch: clamp(
+            DEFAULT_CAMERA.pitch + (dragPitch + (dragging ? 0 : hoverPitch)) * 0.3,
+            0.3,
+            0.6,
+          ),
+          distance: camera.distance,
+        };
+        for (let lineIndex = 0; lineIndex < WELL_LINES.length; lineIndex += 1) {
+          const line = WELL_LINES[lineIndex];
+          const meridian = lineIndex >= WELL_RING_RADII.length;
+          let previous = project(line[0], wellCamera, scalePx);
           for (let index = 1; index < line.length; index += 1) {
-            const current = project(line[index], camera, scalePx);
+            const current = project(line[index], wellCamera, scalePx);
             const depth = (previous.depth + current.depth) / 2;
             const scaleAvg = (previous.scale + current.scale) / 2;
+            // Meridians are the pull: a touch more ink than the rings,
+            // with a crest drifting inward along each line.
+            const pull = meridian
+              ? 0.8 + 0.35 * Math.sin((index / (line.length - 1)) * 5 + elapsed * 0.9)
+              : 1;
             primitives.push({
               kind: "seg",
               x1: previous.x,
               y1: previous.y,
               x2: current.x,
               y2: current.y,
-              depth,
-              alpha: depthAlpha(depth, 0.085, 0.022) * wellIn * (1 + 0.6 * nucleusWake),
+              // The fabric always paints behind the field: alpha keeps its
+              // true depth, sorting gets it pushed to the very back.
+              depth: depth + 2,
+              alpha:
+                depthAlpha(depth, meridian ? 0.105 : 0.07, meridian ? 0.03 : 0.02) *
+                pull *
+                wellIn *
+                (1 + 0.6 * nucleusWake),
               width: 0.42 * scaleAvg * scaleAvg,
             });
             previous = current;

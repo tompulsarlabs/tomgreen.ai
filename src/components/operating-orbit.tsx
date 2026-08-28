@@ -113,7 +113,9 @@ export function OperatingOrbit() {
             <stop offset="1" stopColor="#deded8" />
           </radialGradient>
         </defs>
+        {/* The fabric is the ground layer: all of it paints behind the field. */}
         {strokeChunks(scene.wellChunks, false, "well")}
+        {strokeChunks(scene.wellChunks, true, "well")}
         {strokeChunks(scene.orbitChunks, false, "orbit")}
         {strokeChunks(scene.threadChunks, false, "thread")}
         {bodies(true)}
@@ -146,7 +148,6 @@ export function OperatingOrbit() {
         >
           {NUCLEUS_LABEL.toUpperCase()}
         </text>
-        {strokeChunks(scene.wellChunks, true, "well")}
         {strokeChunks(scene.orbitChunks, true, "orbit")}
         {strokeChunks(scene.threadChunks, true, "thread")}
         {bodies(false)}
