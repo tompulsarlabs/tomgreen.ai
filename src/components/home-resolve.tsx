@@ -69,8 +69,8 @@ export function HomeResolve() {
               <span><span>Identify</span></span><span><span>constraints.</span></span>
             </span>
           </h1>
-          <p className="axis-display system-line" aria-label="Subtraction by design.">
-            <span>Subtraction</span><span className="system-word">by design.</span>
+          <p className="axis-display system-line" aria-label="Subtract before you build.">
+            <span>Subtract</span><span className="system-word">before you build.</span>
           </p>
           <p className="axis-display release-line">Build a system that compounds.</p>
         </div>

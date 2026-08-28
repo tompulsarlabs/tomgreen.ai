@@ -37,6 +37,18 @@ type Primitive =
 /** Everything wakeable: the ten domains, plus the nucleus — judgment. */
 type WakeId = DomainId | "judgment";
 
+/** An ink particle from the exhale — screen-space, short-lived. */
+type Wisp = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  age: number;
+  ttl: number;
+  size: number;
+  seed: number;
+};
+
 const LINKS_BY_DOMAIN = new Map<DomainId, Set<DomainId>>();
 for (const [a, b] of LINKS) {
   if (!LINKS_BY_DOMAIN.has(a)) LINKS_BY_DOMAIN.set(a, new Set());
@@ -49,10 +61,12 @@ for (const [a, b] of LINKS) {
  * Motion layer of the Operating Orbit. Enhances the server-rendered SVG
  * poster; when it cannot run (reduced motion, Save-Data, no 2D context)
  * the poster simply remains. Ten operating domains crawl their orbits,
- * joined by a whisper-alpha thread lattice; waking a domain (hover, or
- * tap on touch) draws its threads to full ink and names it. Drag rotates
- * the field with bounded pitch and inertia; the camera dollies gently in
- * while the pointer is inside the field.
+ * joined by a whisper-alpha thread lattice, every body named. Bodies
+ * swell as the pointer approaches; hovering a domain wakes it and draws
+ * its threads to full ink; clicking pins it and it exhales — a wisp of
+ * ink condenses into its one-line note, dissipating on release. Drag
+ * rotates the field with bounded pitch and inertia; the camera dollies
+ * gently in while the pointer is inside the field.
  */
 export function OperatingOrbitCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -72,6 +86,11 @@ export function OperatingOrbitCanvas() {
     field.querySelectorAll<HTMLElement>(".orbit-label").forEach((label) => {
       labels.set(label.dataset.domain as WakeId, label);
     });
+    const quotes = new Map<WakeId, HTMLElement>();
+    field.querySelectorAll<HTMLElement>(".orbit-quote").forEach((quote) => {
+      quotes.set(quote.dataset.domain as WakeId, quote);
+    });
+    const labelWidths = new Map<WakeId, number>();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     let width = 0;
@@ -89,7 +108,7 @@ export function OperatingOrbitCanvas() {
       centerX = width * (width < 700 ? 0.5 : 0.52);
       centerY = height * 0.5;
       // Narrow boxes (the mobile composition) give the field more of the room.
-      scalePx = width < 700 ? Math.min(width * 0.46, height * 0.54) : Math.min(width * 0.36, height * 0.48);
+      scalePx = width < 700 ? Math.min(width * 0.5, height * 0.58) : Math.min(width * 0.4, height * 0.52);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(field);
@@ -109,12 +128,16 @@ export function OperatingOrbitCanvas() {
     let hoverPitch = 0;
     let hoverYawTarget = 0;
     let hoverPitchTarget = 0;
+    // Pointer position in field-centred coordinates, for proximity play.
+    let pointerX: number | null = null;
+    let pointerY: number | null = null;
 
-    // Wake state: which domain (or the nucleus) the pointer is on, or a
-    // tap pinned; a per-target eased presence drives threads, radii and
+    // Wake state: hover wakes, click/tap pins (and exhales), the nucleus
+    // included; a per-target eased presence drives threads, radii and
     // nameplates. Waking the nucleus — judgment — lifts every domain.
     let hoverId: WakeId | null = null;
     let pinnedId: WakeId | null = null;
+    let shownQuote: WakeId | null = null;
     let wakeStart = 0;
     const wake = new Map<WakeId, number>([
       ...DOMAINS.map((domain) => [domain.id, 0] as [WakeId, number]),
@@ -122,6 +145,25 @@ export function OperatingOrbitCanvas() {
     ]);
     const projectedBodies = new Map<WakeId, Projected & { r: number }>();
     let downAt: { x: number; y: number; time: number } | null = null;
+
+    // The exhale: ink particles breathing out of a pinned body.
+    const wisps: Wisp[] = [];
+    const exhale = (x: number, y: number, r: number, count: number) => {
+      for (let index = 0; index < count && wisps.length < 120; index += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 6 + Math.random() * 26;
+        wisps.push({
+          x: x + Math.cos(angle) * r,
+          y: y + Math.sin(angle) * r,
+          vx: Math.cos(angle) * speed * 0.6 + 4,
+          vy: Math.sin(angle) * speed * 0.4 - 8 - Math.random() * 10,
+          age: 0,
+          ttl: 1.1 + Math.random() * 1.1,
+          size: 0.5 + Math.random() * 0.9,
+          seed: Math.random() * 10,
+        });
+      }
+    };
 
     const nearestDomain = (clientX: number, clientY: number): WakeId | null => {
       const bounds = field.getBoundingClientRect();
@@ -146,6 +188,7 @@ export function OperatingOrbitCanvas() {
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
+      canvas.style.cursor = "grabbing";
       lastPointer = { x: event.clientX, y: event.clientY };
       downAt = { x: event.clientX, y: event.clientY, time: performance.now() };
       velocityYaw = 0;
@@ -154,6 +197,8 @@ export function OperatingOrbitCanvas() {
     };
     const onPointerMove = (event: PointerEvent) => {
       const bounds = field.getBoundingClientRect();
+      pointerX = event.clientX - bounds.left - centerX;
+      pointerY = event.clientY - bounds.top - centerY;
       hoverYawTarget = (((event.clientX - bounds.left) / bounds.width) * 2 - 1) * 0.06;
       hoverPitchTarget = (((event.clientY - bounds.top) / bounds.height) * 2 - 1) * 0.04;
       if (dragging && lastPointer) {
@@ -171,6 +216,7 @@ export function OperatingOrbitCanvas() {
         hoverId = next;
         if (next) wakeStart = performance.now();
       }
+      canvas.style.cursor = hoverId ? "pointer" : "grab";
     };
     const onPointerUp = (event: PointerEvent) => {
       if (downAt) {
@@ -183,6 +229,7 @@ export function OperatingOrbitCanvas() {
         }
       }
       dragging = false;
+      canvas.style.cursor = hoverId ? "pointer" : "grab";
       lastPointer = null;
       downAt = null;
     };
@@ -192,9 +239,12 @@ export function OperatingOrbitCanvas() {
     const onPointerLeave = () => {
       engageTarget = 0;
       hoverId = null;
+      pointerX = null;
+      pointerY = null;
       hoverYawTarget = 0;
       hoverPitchTarget = 0;
     };
+    canvas.style.cursor = "grab";
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -344,11 +394,18 @@ export function OperatingOrbitCanvas() {
         }
       }
 
-      // Bodies: ink only, radius from true perspective scale.
+      // Bodies: ink spheres, radius from true perspective scale; they
+      // swell for the approaching pointer before any hover lands.
       for (const domain of DOMAINS) {
         const projected = project(positions.get(domain.id)!, camera, scalePx);
         const wakeLevel = wake.get(domain.id)!;
-        const radius = domain.size * projected.scale * projected.scale * (1 + 0.35 * wakeLevel);
+        let proximity = 0;
+        if (pointerX !== null && pointerY !== null && !dragging) {
+          const distance = Math.hypot(projected.x - pointerX, projected.y - pointerY);
+          proximity = clamp(1 - distance / 170, 0, 1) * 0.55;
+        }
+        const lift = Math.max(wakeLevel, proximity);
+        const radius = domain.size * projected.scale * projected.scale * (1 + 0.35 * lift);
         projectedBodies.set(domain.id, { ...projected, r: radius });
         primitives.push({
           kind: "body",
@@ -360,6 +417,23 @@ export function OperatingOrbitCanvas() {
             depthAlpha(projected.depth, 1, 0.38) *
             (1 - 0.45 * dimWake * (1 - Math.max(wakeLevel, domain.id === wokenId ? 1 : 0))),
         });
+      }
+
+      // The exhale: pin transitions breathe ink; a pinned body keeps a
+      // faint wisp alive until released.
+      if (pinnedId !== shownQuote) {
+        if (shownQuote) {
+          const previousQuote = quotes.get(shownQuote);
+          if (previousQuote) previousQuote.style.opacity = "0";
+        }
+        shownQuote = pinnedId;
+        if (pinnedId) {
+          const p = projectedBodies.get(pinnedId);
+          if (p) exhale(p.x, p.y, p.r + 2, 56);
+        }
+      } else if (pinnedId) {
+        const p = projectedBodies.get(pinnedId);
+        if (p && Math.random() < 0.5) exhale(p.x, p.y, p.r + 2, 1);
       }
 
       // Paint far → near: occlusion falls out of the ordering.
@@ -379,9 +453,20 @@ export function OperatingOrbitCanvas() {
           context.lineWidth = primitive.width;
           context.stroke();
         } else if (primitive.kind === "body") {
+          // A lit ink sphere: monochrome radial shading, never a new hue.
+          const sphere = context.createRadialGradient(
+            primitive.x - primitive.r * 0.38,
+            primitive.y - primitive.r * 0.42,
+            primitive.r * 0.12,
+            primitive.x,
+            primitive.y,
+            primitive.r,
+          );
+          sphere.addColorStop(0, `rgba(${INK}, ${(primitive.alpha * 0.4).toFixed(3)})`);
+          sphere.addColorStop(1, `rgba(${INK}, ${primitive.alpha.toFixed(3)})`);
           context.beginPath();
           context.arc(primitive.x, primitive.y, primitive.r, 0, Math.PI * 2);
-          context.fillStyle = `rgba(${INK}, ${primitive.alpha.toFixed(3)})`;
+          context.fillStyle = sphere;
           context.fill();
         } else if (primitive.kind === "disc") {
           context.beginPath();
@@ -396,19 +481,64 @@ export function OperatingOrbitCanvas() {
           context.stroke();
         }
       }
-      context.restore();
 
-      // Nameplates: DOM .record labels riding the projection, wake-gated.
-      for (const [id, label] of labels) {
-        const wakeLevel = wake.get(id) ?? 0;
-        if (wakeLevel <= 0.01) {
-          if (label.style.opacity !== "0") label.style.opacity = "0";
+      // Wisps ride above the field: fine ink, breathing out and gone.
+      for (let index = wisps.length - 1; index >= 0; index -= 1) {
+        const wisp = wisps[index];
+        wisp.age += dt;
+        if (wisp.age >= wisp.ttl) {
+          wisps.splice(index, 1);
           continue;
         }
+        const t = wisp.age / wisp.ttl;
+        wisp.vx += Math.sin(now / 640 + wisp.seed * 7) * 14 * dt;
+        wisp.vy += Math.cos(now / 730 + wisp.seed * 5) * 10 * dt - 6 * dt;
+        wisp.vx *= 0.985;
+        wisp.vy *= 0.985;
+        wisp.x += wisp.vx * dt;
+        wisp.y += wisp.vy * dt;
+        const alpha = Math.sin(Math.PI * t) * 0.14;
+        context.beginPath();
+        context.arc(wisp.x, wisp.y, wisp.size * (1 + t * 1.6), 0, Math.PI * 2);
+        context.fillStyle = `rgba(${INK}, ${alpha.toFixed(3)})`;
+        context.fill();
+      }
+
+      context.restore();
+
+      // Nameplates: DOM .record labels riding the projection — always on,
+      // depth-faded, lifted to full ink by wake, flipping to the left
+      // edge-side so no name ever clips at the field boundary.
+      const narrow = width < 700;
+      for (const [id, label] of labels) {
         const p = projectedBodies.get(id);
         if (!p) continue;
-        label.style.transform = `translate3d(${(centerX + p.x + p.r + 7).toFixed(1)}px, ${(centerY + p.y - 6).toFixed(1)}px, 0) scale(${clamp(p.scale, 0.85, 1.25).toFixed(3)})`;
-        label.style.opacity = (wakeLevel * depthAlpha(p.depth, 1, 0.25)).toFixed(3);
+        const wakeLevel = wake.get(id) ?? 0;
+        const base = depthAlpha(p.depth, 0.62, narrow ? 0.04 : 0.13) * latticeIn;
+        const opacity = base + (1 - base) * wakeLevel;
+        let labelWidth = labelWidths.get(id) ?? 0;
+        if (!labelWidth) {
+          labelWidth = label.offsetWidth;
+          if (labelWidth) labelWidths.set(id, labelWidth);
+        }
+        const rightX = centerX + p.x + p.r + 7;
+        const flip = rightX + labelWidth > width - 6;
+        const x = flip ? centerX + p.x - p.r - 7 - labelWidth : rightX;
+        label.style.transform = `translate3d(${x.toFixed(1)}px, ${(centerY + p.y - 6).toFixed(1)}px, 0) scale(${clamp(p.scale, 0.85, 1.25).toFixed(3)})`;
+        label.style.opacity = opacity.toFixed(3);
+      }
+
+      // The pinned quote glues to its body, side-aware near the edges.
+      if (shownQuote) {
+        const quote = quotes.get(shownQuote);
+        const p = projectedBodies.get(shownQuote);
+        if (quote && p) {
+          const flip = centerX + p.x > width * 0.62;
+          const quoteWidth = quote.offsetWidth || 200;
+          const x = flip ? centerX + p.x - p.r - 12 - quoteWidth : centerX + p.x + p.r + 12;
+          quote.style.transform = `translate3d(${x.toFixed(1)}px, ${(centerY + p.y + 12).toFixed(1)}px, 0)`;
+          quote.style.opacity = "1";
+        }
       }
 
       request();
@@ -446,6 +576,9 @@ export function OperatingOrbitCanvas() {
       canvas.removeEventListener("pointerleave", onPointerLeave);
       labels.forEach((label) => {
         label.style.opacity = "0";
+      });
+      quotes.forEach((quote) => {
+        quote.style.opacity = "0";
       });
       delete field.dataset.live;
     };

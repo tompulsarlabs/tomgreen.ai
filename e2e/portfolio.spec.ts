@@ -576,8 +576,10 @@ test("the Operating Orbit runs with motion and falls back to its poster", async 
   await expect(page.getByText(/Conceptual — ten operating domains/)).toBeVisible();
   // Every domain name exists as real text, and as a wake nameplate.
   await expect(page.getByText(/Talent · Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents/)).toBeVisible();
-  // Ten domain nameplates plus the nucleus — human judgment.
+  // Ten domain nameplates plus the nucleus — human judgment — and a
+  // pinnable one-line note for each.
   await expect(page.locator(".orbit-label")).toHaveCount(11);
+  await expect(page.locator(".orbit-quote")).toHaveCount(11);
   // The wrapper line sits on every page, in the footer.
   await expect(page.locator(".site-footer").getByText("Agentic execution · Human judgment")).toBeVisible();
 });
@@ -597,6 +599,8 @@ test("the Operating Orbit poster is server-rendered for no-JS visitors", async (
   expect(await page.locator(".orbit-poster path").count()).toBeGreaterThanOrEqual(17);
   // Ten ink domains + the nucleus paper disc and ink ring.
   await expect(page.locator(".orbit-poster circle")).toHaveCount(12);
+  // The poster names every domain and the nucleus in real SVG text.
+  await expect(page.locator(".orbit-poster text")).toHaveCount(11);
   await context.close();
 });
 

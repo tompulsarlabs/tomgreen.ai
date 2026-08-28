@@ -1,5 +1,11 @@
 import { OperatingOrbitCanvas } from "./operating-orbit-canvas";
-import { DOMAINS, depthAlpha, resolvedScene, type StrokeChunk } from "@/lib/orbit-geometry";
+import {
+  DOMAINS,
+  NUCLEUS_QUOTE,
+  depthAlpha,
+  resolvedScene,
+  type StrokeChunk,
+} from "@/lib/orbit-geometry";
 
 const VIEW = { width: 1000, height: 640 };
 
@@ -11,12 +17,13 @@ function chunkPath(chunk: StrokeChunk, cx: number, cy: number): string {
 
 /**
  * The Operating Orbit — the Systems signature. Ten operating domains and
- * the threads that connect them, orbiting one nucleus. The server renders
- * the field at its resolved state as inline SVG, so no-JS, reduced-motion
- * and Save-Data visitors get the same connected, occluded drawing with
- * zero script; the client canvas replaces it only when motion is allowed.
- * The canvas and SVG are aria-hidden — the visible caption and legend
- * carry the meaning in real text.
+ * the threads that connect them, executing agentically around one centre
+ * of human judgment. The server renders the field at its resolved state
+ * as inline SVG — named, connected, occluded — so no-JS, reduced-motion
+ * and Save-Data visitors get the same drawing with zero script; the
+ * client canvas replaces it only when motion is allowed. The canvas and
+ * SVG are aria-hidden — the visible caption and legend carry the meaning
+ * in real text.
  */
 export function OperatingOrbit() {
   const scene = resolvedScene(300);
@@ -41,13 +48,23 @@ export function OperatingOrbit() {
     scene.bodies
       .filter((body) => (body.depth > nucleusDepth) === behind)
       .map((body) => (
-        <circle
-          key={body.id}
-          cx={cx + body.x}
-          cy={cy + body.y}
-          r={(body.size * body.scale * body.scale).toFixed(2)}
-          fill={`rgba(16, 20, 16, ${depthAlpha(body.depth, 1, 0.38).toFixed(3)})`}
-        />
+        <g key={body.id} opacity={depthAlpha(body.depth, 1, 0.38).toFixed(3)}>
+          <circle
+            cx={cx + body.x}
+            cy={cy + body.y}
+            r={(body.size * body.scale * body.scale).toFixed(2)}
+            fill="url(#orb-sphere)"
+          />
+          <text
+            x={(cx + body.x + body.size * body.scale * body.scale + 6).toFixed(1)}
+            y={(cy + body.y + 3).toFixed(1)}
+            className="orbit-svg-label"
+            fontSize={(9.5 * body.scale).toFixed(1)}
+            fill={`rgba(16, 20, 16, ${depthAlpha(body.depth, 0.85, 0.3).toFixed(3)})`}
+          >
+            {body.label.toUpperCase()}
+          </text>
+        </g>
       ));
 
   return (
@@ -57,6 +74,13 @@ export function OperatingOrbit() {
         viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
         preserveAspectRatio="xMidYMid meet"
       >
+        <defs>
+          {/* Monochrome sphere shading: lit ink, never a new hue. */}
+          <radialGradient id="orb-sphere" cx="0.38" cy="0.34" r="0.95">
+            <stop offset="0" stopColor="#101410" stopOpacity="0.45" />
+            <stop offset="1" stopColor="#101410" stopOpacity="1" />
+          </radialGradient>
+        </defs>
         {strokeChunks(scene.orbitChunks, false, false)}
         {strokeChunks(scene.threadChunks, false, true)}
         {bodies(true)}
@@ -74,6 +98,15 @@ export function OperatingOrbit() {
           stroke="rgba(16, 20, 16, 0.9)"
           strokeWidth="2"
         />
+        <text
+          x={(cx + scene.nucleus.x + scene.nucleus.radius + 7).toFixed(1)}
+          y={(cy + scene.nucleus.y + 3).toFixed(1)}
+          className="orbit-svg-label"
+          fontSize="9.5"
+          fill="rgba(16, 20, 16, 0.85)"
+        >
+          HUMAN JUDGMENT
+        </text>
         {strokeChunks(scene.orbitChunks, true, false)}
         {strokeChunks(scene.threadChunks, true, true)}
         {bodies(false)}
@@ -86,6 +119,14 @@ export function OperatingOrbit() {
         ))}
         <span className="record orbit-label" data-domain="judgment">
           Human judgment
+        </span>
+        {DOMAINS.map((domain) => (
+          <span key={`q-${domain.id}`} className="orbit-quote" data-domain={domain.id}>
+            {domain.quote}
+          </span>
+        ))}
+        <span className="orbit-quote" data-domain="judgment">
+          {NUCLEUS_QUOTE}
         </span>
       </div>
       <OperatingOrbitCanvas />
