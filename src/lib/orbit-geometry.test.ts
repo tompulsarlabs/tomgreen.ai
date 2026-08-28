@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  BODIES,
   DEFAULT_CAMERA,
-  EXCEPTION,
+  DOMAINS,
+  LINKS,
   ORBITS,
   depthAlpha,
-  exceptionProgress,
   pointOnOrbit,
   project,
   resolvedScene,
+  splitByNucleusDepth,
+  threadPoints,
 } from "./orbit-geometry";
 
 describe("pointOnOrbit", () => {
@@ -52,31 +53,79 @@ describe("project", () => {
   });
 });
 
-describe("exceptionProgress", () => {
-  it("rests on orbit outside the excursion window", () => {
-    expect(exceptionProgress(0)).toBe(0);
-    expect(exceptionProgress(3.9)).toBe(0);
-    expect(exceptionProgress(11)).toBe(0);
+describe("DOMAINS and LINKS", () => {
+  it("places all ten domains with unique ids on real orbits", () => {
+    expect(DOMAINS).toHaveLength(10);
+    expect(new Set(DOMAINS.map((domain) => domain.id)).size).toBe(10);
+    for (const domain of DOMAINS) {
+      expect(domain.orbit).toBeGreaterThanOrEqual(0);
+      expect(domain.orbit).toBeLessThan(ORBITS.length);
+    }
   });
 
-  it("reaches and holds the nucleus, then returns", () => {
-    expect(exceptionProgress(EXCEPTION.legIn[1])).toBeCloseTo(1, 5);
-    expect(exceptionProgress(7.0)).toBe(1);
-    expect(exceptionProgress(EXCEPTION.legOut[1])).toBeCloseTo(0, 5);
+  it("links only real domains, never to themselves, and touches every domain", () => {
+    const ids = new Set(DOMAINS.map((domain) => domain.id));
+    const linked = new Set<string>();
+    for (const [from, to] of LINKS) {
+      expect(ids.has(from)).toBe(true);
+      expect(ids.has(to)).toBe(true);
+      expect(from).not.toBe(to);
+      linked.add(from);
+      linked.add(to);
+    }
+    expect(linked.size).toBe(10);
+  });
+});
+
+describe("threadPoints", () => {
+  it("starts and ends at the domains it joins", () => {
+    const from = pointOnOrbit(ORBITS[0], 0.05);
+    const to = pointOnOrbit(ORBITS[2], 0.55);
+    const points = threadPoints(from, to);
+    for (let axis = 0; axis < 3; axis += 1) {
+      expect(points[0][axis]).toBeCloseTo(from[axis], 10);
+      expect(points[points.length - 1][axis]).toBeCloseTo(to[axis], 10);
+    }
   });
 
-  it("is periodic", () => {
-    expect(exceptionProgress(5)).toBeCloseTo(exceptionProgress(5 + EXCEPTION.period), 10);
+  it("sags toward the origin so long chords pass near the nucleus", () => {
+    const from = pointOnOrbit(ORBITS[0], 0.05);
+    const to = pointOnOrbit(ORBITS[0], 0.55);
+    const points = threadPoints(from, to);
+    const mid = points[Math.floor(points.length / 2)];
+    const straightMid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2];
+    expect(Math.hypot(...mid)).toBeLessThan(Math.hypot(...(straightMid as [number, number, number])));
+  });
+});
+
+describe("splitByNucleusDepth", () => {
+  it("partitions a crossing polyline into joined front/behind chunks", () => {
+    const points = Array.from({ length: 61 }, (_, index) =>
+      project(pointOnOrbit(ORBITS[0], index / 60), DEFAULT_CAMERA, 100),
+    );
+    const nucleus = project([0, 0, 0], DEFAULT_CAMERA, 100);
+    const chunks = splitByNucleusDepth(points, nucleus.depth);
+    expect(chunks.length).toBeGreaterThanOrEqual(2);
+    expect(chunks.some((chunk) => chunk.front)).toBe(true);
+    expect(chunks.some((chunk) => !chunk.front)).toBe(true);
+    // Adjacent chunks share their crossing point, so the stroke never gaps.
+    for (let index = 1; index < chunks.length; index += 1) {
+      const previous = chunks[index - 1].points;
+      expect(chunks[index].points[0]).toEqual(previous[previous.length - 1]);
+    }
   });
 });
 
 describe("resolvedScene", () => {
-  it("renders every orbit, every body and the nucleus", () => {
+  it("renders every orbit, every domain, the lattice and the nucleus — all ink", () => {
     const scene = resolvedScene(160);
-    expect(scene.paths).toHaveLength(ORBITS.length);
-    expect(scene.bodies).toHaveLength(BODIES.length);
-    expect(scene.bodies.filter((body) => body.kind === "live")).toHaveLength(1);
+    expect(scene.orbitChunks.length).toBeGreaterThanOrEqual(ORBITS.length);
+    expect(scene.threadChunks.length).toBeGreaterThanOrEqual(LINKS.length);
+    expect(scene.bodies).toHaveLength(DOMAINS.length);
     expect(scene.nucleus.radius).toBeGreaterThan(0);
+    // The occlusion story requires threads on both sides of the nucleus.
+    expect(scene.threadChunks.some((chunk) => chunk.front)).toBe(true);
+    expect(scene.threadChunks.some((chunk) => !chunk.front)).toBe(true);
   });
 
   it("orders bodies far-to-near for painter's rendering", () => {

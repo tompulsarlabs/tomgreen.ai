@@ -573,7 +573,10 @@ test("the Operating Orbit runs with motion and falls back to its poster", async 
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
   await expect(page.locator(".orbit-poster")).toBeHidden();
   await expect(page.locator(".orbit-field")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.getByText(/Conceptual — repeatable work orbits/)).toBeVisible();
+  await expect(page.getByText(/Conceptual — ten operating domains/)).toBeVisible();
+  // Every domain name exists as real text, and as a wake nameplate.
+  await expect(page.getByText(/Talent · Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents/)).toBeVisible();
+  await expect(page.locator(".orbit-label")).toHaveCount(10);
 });
 
 test("reduced motion serves the Operating Orbit poster, not the canvas", async ({ page }) => {
@@ -586,8 +589,11 @@ test("the Operating Orbit poster is server-rendered for no-JS visitors", async (
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
   const page = await context.newPage();
   await page.goto("/building");
-  await expect(page.locator(".orbit-poster path")).toHaveCount(3);
-  await expect(page.locator(".orbit-poster circle")).toHaveCount(7);
+  // Orbit + thread chunks split around the nucleus: at least one path per
+  // orbit (3) and per link (14); the exact count varies with the camera.
+  expect(await page.locator(".orbit-poster path").count()).toBeGreaterThanOrEqual(17);
+  // Ten ink domains + the nucleus paper disc and ink ring.
+  await expect(page.locator(".orbit-poster circle")).toHaveCount(12);
   await context.close();
 });
 
