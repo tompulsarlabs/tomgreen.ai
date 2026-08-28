@@ -209,7 +209,7 @@ test("Work hover and keyboard focus resolve the same width state", async ({ page
   await page.mouse.move(0, 0);
   await row.focus();
   await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
-  await expect(row).toHaveCSS("background-color", "rgb(245, 245, 241)");
+  await expect(row).toHaveCSS("background-color", "rgb(246, 246, 246)");
 });
 
 test("Work to case navigation aligns the travelling name with tolerant geometry", async ({ page }) => {
