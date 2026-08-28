@@ -2,12 +2,13 @@ import { spawn } from "node:child_process";
 import { rm } from "node:fs/promises";
 
 // The /about gate is evaluated at BUILD time (the route is statically
-// prerendered), so the contract must build with VERCEL=1 before asserting.
+// prerendered), so the contract must build as a Vercel PRODUCTION deployment
+// before asserting — previews deliberately keep About reviewable behind SSO.
 // Building into an isolated dist dir keeps the working .next intact.
 const distDir = ".next-vercel-contract";
 const port = "3199";
 const origin = `http://127.0.0.1:${port}`;
-const env = { ...process.env, VERCEL: "1", NEXT_DIST_DIR: distDir };
+const env = { ...process.env, VERCEL: "1", VERCEL_ENV: "production", NEXT_DIST_DIR: distDir };
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
