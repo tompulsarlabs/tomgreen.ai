@@ -556,6 +556,30 @@ test("Home and Systems use one continuous white editorial ground", async ({ page
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
+test("the Operating Orbit runs with motion and falls back to its poster", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/building");
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await expect(page.locator(".orbit-poster")).toBeHidden();
+  await expect(page.locator(".orbit-field")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.getByText(/Conceptual — repeatable work orbits/)).toBeVisible();
+});
+
+test("reduced motion serves the Operating Orbit poster, not the canvas", async ({ page }) => {
+  await gotoReduced(page, "/building");
+  await expect(page.locator(".orbit-poster")).toBeVisible();
+  await expect(page.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
+});
+
+test("the Operating Orbit poster is server-rendered for no-JS visitors", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
+  const page = await context.newPage();
+  await page.goto("/building");
+  await expect(page.locator(".orbit-poster path")).toHaveCount(3);
+  await expect(page.locator(".orbit-poster circle")).toHaveCount(7);
+  await context.close();
+});
+
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.getByRole("heading", { name: "Systems.", level: 1 })).toBeVisible();
@@ -579,7 +603,10 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
-  await expect(page.locator("canvas")).toHaveCount(0);
+  // The only canvas on the route is the aria-hidden Operating Orbit;
+  // the pre-signature "no canvas" contract was superseded by owner decision.
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect(page.locator(".orbit-field canvas")).toHaveCount(1);
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 
@@ -592,7 +619,9 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   const page = await context.newPage();
   await page.goto("/building");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
-  await expect(page.locator("canvas")).toHaveCount(0);
+  // Without JavaScript the canvas never activates: the poster carries the field.
+  await expect(page.locator(".orbit-canvas")).toBeHidden();
+  await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "The work behind the outcomes." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();

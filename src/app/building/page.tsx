@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { OperatingOrbit } from "@/components/operating-orbit";
 import { Reveal } from "@/components/reveal";
 import { projects } from "@/lib/content/building";
 import { caseStudies } from "@/lib/content/case-studies";
@@ -96,6 +97,7 @@ export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
+        <OperatingOrbit />
         <div className="systems-hero-copy">
           <p className="record">Systems</p>
           <div className="systems-title-row">
@@ -104,8 +106,11 @@ export default function Building() {
               The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
             </p>
           </div>
-
         </div>
+        <p className="record orbit-caption">
+          <span className="orbit-caption-mark" aria-hidden />
+          Conceptual — repeatable work orbits. Exceptions come to a person.
+        </p>
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
