@@ -109,7 +109,12 @@ export default function Building() {
         </div>
         <p className="record orbit-caption">
           <span className="orbit-caption-mark" aria-hidden />
-          Conceptual — repeatable work orbits. Exceptions come to a person.
+          <span>
+            Conceptual — ten operating domains executing agentically around one centre of human judgment. Drag to rotate; wake a domain to see its threads.
+            <span className="orbit-legend">
+              Talent · Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents
+            </span>
+          </span>
         </p>
       </section>
 

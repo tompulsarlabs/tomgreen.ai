@@ -223,6 +223,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .resolve-lines .line-mask > span > span { display: block; }
 .constraint-line { word-spacing: var(--constraint-word-space, 0); }
 .release-line { max-width: 14ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
+/* The middle line grew to a sentence — it takes the release line's
+   display step so the linear document stays inside two viewports on
+   every renderer. */
+.system-line { max-width: 15ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
 .home-resolve-support {
   display: flex;
   justify-content: space-between;
@@ -455,8 +459,24 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   border-bottom: 1px solid var(--ink);
   padding: 2.5rem 0 clamp(2rem, 4vw, 3rem);
 }
-.orbit-field { position: absolute; inset: 0 0 24% 26%; }
+.orbit-field { position: absolute; inset: 0 0 16% 8%; }
 .orbit-field svg, .orbit-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.orbit-labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(16, 20, 16, 0.9); will-change: transform, opacity; }
+.orbit-svg-label { font-family: var(--font-geist-mono), monospace; letter-spacing: 0.12em; }
+.orbit-quote {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 13rem;
+  opacity: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgba(16, 20, 16, 0.85);
+  transition: opacity var(--d-3) var(--ease);
+  will-change: transform, opacity;
+}
+.orbit-legend { display: block; margin-top: 0.4rem; letter-spacing: 0.1em; color: var(--muted); }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }
 .orbit-canvas:active { cursor: grabbing; }
 .orbit-field[data-live="true"] .orbit-poster { display: none; }
@@ -550,7 +570,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .systems-title-row { grid-template-columns: 1fr; gap: 1.75rem; }
   .systems-lead { max-width: 34rem; padding-bottom: 0; }
   .systems-hero { min-height: auto; padding-top: 2rem; }
-  .orbit-field { position: relative; inset: auto; height: 300px; margin: 0 0 0.5rem; order: -1; }
+  .orbit-field { position: relative; inset: auto; height: clamp(320px, 46svh, 430px); margin: 0 0 0.5rem; order: -1; }
   .about-opening, .career-line-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
   .station-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .station-metrics > div:nth-child(odd) { border-left: 0; padding-left: 0; }
@@ -573,7 +593,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  .resolve-lines { gap: 3rem; }
+  .resolve-lines { gap: 2.5rem; }
   .constraint-line, .system-line, .release-line { font-variation-settings: "wdth" 100; }
   .case-company { font-variation-settings: "wdth" 106 !important; }
   .route-entering :is(.case-company, .case-headline) { animation: none !important; opacity: 1; transform: none; }

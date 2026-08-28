@@ -4,10 +4,12 @@
  * server-rendered SVG (no-JS / reduced-motion / Save-Data poster), so the
  * fallback is the same drawing at its resolved state, not a screenshot.
  *
- * The model is the operating method, drawn honestly as a concept:
- * repeatable work orbits a nucleus of human judgment; periodically an
- * exception leaves its path and comes to the person. The caption outside
- * the canvas carries that meaning; nothing here claims live data.
+ * The model is the owner's operating range, drawn honestly as a concept:
+ * ten operating domains — talent, ops, growth, revenue, product,
+ * engineering, HR tech, building, AI, agents — orbit one nucleus (the
+ * operating model), joined by the threads that make them one connected
+ * system. The caption outside the canvas carries that meaning in real
+ * text; nothing here claims live data, so every body is ink.
  */
 
 export type Vec3 = [number, number, number];
@@ -24,12 +26,27 @@ export type Orbit = {
   speed: number;
 };
 
-export type OrbitBody = {
+export type DomainId =
+  | "talent"
+  | "ops"
+  | "growth"
+  | "revenue"
+  | "product"
+  | "eng"
+  | "hr-tech"
+  | "building"
+  | "ai"
+  | "agents";
+
+export type Domain = {
+  id: DomainId;
+  label: string;
   orbit: number;
   phase: number;
-  /** Base radius in px at depth 0. */
+  /** Base radius in px at scale 1. */
   size: number;
-  kind: "ink" | "live";
+  /** One-line method voice, shown on pin. Owner-editable copy. */
+  quote: string;
 };
 
 export type Camera = {
@@ -54,16 +71,41 @@ export const ORBITS: Orbit[] = [
   { a: 0.46, b: 0.4, tiltX: 0.92, tiltY: 0.12, roll: -0.7, speed: 0.052 },
 ];
 
-export const BODIES: OrbitBody[] = [
-  { orbit: 0, phase: 0.06, size: 4.4, kind: "ink" },
-  { orbit: 0, phase: 0.52, size: 3.2, kind: "ink" },
-  { orbit: 1, phase: 0.2, size: 3.8, kind: "ink" },
-  { orbit: 1, phase: 0.71, size: 4.4, kind: "live" },
-  { orbit: 2, phase: 0.34, size: 3.0, kind: "ink" },
-  { orbit: 2, phase: 0.87, size: 3.4, kind: "ink" },
+export const DOMAINS: Domain[] = [
+  { id: "revenue", label: "Revenue", orbit: 0, phase: 0.05, size: 3.6, quote: "The model must pay for itself." },
+  { id: "hr-tech", label: "HR tech", orbit: 0, phase: 0.3, size: 3.2, quote: "Tools encode the process. Choose deliberately." },
+  { id: "ai", label: "AI", orbit: 0, phase: 0.55, size: 4.2, quote: "Leverage, pointed by judgment." },
+  { id: "agents", label: "Agents", orbit: 0, phase: 0.8, size: 3.6, quote: "Agents run the repeatable." },
+  { id: "product", label: "Product", orbit: 1, phase: 0.12, size: 4.0, quote: "Build the smallest thing that teaches the most." },
+  { id: "eng", label: "Engineering", orbit: 1, phase: 0.45, size: 3.6, quote: "Speed lives in the codebase." },
+  { id: "growth", label: "Growth", orbit: 1, phase: 0.78, size: 3.4, quote: "Distribution is a design problem." },
+  { id: "talent", label: "Talent", orbit: 2, phase: 0.2, size: 4.2, quote: "Hiring is the first system decision." },
+  { id: "ops", label: "Ops", orbit: 2, phase: 0.55, size: 3.6, quote: "Cadence beats heroics." },
+  { id: "building", label: "Building", orbit: 2, phase: 0.88, size: 3.4, quote: "Companies are systems you can design." },
 ];
 
-export const DEFAULT_CAMERA: Camera = { yaw: 0.62, pitch: 0.42, distance: 3.1 };
+/** The nucleus speaks too. Owner-editable copy. */
+export const NUCLEUS_QUOTE = "Exceptions come to a person.";
+
+/** The interconnection the drawing exists to show: related domain pairs. */
+export const LINKS: [DomainId, DomainId][] = [
+  ["talent", "hr-tech"],
+  ["talent", "ops"],
+  ["talent", "growth"],
+  ["talent", "ai"],
+  ["ops", "agents"],
+  ["ops", "revenue"],
+  ["ops", "hr-tech"],
+  ["growth", "revenue"],
+  ["growth", "product"],
+  ["product", "eng"],
+  ["product", "building"],
+  ["eng", "ai"],
+  ["ai", "agents"],
+  ["building", "agents"],
+];
+
+export const DEFAULT_CAMERA: Camera = { yaw: 0.62, pitch: 0.42, distance: 2.9 };
 
 /** How far drag may pitch the field, keeping it an instrument, not a toy. */
 export const PITCH_LIMIT = { min: 0.14, max: 0.78 };
@@ -87,6 +129,28 @@ export function pointOnOrbit(orbit: Orbit, phase: number): Vec3 {
   return [x2, y1, z];
 }
 
+/**
+ * A thread between two domains: a quadratic Bezier whose control point is
+ * pulled toward the origin, so long cross-plane chords truthfully sag
+ * toward — and pass behind — the nucleus.
+ */
+export function threadPoints(from: Vec3, to: Vec3, samples = 16): Vec3[] {
+  const control: Vec3 = [
+    ((from[0] + to[0]) / 2) * 0.4,
+    ((from[1] + to[1]) / 2) * 0.4,
+    ((from[2] + to[2]) / 2) * 0.4,
+  ];
+  return Array.from({ length: samples + 1 }, (_, index) => {
+    const t = index / samples;
+    const u = 1 - t;
+    return [
+      u * u * from[0] + 2 * u * t * control[0] + t * t * to[0],
+      u * u * from[1] + 2 * u * t * control[1] + t * t * to[1],
+      u * u * from[2] + 2 * u * t * control[2] + t * t * to[2],
+    ] as Vec3;
+  });
+}
+
 /** Perspective projection through an orbiting camera looking at the origin. */
 export function project(point: Vec3, camera: Camera, scalePx: number): Projected {
   // World → view: yaw around Y, then pitch around X.
@@ -107,51 +171,86 @@ export function project(point: Vec3, camera: Camera, scalePx: number): Projected
   return { x: x1 * scale * scalePx, y: y2 * scale * scalePx, scale, depth };
 }
 
-export const EXCEPTION = {
-  body: 5,
-  period: 14,
-  legIn: [4, 6.4] as const,
-  hold: [6.4, 7.6] as const,
-  legOut: [7.6, 10] as const,
-};
-
 export const easeOut = (t: number) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
 
-/** 0 = on orbit, 1 = at the nucleus, for a time within the exception cycle. */
-export function exceptionProgress(cycleTime: number): number {
-  const t = ((cycleTime % EXCEPTION.period) + EXCEPTION.period) % EXCEPTION.period;
-  if (t > EXCEPTION.legIn[0] && t <= EXCEPTION.legIn[1]) {
-    return easeOut((t - EXCEPTION.legIn[0]) / (EXCEPTION.legIn[1] - EXCEPTION.legIn[0]));
+/** A run of consecutive projected points on one side of the nucleus. */
+export type StrokeChunk = {
+  points: Projected[];
+  meanDepth: number;
+  meanScale: number;
+  /** true = nearer than the nucleus (paints over it). */
+  front: boolean;
+};
+
+/** Split a projected polyline where it crosses the nucleus depth. */
+export function splitByNucleusDepth(points: Projected[], nucleusDepth: number): StrokeChunk[] {
+  const chunks: StrokeChunk[] = [];
+  let current: Projected[] = [];
+  let front = points[0] ? points[0].depth <= nucleusDepth : true;
+  const flush = () => {
+    if (current.length < 2) return;
+    const meanDepth = current.reduce((sum, p) => sum + p.depth, 0) / current.length;
+    const meanScale = current.reduce((sum, p) => sum + p.scale, 0) / current.length;
+    chunks.push({ points: current, meanDepth, meanScale, front });
+  };
+  for (const point of points) {
+    const pointFront = point.depth <= nucleusDepth;
+    if (pointFront !== front && current.length) {
+      current.push(point); // share the crossing point so chunks join
+      flush();
+      current = [point];
+      front = pointFront;
+    } else {
+      current.push(point);
+    }
   }
-  if (t > EXCEPTION.hold[0] && t <= EXCEPTION.hold[1]) return 1;
-  if (t > EXCEPTION.legOut[0] && t <= EXCEPTION.legOut[1]) {
-    return 1 - easeOut((t - EXCEPTION.legOut[0]) / (EXCEPTION.legOut[1] - EXCEPTION.legOut[0]));
-  }
-  return 0;
+  flush();
+  return chunks;
 }
 
 export type ResolvedScene = {
-  paths: { points: Projected[]; }[];
-  bodies: (Projected & { size: number; kind: OrbitBody["kind"] })[];
+  orbitChunks: StrokeChunk[];
+  threadChunks: StrokeChunk[];
+  bodies: (Projected & { size: number; id: DomainId; label: string })[];
   nucleus: Projected & { radius: number };
 };
 
 /**
  * The field at rest for the server-rendered SVG poster: default camera,
- * no exception in flight, bodies at their home phases.
+ * domains at their home phases, threads woven, chunks split at the
+ * nucleus depth so the poster occludes exactly like the canvas.
  */
 export function resolvedScene(scalePx: number, samples = 120): ResolvedScene {
-  const paths = ORBITS.map((orbit) => ({
-    points: Array.from({ length: samples + 1 }, (_, index) =>
-      project(pointOnOrbit(orbit, index / samples), DEFAULT_CAMERA, scalePx),
+  const nucleusProjected = project([0, 0, 0], DEFAULT_CAMERA, scalePx);
+  const nucleus = { ...nucleusProjected, radius: 8 * nucleusProjected.scale };
+
+  const orbitChunks = ORBITS.flatMap((orbit) =>
+    splitByNucleusDepth(
+      Array.from({ length: samples + 1 }, (_, index) =>
+        project(pointOnOrbit(orbit, index / samples), DEFAULT_CAMERA, scalePx),
+      ),
+      nucleus.depth,
     ),
-  }));
-  const bodies = BODIES.map((body) => {
-    const projected = project(pointOnOrbit(ORBITS[body.orbit], body.phase), DEFAULT_CAMERA, scalePx);
-    return { ...projected, size: body.size * projected.scale, kind: body.kind };
+  );
+
+  const home = new Map(
+    DOMAINS.map((domain) => [domain.id, pointOnOrbit(ORBITS[domain.orbit], domain.phase)]),
+  );
+  const threadChunks = LINKS.flatMap(([fromId, toId]) =>
+    splitByNucleusDepth(
+      threadPoints(home.get(fromId)!, home.get(toId)!).map((point) =>
+        project(point, DEFAULT_CAMERA, scalePx),
+      ),
+      nucleus.depth,
+    ),
+  );
+
+  const bodies = DOMAINS.map((domain) => {
+    const projected = project(home.get(domain.id)!, DEFAULT_CAMERA, scalePx);
+    return { ...projected, size: domain.size, id: domain.id, label: domain.label };
   }).sort((first, second) => second.depth - first.depth);
-  const nucleus = project([0, 0, 0], DEFAULT_CAMERA, scalePx);
-  return { paths, bodies, nucleus: { ...nucleus, radius: 8 * nucleus.scale } };
+
+  return { orbitChunks, threadChunks, bodies, nucleus };
 }
 
 /** Depth-cued ink alpha for paths and bodies: near is present, far recedes. */
