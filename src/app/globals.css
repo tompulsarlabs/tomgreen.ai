@@ -223,6 +223,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .resolve-lines .line-mask > span > span { display: block; }
 .constraint-line { word-spacing: var(--constraint-word-space, 0); }
 .release-line { max-width: 14ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
+/* The middle line grew to a sentence — it takes the release line's
+   display step so the linear document stays inside two viewports on
+   every renderer. */
+.system-line { max-width: 15ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
 .home-resolve-support {
   display: flex;
   justify-content: space-between;
