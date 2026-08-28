@@ -5,11 +5,12 @@
  * fallback is the same drawing at its resolved state, not a screenshot.
  *
  * The model is the owner's operating range, drawn honestly as a concept:
- * ten operating domains — talent, ops, growth, revenue, product,
- * engineering, HR tech, building, AI, agents — orbit one nucleus (the
- * operating model), joined by the threads that make them one connected
- * system. The caption outside the canvas carries that meaning in real
- * text; nothing here claims live data, so every body is ink.
+ * talent is the centre of gravity — exceptional people build exceptional
+ * companies — and ten domains orbit it: ops, growth, revenue, product,
+ * engineering, HR tech, building, AI, agents, and human judgment, joined
+ * by the threads that make them one connected system. The caption outside
+ * the canvas carries that meaning in real text; nothing here claims live
+ * data, so every body is ink.
  */
 
 export type Vec3 = [number, number, number];
@@ -27,7 +28,7 @@ export type Orbit = {
 };
 
 export type DomainId =
-  | "talent"
+  | "judgment"
   | "ops"
   | "growth"
   | "revenue"
@@ -79,20 +80,29 @@ export const DOMAINS: Domain[] = [
   { id: "product", label: "Product", orbit: 1, phase: 0.12, size: 4.0, quote: "Build the smallest thing that teaches the most." },
   { id: "eng", label: "Engineering", orbit: 1, phase: 0.45, size: 3.6, quote: "Speed lives in the codebase." },
   { id: "growth", label: "Growth", orbit: 1, phase: 0.78, size: 3.4, quote: "Distribution is a design problem." },
-  { id: "talent", label: "Talent", orbit: 2, phase: 0.2, size: 4.2, quote: "Hiring is the first system decision." },
+  { id: "judgment", label: "Human judgment", orbit: 2, phase: 0.2, size: 4.0, quote: "Exceptions come to a person." },
   { id: "ops", label: "Ops", orbit: 2, phase: 0.55, size: 3.6, quote: "Cadence beats heroics." },
   { id: "building", label: "Building", orbit: 2, phase: 0.88, size: 3.4, quote: "Companies are systems you can design." },
 ];
 
+/**
+ * The nucleus — talent, the centre of gravity. The single-lever
+ * differentiator: everything else in the field is built by the people
+ * this centre attracts.
+ */
+export const NUCLEUS_ID = "talent" as const;
+export const NUCLEUS_LABEL = "Talent";
 /** The nucleus speaks too. Owner-editable copy. */
-export const NUCLEUS_QUOTE = "Exceptions come to a person.";
+export const NUCLEUS_QUOTE = "Exceptional people build exceptional companies.";
+/** Base nucleus radius in px at scale 1. */
+export const NUCLEUS_RADIUS = 9.5;
 
 /** The interconnection the drawing exists to show: related domain pairs. */
 export const LINKS: [DomainId, DomainId][] = [
-  ["talent", "hr-tech"],
-  ["talent", "ops"],
-  ["talent", "growth"],
-  ["talent", "ai"],
+  ["judgment", "hr-tech"],
+  ["judgment", "ops"],
+  ["judgment", "growth"],
+  ["judgment", "ai"],
   ["ops", "agents"],
   ["ops", "revenue"],
   ["ops", "hr-tech"],
@@ -222,7 +232,7 @@ export type ResolvedScene = {
  */
 export function resolvedScene(scalePx: number, samples = 120): ResolvedScene {
   const nucleusProjected = project([0, 0, 0], DEFAULT_CAMERA, scalePx);
-  const nucleus = { ...nucleusProjected, radius: 8 * nucleusProjected.scale };
+  const nucleus = { ...nucleusProjected, radius: NUCLEUS_RADIUS * nucleusProjected.scale };
 
   const orbitChunks = ORBITS.flatMap((orbit) =>
     splitByNucleusDepth(

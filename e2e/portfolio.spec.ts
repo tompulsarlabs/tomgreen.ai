@@ -575,10 +575,10 @@ test("the Operating Orbit runs with motion and falls back to its poster", async 
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
   await expect(page.locator(".orbit-poster")).toBeHidden();
   await expect(page.locator(".orbit-field")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.getByText(/Conceptual — ten operating domains/)).toBeVisible();
+  await expect(page.getByText(/Conceptual — ten domains in orbit around one centre of gravity: talent/)).toBeVisible();
   // Every domain name exists as real text, and as a wake nameplate.
-  await expect(page.getByText(/Talent · Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents/)).toBeVisible();
-  // Ten domain nameplates plus the nucleus — human judgment — and a
+  await expect(page.getByText(/Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents · Human judgment/)).toBeVisible();
+  // Ten domain nameplates plus the nucleus — talent — and a
   // pinnable one-line note for each.
   await expect(page.locator(".orbit-label")).toHaveCount(11);
   await expect(page.locator(".orbit-quote")).toHaveCount(11);
@@ -629,11 +629,10 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
-  // The only canvases on the route belong to the aria-hidden Operating
-  // Orbit (drawing + ink-mist atmosphere); the pre-signature "no canvas"
-  // contract was superseded by owner decision.
-  await expect(page.locator("canvas")).toHaveCount(2);
-  await expect(page.locator(".orbit-field canvas")).toHaveCount(2);
+  // The only canvas on the route is the aria-hidden Operating Orbit;
+  // the pre-signature "no canvas" contract was superseded by owner decision.
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect(page.locator(".orbit-field canvas")).toHaveCount(1);
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 

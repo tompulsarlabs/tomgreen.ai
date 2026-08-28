@@ -1,7 +1,8 @@
 import { OperatingOrbitCanvas } from "./operating-orbit-canvas";
-import { OrbitMist } from "./orbit-mist";
 import {
   DOMAINS,
+  NUCLEUS_ID,
+  NUCLEUS_LABEL,
   NUCLEUS_QUOTE,
   depthAlpha,
   resolvedScene,
@@ -17,9 +18,9 @@ function chunkPath(chunk: StrokeChunk, cx: number, cy: number): string {
 }
 
 /**
- * The Operating Orbit — the Systems signature. Ten operating domains and
- * the threads that connect them, executing agentically around one centre
- * of human judgment. The server renders the field at its resolved state
+ * The Operating Orbit — the Systems signature. Ten domains and the
+ * threads that connect them, in orbit around one centre of gravity:
+ * talent. The server renders the field at its resolved state
  * as inline SVG — named, connected, occluded — so no-JS, reduced-motion
  * and Save-Data visitors get the same drawing with zero script; the
  * client canvas replaces it only when motion is allowed. The canvas and
@@ -84,7 +85,6 @@ export function OperatingOrbit() {
 
   return (
     <div className="orbit-field" aria-hidden="true">
-      <OrbitMist />
       <svg
         className="orbit-poster"
         viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
@@ -121,7 +121,7 @@ export function OperatingOrbit() {
           fontSize="9.5"
           fill="rgba(16, 20, 16, 0.85)"
         >
-          HUMAN JUDGMENT
+          {NUCLEUS_LABEL.toUpperCase()}
         </text>
         {strokeChunks(scene.orbitChunks, true, false)}
         {strokeChunks(scene.threadChunks, true, true)}
@@ -133,15 +133,15 @@ export function OperatingOrbit() {
             {domain.label}
           </span>
         ))}
-        <span className="record orbit-label" data-domain="judgment">
-          Human judgment
+        <span className="record orbit-label" data-domain={NUCLEUS_ID}>
+          {NUCLEUS_LABEL}
         </span>
         {DOMAINS.map((domain) => (
           <span key={`q-${domain.id}`} className="orbit-quote" data-domain={domain.id}>
             {domain.quote}
           </span>
         ))}
-        <span className="orbit-quote" data-domain="judgment">
+        <span className="orbit-quote" data-domain={NUCLEUS_ID}>
           {NUCLEUS_QUOTE}
         </span>
       </div>

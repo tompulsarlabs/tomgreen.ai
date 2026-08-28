@@ -5,6 +5,8 @@ import {
   DEFAULT_CAMERA,
   DOMAINS,
   LINKS,
+  NUCLEUS_ID,
+  NUCLEUS_RADIUS,
   ORBITS,
   PITCH_LIMIT,
   depthAlpha,
@@ -34,8 +36,8 @@ type Primitive =
   | { kind: "disc"; x: number; y: number; r: number; depth: number }
   | { kind: "ring"; x: number; y: number; r: number; depth: number };
 
-/** Everything wakeable: the ten domains, plus the nucleus — judgment. */
-type WakeId = DomainId | "judgment";
+/** Everything wakeable: the ten domains, plus the nucleus — talent. */
+type WakeId = DomainId | typeof NUCLEUS_ID;
 
 /** An ink particle from the exhale — screen-space, short-lived. */
 type Wisp = {
@@ -137,14 +139,14 @@ export function OperatingOrbitCanvas() {
 
     // Wake state: hover wakes, click/tap pins (and exhales), the nucleus
     // included; a per-target eased presence drives threads, radii and
-    // nameplates. Waking the nucleus — judgment — lifts every domain.
+    // nameplates. Waking the nucleus — talent — lifts every domain.
     let hoverId: WakeId | null = null;
     let pinnedId: WakeId | null = null;
     let shownQuote: WakeId | null = null;
     let wakeStart = 0;
     const wake = new Map<WakeId, number>([
       ...DOMAINS.map((domain) => [domain.id, 0] as [WakeId, number]),
-      ["judgment", 0],
+      [NUCLEUS_ID, 0],
     ]);
     const projectedBodies = new Map<WakeId, Projected & { r: number }>();
     let downAt: { x: number; y: number; time: number } | null = null;
@@ -303,37 +305,37 @@ export function OperatingOrbitCanvas() {
 
       // The woken target: pointer hover wins, a pinned tap holds otherwise.
       const wokenId = hoverId ?? pinnedId;
-      const judgmentWoken = wokenId === "judgment";
+      const nucleusWoken = wokenId === NUCLEUS_ID;
       const adjacent =
-        wokenId && !judgmentWoken ? LINKS_BY_DOMAIN.get(wokenId as DomainId) : undefined;
+        wokenId && !nucleusWoken ? LINKS_BY_DOMAIN.get(wokenId as DomainId) : undefined;
       let maxWake = 0;
       for (const domain of DOMAINS) {
-        // Judgment touches everything: waking the nucleus lifts all domains.
+        // Talent builds everything: waking the nucleus lifts all domains.
         const target =
-          domain.id === wokenId ? 1 : judgmentWoken ? 0.35 : adjacent?.has(domain.id) ? 0.45 : 0;
+          domain.id === wokenId ? 1 : nucleusWoken ? 0.35 : adjacent?.has(domain.id) ? 0.45 : 0;
         const current = wake.get(domain.id)!;
         const next = current + (target - current) * Math.min(1, dt * 8);
         wake.set(domain.id, next);
         if (next > maxWake) maxWake = next;
       }
-      const judgmentPrevious = wake.get("judgment")!;
-      const judgmentWake =
-        judgmentPrevious + ((judgmentWoken ? 1 : 0) - judgmentPrevious) * Math.min(1, dt * 8);
-      wake.set("judgment", judgmentWake);
+      const nucleusPrevious = wake.get(NUCLEUS_ID)!;
+      const nucleusWake =
+        nucleusPrevious + ((nucleusWoken ? 1 : 0) - nucleusPrevious) * Math.min(1, dt * 8);
+      wake.set(NUCLEUS_ID, nucleusWake);
       // The nucleus never dims the field — it illuminates it.
-      const dimWake = judgmentWoken ? 0 : maxWake;
+      const dimWake = nucleusWoken ? 0 : maxWake;
       const wakeElapsed = (now - wakeStart) / 1000;
 
       primitives.length = 0;
 
-      // Nucleus: a paper disc (the occluder) under an ink ring — human
-      // judgment, at the centre of everything, wakeable like the domains.
+      // Nucleus: a paper disc (the occluder) under an ink ring — talent,
+      // the centre of gravity, wakeable like the domains.
       const nucleus = project([0, 0, 0], camera, scalePx);
-      const nucleusRadius = (8 + 1.6 * judgmentWake) * nucleus.scale;
+      const nucleusRadius = (NUCLEUS_RADIUS + 1.6 * nucleusWake) * nucleus.scale;
       primitives.push({ kind: "disc", x: nucleus.x, y: nucleus.y, r: nucleusRadius + 1.5, depth: nucleus.depth });
       primitives.push({ kind: "ring", x: nucleus.x, y: nucleus.y, r: nucleusRadius, depth: nucleus.depth });
       projectedBodies.clear();
-      projectedBodies.set("judgment", { ...nucleus, r: nucleusRadius });
+      projectedBodies.set(NUCLEUS_ID, { ...nucleus, r: nucleusRadius });
 
       // Orbit paths: per-segment depth fade + perspective-true ink weight.
       for (let orbitIndex = 0; orbitIndex < ORBITS.length; orbitIndex += 1) {
@@ -386,7 +388,7 @@ export function OperatingOrbitCanvas() {
             const depth = (previous.depth + current.depth) / 2;
             const scaleAvg = (previous.scale + current.scale) / 2;
             const idleAlpha =
-              depthAlpha(depth, 0.1, 0.02) * latticeIn * (1 - 0.45 * dimWake) * (1 + 1.1 * judgmentWake);
+              depthAlpha(depth, 0.1, 0.02) * latticeIn * (1 - 0.45 * dimWake) * (1 + 1.1 * nucleusWake);
             const wokenAlpha = depthAlpha(depth, 0.55, 0.14);
             primitives.push({
               kind: "seg",
