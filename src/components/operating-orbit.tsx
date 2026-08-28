@@ -11,6 +11,14 @@ import {
 
 const VIEW = { width: 1000, height: 640 };
 
+/** Darken a hex colour for a sphere's shadowed rim. */
+function shade(hex: string, factor: number): string {
+  const value = parseInt(hex.slice(1), 16);
+  const channel = (shift: number) =>
+    Math.min(255, Math.max(0, Math.round(((value >> shift) & 255) * factor)));
+  return `#${((1 << 24) + (channel(16) << 16) + (channel(8) << 8) + channel(0)).toString(16).slice(1)}`;
+}
+
 function chunkPath(chunk: StrokeChunk, cx: number, cy: number): string {
   return chunk.points
     .map((point, index) => `${index ? "L" : "M"}${(cx + point.x).toFixed(1)} ${(cy + point.y).toFixed(1)}`)
@@ -62,7 +70,7 @@ export function OperatingOrbit() {
           key={`${kind}-${front ? "f" : "b"}-${index}`}
           d={chunkPath(chunk, cx, cy)}
           fill="none"
-          stroke={`rgba(16, 20, 16, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
+          stroke={`rgba(242, 243, 239, ${depthAlpha(chunk.meanDepth, near, far).toFixed(3)})`}
           strokeWidth={(weight * chunk.meanScale * chunk.meanScale).toFixed(2)}
         />
       ));
@@ -77,14 +85,14 @@ export function OperatingOrbit() {
             cx={cx + body.x}
             cy={cy + body.y}
             r={(body.size * body.scale * body.scale).toFixed(2)}
-            fill="url(#orb-sphere)"
+            fill={`url(#orb-${body.id})`}
           />
           <text
             x={(cx + body.x + body.size * body.scale * body.scale + 6).toFixed(1)}
             y={(cy + body.y + 3).toFixed(1)}
             className="orbit-svg-label"
             fontSize={(9.5 * body.scale).toFixed(1)}
-            fill={`rgba(16, 20, 16, ${depthAlpha(body.depth, 0.85, 0.3).toFixed(3)})`}
+            fill={`rgba(242, 243, 239, ${depthAlpha(body.depth, 0.85, 0.3).toFixed(3)})`}
           >
             {body.label.toUpperCase()}
           </text>
@@ -99,18 +107,20 @@ export function OperatingOrbit() {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Graphite sphere shading: paper-bright specular core to full
-              ink at the rim — monochrome, never a new hue. */}
-          <radialGradient id="orb-sphere" cx="0.32" cy="0.26" r="1">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.92" />
-            <stop offset="0.32" stopColor="#101410" stopOpacity="0.8" />
-            <stop offset="1" stopColor="#101410" stopOpacity="1" />
-          </radialGradient>
-          {/* The nucleus: a polished paper stone. */}
+          {/* Planetary sphere shading: a lit specular core into each
+              domain's own mineral colour, darkening at the rim. */}
+          {DOMAINS.map((domain) => (
+            <radialGradient key={`g-${domain.id}`} id={`orb-${domain.id}`} cx="0.32" cy="0.26" r="1">
+              <stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
+              <stop offset="0.42" stopColor={domain.color} />
+              <stop offset="1" stopColor={shade(domain.color, 0.5)} />
+            </radialGradient>
+          ))}
+          {/* The nucleus: polished obsidian. */}
           <radialGradient id="orb-stone" cx="0.35" cy="0.3" r="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="0.55" stopColor="#ffffff" />
-            <stop offset="1" stopColor="#deded8" />
+            <stop offset="0" stopColor="#5c615a" />
+            <stop offset="0.4" stopColor="#1d201d" />
+            <stop offset="1" stopColor="#121412" />
           </radialGradient>
         </defs>
         {/* The fabric is the ground layer: all of it paints behind the field. */}
@@ -123,7 +133,7 @@ export function OperatingOrbit() {
           cx={cx + scene.nucleus.x}
           cy={cy + scene.nucleus.y}
           r={scene.nucleus.radius + 1.5}
-          fill="#ffffff"
+          fill="#0c0d0c"
         />
         <circle
           cx={cx + scene.nucleus.x}
@@ -136,7 +146,7 @@ export function OperatingOrbit() {
           cy={cy + scene.nucleus.y}
           r={scene.nucleus.radius}
           fill="none"
-          stroke="rgba(16, 20, 16, 0.9)"
+          stroke="rgba(242, 243, 239, 0.9)"
           strokeWidth="2"
         />
         <text
@@ -144,7 +154,7 @@ export function OperatingOrbit() {
           y={(cy + scene.nucleus.y + 3).toFixed(1)}
           className="orbit-svg-label"
           fontSize="9.5"
-          fill="rgba(16, 20, 16, 0.85)"
+          fill="rgba(242, 243, 239, 0.85)"
         >
           {NUCLEUS_LABEL.toUpperCase()}
         </text>

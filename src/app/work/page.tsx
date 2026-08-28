@@ -86,10 +86,10 @@ export default function WorkIndex() {
         <div>
           <p className="axis-heading">Want the operating logic, not just the result?</p>
           <p className="work-next-lead">
-            The systems map connects the agent workflows, products, case studies and public build record behind this work.
+            The Lab connects the agent workflows, products, case studies and public build record behind this work.
           </p>
         </div>
-        <Link href="/building" className="action action-light">Explore the systems →</Link>
+        <Link href="/building" className="action action-light">Explore the Lab →</Link>
       </aside>
     </div>
   );

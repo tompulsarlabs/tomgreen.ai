@@ -141,7 +141,7 @@ export default function ContactPage() {
             See the work →
           </Link>
           <Link href="/building" className="inline-flex min-h-11 items-center text-ink hover:underline">
-            Explore the systems →
+            Explore the Lab →
           </Link>
         </div>
       </aside>

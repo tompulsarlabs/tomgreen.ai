@@ -77,7 +77,7 @@ export default async function Home() {
             <p>
               Explore the agents, products, talent systems and craft behind the outcomes as one connected map.
             </p>
-            <Link href="/building" className="action action-dark">Enter the systems map →</Link>
+            <Link href="/building" className="action action-dark">Enter the Lab →</Link>
           </div>
         </section>
       </Reveal>

@@ -13,7 +13,7 @@ import {
   travelIntensity,
 } from "@/lib/corridor-motion";
 
-const INK = "16, 20, 16";
+const INK = "242, 243, 239";
 const STREAKS = buildStreaks(56);
 
 /**
@@ -264,7 +264,7 @@ export function CareerCorridor({
                       )}
                       {slug && systems.has(slug) && (
                         <Link href={`/building#${slug}`} className="text-link">
-                          In the systems map ↗
+                          In the Lab ↗
                         </Link>
                       )}
                     </p>

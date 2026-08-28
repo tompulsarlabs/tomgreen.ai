@@ -46,6 +46,8 @@ export type Domain = {
   phase: number;
   /** Base radius in px at scale 1. */
   size: number;
+  /** Real planetary colour — mineral, believable, never neon. */
+  color: string;
   /** One-line method voice, shown on pin. Owner-editable copy. */
   quote: string;
 };
@@ -73,16 +75,16 @@ export const ORBITS: Orbit[] = [
 ];
 
 export const DOMAINS: Domain[] = [
-  { id: "revenue", label: "Revenue", orbit: 0, phase: 0.05, size: 3.6, quote: "The model must pay for itself." },
-  { id: "hr-tech", label: "HR tech", orbit: 0, phase: 0.3, size: 3.2, quote: "Tools encode the process. Choose deliberately." },
-  { id: "ai", label: "AI", orbit: 0, phase: 0.55, size: 4.2, quote: "Leverage, pointed by judgment." },
-  { id: "agents", label: "Agents", orbit: 0, phase: 0.8, size: 3.6, quote: "Agents run the repeatable." },
-  { id: "product", label: "Product", orbit: 1, phase: 0.12, size: 4.0, quote: "Build the smallest thing that teaches the most." },
-  { id: "eng", label: "Engineering", orbit: 1, phase: 0.45, size: 3.6, quote: "Speed lives in the codebase." },
-  { id: "growth", label: "Growth", orbit: 1, phase: 0.78, size: 3.4, quote: "Distribution is a design problem." },
-  { id: "judgment", label: "Human judgment", orbit: 2, phase: 0.2, size: 4.0, quote: "Exceptions come to a person." },
-  { id: "ops", label: "Ops", orbit: 2, phase: 0.55, size: 3.6, quote: "Cadence beats heroics." },
-  { id: "building", label: "Building", orbit: 2, phase: 0.88, size: 3.4, quote: "Companies are systems you can design." },
+  { id: "revenue", label: "Revenue", orbit: 0, phase: 0.05, size: 3.6, color: "#d4b26a", quote: "The model must pay for itself." },
+  { id: "hr-tech", label: "HR tech", orbit: 0, phase: 0.3, size: 3.2, color: "#8e9aa6", quote: "Tools encode the process. Choose deliberately." },
+  { id: "ai", label: "AI", orbit: 0, phase: 0.55, size: 4.2, color: "#9fd4d9", quote: "Leverage, pointed by judgment." },
+  { id: "agents", label: "Agents", orbit: 0, phase: 0.8, size: 3.6, color: "#c1653f", quote: "Agents run the repeatable." },
+  { id: "product", label: "Product", orbit: 1, phase: 0.12, size: 4.0, color: "#5b8bc9", quote: "Build the smallest thing that teaches the most." },
+  { id: "eng", label: "Engineering", orbit: 1, phase: 0.45, size: 3.6, color: "#7d8894", quote: "Speed lives in the codebase." },
+  { id: "growth", label: "Growth", orbit: 1, phase: 0.78, size: 3.4, color: "#7ba36a", quote: "Distribution is a design problem." },
+  { id: "judgment", label: "Human judgment", orbit: 2, phase: 0.2, size: 4.0, color: "#ddd0b4", quote: "Exceptions come to a person." },
+  { id: "ops", label: "Ops", orbit: 2, phase: 0.55, size: 3.6, color: "#9a938b", quote: "Cadence beats heroics." },
+  { id: "building", label: "Building", orbit: 2, phase: 0.88, size: 3.4, color: "#a4714e", quote: "Companies are systems you can design." },
 ];
 
 /**

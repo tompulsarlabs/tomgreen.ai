@@ -14,12 +14,12 @@ import {
 } from "@/lib/content/graph";
 
 export const metadata: Metadata = {
-  title: "Systems",
+  title: "The Lab",
   description:
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
 
-export const viewport: Viewport = { themeColor: "#ffffff" };
+export const viewport: Viewport = { themeColor: "#0c0d0c" };
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
@@ -99,9 +99,9 @@ export default function Building() {
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
         <OperatingOrbit />
         <div className="systems-hero-copy">
-          <p className="record">Systems</p>
+          <p className="record">The Lab</p>
           <div className="systems-title-row">
-            <h1 id="systems-title" className="axis-display">Systems.</h1>
+            <h1 id="systems-title" className="axis-display">The Lab.</h1>
             <p className="systems-lead">
               The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
             </p>

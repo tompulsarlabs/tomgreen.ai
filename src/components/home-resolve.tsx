@@ -80,7 +80,7 @@ export function HomeResolve() {
         </div>
         <div className="home-actions">
           <Link href="/work" className="action action-dark">View the work →</Link>
-          <Link href="/building" className="action action-light">Explore the systems</Link>
+          <Link href="/building" className="action action-light">Explore the Lab</Link>
         </div>
       </div>
     </section>

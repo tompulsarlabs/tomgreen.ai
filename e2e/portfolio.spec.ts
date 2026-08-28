@@ -72,7 +72,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Build a system that compounds.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View the work →" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore the systems", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Explore the Lab", exact: true })).toBeVisible();
   await expect(page.getByLabel("Selected outcomes")).toContainText("0 → 120");
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
@@ -308,7 +308,7 @@ test("Work hover and keyboard focus resolve the same width state", async ({ page
   await page.mouse.move(0, 0);
   await row.focus();
   await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
-  await expect(row).toHaveCSS("background-color", "rgb(245, 245, 241)");
+  await expect(row).toHaveCSS("background-color", "rgb(19, 21, 19)");
 });
 
 test("Work to case navigation aligns the travelling name with tolerant geometry", async ({ page }) => {
@@ -559,13 +559,13 @@ test("case studies keep the complete editorial record without JavaScript", async
   await context.close();
 });
 
-test("Home and Systems use one continuous white editorial ground", async ({ page }) => {
+test("Home and the Lab use one continuous dark editorial ground", async ({ page }) => {
   await gotoReduced(page, "/");
-  await expect(page.locator(".systems-bridge")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator(".systems-bridge")).toHaveCSS("background-color", "rgb(12, 13, 12)");
 
   await gotoReduced(page, "/building");
-  await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator(".site-header")).toHaveCSS("color", "rgb(16, 20, 16)");
+  await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(12, 13, 12)");
+  await expect(page.locator(".site-header")).toHaveCSS("color", "rgb(242, 243, 239)");
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
@@ -608,7 +608,7 @@ test("the Operating Orbit poster is server-rendered for no-JS visitors", async (
 
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
-  await expect(page.getByRole("heading", { name: "Systems.", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The Lab.", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeAttached();
@@ -720,7 +720,7 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
   await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
   await expect(stations.nth(2).getByRole("link", { name: "Read the case study →" })).toHaveAttribute("href", "/work/zalando");
-  await expect(stations.nth(2).getByRole("link", { name: "In the systems map ↗" })).toHaveAttribute("href", "/building#zalando");
+  await expect(stations.nth(2).getByRole("link", { name: "In the Lab ↗" })).toHaveAttribute("href", "/building#zalando");
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBe(0);
 });
 
