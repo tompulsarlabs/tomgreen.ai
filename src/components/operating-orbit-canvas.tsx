@@ -128,9 +128,12 @@ export function OperatingOrbitCanvas() {
     let hoverPitch = 0;
     let hoverYawTarget = 0;
     let hoverPitchTarget = 0;
-    // Pointer position in field-centred coordinates, for proximity play.
-    let pointerX: number | null = null;
-    let pointerY: number | null = null;
+    // Pointer position in raw field coordinates, for proximity play; the
+    // live anchor (field centre + cluster balance) is applied per frame.
+    let pointerRawX: number | null = null;
+    let pointerRawY: number | null = null;
+    let anchorLiveX = 0;
+    let anchorLiveY = 0;
 
     // Wake state: hover wakes, click/tap pins (and exhales), the nucleus
     // included; a per-target eased presence drives threads, radii and
@@ -167,8 +170,8 @@ export function OperatingOrbitCanvas() {
 
     const nearestDomain = (clientX: number, clientY: number): WakeId | null => {
       const bounds = field.getBoundingClientRect();
-      const px = clientX - bounds.left - centerX;
-      const py = clientY - bounds.top - centerY;
+      const px = clientX - bounds.left - anchorLiveX;
+      const py = clientY - bounds.top - anchorLiveY;
       let best: WakeId | null = null;
       let bestDistance = Infinity;
       for (const [id, p] of projectedBodies) {
@@ -197,8 +200,8 @@ export function OperatingOrbitCanvas() {
     };
     const onPointerMove = (event: PointerEvent) => {
       const bounds = field.getBoundingClientRect();
-      pointerX = event.clientX - bounds.left - centerX;
-      pointerY = event.clientY - bounds.top - centerY;
+      pointerRawX = event.clientX - bounds.left;
+      pointerRawY = event.clientY - bounds.top;
       hoverYawTarget = (((event.clientX - bounds.left) / bounds.width) * 2 - 1) * 0.06;
       hoverPitchTarget = (((event.clientY - bounds.top) / bounds.height) * 2 - 1) * 0.04;
       if (dragging && lastPointer) {
@@ -239,8 +242,8 @@ export function OperatingOrbitCanvas() {
     const onPointerLeave = () => {
       engageTarget = 0;
       hoverId = null;
-      pointerX = null;
-      pointerY = null;
+      pointerRawX = null;
+      pointerRawY = null;
       hoverYawTarget = 0;
       hoverPitchTarget = 0;
     };
@@ -257,6 +260,12 @@ export function OperatingOrbitCanvas() {
     let visible = true;
     let start: number | undefined;
     let lastTime: number | undefined;
+    // The sculpture balances on the field anchor: each frame the cluster's
+    // projected bounding box is re-centred (smoothed), so the drawing
+    // never drifts lopsided as the camera turns.
+    let viewOffsetX = 0;
+    let viewOffsetY = 0;
+    let viewOffsetSettled = false;
 
     const primitives: Primitive[] = [];
 
@@ -400,8 +409,11 @@ export function OperatingOrbitCanvas() {
         const projected = project(positions.get(domain.id)!, camera, scalePx);
         const wakeLevel = wake.get(domain.id)!;
         let proximity = 0;
-        if (pointerX !== null && pointerY !== null && !dragging) {
-          const distance = Math.hypot(projected.x - pointerX, projected.y - pointerY);
+        if (pointerRawX !== null && pointerRawY !== null && !dragging) {
+          const distance = Math.hypot(
+            projected.x - (pointerRawX - anchorLiveX),
+            projected.y - (pointerRawY - anchorLiveY),
+          );
           proximity = clamp(1 - distance / 170, 0, 1) * 0.55;
         }
         const lift = Math.max(wakeLevel, proximity);
@@ -436,12 +448,49 @@ export function OperatingOrbitCanvas() {
         if (p && Math.random() < 0.5) exhale(p.x, p.y, p.r + 2, 1);
       }
 
+      // Balance the sculpture: centre the cluster's projected bounding
+      // box on the field anchor (smoothed), so the drawing stays visually
+      // anchored while the camera turns — the origin alone drifts.
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const primitive of primitives) {
+        if (primitive.kind === "seg") {
+          if (primitive.x1 < minX) minX = primitive.x1;
+          if (primitive.x1 > maxX) maxX = primitive.x1;
+          if (primitive.y1 < minY) minY = primitive.y1;
+          if (primitive.y1 > maxY) maxY = primitive.y1;
+        } else {
+          if (primitive.x - primitive.r < minX) minX = primitive.x - primitive.r;
+          if (primitive.x + primitive.r > maxX) maxX = primitive.x + primitive.r;
+          if (primitive.y - primitive.r < minY) minY = primitive.y - primitive.r;
+          if (primitive.y + primitive.r > maxY) maxY = primitive.y + primitive.r;
+        }
+      }
+      if (Number.isFinite(minX)) {
+        const targetOffsetX = -(minX + maxX) / 2;
+        const targetOffsetY = -(minY + maxY) / 2;
+        if (!viewOffsetSettled) {
+          viewOffsetX = targetOffsetX;
+          viewOffsetY = targetOffsetY;
+          viewOffsetSettled = true;
+        } else {
+          viewOffsetX += (targetOffsetX - viewOffsetX) * Math.min(1, dt * 1.6);
+          viewOffsetY += (targetOffsetY - viewOffsetY) * Math.min(1, dt * 1.6);
+        }
+      }
+      const anchorX = centerX + viewOffsetX;
+      const anchorY = centerY + viewOffsetY;
+      anchorLiveX = anchorX;
+      anchorLiveY = anchorY;
+
       // Paint far → near: occlusion falls out of the ordering.
       primitives.sort((first, second) => second.depth - first.depth);
 
       context.clearRect(0, 0, width, height);
       context.save();
-      context.translate(centerX, centerY);
+      context.translate(anchorX, anchorY);
       context.globalAlpha = 0.25 + 0.75 * assemble;
 
       for (const primitive of primitives) {
@@ -521,10 +570,10 @@ export function OperatingOrbitCanvas() {
           labelWidth = label.offsetWidth;
           if (labelWidth) labelWidths.set(id, labelWidth);
         }
-        const rightX = centerX + p.x + p.r + 7;
+        const rightX = anchorX + p.x + p.r + 7;
         const flip = rightX + labelWidth > width - 6;
-        const x = flip ? centerX + p.x - p.r - 7 - labelWidth : rightX;
-        label.style.transform = `translate3d(${x.toFixed(1)}px, ${(centerY + p.y - 6).toFixed(1)}px, 0) scale(${clamp(p.scale, 0.85, 1.25).toFixed(3)})`;
+        const x = flip ? anchorX + p.x - p.r - 7 - labelWidth : rightX;
+        label.style.transform = `translate3d(${x.toFixed(1)}px, ${(anchorY + p.y - 6).toFixed(1)}px, 0) scale(${clamp(p.scale, 0.85, 1.25).toFixed(3)})`;
         label.style.opacity = opacity.toFixed(3);
       }
 
@@ -533,10 +582,10 @@ export function OperatingOrbitCanvas() {
         const quote = quotes.get(shownQuote);
         const p = projectedBodies.get(shownQuote);
         if (quote && p) {
-          const flip = centerX + p.x > width * 0.62;
+          const flip = anchorX + p.x > width * 0.62;
           const quoteWidth = quote.offsetWidth || 200;
-          const x = flip ? centerX + p.x - p.r - 12 - quoteWidth : centerX + p.x + p.r + 12;
-          quote.style.transform = `translate3d(${x.toFixed(1)}px, ${(centerY + p.y + 12).toFixed(1)}px, 0)`;
+          const x = flip ? anchorX + p.x - p.r - 12 - quoteWidth : anchorX + p.x + p.r + 12;
+          quote.style.transform = `translate3d(${x.toFixed(1)}px, ${(anchorY + p.y + 12).toFixed(1)}px, 0)`;
           quote.style.opacity = "1";
         }
       }

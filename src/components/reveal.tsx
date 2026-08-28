@@ -33,7 +33,9 @@ export function Reveal({
           io.disconnect();
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
+      // Trigger early and gently: content keeps pace with the scroll
+      // instead of arriving late behind it.
+      { threshold: 0.05, rootMargin: "0px 0px -6% 0px" },
     );
     io.observe(el);
     return () => io.disconnect();

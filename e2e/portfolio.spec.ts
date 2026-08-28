@@ -97,9 +97,11 @@ test("Home owns one width-axis cluster at each scroll checkpoint", async ({ page
   await waitForFonts(page);
 
   const hero = page.locator(".home-resolve");
+  // 200svh: the same three-stage choreography (checkpoints are track
+  // fractions) over a shorter pin, so a plain scroll never feels held.
   const journeyRatio = await hero.evaluate((element) => (element as HTMLElement).offsetHeight / window.innerHeight);
-  expect(journeyRatio).toBeGreaterThanOrEqual(2.35);
-  expect(journeyRatio).toBeLessThanOrEqual(2.6);
+  expect(journeyRatio).toBeGreaterThanOrEqual(1.9);
+  expect(journeyRatio).toBeLessThanOrEqual(2.2);
 
   await setSectionProgress(page, ".home-resolve", 0);
   expectWithin(await customProperty(hero, "--axis-constraint"), 62, 0.75);

@@ -199,13 +199,13 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 /* Server-rendered reveal; no-JS and reduced-motion are always complete. */
 @media (prefers-reduced-motion: no-preference) {
-  .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity var(--d-4) var(--ease), transform var(--d-4) var(--ease); transition-delay: var(--reveal-delay, 0ms); }
+  .js .reveal { opacity: 0; transform: translateY(12px); transition: opacity var(--d-3) var(--ease), transform var(--d-3) var(--ease); transition-delay: var(--reveal-delay, 0ms); }
   .js .reveal.is-visible { opacity: 1; transform: none; }
 }
 
 /* Home resolve */
 .home-page { padding-bottom: 5rem; }
-.home-page > .reveal { margin-top: clamp(6rem, 11vw, 10rem); }
+.home-page > .reveal { margin-top: clamp(4.5rem, 7.5vw, 7rem); }
 .home-resolve {
   position: relative;
   left: 50%;
@@ -241,7 +241,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .home-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 3rem; }
 
 @media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
-  .js .home-resolve { height: 240svh; }
+  .js .home-resolve { height: 200svh; }
   .js .home-resolve-stage { position: sticky; top: var(--site-header-h); height: calc(100svh - var(--site-header-h)); padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
   .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 15%; display: block; margin: 0; }
   .js .constraint-line, .js .system-line, .js .release-line { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
@@ -455,7 +455,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: calc(92svh - var(--site-header-h));
+  min-height: calc(84svh - var(--site-header-h));
   border-bottom: 1px solid var(--ink);
   padding: 2.5rem 0 clamp(2rem, 4vw, 3rem);
 }

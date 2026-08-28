@@ -51,8 +51,9 @@ export function stationState(index: number, progress: number, count: number): St
   const offset = (clamp01(progress) - centre) / span; // legs travelled from this stop
   const distance = Math.abs(offset);
   // Presence holds ~1 through the dwell zone around the stop, then falls
-  // away fast so the corridor is empty mid-leg apart from the streaks.
-  const presence = 1 - easeOut(clamp01((distance - 0.12) / 0.55));
+  // away — mid-leg keeps a glimpse of the neighbours (~0.12) so a plain
+  // scroll always shows the next station approaching, never blank road.
+  const presence = 1 - easeOut(clamp01((distance - 0.12) / 0.75));
   const scale =
     offset >= 0
       ? 1 + easeOut(clamp01(offset)) * 0.42 // passed: grows and leaves
