@@ -40,12 +40,12 @@ export default function WorkIndex() {
     <div className="work-index-page">
       <header className="work-index-header">
         <p className="record">Evidence / selected operating records</p>
-        <h1 className="axis-display">Start with the consequence.</h1>
+        <h1 className="axis-display">Weighed by opportunity cost.</h1>
         <p className="work-index-support">
           Organisation building, operating-model design, product operations and founder economics—under real constraints.
         </p>
         <p>
-          Then inspect the mandate, operating logic, judgment and evidence that produced it.
+          Inspect the mandate, operating logic, judgment and evidence behind every decision.
         </p>
         <dl className="work-metric-rail">
           {[
