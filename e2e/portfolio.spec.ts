@@ -47,6 +47,20 @@ function expectWithin(actual: number, expected: number, tolerance: number) {
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
 }
 
+async function inkedCanvasPixels(page: Page, selector: string) {
+  return page.locator(selector).evaluate((element) => {
+    const canvas = element as HTMLCanvasElement;
+    const context = canvas.getContext("2d");
+    if (!context || !canvas.width || !canvas.height) return 0;
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let inked = 0;
+    for (let index = 3; index < data.length; index += 4) {
+      if (data[index] > 8) inked += 1;
+    }
+    return inked;
+  });
+}
+
 test("Home presents the complete Load-Bearing Type journey", async ({ page }) => {
   await gotoReduced(page, "/");
 
@@ -65,9 +79,6 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
 
 test("Home restores the live execution record with its methodology caveat", async ({ page }) => {
   await gotoReduced(page, "/");
-  const proof = page.getByRole("region", { name: "Execution in public" }).or(
-    page.locator("section", { has: page.getByRole("heading", { name: "I build—and ship—at speed." }) }),
-  ).first();
   await expect(page.getByRole("heading", { name: "I build—and ship—at speed." })).toBeVisible();
   await expect(page.getByText("Ship streak", { exact: true })).toBeVisible();
   await expect(page.getByText(/A ship day is verified, non-bot work on a real project/)).toBeVisible();
@@ -629,12 +640,87 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   await context.close();
 });
 
-test("About is complete and linear in the local working environment", async ({ page }) => {
+test("About under reduced motion is the complete linear record", async ({ page }) => {
   await gotoReduced(page, "/about");
   await expect(page.getByRole("heading", { name: "The work, in sequence." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Zalando/ })).toBeVisible();
-  await expect(page.locator('[aria-label="Interactive CV, reverse chronological"]')).toHaveCount(0);
+  const corridor = page.locator('[aria-label="Interactive CV, reverse chronological"]');
+  await expect(corridor).toBeVisible();
+  await expect(corridor).not.toHaveAttribute("data-live", "true");
+  // The corridor's own DOM is the fallback: every station and every
+  // achievement present, nothing gated, no canvas, no rail.
+  await expect(corridor.locator(".corridor-station")).toHaveCount(7);
+  await expect(corridor.locator(".station-achievements li")).toHaveCount(13);
+  await expect(corridor.getByRole("heading", { name: "Zalando" })).toBeVisible();
+  await expect(corridor.getByText(/Rated Delivering Breakthroughs/)).toBeVisible();
+  await expect(corridor.locator(".corridor-canvas")).toBeHidden();
+  await expect(corridor.locator(".corridor-rail")).toBeHidden();
+  // The retired pre-recovery implementation stays retired.
   await expect(page.locator("[data-career-hyperspace]")).toHaveCount(0);
+});
+
+test("About without JavaScript serves the complete linear CV", async ({ browser }) => {
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { width: 1280, height: 900 },
+  });
+  const page = await context.newPage();
+  await page.goto("/about");
+  const corridor = page.locator(".career-corridor");
+  await expect(corridor).not.toHaveAttribute("data-live", "true");
+  await expect(corridor.locator(".corridor-station")).toHaveCount(7);
+  await expect(corridor.locator(".station-achievements li")).toHaveCount(13);
+  await expect(corridor.locator(".corridor-canvas")).toBeHidden();
+  await expect(corridor.locator(".corridor-rail")).toBeHidden();
+  await context.close();
+});
+
+test("the career corridor travels between stations and stops resolved", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/about");
+  await waitForFonts(page);
+  const corridor = page.locator(".career-corridor");
+  await expect(corridor).toHaveAttribute("data-live", "true");
+  const stations = corridor.locator(".corridor-station");
+  await expect(corridor.locator(".corridor-rail button")).toHaveCount(7);
+
+  // Parked at the first station: fully resolved, the rest inert for AT.
+  await setSectionProgress(page, ".corridor-track", 0);
+  await expect(stations.first()).toHaveClass(/is-stop/);
+  await expect.poll(() => customProperty(stations.first(), "--station-axis")).toBeGreaterThan(99);
+  await expect(stations.nth(1)).toHaveAttribute("inert", "");
+  await expect(corridor.locator(".corridor-rail button").first()).toHaveAttribute("aria-current", "true");
+
+  // Mid-leg the stations empty out and the streak field carries the travel.
+  await setSectionProgress(page, ".corridor-track", 5 / 12);
+  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
+  await expect.poll(() => customProperty(stations.nth(2), "--presence"), { timeout: 6000 }).toBeLessThan(0.2);
+  // No station is interactive mid-leg — an invisible station must never
+  // swallow the travel scroll with its own overflow.
+  await expect(page.locator(".corridor-station.is-stop")).toHaveCount(0);
+
+  // Arriving at Zalando: resolved to wdth 100, linked to the evidence,
+  // and the canvas settles back to stillness.
+  await setSectionProgress(page, ".corridor-track", 2 / 6);
+  await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
+  await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
+  await expect(stations.nth(2).getByRole("link", { name: "Read the case study →" })).toHaveAttribute("href", "/work/zalando");
+  await expect(stations.nth(2).getByRole("link", { name: "In the systems map ↗" })).toHaveAttribute("href", "/building#zalando");
+  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBe(0);
+});
+
+test("the corridor year rail jumps the traveller to a chosen station", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/about");
+  await waitForFonts(page);
+  const corridor = page.locator(".career-corridor");
+  await expect(corridor).toHaveAttribute("data-live", "true");
+  const rail = corridor.locator(".corridor-rail button");
+  await rail.nth(2).click();
+  await expect(corridor.locator(".corridor-station").nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
+  await expect(rail.nth(2)).toHaveAttribute("aria-current", "true");
+  await expect(rail.first()).toHaveAttribute("aria-current", "false");
 });
 
 test("About masthead and introduction do not intersect at 1440px", async ({ page }) => {

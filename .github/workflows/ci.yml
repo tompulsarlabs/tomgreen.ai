@@ -21,3 +21,9 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # Content-regression guard: no route may silently lose its rendered
+      # text. Refresh intentionally with `node e2e/content-guard.mjs --update`.
+      - run: |
+          npm run start -- -p 3100 -H 127.0.0.1 &
+          for attempt in $(seq 1 30); do curl -sf http://127.0.0.1:3100 > /dev/null && break; sleep 1; done
+          npm run test:content
