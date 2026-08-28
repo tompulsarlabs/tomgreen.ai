@@ -348,17 +348,22 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
 
 test("reduced-motion header, row and in-content navigation use the direct fallback", async ({ page }) => {
   const journeys = [
-    // The chrome is gone: poster planets are the doors on every landing —
-    // SVG links, so they take a native click (SVGAElement has no .click()).
+    // Poster planets remain direct doors on every landing — SVG links, so
+    // they take a native click (SVGAElement has no .click()).
     { from: "/", selector: '.orbit-poster a[href="/work"]', to: "/work", native: true },
     { from: "/work", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
     { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
-    // The greeting always returns to the landing.
-    { from: "/work", selector: "a.brand-mark", to: "/" },
+    // The expanded island keeps a direct route back to the landing.
+    { from: "/work", selector: '.island-nav a[href="/"]', to: "/" },
   ];
 
   for (const journey of journeys) {
     await gotoReduced(page, journey.from);
+    if (journey.selector.includes(".island-nav")) {
+      await page.locator("summary.brand-mark").evaluate((element) =>
+        (element as HTMLElement).click(),
+      );
+    }
     if (journey.native) await page.locator(journey.selector).click();
     else await page.locator(journey.selector).evaluate((element) => (element as HTMLElement).click());
     await expect(page.locator(".travelling-name")).toHaveCount(0);
@@ -366,6 +371,76 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
     await expect(page).toHaveURL(journey.to);
     await expect(page.locator("main h1")).toBeVisible();
   }
+});
+
+test("the floating island stays painted when compact and reveals the full navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoReduced(page, "/work");
+
+  const island = page.locator("details.nav-island");
+  const trigger = page.locator("summary.brand-mark");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+
+  await expect(island).not.toHaveAttribute("open", "");
+  await expect(trigger).toContainText("Hi, I’m Tom");
+  const compact = await island.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const bounds = element.getBoundingClientRect();
+    return {
+      width: bounds.width,
+      height: bounds.height,
+      background: style.backgroundColor,
+      borderWidth: Number.parseFloat(style.borderTopWidth),
+      radius: Number.parseFloat(style.borderTopLeftRadius),
+    };
+  });
+  expect(compact.height).toBeGreaterThanOrEqual(44);
+  expect(compact.background).not.toBe("rgba(0, 0, 0, 0)");
+  expect(compact.borderWidth).toBeGreaterThanOrEqual(1);
+  expect(compact.radius).toBeGreaterThanOrEqual(compact.height / 2 - 1);
+
+  await trigger.hover();
+  await expect(island).toHaveAttribute("open", "");
+  await expect(nav.getByRole("link", { name: "Home", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Contact", exact: true })).toBeVisible();
+  const expandedWidth = await island.evaluate((element) => element.getBoundingClientRect().width);
+  expect(compact.width / expandedWidth).toBeLessThanOrEqual(0.27);
+
+  await page.mouse.move(10, 300);
+  await expect(island).not.toHaveAttribute("open", "");
+
+  // A real desktop click enters (and opens) before activating summary. The
+  // native details toggle must not immediately close the island again.
+  await trigger.click();
+  await expect(island).toHaveAttribute("open", "");
+  await page.mouse.click(10, 300);
+  await expect(island).not.toHaveAttribute("open", "");
+
+  // Establish keyboard modality before moving focus to the disclosure.
+  await page.keyboard.press("Tab");
+  await trigger.focus();
+  await expect(trigger).toBeFocused();
+  await expect(island).toHaveAttribute("open", "");
+  const homeLink = nav.getByRole("link", { name: "Home", exact: true });
+  await homeLink.focus();
+  await expect(homeLink).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(island).not.toHaveAttribute("open", "");
+  await expect(trigger).toBeFocused();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoReduced(page, "/work");
+  await trigger.evaluate((element) => (element as HTMLElement).click());
+  await expect(island).toHaveAttribute("open", "");
+  const mobileGeometry = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+    targets: [...document.querySelectorAll(".island-nav a")].map(
+      (link) => link.getBoundingClientRect().height,
+    ),
+  }));
+  expect(mobileGeometry.document).toBeLessThanOrEqual(mobileGeometry.viewport);
+  expect(mobileGeometry.targets.every((height) => height >= 44)).toBe(true);
 });
 
 test("reduced-motion Work to case arrival exposes the headline immediately", async ({ page }) => {
@@ -464,7 +539,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator("a.brand-mark")).toHaveText("Hi, I’m Tom");
+  await expect(page.locator("summary.brand-mark")).toContainText("Hi, I’m Tom");
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 

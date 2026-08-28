@@ -116,25 +116,169 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .action-dark:focus-visible { outline-color: var(--ink); }
 .action-light:hover, .action-light:focus-visible { background: var(--ink); color: var(--paper); }
 
-/* The chrome is gone — a quiet greeting floats over the landing and
-   always leads back to it. z 5 keeps it beneath Home's statement stage
-   (z 6), so it appears with the map. */
-.site-brand { position: absolute; top: 0; right: 0; left: 0; z-index: 5; display: flex; justify-content: center; pointer-events: none; }
-.brand-mark {
-  pointer-events: auto;
-  margin-top: 1.5rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--ink);
-  text-decoration: none;
-  transition: color var(--d-1) var(--ease);
+/* Persistent navigation — a compact, painted island until it is reached.
+   It overlays the current page geometry, so the zero-height layout contract
+   remains intact while the control stays available on every route. */
+.site-brand {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
 }
-.brand-mark:hover, .brand-mark:focus-visible { color: var(--ink); }
-/* Section landings open on the space panel — the greeting goes light. */
-.route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark { color: rgba(242, 246, 252, 0.95); }
-.route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark:hover,
-.route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark:focus-visible { color: #ffffff; }
+.nav-island {
+  --island-compact-w: 8.5rem;
+  --island-open-w: 34rem;
+  display: grid;
+  width: min(var(--island-compact-w), calc(100vw - 24px));
+  height: 3.5rem;
+  margin-top: max(0.75rem, env(safe-area-inset-top));
+  overflow: hidden;
+  color: var(--ink);
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 17%, transparent);
+  border-radius: 999px;
+  box-shadow:
+    0 1px 2px rgba(16, 20, 16, 0.08),
+    0 10px 28px rgba(16, 20, 16, 0.14),
+    0 28px 68px rgba(16, 20, 16, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+  transition:
+    width var(--d-3) var(--ease-settle),
+    height var(--d-3) var(--ease-settle),
+    border-radius var(--d-2) var(--ease),
+    box-shadow var(--d-2) var(--ease),
+    transform var(--d-2) var(--ease);
+}
+.nav-island[open] {
+  width: min(var(--island-open-w), calc(100vw - 24px));
+  grid-template-columns: var(--island-compact-w) minmax(0, 1fr);
+  box-shadow:
+    0 2px 3px rgba(16, 20, 16, 0.09),
+    0 14px 34px rgba(16, 20, 16, 0.16),
+    0 34px 78px rgba(16, 20, 16, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.nav-island:hover { transform: translateY(-1px); }
+.nav-island:active { transform: translateY(0) scale(0.99); }
+.brand-mark {
+  display: flex;
+  min-width: 0;
+  min-height: 3.375rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0 0.9rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  list-style: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.brand-mark::-webkit-details-marker { display: none; }
+.brand-mark::marker { content: ""; }
+.brand-mark:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -5px;
+  border-radius: 999px;
+}
+.nav-island[open] .brand-mark {
+  border-right: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.island-state-mark {
+  width: 0.38rem;
+  height: 0.38rem;
+  flex: 0 0 auto;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.42;
+  transition: transform var(--d-2) var(--ease), opacity var(--d-2) var(--ease);
+}
+.nav-island[open] .island-state-mark {
+  opacity: 0.8;
+  transform: scale(1.35);
+}
+.island-nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.35rem;
+  opacity: 0;
+}
+.nav-island[open] .island-nav {
+  animation: island-nav-arrive var(--d-2) var(--ease) 80ms both;
+}
+@keyframes island-nav-arrive {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: none; }
+}
+.island-link {
+  position: relative;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.7rem;
+  color: var(--ink-secondary);
+  font-size: 0.82rem;
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: 999px;
+  transition: color var(--d-1) var(--ease), background var(--d-1) var(--ease);
+}
+.island-link:hover, .island-link:focus-visible, .island-link[aria-current="page"] {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.island-contact {
+  padding-right: 1rem;
+  padding-left: 1rem;
+  color: var(--paper);
+  background: var(--ink);
+}
+.island-contact:hover, .island-contact:focus-visible, .island-contact[aria-current="page"] {
+  color: var(--paper);
+  background: var(--ink-secondary);
+}
+
+@media (max-width: 640px) {
+  .nav-island[open] {
+    width: calc(100vw - 24px);
+    height: 9.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 3.25rem minmax(0, 1fr);
+    border-radius: 1.75rem;
+  }
+  .nav-island[open] .brand-mark {
+    min-height: 3.25rem;
+    justify-content: space-between;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  }
+  .island-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.15rem;
+    padding: 0.3rem 0.45rem 0.45rem;
+  }
+  .island-link { padding-right: 0.4rem; padding-left: 0.4rem; }
+  .island-contact { grid-column: span 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-island, .island-state-mark, .island-link { transition: none; }
+  .nav-island[open] .island-nav { animation: none; opacity: 1; }
+}
 .contact-title { --axis: 100; font-size: clamp(3.75rem, 8vw, 7rem); line-height: 0.88; }
 .site-footer { background: var(--paper); color: var(--ink); }
 
@@ -222,9 +366,6 @@ body:has(.home-landing) .site-footer { display: none; }
   /* The sequence is a stage over the map: it plays on its own clock,
      then yields — opacity out, hit-testing off, map beneath already
      composed. */
-  .js .route-shell:has(.home-landing) .brand-mark { color: rgba(242, 246, 252, 0.95); }
-  .js .route-shell:has(.home-landing) .brand-mark:hover,
-  .js .route-shell:has(.home-landing) .brand-mark:focus-visible { color: #ffffff; }
   /* z 6: the stage must out-stack the field's canvas and nameplate
      layers (labels carry z 2 and their own contexts). */
   .js .home-resolve { position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; z-index: 6; background: var(--paper); transition: opacity var(--d-4) var(--ease), visibility 0s var(--d-4) linear; }
