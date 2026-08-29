@@ -7,6 +7,7 @@ const requiredRoutes = [
   "/work/zalando",
   "/work/chapter-2",
   "/building",
+  "/voices",
   "/about",
   "/contact",
 ] as const;
@@ -909,6 +910,23 @@ test("About masthead and introduction do not intersect at 1440px", async ({ page
     Math.min(headingBox!.y + headingBox!.height, introBox!.y + introBox!.height) >
       Math.max(headingBox!.y, introBox!.y);
   expect(intersects).toBe(false);
+});
+
+test("Voices stays invisible until someone has actually spoken", async ({ page }) => {
+  // The section, its nav entry and its planet are all gated on real
+  // testimony, so an empty carousel can never reach production.
+  await gotoReduced(page, "/voices");
+  await expect(page.locator(".voices")).toHaveCount(0);
+  await expect(page.getByText(/introduced privately/)).toBeVisible();
+  await gotoReduced(page, "/");
+  await expect(page.locator('.orbit-poster a[href="/voices"]')).toHaveCount(0);
+  // The island is absent from the landing page by design, so the nav is
+  // checked where one exists.
+  await gotoReduced(page, "/work");
+  const island = page.locator(".nav-island");
+  await island.hover();
+  await expect(island.getByRole("link", { name: "Voices" })).toHaveCount(0);
+  await expect(island.getByRole("link", { name: "Work" })).toBeVisible();
 });
 
 test("Contact keeps direct channels and mailto primary", async ({ page }) => {

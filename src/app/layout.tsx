@@ -3,6 +3,7 @@ import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteHeader } from "@/components/site-header";
+import { hasTestimonials } from "@/lib/content/testimonials";
 import { isAboutPublic, isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
 import { RouteTransition } from "@/components/route-transition";
@@ -110,7 +111,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <RouteTransition>
-          <SiteHeader showAbout={isAboutPublic} />
+          <SiteHeader showAbout={isAboutPublic} showVoices={hasTestimonials} />
           <main id="main-content" tabIndex={-1} className="site-main mx-auto w-full max-w-[1360px] flex-1 px-[max(22px,6vw)]">
             {children}
           </main>

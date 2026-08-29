@@ -21,7 +21,7 @@ function PendingMark() {
  * collapses when the pointer leaves, focus moves out, Escape is
  * pressed, or a tap lands elsewhere.
  */
-export function SiteHeader({ showAbout }: { showAbout: boolean }) {
+export function SiteHeader({ showAbout, showVoices }: { showAbout: boolean; showVoices: boolean }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   const [seenPath, setSeenPath] = useState(pathname);
@@ -31,7 +31,10 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
   // a click on the greeting opens the island or travels home.
   const lastPointerType = useRef("mouse");
 
-  const navItems = site.nav.filter((item) => showAbout || item.href !== "/about");
+  const navItems = site.nav.filter(
+    (item) =>
+      (showAbout || item.href !== "/about") && (showVoices || item.href !== "/voices"),
+  );
 
   // A new route always arrives with the island at rest — adjusted during
   // render rather than in an effect, so it never cascades a second pass.

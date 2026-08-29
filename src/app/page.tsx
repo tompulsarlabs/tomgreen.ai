@@ -1,5 +1,6 @@
 import { HomeResolve } from "@/components/home-resolve";
 import { OperatingOrbit } from "@/components/operating-orbit";
+import { hasTestimonials } from "@/lib/content/testimonials";
 import { isAboutPublic } from "@/lib/site-env";
 import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
@@ -9,6 +10,7 @@ export const revalidate = 3600;
 const homeSections = [
   { id: "work", label: "Work", href: "/work" },
   { id: "lab", label: "Lab", href: "/building" },
+  ...(hasTestimonials ? [{ id: "voices", label: "Voices", href: "/voices" }] : []),
   ...(isAboutPublic ? [{ id: "about", label: "About", href: "/about" }] : []),
   { id: "contact", label: "Contact", href: "/contact" },
 ];
