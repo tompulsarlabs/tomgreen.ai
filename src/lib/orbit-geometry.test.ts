@@ -77,11 +77,19 @@ describe("planet styling", () => {
   });
 
   it("varies body sizes inside a tight, deliberate band", () => {
+    const sizes: number[] = [];
     for (let index = 0; index < 10; index += 1) {
       const size = defaultBodySize(index);
-      expect(size).toBeGreaterThanOrEqual(0.088);
-      expect(size).toBeLessThanOrEqual(0.114);
+      expect(size).toBeGreaterThanOrEqual(0.104);
+      expect(size).toBeLessThanOrEqual(0.154);
+      sizes.push(size);
     }
+    // The band is bounded above AND below in spread: wide enough that
+    // neighbours read as different sizes, tight enough that no planet
+    // dwarfs another and turns the map into a hierarchy.
+    const spread = Math.max(...sizes) / Math.min(...sizes);
+    expect(spread).toBeGreaterThan(1.15);
+    expect(spread).toBeLessThan(1.5);
   });
 });
 

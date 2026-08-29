@@ -50,9 +50,13 @@ export function displayLabel(label: string): string {
   return /[a-z][A-Z]/.test(label) ? label : label.toUpperCase();
 }
 
-/** World-unit body radius, gently varied so no two planets read equal. */
+/**
+ * World-unit body radius. The spread is wide enough that the size
+ * difference between neighbours is legible — at the old 1.3x max/min the
+ * planets read as one size with noise.
+ */
 export function defaultBodySize(index: number): number {
-  return 0.088 + 0.026 * hash(index * 17 + 7);
+  return 0.104 + 0.05 * hash(index * 17 + 7);
 }
 
 /**

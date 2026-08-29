@@ -139,30 +139,37 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   max-width: calc(100vw - 24px);
   margin-top: 1.4rem;
   pointer-events: auto;
-  border: 1px solid var(--hairline);
+  border: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
   border-radius: 999px;
   /* At rest the pill closes to a circle around the sphere; expanding
      opens the left inset and tightens the right rim, where the Contact
      pill meets the edge. */
   padding: 0.4rem 0.86rem;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  backdrop-filter: blur(18px) saturate(1.3);
-  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  background: color-mix(in srgb, var(--paper) 58%, transparent);
+  backdrop-filter: blur(22px) saturate(1.8);
+  -webkit-backdrop-filter: blur(22px) saturate(1.8);
   color: var(--ink);
   /* Real elevation: a tight contact shadow, a mid throw and a long soft
      cast — the island floats over the page, never printed on it. */
+  /* Glass needs both rims to survive either ground: a soft dark edge that
+     reads on paper, a bright inner ring that reads on the space panel. */
   box-shadow:
-    0 1px 2px rgba(16, 20, 16, 0.07),
-    0 10px 28px rgba(16, 20, 16, 0.13),
-    0 30px 70px rgba(16, 20, 16, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 1px 2px rgba(16, 20, 16, 0.06),
+    0 10px 28px rgba(16, 20, 16, 0.11),
+    0 30px 70px rgba(16, 20, 16, 0.13),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
   transition:
     padding var(--d-3) var(--ease-settle),
+    background var(--d-3) var(--ease),
+    border-color var(--d-3) var(--ease),
     box-shadow var(--d-3) var(--ease),
     transform var(--d-3) var(--ease-settle);
 }
 .nav-island[data-expanded="true"] {
   padding: 0.4rem 0.5rem 0.4rem 1.1rem;
+  border-color: var(--hairline);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
   box-shadow:
     0 2px 3px rgba(16, 20, 16, 0.08),
     0 14px 34px rgba(16, 20, 16, 0.15),
@@ -181,23 +188,122 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   align-items: center;
   text-decoration: none;
 }
-/* Inky carbon — the same body the orbit turns around: a deep blue-black
-   sphere with one specular highlight and a grounded shadow. */
+/* Inky carbon — the same body the orbit turns around, and like the orbit
+   it never stops. The body gradient stays on the element so it sits under
+   the turning shell; the specular and the bounce move into ::after so they
+   sit over it. A light source does not orbit a planet. */
 .island-orb {
+  /* one radius, one period — the only two numbers worth tuning */
+  --orb-r: 0.8rem;
+  --orb-spin: 20s;
+
+  position: relative;
   display: block;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: calc(var(--orb-r) * 2);
+  height: calc(var(--orb-r) * 2);
   border-radius: 50%;
+  /* the limb: cuts surface marks as they run off the edge. `overflow`
+     flattens this element's own transform-style — harmless, the 3D lives
+     one level down — but it still hands `perspective` to its children. */
+  overflow: hidden;
+  perspective: calc(var(--orb-r) * 5.6);
+  perspective-origin: 50% 50%;
   background:
-    /* one tight specular, a cool rim bounce, then carbon all the way down */
-    radial-gradient(circle at 34% 25%, rgba(226, 236, 252, 0.5) 0%, rgba(200, 216, 240, 0.09) 11%, rgba(255, 255, 255, 0) 27%),
-    radial-gradient(circle at 68% 78%, rgba(46, 66, 104, 0.4) 0%, rgba(8, 12, 22, 0) 46%),
     radial-gradient(circle at 46% 42%, #0d1421 0%, #080d18 34%, #04070e 66%, #010308 100%);
   box-shadow:
     inset 0 -1px 3px rgba(0, 0, 0, 0.55),
     0 1px 2px rgba(4, 6, 12, 0.4),
     0 4px 10px rgba(4, 6, 12, 0.22);
+  /* the hover scale claims `transform` on this element wholesale, so
+     nothing else may declare one here — not even a compositing hint. */
   transition: transform var(--d-2) var(--ease-settle);
+}
+
+/* The turning shell, spun about the polar axis through the sphere centre.
+   Never give this rule `overflow`, `filter`, `opacity` below 1, `mask`,
+   `mix-blend-mode`, `isolation` or `contain: paint`: each forces
+   transform-style back to flat and the sphere silently collapses into
+   overlapping ellipses that no test would catch. */
+.orb-shell {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(-64deg);
+  animation: orb-spin var(--orb-spin) linear infinite;
+}
+
+/* Each mark is a full-orb plane pushed out to the surface, so its centre
+   is the sphere's centre and rotateY turns it about the pole rather than
+   about itself. Longitude is the angle, latitude is where the blob sits
+   inside the plane, and translateZ = r·cos(latitude) keeps an off-equator
+   mark on its own smaller circle. The limb compression is projection, not
+   a mask — that is what says "sphere turning" rather than "disc sliding" —
+   and backface culling lands at exactly the angle where projected width is
+   already zero, so a mark vanishes without popping. */
+.orb-mark {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  pointer-events: none;
+}
+/* Longitudes are deliberately uneven: evenly spaced marks give the
+   rotation an audible tick. Nothing finer than these — on a body with
+   about 7 ΔL* of headroom before carbon reads as slate, a feature under
+   roughly 7px at this size resamples into shimmer rather than detail. */
+.orb-mark-1 {
+  transform: rotateY(0deg) translateZ(calc(var(--orb-r) * 0.976));
+  background: radial-gradient(circle 0.46rem at 50% 39%,
+    rgba(78, 104, 148, 0.22) 0%, rgba(78, 104, 148, 0.12) 45%, rgba(78, 104, 148, 0) 100%);
+}
+.orb-mark-2 {
+  transform: rotateY(54deg) translateZ(calc(var(--orb-r) * 0.954));
+  background: radial-gradient(circle 0.4rem at 50% 65%,
+    rgba(1, 3, 8, 0.45) 0%, rgba(1, 3, 8, 0.24) 48%, rgba(1, 3, 8, 0) 100%);
+}
+.orb-mark-3 {
+  transform: rotateY(129deg) translateZ(calc(var(--orb-r) * 0.917));
+  background: radial-gradient(circle 0.3rem at 50% 30%,
+    rgba(88, 114, 158, 0.18) 0%, rgba(88, 114, 158, 0.09) 46%, rgba(88, 114, 158, 0) 100%);
+}
+.orb-mark-4 {
+  transform: rotateY(198deg) translateZ(calc(var(--orb-r) * 0.995));
+  background: radial-gradient(circle 0.5rem at 50% 55%,
+    rgba(70, 96, 140, 0.2) 0%, rgba(70, 96, 140, 0.11) 50%, rgba(70, 96, 140, 0) 100%);
+}
+.orb-mark-5 {
+  transform: rotateY(281deg) translateZ(calc(var(--orb-r) * 0.999));
+  background: radial-gradient(circle 0.36rem at 50% 47.5%,
+    rgba(1, 3, 8, 0.4) 0%, rgba(1, 3, 8, 0.21) 48%, rgba(1, 3, 8, 0) 100%);
+}
+
+/* The light, fixed. ::after is last in tree order so it paints over the
+   shell without a z-index — specular first so it survives at full
+   strength over the limb darkening below it. */
+.island-orb::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 25%, rgba(226, 236, 252, 0.5) 0%, rgba(200, 216, 240, 0.09) 11%, rgba(226, 236, 252, 0) 27%),
+    radial-gradient(circle at 68% 78%, rgba(46, 66, 104, 0.4) 0%, rgba(46, 66, 104, 0) 46%),
+    /* terminator, centred on the light, so a mark turning away from it
+       drowns rather than merely dims */
+    radial-gradient(circle 1.4rem at 30% 22%, rgba(1, 3, 8, 0) 0%, rgba(1, 3, 8, 0) 34%, rgba(1, 3, 8, 0.42) 72%, rgba(1, 3, 8, 0.62) 100%),
+    /* limb darkening — real physics, and it also crushes the one artifact
+       this technique has: a lifted mark sliced by the circular clip */
+    radial-gradient(closest-side circle at 50% 50%, rgba(1, 3, 8, 0) 0%, rgba(1, 3, 8, 0) 58%, rgba(1, 3, 8, 0.55) 100%);
+}
+
+/* Left to right: features are born at the lit limb and die in shadow,
+   rather than crawling out of blackness. Linear — a planet has no
+   ease-in-out, and easing would make the loop seam audible. */
+@keyframes orb-spin {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
 }
 .nav-island:hover .island-orb { transform: scale(1.06); }
 .island-brand:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 999px; }
@@ -290,6 +396,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
   .nav-island, .island-reveal, .island-reveal-inner { transition: none; }
+  /* Not left to the global 0.01ms sweep: the resting pose is a decision.
+     At -64deg a deepening sits just below and left of centre and nothing
+     collides with the specular — which 0deg would. */
+  .orb-shell { animation: none; transform: rotateY(-64deg); }
 }
 /* Section landings open on the space panel — the greeting goes light. */
 .route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark { color: rgba(242, 246, 252, 0.95); }
