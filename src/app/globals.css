@@ -662,6 +662,9 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
   letter-spacing: 0.1em;
   color: rgba(242, 246, 252, 0.97);
   text-decoration: none;
+  /* Each nameplate is one unit: placement moves the whole box, and a
+     label must never wrap to fit. */
+  white-space: nowrap;
   will-change: transform, opacity;
 }
 a.orbit-label { pointer-events: auto; cursor: pointer; }

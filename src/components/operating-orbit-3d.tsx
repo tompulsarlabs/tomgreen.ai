@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { anchorRect, placeLabels, type Anchor, type LabelItem } from "@/lib/label-placement";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
@@ -299,6 +300,16 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     revealTarget: 0,
     pointerWorld: new THREE.Vector3(99, 0, 99),
     pointerStrength: 0,
+    // Label placement: the chosen anchor per body, where each label is
+    // currently drawn, and the hysteresis that stops it flicking between
+    // anchors on a one-pixel scoring difference.
+    anchors: new Map<string, Anchor>(),
+    labelAt: new Map<string, { x: number; y: number }>(),
+    pending: new Map<string, { anchor: Anchor; since: number }>(),
+    lockedUntil: new Map<string, number>(),
+    measured: new Map<string, { width: number; height: number }>(),
+    placeAt: 0,
+    items: [] as LabelItem[],
   });
 
   const startCapture = (id: string) => {
@@ -632,13 +643,86 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         const base = ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
         const opacity =
           (base + (1 - base) * nextEase) * s.reveal * (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
-        const labelWidth = label.offsetWidth || 70;
-        const rightX = x + bodyPx + 10;
-        const flip = rightX + labelWidth > width - 6;
-        label.style.transform = `translate3d(${(flip ? x - bodyPx - 10 - labelWidth : rightX).toFixed(1)}px, ${(y - 8).toFixed(1)}px, 0)`;
         label.style.opacity = opacity.toFixed(3);
+        // Measuring every frame would thrash layout; a nameplate's box
+        // only changes when its text or its font does.
+        let box = s.measured.get(body.id);
+        if (!box || box.width === 0) {
+          box = { width: label.offsetWidth || 70, height: label.offsetHeight || 16 };
+          if (box.width > 0) s.measured.set(body.id, box);
+        }
+        s.items.push({
+          id: body.id,
+          x,
+          y,
+          radius: bodyPx,
+          width: box.width,
+          height: box.height,
+          active: s.hover === body.id,
+        });
       }
     });
+    // Where each nameplate belongs is a layout decision, not a per-frame
+    // one: it re-settles at about 7Hz and the labels glide to whatever it
+    // chooses, so nothing jitters while the system turns.
+    if (s.items.length > 0) {
+      scratch.v2.copy(scratch.core).project(camera);
+      const coreScreenX = ((scratch.v2.x + 1) / 2) * width;
+      const coreScreenY = ((1 - scratch.v2.y) / 2) * height;
+      const coreScreenPx =
+        (CORE_RADIUS * 1.2 * (height / 2)) / (Math.tan((40 * Math.PI) / 360) * cameraToCore);
+
+      if (now - s.placeAt > 0.14) {
+        s.placeAt = now;
+        const chosen = placeLabels(s.items, {
+          width,
+          height,
+          core: { x: coreScreenX, y: coreScreenY, radius: coreScreenPx },
+          previous: s.anchors,
+        });
+        for (const placement of chosen) {
+          const current = s.anchors.get(placement.id);
+          const locked = (s.lockedUntil.get(placement.id) ?? 0) > now;
+          if (current === placement.anchor) {
+            s.pending.delete(placement.id);
+          } else if (!locked) {
+            // A better anchor must hold for a beat before the label
+            // moves — otherwise it flicks sides as the system rotates.
+            const waiting = s.pending.get(placement.id);
+            if (current === undefined) {
+              s.anchors.set(placement.id, placement.anchor);
+            } else if (!waiting || waiting.anchor !== placement.anchor) {
+              s.pending.set(placement.id, { anchor: placement.anchor, since: now });
+            } else if (now - waiting.since > 0.22) {
+              s.anchors.set(placement.id, placement.anchor);
+              s.lockedUntil.set(placement.id, now + 0.35);
+              s.pending.delete(placement.id);
+            }
+          }
+        }
+      }
+
+      // Targets follow the anchor each label actually holds, recomputed
+      // from its live position so a label tracks its planet continuously
+      // between placement passes.
+      const ease = lerpIn(9);
+      for (const item of s.items) {
+        const label = s.labels.get(item.id);
+        if (!label) continue;
+        const anchor = s.anchors.get(item.id) ?? "right";
+        // Written only when it changes: the anchor is observable for
+        // styling and for tests, without a DOM write every frame.
+        if (label.dataset.anchor !== anchor) label.dataset.anchor = anchor;
+        const rect = anchorRect(item, anchor, 14);
+        const at = s.labelAt.get(item.id) ?? { x: rect.x, y: rect.y };
+        at.x += (rect.x - at.x) * ease;
+        at.y += (rect.y - at.y) * ease;
+        s.labelAt.set(item.id, at);
+        label.style.transform = `translate3d(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px, 0)`;
+      }
+      s.items.length = 0;
+    }
+
     membraneUniforms.uHoverTheta.value = hoverTheta;
     membraneUniforms.uHoverStrength.value = hoverStrength;
 

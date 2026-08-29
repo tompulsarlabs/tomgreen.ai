@@ -738,6 +738,62 @@ test("Home shows the planetary map after the three statements", async ({ page })
   expect(mapFollowsSpine).toBe(true);
 });
 
+test("nameplates take their own side of the well, and hold it", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/work");
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await page.locator(".orbit-field").scrollIntoViewIfNeeded();
+  // The placement pass re-settles at ~7Hz and the labels glide to it;
+  // give the reveal and the first few passes time to finish.
+  await page.waitForTimeout(2500);
+
+  const read = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("a.orbit-label[data-anchor]")].map((element) => {
+        const box = element.getBoundingClientRect();
+        return {
+          id: element.dataset.body ?? "",
+          anchor: element.dataset.anchor ?? "",
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+        };
+      }),
+    );
+
+  const first = await read();
+  expect(first.length).toBeGreaterThanOrEqual(5);
+
+  // The old layout put every nameplate at the same offset to the right.
+  // A composition uses the space around each planet instead: several
+  // anchors, and text on both sides of the well.
+  expect(new Set(first.map((label) => label.anchor)).size).toBeGreaterThanOrEqual(3);
+  expect(first.filter((label) => label.anchor.includes("left")).length).toBeGreaterThanOrEqual(1);
+  expect(first.filter((label) => label.anchor.includes("right")).length).toBeGreaterThanOrEqual(1);
+
+  // No nameplate may land on another. The tolerance is for labels still
+  // gliding to a target, not for a stack.
+  for (let i = 0; i < first.length; i += 1) {
+    for (let j = i + 1; j < first.length; j += 1) {
+      const a = first[i];
+      const b = first[j];
+      const across = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+      const down = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+      expect(across < 4 || down < 4, `${a.id} sits on ${b.id}`).toBe(true);
+    }
+  }
+
+  // And the choice settles: the system keeps turning, the anchors do not
+  // flick from side to side while it does.
+  await page.waitForTimeout(4000);
+  const later = await read();
+  const switched = later.filter(
+    (label) => first.find((earlier) => earlier.id === label.id)?.anchor !== label.anchor,
+  );
+  expect(switched.length).toBeLessThanOrEqual(2);
+});
+
 test("clicking a planet pulls it into the black hole, then travels", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/work");
