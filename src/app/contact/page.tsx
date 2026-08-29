@@ -50,14 +50,14 @@ function GitHubIcon(props: SVGProps<SVGSVGElement>) {
 const channels = [
   {
     label: "Email",
-    note: "For projects, roles and thoughtful introductions.",
+    note: "For projects, work and introductions.",
     href: `mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`,
     icon: MailIcon,
     rel: undefined,
   },
   {
     label: "Calendly",
-    note: "Book a time directly — no back and forth.",
+    note: "Book a time direct.",
     href: site.links.calendly,
     icon: CalendarIcon,
     rel: "me",
@@ -71,7 +71,7 @@ const channels = [
   },
   {
     label: "GitHub",
-    note: "Public systems, source code and the live build record.",
+    note: "Systems, code, and building.",
     href: site.links.github,
     icon: GitHubIcon,
     rel: "me",
