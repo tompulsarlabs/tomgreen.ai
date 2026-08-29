@@ -103,7 +103,7 @@ export default function ContactPage() {
             </h1>
             <div className="systems-lead">
               <p>
-                Talent density that compounds into advantage. Razor-sharp heuristics for winning elite people. Systems that hold up long after the demo. Let’s build it.
+                Talent density that compounds into advantage. Razor-sharp heuristics for winning elite folks. Systems that hold up long after the demo. Let’s build it.
               </p>
               <a
                 href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
