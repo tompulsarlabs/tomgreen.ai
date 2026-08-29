@@ -377,6 +377,9 @@ body:has(.home-landing) .site-header { display: none; }
 .resolve-lines :is(h1, p) { margin: 0; }
 .resolve-lines .axis-display { --axis: 100; }
 .resolve-lines .line-mask, .resolve-lines .line-mask > span, .system-line > span { display: block; }
+/* Authored line breaks: the release line's width axis animates, so any
+   break the browser had to measure would move mid-transition. */
+.release-line > span { display: block; white-space: nowrap; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
 .constraint-line { max-width: 15ch; word-spacing: var(--constraint-word-space, 0); font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }

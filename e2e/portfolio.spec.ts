@@ -127,6 +127,27 @@ test("Home's statements resolve on their own clock, then yield to the map", asyn
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
 });
 
+test("the release line's composition is authored, not measured", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await waitForFonts(page);
+
+  // The width axis animates per frame, so a break the browser had to
+  // measure would move mid-transition — THE jumping from the first line
+  // to the second. The breaks are elements now, so they cannot move.
+  const lines = page.locator(".release-line span[aria-hidden]");
+  await expect(lines).toHaveText(["Make talent", "the engine of", "growth."]);
+  for (const line of await lines.all()) {
+    await expect(line).toHaveCSS("white-space", "nowrap");
+    await expect(line).toHaveCSS("display", "block");
+  }
+  // The full sentence still reaches assistive technology as one string.
+  await expect(page.locator(".release-line .sr-only")).toHaveText(
+    "Make talent the engine of growth.",
+  );
+});
+
 test("any input skips the Home sequence straight to the map", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
