@@ -96,7 +96,7 @@ export const caseStudies: CaseStudy[] = [
         },
       ],
       outcome:
-        "A repeatable cross-market talent system remained: leadership, pipelines, trained interviewers and stronger conversion at every major stage.",
+        "A repeatable cross-market talent system remained: leadership, pipelines, trained interviewers and improved outcomes at every major stage.",
     },
     decisions: [
       {

@@ -127,8 +127,8 @@ export function HomeResolve() {
               <span><span>Identify the</span></span><span><span>constraint.</span></span><span><span>Then subtract.</span></span>
             </span>
           </h1>
-          <p className="axis-display system-line" aria-label="Design the talent system.">
-            <span>Design</span><span className="system-word">the talent system.</span>
+          <p className="axis-display system-line" aria-label="Design the system.">
+            <span>Design</span><span className="system-word">the system.</span>
           </p>
           <p className="axis-display release-line">Make talent the engine of growth.</p>
         </div>

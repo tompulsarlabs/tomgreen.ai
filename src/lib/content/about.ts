@@ -97,10 +97,17 @@ export const career: CareerStop[] = [
     href: "/work/campbell-north",
   },
   {
-    company: "Early career",
-    role: "Salt · Hays",
-    period: "2011 – 2014",
-    note: "Product and tech recruitment — where the craft started.",
+    company: "Salt",
+    role: "Product Recruiter",
+    period: "2012 – 2014",
+    note: "Product recruitment, London.",
+    achievements: [],
+  },
+  {
+    company: "Hays",
+    role: "Tech Recruiter",
+    period: "2011 – 2012",
+    note: "Technology recruitment — where the craft started.",
     achievements: [],
   },
 ];

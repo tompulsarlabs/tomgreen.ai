@@ -714,7 +714,7 @@ test("each page's headers are its planets", async ({ browser }) => {
   await expect(page.locator(".orbit-poster a")).toHaveCount(3);
   await expect(page.locator('.orbit-poster a[href^="mailto:"]')).toBeAttached();
   await page.goto("/about");
-  await expect(page.locator(".orbit-poster a")).toHaveCount(7);
+  await expect(page.locator(".orbit-poster a")).toHaveCount(8);
   await expect(page.locator('.orbit-poster a[href="#station-0"]')).toBeAttached();
   await context.close();
 });
@@ -776,7 +776,7 @@ test("About under reduced motion is the complete linear record", async ({ page }
   await expect(corridor).not.toHaveAttribute("data-live", "true");
   // The corridor's own DOM is the fallback: every station and every
   // achievement present, nothing gated, no canvas, no rail.
-  await expect(corridor.locator(".corridor-station")).toHaveCount(7);
+  await expect(corridor.locator(".corridor-station")).toHaveCount(8);
   await expect(corridor.locator(".station-achievements li")).toHaveCount(13);
   await expect(corridor.getByRole("heading", { name: "Zalando" })).toBeVisible();
   await expect(corridor.getByText(/Rated Delivering Breakthroughs/)).toBeVisible();
@@ -795,7 +795,7 @@ test("About without JavaScript serves the complete linear CV", async ({ browser 
   await page.goto("/about");
   const corridor = page.locator(".career-corridor");
   await expect(corridor).not.toHaveAttribute("data-live", "true");
-  await expect(corridor.locator(".corridor-station")).toHaveCount(7);
+  await expect(corridor.locator(".corridor-station")).toHaveCount(8);
   await expect(corridor.locator(".station-achievements li")).toHaveCount(13);
   await expect(corridor.locator(".corridor-canvas")).toBeHidden();
   await expect(corridor.locator(".corridor-rail")).toBeHidden();
@@ -810,7 +810,12 @@ test("the career corridor travels between stations and stops resolved", async ({
   const corridor = page.locator(".career-corridor");
   await expect(corridor).toHaveAttribute("data-live", "true");
   const stations = corridor.locator(".corridor-station");
-  await expect(corridor.locator(".corridor-rail button")).toHaveCount(7);
+  await expect(corridor.locator(".corridor-rail button")).toHaveCount(8);
+
+  // Scroll progress is measured in legs between stations, so every
+  // fraction below is derived from the live count — content can gain a
+  // stop without silently pointing these assertions at the wrong one.
+  const legs = (await stations.count()) - 1;
 
   // Parked at the first station: fully resolved, the rest inert for AT.
   await setSectionProgress(page, ".corridor-track", 0);
@@ -820,7 +825,7 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(corridor.locator(".corridor-rail button").first()).toHaveAttribute("aria-current", "true");
 
   // Mid-leg the stations empty out and the streak field carries the travel.
-  await setSectionProgress(page, ".corridor-track", 5 / 12);
+  await setSectionProgress(page, ".corridor-track", 2.5 / legs);
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
   // The spring advances per frame, so software-GL runners need wall-clock
   // headroom to converge.
@@ -831,7 +836,7 @@ test("the career corridor travels between stations and stops resolved", async ({
 
   // Arriving at Zalando: resolved to wdth 100, linked to the evidence,
   // and the canvas settles back to stillness.
-  await setSectionProgress(page, ".corridor-track", 2 / 6);
+  await setSectionProgress(page, ".corridor-track", 2 / legs);
   await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
   await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
   await expect(stations.nth(2).getByRole("link", { name: "Read the case study →" })).toHaveAttribute("href", "/work/zalando");

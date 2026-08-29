@@ -5,13 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
 
-const routeMeta = [
-  { match: "/work", index: "01", label: "Evidence" },
-  { match: "/building", index: "02", label: "Lab" },
-  { match: "/about", index: "03", label: "Through-line" },
-  { match: "/contact", index: "04", label: "Contact" },
-] as const;
-
 function PendingMark() {
   const { pending } = useLinkStatus();
   return <span aria-hidden className={`nav-pending ${pending ? "is-pending" : ""}`} />;
@@ -37,9 +30,6 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
   // a click on the greeting opens the island or travels home.
   const lastPointerType = useRef("mouse");
 
-  const current =
-    routeMeta.find((route) => pathname.startsWith(route.match)) ??
-    ({ index: "00", label: "Home" } as const);
   const navItems = site.nav.filter((item) => showAbout || item.href !== "/about");
 
   // A new route always arrives with the island at rest — adjusted during
@@ -118,10 +108,6 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
             background or radius ever changing. */}
         <div className="island-reveal" aria-hidden={!expanded}>
           <div className="island-reveal-inner">
-            <p className="island-route">
-              <span>Field / {current.index}</span>
-              <span>{current.label}</span>
-            </p>
             <nav aria-label="Primary navigation" className="island-nav">
               {navItems.map((item) => {
                 const isCurrent = pathname === item.href || pathname.startsWith(`${item.href}/`);
