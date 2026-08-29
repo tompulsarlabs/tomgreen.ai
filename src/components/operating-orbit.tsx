@@ -146,7 +146,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
               fontSize={(12 * projected.scale).toFixed(1)}
               fill={`rgba(240, 245, 252, ${depthAlpha(projected.depth, 0.97, 0.82).toFixed(3)})`}
             >
-              {displayLabel(body.label)}
+              {displayLabel(body.label, body.keepCase)}
             </text>
           </g>
         </a>
@@ -228,7 +228,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
             data-body={body.id}
             href={targetHref(body.target)}
           >
-            {displayLabel(body.label)}
+            {displayLabel(body.label, body.keepCase)}
           </a>
         ))}
         <span className="orbit-label" data-body={NUCLEUS_ID} aria-hidden="true">

@@ -241,7 +241,7 @@ export function CareerCorridor({
                     <p className="station-links">
                       {stop.href && (
                         <Link href={stop.href} className="text-link">
-                          Read the case study →
+                          Read →
                         </Link>
                       )}
                       {slug && systems.has(slug) && (

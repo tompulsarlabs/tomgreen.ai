@@ -70,7 +70,7 @@ const personJsonLd = {
     "@type": "Place",
     name: site.location,
   },
-  sameAs: [site.links.github, site.links.linkedin],
+  sameAs: [site.links.github, site.links.linkedin, site.links.calendly],
   knowsAbout: [
     "Talent acquisition",
     "AI organisations",

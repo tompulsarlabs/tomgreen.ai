@@ -7,6 +7,7 @@ export const site = {
   intro:
     "Executive talent leader and systems builder. I’ve built a 120-person AI organisation in six months, led global talent teams, and redesigned People Ops around agent workflows.",
   links: {
+    calendly: "https://calendly.com/tom-tomgreen",
     github: "https://github.com/tompulsarlabs",
     linkedin: "https://linkedin.com/in/tomegreen",
     substack: "https://tomgreenlabs.substack.com",

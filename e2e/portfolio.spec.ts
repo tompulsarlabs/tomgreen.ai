@@ -548,10 +548,20 @@ test("reduced-motion Work to case arrival exposes the headline immediately", asy
   expect(style.visibility).toBe("visible");
 });
 
+test("a brand-cased company keeps its casing in the masthead", async ({ page }) => {
+  await gotoReduced(page, "/work/wer");
+  // Rendered text, not the source string: this regressed twice because
+  // displayLabel got the string right and CSS uppercased it again.
+  const masthead = page.getByRole("heading", { level: 1 });
+  await expect(masthead).toHaveText("WeR");
+  expect(await masthead.evaluate((el) => getComputedStyle(el).textTransform)).toBe("none");
+});
+
 test("Zalando reads as a clear case study with verified outcomes", async ({ page }) => {
   await gotoReduced(page, "/work/zalando");
-  // The masthead words are uppercased in JS (displayLabel), not CSS, so
-  // brand-internal capitals survive: ZALANDO here, WeR on /work/wer.
+  // The masthead is uppercased by displayLabel in JS AND by
+  // text-transform in CSS; only a brand-cased name opts the CSS out.
+  // ZALANDO exercises the caps path — see the WeR test for the other.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("ZALANDO");
   const metrics = page.locator(".case-opening dl");
   await expect(metrics.locator("dd")).toHaveText(["0 → 120", "−32%", "+21%", "1,000+"]);
@@ -728,7 +738,7 @@ test("each page's headers are its planets", async ({ browser }) => {
   await expect(page.locator('.orbit-poster a[href="/work/zalando"]')).toBeAttached();
   await expect(page.locator('.orbit-poster a[href="/work/chapter-2"]')).toBeAttached();
   await page.goto("/contact");
-  await expect(page.locator(".orbit-poster a")).toHaveCount(3);
+  await expect(page.locator(".orbit-poster a")).toHaveCount(4);
   await expect(page.locator('.orbit-poster a[href^="mailto:"]')).toBeAttached();
   await page.goto("/about");
   await expect(page.locator(".orbit-poster a")).toHaveCount(8);
@@ -858,7 +868,7 @@ test("the career corridor travels between stations and stops resolved", async ({
   await setSectionProgress(page, ".corridor-track", 2 / legs);
   await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
   await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
-  await expect(stations.nth(2).getByRole("link", { name: "Read the case study →" })).toHaveAttribute("href", "/work/zalando");
+  await expect(stations.nth(2).getByRole("link", { name: "Read →" })).toHaveAttribute("href", "/work/zalando");
   await expect(stations.nth(2).getByRole("link", { name: "In the Lab ↗" })).toHaveAttribute("href", "/building#zalando");
   await expect(page.locator(".career-corridor")).toHaveAttribute("data-state", "idle", { timeout: 12_000 });
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
@@ -910,6 +920,7 @@ test("Contact keeps direct channels and mailto primary", async ({ page }) => {
   await expect(channels.getByRole("link", { name: /Email/ })).toHaveAttribute("href", /^mailto:tom@tomgreen\.ai/);
   await expect(channels.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute("href", "https://linkedin.com/in/tomegreen");
   await expect(channels.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/tompulsarlabs");
+  await expect(channels.getByRole("link", { name: /Calendly/ })).toHaveAttribute("href", "https://calendly.com/tom-tomgreen");
 });
 
 test("the 390px Home sets the production spine without overflow", async ({ page }) => {

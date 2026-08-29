@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { displayLabel } from "@/lib/orbit-nav";
+import { displayLabel, isBrandCased } from "@/lib/orbit-nav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CaseStudySystem } from "@/components/case-study-system";
@@ -61,6 +61,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
               <h1
                 className="case-company axis-display"
                 data-arrival-name
+                data-brand-case={isBrandCased(study.company) ? "true" : undefined}
               >
                 {displayLabel(study.company)}
               </h1>

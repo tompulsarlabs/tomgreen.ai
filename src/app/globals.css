@@ -89,6 +89,9 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   letter-spacing: -0.075em;
   text-transform: uppercase;
 }
+/* A brand-cased name is authored, not styled: WeR is never WER, however
+   loud the slot it lands in. */
+[data-brand-case] { text-transform: none; }
 
 .axis-heading {
   --axis: 100;

@@ -22,6 +22,12 @@ export type OrbitBody = {
   target: OrbitTarget;
   /** World-unit radius in the 3D scene. */
   size: number;
+  /**
+   * Set when the label is a proper name that happens to carry no internal
+   * capital — Email beside LinkedIn and GitHub. Brand casing is detected
+   * automatically; this is the escape hatch for the rest.
+   */
+  keepCase?: boolean;
 };
 
 /** Mineral planet tones, cycled across a page's headers. */
@@ -43,11 +49,20 @@ export function planetColor(index: number): string {
 }
 
 /**
+ * True when a label carries brand casing — an internal capital, like the
+ * R in WeR. Such a name is authored, not styled, so neither the string
+ * helper below nor a CSS uppercase transform may touch it.
+ */
+export function isBrandCased(label: string): boolean {
+  return /[a-z][A-Z]/.test(label);
+}
+
+/**
  * Nameplate casing: labels read in caps, but a word carrying brand
  * casing — an internal capital, like WeR — is left exactly as authored.
  */
-export function displayLabel(label: string): string {
-  return /[a-z][A-Z]/.test(label) ? label : label.toUpperCase();
+export function displayLabel(label: string, keepCase = false): string {
+  return keepCase || isBrandCased(label) ? label : label.toUpperCase();
 }
 
 /**

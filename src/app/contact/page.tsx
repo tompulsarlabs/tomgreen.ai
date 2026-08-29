@@ -20,6 +20,15 @@ function MailIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function CalendarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <rect x="3.75" y="5.25" width="16.5" height="15" rx="1.25" />
+      <path d="M3.75 10h16.5M8.25 3.75v3M15.75 3.75v3" />
+    </svg>
+  );
+}
+
 function LinkedInIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
@@ -47,6 +56,13 @@ const channels = [
     rel: undefined,
   },
   {
+    label: "Calendly",
+    note: "Book a time directly — no back and forth.",
+    href: site.links.calendly,
+    icon: CalendarIcon,
+    rel: "me",
+  },
+  {
     label: "LinkedIn",
     note: "Career history, shared context and direct messages.",
     href: site.links.linkedin,
@@ -68,6 +84,7 @@ const orbitBodies: OrbitBody[] = channels.map((channel, index) => ({
   label: channel.label,
   color: planetColor(index),
   target: { kind: "link", href: channel.href },
+  keepCase: true,
   size: defaultBodySize(index),
 }));
 
@@ -86,7 +103,7 @@ export default function ContactPage() {
             </h1>
             <div className="systems-lead">
               <p>
-                An AI organisation to scale. A hiring system that is creaking. An agent workflow that needs to work outside a demo. Start with the constraint.
+                Talent density that compounds into advantage. Razor-sharp heuristics for winning elite people. Systems that hold up long after the demo. Let’s build it.
               </p>
               <a
                 href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}

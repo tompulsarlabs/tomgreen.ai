@@ -63,7 +63,7 @@ function RecordLink({ node }: { node: GraphNode }) {
     </a>
   ) : (
     <Link href={node.href} className={className}>
-      Read the case study →
+      Read →
     </Link>
   );
 }

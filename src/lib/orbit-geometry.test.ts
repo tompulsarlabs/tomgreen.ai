@@ -13,7 +13,24 @@ import {
   navOrbitPoint,
   planetColor,
   targetHref,
+  displayLabel,
+  isBrandCased,
 } from "./orbit-nav";
+
+describe("brand casing", () => {
+  it("uppercases ordinary labels and leaves authored casing alone", () => {
+    expect(displayLabel("zalando")).toBe("ZALANDO");
+    expect(displayLabel("Chapter 2")).toBe("CHAPTER 2");
+    expect(displayLabel("WeR")).toBe("WeR");
+    expect(isBrandCased("WeR")).toBe(true);
+    expect(isBrandCased("Zalando")).toBe(false);
+    // The predicate gates the CSS opt-out too, so anything displayLabel
+    // leaves alone must also be flagged — or CSS uppercases it again.
+    for (const label of ["WeR", "Zalando", "Chapter 2", "Audibene / Hear.com"]) {
+      expect(isBrandCased(label)).toBe(displayLabel(label) === label && label !== label.toUpperCase());
+    }
+  });
+});
 
 describe("navOrbitElements", () => {
   it("is deterministic and gives every body its own ellipse", () => {
