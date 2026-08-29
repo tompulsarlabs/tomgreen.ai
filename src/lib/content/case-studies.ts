@@ -121,10 +121,10 @@ export const caseStudies: CaseStudy[] = [
   {
     slug: "chapter-2",
     company: "Chapter 2",
-    role: "Managing Director EMEA",
+    role: "Managing Director",
     period: "2025 – 2026",
     headline:
-      "Ran the EMEA P&L. Won seven figures of new business in twelve months. Then rebuilt how Europe operated.",
+      "Ran the European business. Won €3.3M of new business in twelve months. Then rebuilt how Europe operated.",
     summary:
       "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
@@ -135,8 +135,8 @@ export const caseStudies: CaseStudy[] = [
       "The model became the reference for the group’s wider AI transformation.",
     ],
     metrics: [
-      { value: "EMEA", label: "P&L owned" },
-      { value: "7 figures", label: "New business won in twelve months" },
+      { value: "Europe", label: "P&L owned" },
+      { value: "€3.3M", label: "New business won in twelve months" },
       { value: "4 countries", label: "Recruiting programmes led" },
       { value: "3 roles", label: "Shared-service reliance removed" },
     ],

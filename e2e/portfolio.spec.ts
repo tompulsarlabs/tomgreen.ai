@@ -571,7 +571,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
 test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => {
   await gotoReduced(page, "/work/chapter-2");
   const metrics = page.locator(".case-opening dl");
-  await expect(metrics.locator("dd")).toHaveText(["EMEA", "7 figures", "4 countries", "3 roles"]);
+  await expect(metrics.locator("dd")).toHaveText(["Europe", "€3.3M", "4 countries", "3 roles"]);
 
   const system = page.getByRole("region", { name: "How the operating system worked" });
   await expect(system.locator("ol > li h3")).toHaveText([
