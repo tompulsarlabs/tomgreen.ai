@@ -67,10 +67,21 @@ async function settleIsland(page: Page) {
 
 async function inkedCanvasPixels(page: Page, selector: string) {
   return page.locator(selector).evaluate((element) => {
-    const canvas = element as HTMLCanvasElement;
-    const context = canvas.getContext("2d");
-    if (!context || !canvas.width || !canvas.height) return 0;
-    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    // The selector may point at the canvas itself or at its shell (the
+    // hyperspace field is an R3F canvas inside a wrapper). WebGL buffers
+    // can't hand out ImageData directly, so both kinds are read back
+    // through a 2D scratch canvas — the field preserves its drawing
+    // buffer for exactly this.
+    const canvas =
+      element instanceof HTMLCanvasElement ? element : element.querySelector("canvas");
+    if (!canvas || !canvas.width || !canvas.height) return 0;
+    const probe = document.createElement("canvas");
+    probe.width = canvas.width;
+    probe.height = canvas.height;
+    const context = probe.getContext("2d");
+    if (!context) return 0;
+    context.drawImage(canvas, 0, 0);
+    const data = context.getImageData(0, 0, probe.width, probe.height).data;
     let inked = 0;
     for (let index = 3; index < data.length; index += 4) {
       if (data[index] > 8) inked += 1;
@@ -830,8 +841,9 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(stations.nth(1)).toHaveAttribute("inert", "");
   await expect(corridor.locator(".corridor-rail button").first()).toHaveAttribute("aria-current", "true");
 
-  // Mid-leg the stations empty out and the streak field carries the travel.
+  // Mid-leg the stations empty out and hyperspace carries the travel.
   await setSectionProgress(page, ".corridor-track", 2.5 / legs);
+  await expect(page.locator(".career-corridor")).toHaveAttribute("data-state", "travel", { timeout: 8000 });
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
   // The spring advances per frame, so software-GL runners need wall-clock
   // headroom to converge.
@@ -841,13 +853,15 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(page.locator(".corridor-station.is-stop")).toHaveCount(0);
 
   // Arriving at Zalando: resolved to wdth 100, linked to the evidence,
-  // and the canvas settles back to stillness.
+  // and the corridor decelerates to idle — a calm field of points, not
+  // an empty canvas. Stillness now means drift, never blank.
   await setSectionProgress(page, ".corridor-track", 2 / legs);
   await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
   await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
   await expect(stations.nth(2).getByRole("link", { name: "Read the case study →" })).toHaveAttribute("href", "/work/zalando");
   await expect(stations.nth(2).getByRole("link", { name: "In the Lab ↗" })).toHaveAttribute("href", "/building#zalando");
-  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBe(0);
+  await expect(page.locator(".career-corridor")).toHaveAttribute("data-state", "idle", { timeout: 12_000 });
+  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
 });
 
 test("the corridor year rail jumps the traveller to a chosen station", async ({ page }) => {

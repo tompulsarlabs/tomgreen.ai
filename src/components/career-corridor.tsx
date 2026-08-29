@@ -1,11 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { careerPeriodLabel } from "@/lib/career-corridor-state";
 import type { CareerStop } from "@/lib/content/about";
+import type { HyperspaceDrive } from "@/components/hyperspace-field";
+import { spaceProgress } from "@/lib/hyperspace-field";
 import {
-  buildStreaks,
   clamp01,
   nearestStation,
   stationCentre,
@@ -13,8 +15,12 @@ import {
   travelIntensity,
 } from "@/lib/corridor-motion";
 
-const INK = "16, 20, 16";
-const STREAKS = buildStreaks(56);
+// The star field ships only to visitors who actually travel: dynamic,
+// client-only, and never part of the document fallback.
+const HyperspaceField = dynamic(
+  () => import("@/components/hyperspace-field").then((module) => module.HyperspaceField),
+  { ssr: false },
+);
 
 /**
  * The career corridor — an interactive CV the visitor travels through.
@@ -34,18 +40,25 @@ export function CareerCorridor({
   systemsIds: string[];
 }) {
   const sectionRef = useRef<HTMLElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Written by the scroll loop, read by the field every frame — the
+  // hyperspace runs without a single React render.
+  const driveRef = useRef<HyperspaceDrive>({ intensity: 0, progress: 0, pointerX: 0, pointerY: 0 });
+  const [live, setLive] = useState(false);
   const systems = new Set(systemsIds);
 
   useEffect(() => {
     const section = sectionRef.current;
-    const canvas = canvasRef.current;
-    if (!section || !canvas) return;
+    if (!section) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const context = canvas.getContext("2d");
-    if (!context) return;
+    // No WebGL means the deliberate fallback: the complete linear
+    // document, no half-alive corridor.
+    const probe = document.createElement("canvas");
+    if (!probe.getContext("webgl2") && !probe.getContext("webgl")) return;
 
     section.dataset.live = "true";
+    // Mount the WebGL canvas a frame later: the lint contract (and the
+    // paint) both prefer the document to settle first.
+    const mountField = requestAnimationFrame(() => setLive(true));
     const track = section.querySelector<HTMLElement>(".corridor-track");
     const stage = section.querySelector<HTMLElement>(".corridor-stage");
     const stations = Array.from(section.querySelectorAll<HTMLElement>(".corridor-station"));
@@ -55,26 +68,9 @@ export function CareerCorridor({
     // enough that plain scrolling never feels like dead road.
     track.style.height = `${stations.length * 74}svh`;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let width = 0;
-    let height = 0;
-    const resize = () => {
-      const bounds = stage.getBoundingClientRect();
-      width = Math.round(bounds.width);
-      height = Math.round(bounds.height);
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(stage);
-    resize();
-
     const count = stations.length;
     let progress = 0;
     let smoothedProgress = 0;
-    let lastArrival = -1;
-    let pulse: { start: number } | null = null;
     let frame = 0;
     let running = true;
     let visible = true;
@@ -83,6 +79,16 @@ export function CareerCorridor({
       const bounds = track.getBoundingClientRect();
       const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
       progress = clamp01(-bounds.top / travel);
+      // Darkness emerges behind the composition on the way in and hands
+      // back to paper on the way out — never a hard rectangle.
+      const section = track.parentElement as HTMLElement;
+      const sectionBounds = section.getBoundingClientRect();
+      const space = spaceProgress(sectionBounds.top, sectionBounds.bottom, window.innerHeight);
+      section.style.setProperty("--space", space.toFixed(4));
+      // Text flips fast through the middle of the darkening, so copy is
+      // always ink on light or starlight on dark — never grey on grey.
+      const textFlip = clamp01((space - 0.42) / 0.3);
+      section.style.setProperty("--space-text", textFlip.toFixed(4));
     };
 
     const applyStations = (active: number, intensity: number) => {
@@ -105,43 +111,7 @@ export function CareerCorridor({
       });
     };
 
-    const drawStreaks = (now: number, intensity: number) => {
-      context.clearRect(0, 0, width, height);
-      const vanishX = width * 0.52;
-      const vanishY = height * 0.42;
-      const reach = Math.hypot(width, height) * 0.5;
-      // Streaks only exist while travelling — a station stop is still
-      // paper. The gate also keeps the final settled frame clean.
-      if (intensity >= 0.01) {
-        for (const streak of STREAKS) {
-          const wobble = Math.sin(now / 900 + streak.jitter * 9) * 0.02;
-          const inner = reach * (0.12 + streak.radius * 0.5);
-          const length = reach * (0.02 + intensity * (0.2 + streak.jitter * 0.12));
-          const cos = Math.cos(streak.angle + wobble);
-          const sin = Math.sin(streak.angle + wobble);
-          context.beginPath();
-          context.moveTo(vanishX + cos * inner, vanishY + sin * inner);
-          context.lineTo(vanishX + cos * (inner + length), vanishY + sin * (inner + length));
-          context.strokeStyle = `rgba(${INK}, ${(0.08 + intensity * 0.3 * streak.jitter).toFixed(3)})`;
-          context.lineWidth = 0.8 + streak.jitter * 0.8;
-          context.stroke();
-        }
-      }
-      if (pulse) {
-        const t = (now - pulse.start) / 460;
-        if (t >= 1) pulse = null;
-        else {
-          const eased = 1 - Math.pow(1 - t, 3);
-          context.beginPath();
-          context.arc(vanishX, vanishY, 26 + eased * reach * 0.5, 0, Math.PI * 2);
-          context.strokeStyle = `rgba(${INK}, ${(0.2 * (1 - eased)).toFixed(3)})`;
-          context.lineWidth = 1;
-          context.stroke();
-        }
-      }
-    };
-
-    const tick = (now: number) => {
+    const tick = () => {
       frame = 0;
       if (!running || !visible) return;
       measureProgress();
@@ -152,14 +122,12 @@ export function CareerCorridor({
       const active = nearestStation(smoothedProgress, count);
       const intensity = travelIntensity(smoothedProgress, count);
       applyStations(active, intensity);
-      // Arrival = the corridor settling into a stop, not the mid-leg
-      // handover of "nearest" — one quiet ring, then stillness.
-      if (intensity < 0.08 && active !== lastArrival) {
-        lastArrival = active;
-        pulse = { start: now };
-      }
-      drawStreaks(now, intensity);
-      const settled = smoothedProgress === progress && intensity < 0.01 && !pulse;
+      // The field reads these each frame: intensity asks for velocity,
+      // progress varies the trajectory between beats.
+      driveRef.current.intensity = intensity;
+      driveRef.current.progress = smoothedProgress;
+      section.dataset.state = intensity > 0.12 ? "travel" : "idle";
+      const settled = smoothedProgress === progress && intensity < 0.01;
       if (!settled) request();
     };
     const request = () => {
@@ -178,6 +146,14 @@ export function CareerCorridor({
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("scroll", request, { passive: true });
     window.addEventListener("resize", request);
+    // The pointer bends the trajectory a degree or two, with the spring
+    // and its return-to-centre living in the field's own loop.
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      driveRef.current.pointerX = (event.clientX / window.innerWidth) * 2 - 1;
+      driveRef.current.pointerY = (event.clientY / window.innerHeight) * 2 - 1;
+    };
+    section.addEventListener("pointermove", onPointerMove, { passive: true });
 
     const onRailClick = (event: Event) => {
       const button = (event.target as Element).closest("button");
@@ -194,17 +170,19 @@ export function CareerCorridor({
     return () => {
       running = false;
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      cancelAnimationFrame(mountField);
       intersection.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", request);
       window.removeEventListener("resize", request);
+      section.removeEventListener("pointermove", onPointerMove);
       section.querySelector(".corridor-rail")?.removeEventListener("click", onRailClick);
       stations.forEach((station) => {
         station.inert = false;
         station.classList.remove("is-stop");
       });
       delete section.dataset.live;
+      delete section.dataset.state;
       track.style.removeProperty("height");
     };
   }, []);
@@ -218,7 +196,11 @@ export function CareerCorridor({
     >
       <div className="corridor-track">
         <div className="corridor-stage">
-          <canvas ref={canvasRef} className="corridor-canvas" aria-hidden="true" />
+          {live && (
+            <div className="corridor-canvas" aria-hidden="true">
+              <HyperspaceField drive={driveRef} />
+            </div>
+          )}
           <ol className="corridor-stations">
             {stops.map((stop, index) => {
               const slug = stop.href?.split("/").pop();

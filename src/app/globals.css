@@ -612,9 +612,37 @@ body:has(.home-landing) .site-footer { display: none; }
 
 /* The corridor, travelling: a sticky full-bleed stage; page scroll is the
    traveller. Stations resolve at the centre, streaks live between stops. */
-.career-corridor[data-live] { width: 100vw; margin-inline: calc(50% - 50vw); }
-.career-corridor[data-live] .corridor-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
-.career-corridor[data-live] .corridor-canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+.career-corridor[data-live] { --space: 0; width: 100vw; margin-inline: calc(50% - 50vw); }
+.career-corridor[data-live] .corridor-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  /* The whole palette rides the darkness: as space arrives the tokens
+     the stations already consume crossfade from ink-on-paper to
+     starlight. The text flip (--space-text) is deliberately steeper than
+     the ground ramp, so copy is always ink on light or starlight on
+     dark — never grey on grey mid-transition. */
+  --ink: color-mix(in srgb, #101410 calc((1 - var(--space-text, 0)) * 100%), #edf1fa calc(var(--space-text, 0) * 100%));
+  --ink-secondary: color-mix(in srgb, #4f554d calc((1 - var(--space-text, 0)) * 100%), #a9b3c4 calc(var(--space-text, 0) * 100%));
+  --muted: color-mix(in srgb, #6a7068 calc((1 - var(--space-text, 0)) * 100%), #7f8a9e calc(var(--space-text, 0) * 100%));
+  --hairline: color-mix(in srgb, #e3e3e3 calc((1 - var(--space-text, 0)) * 100%), rgba(214, 224, 240, 0.26) calc(var(--space-text, 0) * 100%));
+  color: var(--ink);
+}
+/* Deep space, arriving by opacity under the transparent star canvas.
+   Quadratic, so the whisper phase is long and the half-tone band brief;
+   feathered top and bottom, so darkness never has a starting line. */
+.career-corridor[data-live] .corridor-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: calc(var(--space) * var(--space));
+  background: radial-gradient(120% 90% at 50% 38%, #101626 0%, #0a0e18 55%, #04060c 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 86%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 86%, transparent 100%);
+}
+.career-corridor[data-live] .corridor-canvas { display: block; position: absolute; inset: 0; opacity: var(--space); }
+.career-corridor[data-live] .corridor-canvas canvas { display: block; width: 100%; height: 100%; }
 .career-corridor[data-live] .corridor-stations { position: absolute; inset: 0; z-index: 1; border-top: 0; }
 .career-corridor[data-live] .corridor-station {
   position: absolute;
