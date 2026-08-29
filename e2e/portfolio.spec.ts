@@ -53,7 +53,7 @@ async function settleIsland(page: Page) {
   // a tight loop starves the compositor on these WebGL pages, so wait for
   // the transition to actually finish before measuring.
   await page.locator(".nav-island").evaluate((element) => new Promise<void>((resolve) => {
-    const reveal = element.querySelector(".island-reveal");
+    const reveal = element.querySelector(".nav-reveal");
     if (!reveal) return resolve();
     let settled = false;
     const done = () => {
@@ -137,7 +137,7 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
 });
 
-test("the navigation island rests as a visible compact pill", async ({ page }) => {
+test("collapsed, the sphere is the only visible navigation object", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/work");
@@ -145,66 +145,91 @@ test("the navigation island rests as a visible compact pill", async ({ page }) =
 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await expect(island.locator("a.island-brand .island-orb")).toBeVisible();
-  await expect(island.getByRole("link", { name: "Tom Green, home" })).toBeVisible();
 
-  // At rest it is a real surface — ground, rounded rim, border, elevation
-  // and padding — never bare text on the page.
+  // Nothing behind the sphere: no ground, no rim, no elevation on the
+  // frame, and the navigation surface has no width and no opacity.
   const resting = await island.evaluate((element) => {
-    const style = getComputedStyle(element);
-    const box = element.getBoundingClientRect();
+    const frame = getComputedStyle(element);
+    const surface = getComputedStyle(element.querySelector(".nav-surface")!);
     return {
-      alpha: Number.parseFloat(style.backgroundColor.split(/[ ,/)]+/).filter(Boolean).pop() ?? "1"),
-      radius: Number.parseFloat(style.borderTopLeftRadius),
-      border: Number.parseFloat(style.borderTopWidth),
-      shadow: style.boxShadow,
-      padX: Number.parseFloat(style.paddingLeft),
-      padY: Number.parseFloat(style.paddingTop),
-      width: box.width,
-      height: box.height,
+      frameBg: frame.backgroundColor,
+      frameBorder: Number.parseFloat(frame.borderTopWidth),
+      frameShadow: frame.boxShadow,
+      surfaceOpacity: Number.parseFloat(surface.opacity),
+      surfaceTransform: surface.transform,
     };
   });
-  expect(resting.alpha).toBeGreaterThan(0.5);
-  expect(resting.radius).toBeGreaterThanOrEqual(20);
-  expect(resting.border).toBeGreaterThanOrEqual(1);
-  expect(resting.shadow).not.toBe("none");
-  expect(resting.padX).toBeGreaterThanOrEqual(12);
-  expect(resting.padY).toBeGreaterThanOrEqual(4);
-  // At rest the pill closes to a circle around the sphere, and stays a
-  // comfortable tap target.
-  expect(resting.width).toBeGreaterThanOrEqual(44);
-  expect(resting.height).toBeGreaterThanOrEqual(44);
-  expect(Math.abs(resting.width - resting.height)).toBeLessThanOrEqual(2);
+  expect(resting.frameBg).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+  expect(resting.frameBorder).toBe(0);
+  expect(resting.frameShadow).toBe("none");
+  expect(resting.surfaceOpacity).toBe(0);
+  // scaleX(0) — the surface has not grown at all.
+  expect(resting.surfaceTransform).toMatch(/matrix\(0,/);
+
+  // The sphere is real WebGL, and its hit area is a bare 44x44 centred
+  // on it rather than the whole width the open menu will occupy.
+  const canvas = island.locator(".sphere-stage canvas");
+  await expect(canvas).toBeVisible();
+  const button = island.locator("button.sphere-button");
+  const [buttonBox, canvasBox] = await Promise.all([button.boundingBox(), canvas.boundingBox()]);
+  expect(buttonBox!.width).toBeGreaterThanOrEqual(44);
+  expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
+  expectWithin(buttonBox!.x + buttonBox!.width / 2, canvasBox!.x + canvasBox!.width / 2, 1);
+  expectWithin(buttonBox!.y + buttonBox!.height / 2, canvasBox!.y + canvasBox!.height / 2, 1);
 });
 
-test("the island expands on hover and returns when the pointer leaves", async ({ page }) => {
+test("empty space beside the sphere does not open the navigation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/work");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
-  const widthOf = async () => (await island.boundingBox())!.width;
-  const heightOf = async () => (await island.boundingBox())!.height;
-  const compact = await widthOf();
-  const restingHeight = await heightOf();
+  const button = island.locator("button.sphere-button");
+  const box = (await button.boundingBox())!;
+  // Well clear of the sphere, but inside the band the open menu covers.
+  await page.mouse.move(box.x + box.width + 160, box.y + box.height / 2);
+  await page.waitForTimeout(300);
+  await expect(island).toHaveAttribute("data-expanded", "false");
+});
 
-  await island.hover();
+test("the navigation grows from the sphere and returns when the pointer leaves", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  const island = page.locator(".nav-island");
+  const button = island.locator("button.sphere-button");
+  const sphereBefore = (await button.boundingBox())!;
+
+  await button.hover();
   await expect(island).toHaveAttribute("data-expanded", "true");
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await settleIsland(page);
-  expect(await widthOf()).toBeGreaterThan(compact * 2);
-  // The pill keeps its ground and its height while it widens.
-  expectWithin(await heightOf(), restingHeight, 1);
-  await expect(island).toHaveCSS("border-radius", "999px");
+
+  // The sphere holds its ground: the menu extended to the right of it
+  // rather than the sphere sliding into the middle of a pill.
+  const sphereAfter = (await button.boundingBox())!;
+  expectWithin(sphereAfter.x, sphereBefore.x, 2);
+  const surface = (await island.locator(".nav-surface").boundingBox())!;
+  expect(surface.width).toBeGreaterThan(sphereAfter.width * 2);
+  expect(surface.x + surface.width).toBeGreaterThan(sphereAfter.x + sphereAfter.width);
+
+  // The sphere paints in front of the surface it opened.
+  const layering = await island.evaluate((element) => ({
+    sphere: Number.parseInt(getComputedStyle(element.querySelector(".sphere-button")!).zIndex, 10),
+    surface: getComputedStyle(element.querySelector(".nav-surface")!).zIndex,
+  }));
+  expect(layering.sphere).toBeGreaterThan(0);
+  expect(layering.surface === "auto" || Number.parseInt(layering.surface, 10) < layering.sphere).toBe(true);
 
   await page.mouse.move(720, 600);
   await expect(island).toHaveAttribute("data-expanded", "false");
   await settleIsland(page);
-  expect(await widthOf()).toBeLessThan(compact * 1.2);
-  // The trigger never disappears — it can always be reopened.
-  await expect(island.locator("a.island-brand")).toBeVisible();
-  await island.hover();
+  // The sphere never disappears — it can always be reached again.
+  await expect(island.locator(".sphere-stage canvas")).toBeVisible();
+  await button.hover();
   await expect(island).toHaveAttribute("data-expanded", "true");
 });
 
@@ -217,7 +242,7 @@ test("keyboard focus opens the island and leaving it closes again", async ({ pag
   const island = page.locator(".nav-island");
   await page.keyboard.press("Tab"); // skip link
   await page.keyboard.press("Tab"); // the island's greeting
-  await expect(island.locator("a.island-brand")).toBeFocused();
+  await expect(island.locator("button.sphere-button")).toBeFocused();
   await expect(island).toHaveAttribute("data-expanded", "true");
 
   // Every navigation link is reachable once open.
@@ -242,7 +267,7 @@ test("a touch tap opens the island instead of navigating, and tapping away close
 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await island.locator("a.island-brand").tap();
+  await island.locator("button.sphere-button").tap();
   await expect(island).toHaveAttribute("data-expanded", "true");
   // The collapsed greeting is a disclosure trigger first: the tap must
   // not travel home.
@@ -250,7 +275,7 @@ test("a touch tap opens the island instead of navigating, and tapping away close
 
   await page.locator("body").tap({ position: { x: 40, y: 600 } });
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await expect(island.locator("a.island-brand")).toBeVisible();
+  await expect(island.locator(".sphere-stage canvas")).toBeVisible();
   await context.close();
 });
 
@@ -512,9 +537,6 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
     { from: "/", selector: '.orbit-poster a[href="/work"]', to: "/work", native: true },
     { from: "/work", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
     { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
-    // The greeting always returns to the landing (a mouse click, so the
-    // island is already open and the link travels rather than opening).
-    { from: "/work", selector: "a.island-brand", to: "/" },
   ];
 
   for (const journey of journeys) {
@@ -640,7 +662,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator("a.island-brand .island-orb")).toBeVisible();
+  await expect(page.locator(".sphere-stage canvas")).toBeVisible();
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
@@ -772,7 +794,10 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   }
   // Under reduced motion the WebGL orbit never mounts — no context is
   // created at all — and the server-rendered poster carries the field.
-  await expect(page.locator("canvas")).toHaveCount(0);
+  // The navigation sphere is a separate canvas and stays: reduced motion
+  // takes its movement away, not its dimensionality.
+  await expect(page.locator(".orbit-field canvas")).toHaveCount(0);
+  await expect(page.locator(".sphere-stage canvas")).toHaveCount(1);
   await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
