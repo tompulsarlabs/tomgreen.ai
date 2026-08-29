@@ -129,9 +129,16 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   left: 0;
   z-index: 5;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  /* Docked to the content column's left edge — the same metrics as
+     .site-main — never centred over it. */
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: max(22px, 6vw);
   pointer-events: none;
 }
+/* The landing needs no island: the planetary map is the navigation. */
+body:has(.home-landing) .site-header { display: none; }
 .nav-island {
   position: relative;
   display: flex;
@@ -423,7 +430,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .route-leaving .work-index-row { opacity: 0.12; transform: translateY(-10px); transition: opacity var(--d-2) var(--ease), transform var(--d-2) var(--ease); }
 .route-leaving .work-index-row .row-company { font-variation-settings: "wdth" 70; transition-duration: var(--d-3); }
 .route-leaving .work-index-row.is-transition-source { opacity: 0; }
-.route-entering .case-company { animation: name-resolve var(--d-3) var(--ease-settle) both; }
+.route-entering .case-company { text-transform: none; animation: name-resolve var(--d-3) var(--ease-settle) both; }
 .route-entering .case-headline { animation: case-headline-resolve var(--d-3) var(--ease-settle) var(--d-3) both; }
 @keyframes name-resolve {
   from { opacity: 0; transform: translateY(14px); font-variation-settings: "wdth" 62; }
@@ -823,7 +830,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .site-main { padding-right: 22px; padding-left: 22px; }
   .axis-display { font-size: clamp(2.75rem, 11.8vw, 4.5rem); line-height: 0.84; }
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
-  .home-resolve-stage { padding-top: calc(var(--island-clear) + 1.25rem); padding-right: 22px; padding-left: 22px; }
+  .home-resolve-stage { padding-top: 1.5rem; padding-right: 22px; padding-left: 22px; }
   .resolve-lines { gap: 5rem; margin-top: 3rem; }
   .home-actions { display: grid; width: 100%; }
   .home-actions .action { width: 100%; }

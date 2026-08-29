@@ -479,7 +479,7 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
   expectWithin(geometry.planned.y, geometry.destination.y, 8);
   expectWithin(geometry.planned.width, geometry.destination.width, 8);
   expectWithin(geometry.planned.height, geometry.destination.height, 8);
-  await expect(page.locator("[data-arrival-name]")).toHaveText("Zalando");
+  await expect(page.locator("[data-arrival-name]")).toHaveText("ZALANDO");
   await expect(page.locator("[data-arrival-name]")).toHaveCSS("opacity", "0");
   const completed = await transitionCompletion;
   expect(completed.landed).not.toBeNull();
@@ -539,7 +539,9 @@ test("reduced-motion Work to case arrival exposes the headline immediately", asy
 
 test("Zalando reads as a clear case study with verified outcomes", async ({ page }) => {
   await gotoReduced(page, "/work/zalando");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Zalando");
+  // The masthead words are uppercased in JS (displayLabel), not CSS, so
+  // brand-internal capitals survive: ZALANDO here, WeR on /work/wer.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ZALANDO");
   const metrics = page.locator(".case-opening dl");
   await expect(metrics.locator("dd")).toHaveText(["0 → 120", "−32%", "+21%", "1,000+"]);
   await expect(metrics.locator("dt")).toHaveText([
@@ -566,6 +568,10 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
   )).toBeVisible();
   await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
   await expect(page.locator(".zalando-evidence, .month-ruler, .role-crowd")).toHaveCount(0);
+
+  // Brand casing is a ruling, not a style: WeR is never WER.
+  await gotoReduced(page, "/work/wer");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("WeR");
 });
 
 test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => {
