@@ -319,7 +319,6 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     labelAt: new Map<string, { x: number; y: number }>(),
     pending: new Map<string, { anchor: Anchor; since: number }>(),
     lockedUntil: new Map<string, number>(),
-    measuredAt: 0,
     measured: new Map<string, { width: number; height: number }>(),
     placeAt: 0,
     items: [] as LabelItem[],
@@ -399,6 +398,21 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         label.removeEventListener("blur", onLeave);
       });
     });
+    // The first read can land before the webfont settles, and a box
+    // cached too narrow makes the collision check believe two names
+    // clear each other when on screen they do not. Re-measure when that
+    // can have changed, rather than asking every frame whether it has.
+    const remeasure = () => s.measured.clear();
+    window.addEventListener("resize", remeasure);
+    removers.push(() => window.removeEventListener("resize", remeasure));
+    let watchingFonts = true;
+    document.fonts?.ready.then(() => {
+      if (watchingFonts) remeasure();
+    });
+    removers.push(() => {
+      watchingFonts = false;
+    });
+
     bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
 
     const observer = new IntersectionObserver(
@@ -657,13 +671,14 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         const opacity =
           (base + (1 - base) * nextEase) * s.reveal * (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
-        // Measuring every frame would thrash layout, but measuring once
-        // is worse: the first read can land before the webfont settles,
-        // and a box cached too narrow makes the collision check believe
-        // two names clear each other when on screen they do not. Once a
-        // second is cheap and self-healing.
+        // Measuring every frame would thrash layout. A nameplate's box
+        // only changes when its text, its font or the viewport does, and
+        // the cache is cleared on those — never polled, because reading
+        // offsetWidth here forces a synchronous layout inside the frame
+        // loop, and doing that on a timer stalls whatever else the page
+        // is animating at the time.
         let box = s.measured.get(body.id);
-        if (!box || box.width === 0 || now - s.measuredAt > 1) {
+        if (!box || box.width === 0) {
           box = { width: label.offsetWidth || 70, height: label.offsetHeight || 16 };
           if (box.width > 0) s.measured.set(body.id, box);
         }
@@ -753,7 +768,6 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
       // Targets follow the anchor each label actually holds, recomputed
       // from its live position so a label tracks its planet continuously
       // between placement passes.
-      if (now - s.measuredAt > 1) s.measuredAt = now;
       const ease = lerpIn(9);
       // Move every nameplate first. What matters for legibility is where
       // the boxes actually are this frame, not where the placement pass

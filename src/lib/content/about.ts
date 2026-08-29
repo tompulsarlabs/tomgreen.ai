@@ -29,7 +29,7 @@ export const career: CareerStop[] = [
     period: "2025 – 2026",
     note: "Ran the European business. Won €3.3M of new business in twelve months. Then rebuilt how Europe operated.",
     achievements: [
-      "Led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief People Officer.",
+      "Led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
       "Rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. The model became the reference for the group’s wider AI transformation.",
       "Delivered a consulting project for Google EMEA on executive recruiting (NDA).",
     ],
