@@ -162,9 +162,11 @@ body:has(.home-landing) .site-header { display: none; }
 .nav-surface {
   position: absolute;
   top: 50%;
-  left: 0.28rem;
+  /* Flush with the island's leading edge, so the cap this rounds into is
+     concentric with the sphere rather than offset behind it. */
+  left: 0;
   height: 3.05rem;
-  width: calc(100% - 0.28rem);
+  width: 100%;
   transform: translateY(-50%) scaleX(0);
   transform-origin: left center;
   border-radius: 999px;
@@ -194,8 +196,11 @@ body:has(.home-landing) .site-header { display: none; }
   position: relative;
   z-index: 2;
   display: grid;
-  width: 3rem;
-  height: 3rem;
+  /* Exactly the surface's height: the button's centre is then the centre
+     of the surface's rounded cap, and the sphere sits inside it with an
+     even margin all the way round instead of breaking out of the end. */
+  width: 3.05rem;
+  height: 3.05rem;
   flex: none;
   place-items: center;
   border: 0;
