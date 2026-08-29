@@ -209,16 +209,16 @@ const BAKE_FRAGMENT = /* glsl */ `
 
     // Only the tangential part of the gradient tilts a surface normal.
     vec3 tangential = grad - p * dot(grad, p);
-    vec3 nObj = normalize(p - 0.62 * tangential);
+    vec3 nObj = normalize(p - 0.38 * tangential);
 
     // Regolith is grey and very slightly warm, the basalt darker and a
     // shade cooler; the hue difference is small enough to reconstruct
     // from brightness alone, so only brightness is stored.
-    float albedo = mix(0.735, 0.325, mare);
+    float albedo = mix(0.930, 0.660, mare);
     // Fresh material thrown up onto a rim is brighter than the ground it
     // lands on; the floors of old craters are darker.
-    albedo *= 0.84 + 0.32 * smoothstep(-0.012, 0.028, h);
-    albedo *= 0.93 + 0.15 * fbm(p * 8.5);
+    albedo *= 0.91 + 0.16 * smoothstep(-0.012, 0.028, h);
+    albedo *= 0.955 + 0.09 * fbm(p * 8.5);
 
     // Ray systems: the bright ejecta streaks flung out by the youngest
     // impacts, and the detail that reads unmistakably as the Moon.
@@ -226,7 +226,7 @@ const BAKE_FRAGMENT = /* glsl */ `
     float fromHub = acos(clamp(dot(p, rayHub), -1.0, 1.0));
     vec3 around = normalize(p - rayHub * dot(p, rayHub) + vec3(1e-5));
     float streak = pow(vnoise(around * 7.0 + 4.0), 4.0);
-    albedo += streak * smoothstep(1.45, 0.30, fromHub) * 0.16 * (1.0 - mare);
+    albedo += streak * smoothstep(1.45, 0.30, fromHub) * 0.09 * (1.0 - mare);
 
     gl_FragColor = vec4(nObj * 0.5 + 0.5, clamp(albedo, 0.0, 1.0));
   }
@@ -255,8 +255,8 @@ const FRAGMENT = /* glsl */ `
     // the warmer grey of the highlands.
     float grey = ground.a;
     vec3 albedo = vec3(grey) * mix(
-      vec3(0.955, 0.965, 1.010),
-      vec3(1.030, 1.010, 0.980),
+      vec3(0.978, 0.986, 1.005),
+      vec3(1.012, 1.004, 0.994),
       smoothstep(0.30, 0.62, grey));
 
     float mu0 = max(dot(N, L), 0.0);
@@ -265,19 +265,19 @@ const FRAGMENT = /* glsl */ `
     // reads as a flat luminous disc instead of a shaded ball; mixed back
     // toward Lambert so this one still reads as a sphere at this size.
     float ls = mu0 / max(mu0 + mu, 0.05);
-    float diffuse = mix(mu0, ls * 1.55, 0.58);
+    float diffuse = mix(mu0, ls * 1.55, 0.50);
     // The opposition surge: the sharp brightening at zero phase angle.
     diffuse *= 1.0 + 0.16 * pow(max(dot(L, V), 0.0), 6.0);
 
-    vec3 lit = albedo * diffuse * (1.26 + 0.12 * uActive);
+    vec3 lit = albedo * diffuse * (1.34 + 0.12 * uActive);
     // Earthshine, filling the night side the way it does on a crescent.
-    lit += albedo * vec3(0.10, 0.12, 0.17) * (0.5 + 0.5 * max(dot(N, -L), 0.0)) * 0.34;
+    lit += albedo * vec3(0.13, 0.15, 0.20) * (0.5 + 0.5 * max(dot(N, -L), 0.0)) * 0.46;
     // A floor, so the unlit limb never disappears into a dark header.
-    lit += albedo * 0.048;
+    lit += albedo * 0.090;
     // And the faintest edge lift, for the same reason. No atmosphere is
     // implied: it is far too small to read as glow.
     float fres = pow(1.0 - mu, 3.0);
-    lit += vec3(0.30, 0.34, 0.42) * fres * (0.05 + 0.09 * uActive);
+    lit += vec3(0.42, 0.46, 0.55) * fres * (0.09 + 0.10 * uActive);
 
     gl_FragColor = vec4(lit, 1.0);
   }

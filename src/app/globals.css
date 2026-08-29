@@ -226,7 +226,16 @@ body:has(.home-landing) .site-header { display: none; }
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
-.sphere-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+/* Bright enough now to vanish into the open bar's white, so it gets a
+   soft contact shadow. The filter traces the canvas's own alpha, which
+   is exactly the moon's disc — it reads as the object floating in front
+   of the surface, which is what it is. */
+.sphere-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 2px 7px rgba(14, 18, 26, 0.30));
+}
 
 /* The labels ride a track that opens from nothing, so the surface has
    travelled most of its distance before any text is legible. */
@@ -388,7 +397,7 @@ body:has(.home-landing) .site-header { display: none; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
 .constraint-line { max-width: 15ch; word-spacing: var(--constraint-word-space, 0); font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }
-/* Six words — one step below the display size so "Make talent" and its
+/* Six words — one step below the display size so "Talent is" and its
    fellows compose as three lines at wdth 125. */
 .release-line { max-width: 19ch; font-size: clamp(2.75rem, 8.35vw, 7.6rem); line-height: 0.88; }
 /* The middle line grew to a sentence — it takes a display step down so
