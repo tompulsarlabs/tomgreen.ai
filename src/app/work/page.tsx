@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { WorkIndexRow } from "@/components/work-index-row";
-import { caseStudies } from "@/lib/content/case-studies";
+import { caseStudies, workProjects } from "@/lib/content/case-studies";
 import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
@@ -35,12 +35,12 @@ const groups = [
   },
 ] as const;
 
-/** The Work index's planets: its case studies, orbiting talent. */
-const orbitBodies: OrbitBody[] = caseStudies.map((study, index) => ({
-  id: study.slug,
-  label: study.company,
+/** The Work index's planets: the projects, orbiting talent. */
+const orbitBodies: OrbitBody[] = workProjects.map((project, index) => ({
+  id: project.id,
+  label: project.label,
   color: planetColor(index),
-  target: { kind: "route", href: `/work/${study.slug}` },
+  target: { kind: "route", href: `/work/${project.slug}` },
   size: defaultBodySize(index),
 }));
 

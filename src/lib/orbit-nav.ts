@@ -120,7 +120,10 @@ export function navOrbitElements(index: number, count: number): OrbitElements {
     incl: 0.26 + 0.34 * hash(index * 7 + 3),
     node: ((index * 2.4) % (Math.PI * 2)) + 0.35 * hash(index * 11 + 4),
     speed: 0.46 / Math.pow(a, 1.2),
-    phase: hash(index * 13 + 5) * Math.PI * 2,
+    // The golden angle, so no two bodies start near each other however
+    // many there are. A random phase bunches them, and bunched planets
+    // are what leaves their nameplates fighting for the same space.
+    phase: index * 2.39996323 + 0.4 * hash(index * 13 + 5),
   };
 }
 

@@ -857,7 +857,7 @@ test("clicking a planet pulls it into the black hole, then travels", async ({ pa
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/work");
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  const label = page.locator('a.orbit-label[data-body="zalando"]');
+  const label = page.locator('a.orbit-label[data-body="ai-organisation"]');
   await expect(label).toHaveAttribute("href", "/work/zalando");
   // The capture spirals the planet into the core (~0.75s), then the
   // site travels to the case study.
@@ -893,9 +893,20 @@ test("each page's headers are its planets", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
   const page = await context.newPage();
   await page.goto("/work");
-  await expect(page.locator(".orbit-poster a")).toHaveCount(6);
-  await expect(page.locator('.orbit-poster a[href="/work/zalando"]')).toBeAttached();
-  await expect(page.locator('.orbit-poster a[href="/work/chapter-2"]')).toBeAttached();
+  // Work's planets are its projects, not its employers — the About
+  // corridor already carries the companies, and two of these records
+  // hold more than one project, so several planets share a destination.
+  await expect(page.locator(".orbit-poster a")).toHaveCount(8);
+  await expect(page.locator('.orbit-poster a[href="/work/zalando"]')).toHaveCount(2);
+  await expect(page.locator('.orbit-poster a[href="/work/chapter-2"]')).toHaveCount(2);
+  // Nameplates read in caps, so match what is actually rendered.
+  await expect(page.locator(".orbit-poster")).toContainText("0 → 120 AI BUILD");
+  await expect(page.locator(".orbit-poster")).toContainText("INTERVIEWER TRAINING SYSTEM");
+  // And no company name among them — that is the duplication this
+  // replaced, and the check is worthless unless it is cased to match.
+  for (const company of ["ZALANDO", "CHAPTER 2", "CAMPBELL NORTH", "AUDIBENE"]) {
+    await expect(page.locator(".orbit-poster")).not.toContainText(company);
+  }
   await page.goto("/contact");
   await expect(page.locator(".orbit-poster a")).toHaveCount(4);
   await expect(page.locator('.orbit-poster a[href^="mailto:"]')).toBeAttached();

@@ -51,6 +51,8 @@ export type Rect = { x: number; y: number; width: number; height: number };
 export type Placement = {
   id: string;
   anchor: Anchor;
+  /** The gap it was placed at — the near ring, or pushed out to the far one. */
+  gap: number;
   /** Top-left of the label box, screen pixels. */
   x: number;
   y: number;
@@ -72,6 +74,11 @@ export type PlaceOptions = {
 };
 
 const DIAGONAL = Math.SQRT1_2;
+
+/** How much further out the second ring of anchors sits, in pixels. */
+const FAR_RING = 26;
+/** What choosing it costs, so the near ring still wins a free contest. */
+const FAR_RING_COST = 22;
 
 /** Unit direction each anchor pushes the label, for the radial test. */
 const DIRECTION: Record<Anchor, [number, number]> = {
@@ -199,11 +206,18 @@ export function placeLabels(items: readonly LabelItem[], options: PlaceOptions):
     const rx = (item.x - core.x) / radial;
     const ry = (item.y - core.y) / radial;
 
-    let best: { anchor: Anchor; rect: Rect; cost: number } | null = null;
+    let best: { anchor: Anchor; rect: Rect; cost: number; gap: number } | null = null;
 
-    for (const anchor of ANCHORS) {
-      const rect = anchorRect(item, anchor, gap);
-      let cost = 0;
+    // Two rings. Eight anchors around a planet is not many once the
+    // labels are long and the field is crowded, and a solver with no
+    // room left has to put a name on top of another one. Pushing a
+    // nameplate further out is what a designer does instead, so the far
+    // ring is offered at a small penalty — preferred to any collision,
+    // never preferred to a clean near placement.
+    for (const ringGap of [gap, gap + FAR_RING]) {
+      for (const anchor of ANCHORS) {
+      const rect = anchorRect(item, anchor, ringGap);
+      let cost = ringGap === gap ? 0 : FAR_RING_COST;
 
       // Hard: nothing may leave the frame, cover the core, sit on another
       // planet, or land on a label already placed.
@@ -235,7 +249,8 @@ export function placeLabels(items: readonly LabelItem[], options: PlaceOptions):
       if (anchor === "right" && rightCount > leftCount + 1) cost += 30 * (rightCount - leftCount);
       if (anchor === "left" && leftCount > rightCount + 1) cost += 30 * (leftCount - rightCount);
 
-      if (!best || cost < best.cost) best = { anchor, rect, cost };
+      if (!best || cost < best.cost) best = { anchor, rect, cost, gap: ringGap };
+      }
     }
 
     const chosen = best!;
@@ -246,6 +261,7 @@ export function placeLabels(items: readonly LabelItem[], options: PlaceOptions):
     placements.push({
       id: item.id,
       anchor: chosen.anchor,
+      gap: chosen.gap,
       x: chosen.rect.x,
       y: chosen.rect.y,
       align: ALIGN[chosen.anchor],

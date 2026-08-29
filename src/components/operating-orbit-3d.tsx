@@ -7,7 +7,14 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { anchorRect, placeLabels, rectsOverlap, type Anchor, type LabelItem } from "@/lib/label-placement";
+import {
+  anchorRect,
+  placeLabels,
+  rectsOverlap,
+  type Anchor,
+  type LabelItem,
+  type Rect,
+} from "@/lib/label-placement";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
@@ -41,6 +48,8 @@ const wellDepth = (r: number) =>
   -WELL.drop * Math.pow(WELL.shoulder / (WELL.shoulder + r), WELL.power);
 
 const CORE_RADIUS = 0.34;
+/** How many nameplates a narrow layout carries at once. */
+const NARROW_LABELS = 4;
 const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
 
 /** How long a clicked planet takes to spiral into the core. */
@@ -304,9 +313,13 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     // currently drawn, and the hysteresis that stops it flicking between
     // anchors on a one-pixel scoring difference.
     anchors: new Map<string, Anchor>(),
+    gaps: new Map<string, number>(),
+    hidden: new Map<string, number>(),
+    baseOpacity: new Map<string, number>(),
     labelAt: new Map<string, { x: number; y: number }>(),
     pending: new Map<string, { anchor: Anchor; since: number }>(),
     lockedUntil: new Map<string, number>(),
+    measuredAt: 0,
     measured: new Map<string, { width: number; height: number }>(),
     placeAt: 0,
     items: [] as LabelItem[],
@@ -643,11 +656,14 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         const base = ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
         const opacity =
           (base + (1 - base) * nextEase) * s.reveal * (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
-        label.style.opacity = opacity.toFixed(3);
-        // Measuring every frame would thrash layout; a nameplate's box
-        // only changes when its text or its font does.
+        s.baseOpacity.set(body.id, opacity);
+        // Measuring every frame would thrash layout, but measuring once
+        // is worse: the first read can land before the webfont settles,
+        // and a box cached too narrow makes the collision check believe
+        // two names clear each other when on screen they do not. Once a
+        // second is cheap and self-healing.
         let box = s.measured.get(body.id);
-        if (!box || box.width === 0) {
+        if (!box || box.width === 0 || now - s.measuredAt > 1) {
           box = { width: label.offsetWidth || 70, height: label.offsetHeight || 16 };
           if (box.width > 0) s.measured.set(body.id, box);
         }
@@ -688,7 +704,7 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         const held = new Map<string, ReturnType<typeof anchorRect>>();
         for (const item of s.items) {
           const anchor = s.anchors.get(item.id);
-          if (anchor) held.set(item.id, anchorRect(item, anchor, 14));
+          if (anchor) held.set(item.id, anchorRect(item, anchor, s.gaps.get(item.id) ?? 14));
         }
         const covering = new Set<string>();
         for (const [idA, boxA] of held) {
@@ -703,10 +719,15 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
 
         for (const placement of chosen) {
           const current = s.anchors.get(placement.id);
+          // The ring counts as part of the choice: the same anchor pushed
+          // out to the far ring is a real move, and treating it as no
+          // change would strand a label on top of another one.
+          const settled =
+            current === placement.anchor && (s.gaps.get(placement.id) ?? 14) === placement.gap;
           // Unplaced, or currently covering something: move at once.
           const urgent = current === undefined || covering.has(placement.id);
           const locked = !urgent && (s.lockedUntil.get(placement.id) ?? 0) > now;
-          if (current === placement.anchor) {
+          if (settled) {
             s.pending.delete(placement.id);
           } else if (!locked) {
             // A better anchor must otherwise hold for a beat before the
@@ -714,12 +735,14 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
             const waiting = s.pending.get(placement.id);
             if (urgent) {
               s.anchors.set(placement.id, placement.anchor);
+              s.gaps.set(placement.id, placement.gap);
               s.lockedUntil.set(placement.id, now + 0.35);
               s.pending.delete(placement.id);
             } else if (!waiting || waiting.anchor !== placement.anchor) {
               s.pending.set(placement.id, { anchor: placement.anchor, since: now });
             } else if (now - waiting.since > 0.22) {
               s.anchors.set(placement.id, placement.anchor);
+              s.gaps.set(placement.id, placement.gap);
               s.lockedUntil.set(placement.id, now + 0.35);
               s.pending.delete(placement.id);
             }
@@ -730,7 +753,14 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
       // Targets follow the anchor each label actually holds, recomputed
       // from its live position so a label tracks its planet continuously
       // between placement passes.
+      if (now - s.measuredAt > 1) s.measuredAt = now;
       const ease = lerpIn(9);
+      // Move every nameplate first. What matters for legibility is where
+      // the boxes actually are this frame, not where the placement pass
+      // scored them a seventh of a second ago — the planets have moved
+      // since, and two labels can drift into each other between passes
+      // however clean the chosen anchors were.
+      const drawn: { item: LabelItem; label: HTMLElement; box: Rect }[] = [];
       for (const item of s.items) {
         const label = s.labels.get(item.id);
         if (!label) continue;
@@ -738,12 +768,59 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         // Written only when it changes: the anchor is observable for
         // styling and for tests, without a DOM write every frame.
         if (label.dataset.anchor !== anchor) label.dataset.anchor = anchor;
-        const rect = anchorRect(item, anchor, 14);
+        const rect = anchorRect(item, anchor, s.gaps.get(item.id) ?? 14);
         const at = s.labelAt.get(item.id) ?? { x: rect.x, y: rect.y };
         at.x += (rect.x - at.x) * ease;
         at.y += (rect.y - at.y) * ease;
         s.labelAt.set(item.id, at);
         label.style.transform = `translate3d(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px, 0)`;
+        drawn.push({
+          item,
+          label,
+          box: { x: at.x, y: at.y, width: item.width, height: item.height },
+        });
+      }
+
+      // Where two do land on each other, the nearer keeps its place and
+      // the further withdraws. Nothing legible is lost: the planet is
+      // still there and still hoverable, and the name returns as soon as
+      // the system turns far enough to make room. Two names printed
+      // across each other lose both.
+      const withdraw = new Set<string>();
+      // A phone is not a wall. Eight nameplates cannot share 390px
+      // without the collision pass fighting itself every frame, so the
+      // narrow layout carries only the nearest few and lets the rest go
+      // — the planets all remain, and tapping one still travels.
+      if (narrow && drawn.length > NARROW_LABELS) {
+        const byDepth = [...drawn].sort(
+          (a, b) => (s.baseOpacity.get(b.item.id) ?? 0) - (s.baseOpacity.get(a.item.id) ?? 0),
+        );
+        for (const { item } of byDepth.slice(NARROW_LABELS)) {
+          if (!item.active) withdraw.add(item.id);
+        }
+      }
+      for (let i = 0; i < drawn.length; i += 1) {
+        for (let j = i + 1; j < drawn.length; j += 1) {
+          const a = drawn[i];
+          const b = drawn[j];
+          if (!rectsOverlap(a.box, b.box)) continue;
+          if (a.item.active) withdraw.add(b.item.id);
+          else if (b.item.active) withdraw.add(a.item.id);
+          else {
+            const aNear = s.baseOpacity.get(a.item.id) ?? 0;
+            const bNear = s.baseOpacity.get(b.item.id) ?? 0;
+            withdraw.add(aNear < bNear ? a.item.id : b.item.id);
+          }
+        }
+      }
+
+      const fade = lerpIn(5);
+      for (const { item, label } of drawn) {
+        const wanted = withdraw.has(item.id) ? 1 : 0;
+        const hide = s.hidden.get(item.id) ?? 0;
+        const next = hide + (wanted - hide) * fade;
+        s.hidden.set(item.id, next);
+        label.style.opacity = ((s.baseOpacity.get(item.id) ?? 1) * (1 - next)).toFixed(3);
       }
       s.items.length = 0;
     }
