@@ -92,9 +92,17 @@ export function RouteTransition({ children }: { children: ReactNode }) {
     const native = event.nativeEvent;
     if (isModified(native)) return;
     const anchor = (event.target as Element).closest("a");
-    if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+    if (!anchor) return;
+    // SVG anchors (the orbit poster's planets) expose href/target as
+    // SVGAnimatedString objects — read the string value, never coerce.
+    const href = anchor instanceof SVGAElement ? anchor.href.baseVal : anchor.href;
+    const linkTarget = anchor instanceof SVGAElement ? anchor.target.baseVal : anchor.target;
+    if (!href || linkTarget === "_blank" || anchor.hasAttribute("download")) return;
+    // A link currently serving as a disclosure trigger (the collapsed
+    // navigation island) opens its own control instead of travelling.
+    if (anchor.hasAttribute("data-island-trigger")) return;
 
-    const url = new URL(anchor.href, window.location.href);
+    const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin || url.protocol !== window.location.protocol) return;
     if (url.pathname === window.location.pathname && url.search === window.location.search) return;
 

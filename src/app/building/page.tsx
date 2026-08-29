@@ -12,14 +12,33 @@ import {
   sceneNodeIds,
   type GraphNode,
 } from "@/lib/content/graph";
+import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
-  title: "Systems",
+  title: "Lab",
   description:
     "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
 };
 
 export const viewport: Viewport = { themeColor: "#ffffff" };
+
+/** The Lab's planets: its section headings, orbiting talent. */
+const orbitBodies: OrbitBody[] = [
+  ...clusterOrder.map((clusterId, index) => ({
+    id: `cluster-${clusterId}`,
+    label: clusters[clusterId].label,
+    color: planetColor(index),
+    target: { kind: "anchor" as const, id: `cluster-${clusterId}` },
+    size: defaultBodySize(index),
+  })),
+  {
+    id: "projects",
+    label: "Projects",
+    color: planetColor(clusterOrder.length),
+    target: { kind: "anchor", id: "projects" },
+    size: defaultBodySize(clusterOrder.length),
+  },
+];
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
@@ -44,7 +63,7 @@ function RecordLink({ node }: { node: GraphNode }) {
     </a>
   ) : (
     <Link href={node.href} className={className}>
-      Read the case study →
+      Read →
     </Link>
   );
 }
@@ -97,25 +116,16 @@ export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
-        <OperatingOrbit />
+        <OperatingOrbit bodies={orbitBodies} />
         <div className="systems-hero-copy">
-          <p className="record">Systems</p>
+          <p className="record">Lab</p>
           <div className="systems-title-row">
-            <h1 id="systems-title" className="axis-display">Systems.</h1>
+            <h1 id="systems-title" className="axis-display">Lab.</h1>
             <p className="systems-lead">
               The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
             </p>
           </div>
         </div>
-        <p className="record orbit-caption">
-          <span className="orbit-caption-mark" aria-hidden />
-          <span>
-            Conceptual — ten operating domains executing agentically around one centre of human judgment. Drag to rotate; wake a domain to see its threads.
-            <span className="orbit-legend">
-              Talent · Ops · Growth · Revenue · Product · Engineering · HR tech · Building · AI · Agents
-            </span>
-          </span>
-        </p>
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
@@ -149,7 +159,7 @@ export default function Building() {
               </p>
               <h2
                 id={`cluster-${clusterId}`}
-                className="axis-index mt-4 flex max-w-xs items-start gap-3 text-2xl leading-tight"
+                className="axis-index mt-4 flex max-w-xs scroll-mt-24 items-start gap-3 text-2xl leading-tight"
               >
                 {cluster.label}
               </h2>
@@ -169,8 +179,8 @@ export default function Building() {
         );
       })}
 
-      <section className="grid gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
-        <p className="record text-muted">More projects</p>
+      <section id="projects" className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
+        <p className="record text-muted">Projects</p>
         <div className="grid gap-x-8 md:grid-cols-2">
           {projects
             .filter((project) => !sceneIds.has(project.slug))

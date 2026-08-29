@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CareerCorridor } from "@/components/career-corridor";
+import { OperatingOrbit } from "@/components/operating-orbit";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
 import { sceneNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { testimonials } from "@/lib/content/testimonials";
+import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 import { isAboutPublic } from "@/lib/site-env";
 
 export const metadata: Metadata = {
@@ -14,20 +16,32 @@ export const metadata: Metadata = {
     "Fifteen years building teams — travel the career stop by stop, then jump into the case studies and systems behind it.",
 };
 
+/** The About page's planets: its career stops, orbiting talent. */
+const orbitBodies: OrbitBody[] = career.map((stop, index) => ({
+  id: `station-${index}`,
+  label: stop.company,
+  color: planetColor(index),
+  target: { kind: "station", index, anchorId: `station-${index}` },
+  size: defaultBodySize(index),
+}));
+
 export default function About() {
   if (!isAboutPublic) notFound();
 
   return (
     <div className="about-page">
-      <header className="about-opening">
-        <div>
+      <header className="systems-hero about-opening-hero">
+        <OperatingOrbit bodies={orbitBodies} />
+        <div className="systems-hero-copy">
           <p className="record">About / operating record</p>
-          <h1 className="axis-display">A career at the intersection.</h1>
-        </div>
-        <div className="about-intro">
-          {aboutIntro.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+          <div className="systems-title-row">
+            <h1 className="axis-display hero-title-long">A career at the intersection.</h1>
+            <div className="systems-lead about-intro">
+              {aboutIntro.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -57,15 +71,12 @@ export default function About() {
           )}
 
           <div className="about-contact">
-            <p>
-              If you are building an ambitious team or the operating system behind it, I’d like
-              to hear what is difficult.
-            </p>
+            <p>Want to build, hire elite talent, or just network?</p>
             <a
               href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
               className="action action-dark"
             >
-              Start a conversation
+              Let’s Chat
             </a>
           </div>
         </div>

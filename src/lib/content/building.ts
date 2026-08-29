@@ -38,7 +38,7 @@ export const projects: Project[] = [
     status: "in the lab",
     tagline: "AI capability assessment platform",
     description: [
-      "A product-led assessment and learning-path tool for AI capability in teams, with Claude and Gemini doing the assessment reasoning. Currently in the lab.",
+      "SYBIL helps CHROs and executive teams prove and accelerate enterprise AI adoption through behavior-derived AI fluency measurement, manager enablement, and curated in-flow interventions.",
     ],
     stack: ["Next.js", "Supabase", "Claude API", "Gemini"],
   },

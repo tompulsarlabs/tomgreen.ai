@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { OperatingOrbit } from "@/components/operating-orbit";
 import { WorkIndexRow } from "@/components/work-index-row";
-import { caseStudies } from "@/lib/content/case-studies";
+import { caseStudies, workProjects } from "@/lib/content/case-studies";
+import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Work",
@@ -33,24 +35,41 @@ const groups = [
   },
 ] as const;
 
+/** The Work index's planets: the projects, orbiting talent. */
+const orbitBodies: OrbitBody[] = workProjects.map((project, index) => ({
+  id: project.id,
+  label: project.label,
+  color: planetColor(index),
+  target: { kind: "route", href: `/work/${project.slug}` },
+  size: defaultBodySize(index),
+}));
+
 export default function WorkIndex() {
   let rowIndex = 0;
 
   return (
     <div className="work-index-page">
-      <header className="work-index-header">
-        <p className="record">Evidence / selected operating records</p>
-        <h1 className="axis-display">Weighed by opportunity cost.</h1>
-        <p className="work-index-support">
-          Organisation building, operating-model design, product operations and founder economics—under real constraints.
-        </p>
-        <p>
+      <header className="systems-hero work-orbit-hero">
+        <OperatingOrbit bodies={orbitBodies} />
+        <div className="systems-hero-copy">
+          <p className="record">Evidence / selected operating records</p>
+          <div className="systems-title-row">
+            <h1 className="axis-display hero-title-long">Weighed by opportunity cost.</h1>
+            <p className="systems-lead">
+              Building organisations, talent engines and operating models, in founder mode.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <section aria-label="Selected outcomes" className="work-metric-band">
+        <p className="max-w-2xl leading-relaxed text-ink-secondary">
           Inspect the mandate, operating logic, judgment and evidence behind every decision.
         </p>
         <dl className="work-metric-rail">
           {[
             ["0 → 120", "AI organisation / six months"],
-            ["€2.5M", "ARR won / first year"],
+            ["€3.3M", "New business won / 12 months"],
             ["£1M", "Bootstrapped / two years"],
           ].map(([value, label]) => (
             <div key={label}>
@@ -59,7 +78,7 @@ export default function WorkIndex() {
             </div>
           ))}
         </dl>
-      </header>
+      </section>
 
       {groups.map((group) => {
         const members = caseStudies.filter((study) =>
@@ -86,10 +105,10 @@ export default function WorkIndex() {
         <div>
           <p className="axis-heading">Want the operating logic, not just the result?</p>
           <p className="work-next-lead">
-            The systems map connects the agent workflows, products, case studies and public build record behind this work.
+            The Lab connects the agent workflows, products, case studies and public build record behind this work.
           </p>
         </div>
-        <Link href="/building" className="action action-light">Explore the systems →</Link>
+        <Link href="/building" className="action action-light">Explore the Lab →</Link>
       </aside>
     </div>
   );

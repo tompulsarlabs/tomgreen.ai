@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { SVGProps } from "react";
+import { OperatingOrbit } from "@/components/operating-orbit";
 import { site } from "@/lib/content/site";
+import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -14,6 +16,15 @@ function MailIcon(props: SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
       <path d="M3.75 5.75h16.5v12.5H3.75z" />
       <path d="m4.25 6.5 7.75 6 7.75-6" />
+    </svg>
+  );
+}
+
+function CalendarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <rect x="3.75" y="5.25" width="16.5" height="15" rx="1.25" />
+      <path d="M3.75 10h16.5M8.25 3.75v3M15.75 3.75v3" />
     </svg>
   );
 }
@@ -39,10 +50,17 @@ function GitHubIcon(props: SVGProps<SVGSVGElement>) {
 const channels = [
   {
     label: "Email",
-    note: "For projects, roles and thoughtful introductions.",
+    note: "For projects, work and introductions.",
     href: `mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`,
     icon: MailIcon,
     rel: undefined,
+  },
+  {
+    label: "Calendly",
+    note: "Book a time direct.",
+    href: site.links.calendly,
+    icon: CalendarIcon,
+    rel: "me",
   },
   {
     label: "LinkedIn",
@@ -53,36 +71,49 @@ const channels = [
   },
   {
     label: "GitHub",
-    note: "Public systems, source code and the live build record.",
+    note: "Systems, code, and building.",
     href: site.links.github,
     icon: GitHubIcon,
     rel: "me",
   },
 ] as const;
 
+/** The Contact page's planets: its channels, orbiting talent. */
+const orbitBodies: OrbitBody[] = channels.map((channel, index) => ({
+  id: channel.label.toLowerCase(),
+  label: channel.label,
+  color: planetColor(index),
+  target: { kind: "link", href: channel.href },
+  keepCase: true,
+  size: defaultBodySize(index),
+}));
+
 export default function ContactPage() {
   return (
     <div className="flex min-h-[calc(100svh-4.75rem)] flex-col">
-      <header className="grid gap-10 border-b border-ink py-16 md:py-24 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
-        <div>
+      <header className="systems-hero">
+        <OperatingOrbit bodies={orbitBodies} />
+        <div className="systems-hero-copy">
           <p className="record text-muted">
             Contact / {site.location} · global
           </p>
-          <h1 className="contact-title axis-display mt-4 max-w-3xl">
-            Tell me what’s hard.
-          </h1>
-        </div>
-        <div className="max-w-2xl lg:pb-2">
-          <p className="text-lg leading-relaxed text-ink-secondary md:text-xl">
-            An AI organisation to scale. A hiring system that is creaking. An agent workflow that needs to work outside a demo. Start with the constraint.
-          </p>
-          <a
-            href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
-            className="action action-dark group mt-8 gap-4"
-          >
-            Start a conversation
-            <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-          </a>
+          <div className="systems-title-row">
+            <h1 className="contact-title axis-display hero-title-long">
+              Tell me what’s hard.
+            </h1>
+            <div className="systems-lead">
+              <p>
+                Talent density that compounds into advantage. Razor-sharp heuristics for winning elite folks. Systems that hold up long after the demo. Let’s build it.
+              </p>
+              <a
+                href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
+                className="action action-dark group mt-6 gap-4"
+              >
+                Start a conversation
+                <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+              </a>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -141,7 +172,7 @@ export default function ContactPage() {
             See the work →
           </Link>
           <Link href="/building" className="inline-flex min-h-11 items-center text-ink hover:underline">
-            Explore the systems →
+            Explore the Lab →
           </Link>
         </div>
       </aside>

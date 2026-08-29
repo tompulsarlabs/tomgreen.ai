@@ -2,16 +2,19 @@
 
 :root {
   color-scheme: light;
-  --site-header-h: 5.25rem;
+  --site-header-h: 0rem;
+  /* The floating island's occupied band — it takes no flow space, so
+     content that begins at the very top clears it explicitly. */
+  --island-clear: 4.75rem;
   --paper: #ffffff;
   --ink: #101410;
   --ink-secondary: #4f554d;
   --muted: #6a7068;
-  --ghost: #b9bdb4;
-  --hairline: #deded8;
-  --card: #f5f5f1;
+  --ghost: #b9b9b9;
+  --hairline: #e3e3e3;
+  --card: #f6f6f6;
   --paper-high: #ffffff;
-  --signal: #f4f4ef;
+  --signal: #f6f6f6;
   --accent: #101410;
   --accent-ink: #101410;
   --live: #3fa06c;
@@ -46,7 +49,7 @@
 }
 
 html {
-  scroll-padding-top: calc(var(--site-header-h) + 1rem);
+  scroll-padding-top: calc(var(--island-clear) + 1rem);
 }
 
 body {
@@ -86,6 +89,9 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   letter-spacing: -0.075em;
   text-transform: uppercase;
 }
+/* A brand-cased name is authored, not styled: WeR is never WER, however
+   loud the slot it lands in. */
+[data-brand-case] { text-transform: none; }
 
 .axis-heading {
   --axis: 100;
@@ -105,7 +111,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   align-items: center;
   justify-content: center;
   border: 1px solid var(--ink);
-  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.4rem;
   font-size: 0.875rem;
   transition: color var(--d-1) var(--ease), background var(--d-1) var(--ease);
 }
@@ -115,21 +122,229 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .action-dark:focus-visible { outline-color: var(--ink); }
 .action-light:hover, .action-light:focus-visible { background: var(--ink); color: var(--paper); }
 
-/* Header */
+/* The navigation island — a floating pill, centred and fixed, always
+   present. z 5 keeps it beneath Home's statement stage (z 6), so it
+   arrives with the map. */
 .site-header {
-  border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  /* Docked to the content column's right edge — the same metrics as
+     .site-main — never centred over it, and never over the copy. */
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: max(22px, 6vw);
+  pointer-events: none;
 }
-.brand-lockup { font-family: var(--font-archivo), Arial, sans-serif; font-variation-settings: "wdth" 78; font-weight: 800; }
-.brand-signal { background: currentColor; }
-.header-progress > span { transition: transform 80ms linear; }
-.route-leaving .header-progress > span { transform: scaleX(0) !important; transition: transform var(--d-2) var(--ease); }
-.nav-link { position: relative; }
+/* The landing needs no island: the planetary map is the navigation. */
+body:has(.home-landing) .site-header { display: none; }
+/* The island is a layout frame and nothing else: no ground, no rim, no
+   elevation, nothing behind the sphere. At rest the only thing inside it
+   that paints is the sphere itself. */
+.nav-island {
+  position: relative;
+  display: flex;
+  /* The Moon is the anchor and sits at the right-hand end; reversing the
+     row puts it there without moving it in the document, so it still
+     takes focus before the links it reveals. The links inside .island-nav
+     keep their own reading order. */
+  flex-direction: row-reverse;
+  align-items: center;
+  max-width: calc(100vw - 24px);
+  margin-top: 1.1rem;
+  pointer-events: auto;
+  color: var(--ink);
+}
+
+/* The surface the navigation rides on. It has no width at rest and grows
+   leftward from the Moon's anchor — never scaling from its own centre,
+   never wrapping around it. Painted before the Moon in tree order, so
+   the Moon stays in front of it. */
+.nav-surface {
+  position: absolute;
+  top: 50%;
+  /* Flush with the island's leading edge, so the cap this rounds into is
+     concentric with the Moon rather than offset behind it. */
+  right: 0;
+  height: 3.05rem;
+  width: 100%;
+  transform: translateY(-50%) scaleX(0);
+  transform-origin: right center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 93%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow:
+    0 1px 2px rgba(16, 20, 16, 0.06),
+    0 12px 30px rgba(16, 20, 16, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 380ms var(--ease-settle),
+    opacity var(--d-2) var(--ease);
+}
+.nav-island[data-expanded="true"] .nav-surface {
+  transform: translateY(-50%) scaleX(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The only hit area while collapsed: 44x44, centred on the sphere, with
+   nothing painted. The empty space the menu will later occupy cannot be
+   hovered, because the Moon is the only thing that opens it. */
+.sphere-home {
+  position: relative;
+  z-index: 2;
+  text-decoration: none;
+  display: grid;
+  /* Exactly the surface's height: the button's centre is then the centre
+     of the surface's rounded cap, and the sphere sits inside it with an
+     even margin all the way round instead of breaking out of the end. */
+  width: 3.05rem;
+  height: 3.05rem;
+  flex: none;
+  place-items: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.sphere-home:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
+.route-shell:has(.orbit-field):not(:has(.home-landing)) .sphere-home:focus-visible {
+  outline-color: rgba(242, 246, 252, 0.95);
+}
+
+/* The canvas runs wider than the sphere so drift and the hover swell are
+   never clipped. Transparent, and never a pointer target. */
+.sphere-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 4rem;
+  height: 4rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+/* Bright enough now to vanish into the open bar's white, so it gets a
+   soft contact shadow. The filter traces the canvas's own alpha, which
+   is exactly the moon's disc — it reads as the object floating in front
+   of the surface, which is what it is. */
+/* The canvas is pixels, never a target — and that has to be enforced on
+   everything R3F renders, not just the stage. R3F wraps the canvas in
+   divs it styles inline with pointer-events: auto, which the canvas then
+   inherits; that puts them in front of the link as the hit target, and
+   R3F's own event system stops the click's propagation before React ever
+   sees it. The Moon would open the menu and then travel home anyway. */
+.sphere-stage * { pointer-events: none !important; }
+.sphere-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 2px 7px rgba(14, 18, 26, 0.30));
+}
+
+/* The crystal that replays the opening. Top left, opposite the Moon,
+   and only where there is a sequence to replay: the same two conditions
+   the timed run itself checks, so it never offers to replay a document
+   that was never animated. */
+.sequence-replay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  display: none;
+  place-items: center;
+  width: 3.05rem;
+  height: 3.05rem;
+  margin: 1.1rem 0 0 max(22px, 6vw);
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 769px) {
+  .sequence-replay { display: grid; }
+}
+.sequence-replay:focus-visible {
+  outline: 2px solid rgba(232, 237, 245, 0.95);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+/* The canvas runs taller than the hit area so the points and the drift
+   are never clipped, and it is pixels — never a target. */
+.crystal-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 3.4rem;
+  height: 5rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.crystal-stage * { pointer-events: none !important; }
+.crystal-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* The labels ride a track that opens from nothing, so the surface has
+   travelled most of its distance before any text is legible. */
+.nav-reveal {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 380ms var(--ease-settle);
+}
+.nav-island[data-expanded="true"] .nav-reveal { grid-template-columns: 1fr; }
+.island-nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 1rem;
+  overflow: hidden;
+  /* The canvas runs wider than the hit area, so the last label ends
+     clear of the Moon's overhang rather than under it. */
+  padding-right: 0.95rem;
+  padding-left: 0.55rem;
+  /* Pinned to the Moon, so the row unrolls away from it to the left. */
+  justify-content: flex-end;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(7px);
+  pointer-events: none;
+  transition:
+    opacity 200ms var(--ease),
+    transform 380ms var(--ease-settle);
+}
+.nav-island[data-expanded="true"] .island-nav {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 150ms, 0ms;
+}
+.island-nav a { text-transform: uppercase; letter-spacing: 0.1em; }
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  text-decoration: none;
+  transition: color var(--d-1) var(--ease);
+}
+.nav-link:hover { color: var(--ink); }
 .nav-link::after {
   position: absolute;
   right: 100%;
-  bottom: 6px;
+  bottom: 8px;
   left: 0;
   height: 1px;
   background: currentColor;
@@ -137,9 +352,23 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   transition: right var(--d-1) var(--ease);
 }
 .nav-link:hover::after, .nav-link:focus-visible::after, .nav-link[aria-current="page"]::after { right: 0; }
+.nav-cta {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 1rem;
+  background: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--paper);
+  text-decoration: none;
+  transition: background var(--d-1) var(--ease);
+}
+.nav-cta:hover { background: var(--ink-secondary); }
 .nav-pending {
   position: absolute;
-  top: 0.65rem;
+  top: 0.55rem;
   right: -0.4rem;
   width: 0.28rem;
   height: 0.28rem;
@@ -148,6 +377,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   opacity: 0;
 }
 .nav-pending.is-pending { opacity: 0.8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-surface, .nav-reveal, .island-nav { transition: none; }
+}
+/* Section landings open on the space panel — the greeting goes light. */
+.route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark { color: rgba(242, 246, 252, 0.95); }
+.route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark:hover,
+.route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark:focus-visible { color: #ffffff; }
 .contact-title { --axis: 100; font-size: clamp(3.75rem, 8vw, 7rem); line-height: 0.88; }
 .site-footer { background: var(--paper); color: var(--ink); }
 
@@ -166,7 +403,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .route-leaving .work-index-row { opacity: 0.12; transform: translateY(-10px); transition: opacity var(--d-2) var(--ease), transform var(--d-2) var(--ease); }
 .route-leaving .work-index-row .row-company { font-variation-settings: "wdth" 70; transition-duration: var(--d-3); }
 .route-leaving .work-index-row.is-transition-source { opacity: 0; }
-.route-entering .case-company { animation: name-resolve var(--d-3) var(--ease-settle) both; }
+.route-entering .case-company { text-transform: none; animation: name-resolve var(--d-3) var(--ease-settle) both; }
 .route-entering .case-headline { animation: case-headline-resolve var(--d-3) var(--ease-settle) var(--d-3) both; }
 @keyframes name-resolve {
   from { opacity: 0; transform: translateY(14px); font-variation-settings: "wdth" 62; }
@@ -204,65 +441,63 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 }
 
 /* Home resolve */
-.home-page { padding-bottom: 5rem; }
-.home-page > .reveal { margin-top: clamp(4.5rem, 7.5vw, 7rem); }
-.home-resolve {
-  position: relative;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
-  background: var(--paper);
-}
+.home-resolve { position: relative; background: var(--paper); }
 .home-resolve-stage { max-width: 1360px; margin: 0 auto; padding: 4rem max(22px, 6vw) 6rem; }
 .home-eyebrow { color: var(--ink-secondary); }
 .resolve-lines { display: grid; gap: 4rem; margin-top: 4rem; }
 .resolve-lines :is(h1, p) { margin: 0; }
 .resolve-lines .axis-display { --axis: 100; }
 .resolve-lines .line-mask, .resolve-lines .line-mask > span, .system-line > span { display: block; }
+/* Authored line breaks: the release line's width axis animates, so any
+   break the browser had to measure would move mid-transition. */
+.release-line > span { display: block; white-space: nowrap; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
-.constraint-line { word-spacing: var(--constraint-word-space, 0); }
-.release-line { max-width: 14ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
-/* The middle line grew to a sentence — it takes the release line's
-   display step so the linear document stays inside two viewports on
-   every renderer. */
+.constraint-line { max-width: 15ch; word-spacing: var(--constraint-word-space, 0); font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }
+/* Six words — one step below the display size so "Talent is" and its
+   fellows compose as three lines at wdth 125. */
+.release-line { max-width: 19ch; font-size: clamp(2.75rem, 8.35vw, 7.6rem); line-height: 0.88; }
+/* The middle line grew to a sentence — it takes a display step down so
+   the linear document stays inside two viewports on every renderer. */
 .system-line { max-width: 15ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
-.home-resolve-support {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  margin-top: 4rem;
-  border-top: 1px solid var(--ink);
-  padding-top: 1.5rem;
-}
-.home-resolve-support p { max-width: 46rem; font-size: clamp(1rem, 1.6vw, 1.25rem); line-height: 1.6; color: var(--ink-secondary); }
-.scroll-cue { display: none; flex: none; }
-.js .scroll-cue { display: inline; }
-.home-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 3rem; }
+.home-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+/* Home is one landing, no scroll: the statements resolve over the
+   planetary map — the sections in orbit around talent — with the
+   support line and actions resting at its foot. */
+.home-landing { position: relative; }
+/* Home is a single dark sheet: no paper strip below the system. */
+body:has(.home-landing) .site-footer { display: none; }
+.home-orbit { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(46rem, 82svh); }
 
 @media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
-  .js .home-resolve { height: 200svh; }
-  .js .home-resolve-stage { position: sticky; top: var(--site-header-h); height: calc(100svh - var(--site-header-h)); padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
+  .js .home-landing { display: flex; flex-direction: column; height: 100svh; min-height: 38rem; margin-top: calc(-1 * var(--site-header-h)); }
+  .js .home-landing .home-orbit { flex: 1 1 auto; min-height: 0; }
+  /* The sequence is a stage over the map: it plays on its own clock,
+     then yields — opacity out, hit-testing off, map beneath already
+     composed. */
+  .js .route-shell:has(.home-landing) .brand-mark { color: rgba(242, 246, 252, 0.95); }
+  .js .route-shell:has(.home-landing) .brand-mark:hover,
+  .js .route-shell:has(.home-landing) .brand-mark:focus-visible { color: #ffffff; }
+  /* z 6: the stage must out-stack the field's canvas and nameplate
+     layers (labels carry z 2 and their own contexts). */
+  .js .home-resolve { position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; z-index: 6; background: var(--paper); transition: opacity var(--d-4) var(--ease), visibility 0s var(--d-4) linear; }
+  .js .home-resolve.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+  .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
   .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 15%; display: block; margin: 0; }
   .js .constraint-line, .js .system-line, .js .release-line { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
   .js .constraint-line { --axis: var(--axis-constraint, 62); opacity: calc(1 - var(--constraint-recede, 0)); transform: translateY(calc(var(--constraint-recede, 0) * -31vh)) scale(calc(1 - var(--constraint-recede, 0) * 0.48)); transform-origin: left top; }
   .js .system-line { --axis: var(--axis-system, 62); opacity: min(var(--system-arrive, 0), calc(1 - var(--system-recede, 0))); transform: translateY(calc((1 - var(--system-arrive, 0)) * 28px)); }
-  .js .release-line { --axis: var(--axis-release, 106); max-width: 16ch; opacity: var(--release-arrive, 0); transform: translateY(calc((1 - var(--release-arrive, 0)) * 24px)); }
+  .js .release-line { --axis: var(--axis-release, 106); max-width: 19ch; opacity: var(--release-arrive, 0); transform: translateY(calc((1 - var(--release-arrive, 0)) * 24px)); }
   .js .resolve-lines, .js .home-eyebrow { opacity: calc(1 - var(--stage-exit, 0)); }
-  .js .home-resolve-support { position: absolute; right: max(22px, 6vw); bottom: 2rem; left: max(22px, 6vw); opacity: calc(1 - var(--stage-exit, 0)); }
-  .js .scroll-cue { opacity: calc(1 - var(--release-arrive, 0)); }
-  .js .home-actions { position: absolute; right: max(22px, 6vw); bottom: 8.5rem; left: auto; justify-content: flex-end; margin: 0; opacity: min(var(--release-arrive, 0), calc(1 - var(--stage-exit, 0))); transform: translateY(calc((1 - var(--release-arrive, 0)) * 16px)); }
-  .js .home-actions:focus-within { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .route-entering :is(.work-index-header h1, .systems-hero h1, .about-opening h1, .contact-title) {
+  .route-entering :is(.systems-hero h1, .contact-title) {
     animation: route-display-resolve var(--d-3) var(--ease-settle) both;
   }
-  .route-entering .work-index-header h1 { --arrival-axis: 106; }
   .route-entering :is(.systems-hero h1, .contact-title) { --arrival-axis: 100; }
   .route-entering .about-opening h1 { --arrival-axis: 82; }
-  .route-entering :is(.work-index-header > p:last-child, .systems-lead, .about-intro) {
+  .route-entering :is(.systems-lead, .about-intro) {
     animation: route-reading-in var(--d-2) var(--ease) var(--d-3) both;
   }
   .js .home-eyebrow { animation: arrival-eyebrow var(--d-3) var(--ease) both; }
@@ -319,7 +554,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .home-contact .action { margin-top: 2rem; }
 
 /* About: a canonical linear career record. */
-.about-page { display: flex; flex-direction: column; gap: clamp(6rem, 11vw, 10rem); padding: clamp(3.5rem, 7vw, 7rem) 0 6rem; }
+.about-page { display: flex; flex-direction: column; gap: clamp(6rem, 11vw, 10rem); padding: 0 0 6rem; }
 .about-opening { display: grid; min-height: min(46rem, calc(82svh - var(--site-header-h))); grid-template-columns: 1.2fr 0.8fr; gap: clamp(3rem, 7vw, 7rem); align-items: end; border-bottom: 1px solid var(--ink); padding-bottom: clamp(3rem, 6vw, 6rem); }
 .about-opening h1 { --axis: 82; max-width: 11.5ch; margin-top: clamp(2.5rem, 6vw, 5rem); font-size: clamp(2.7rem, 6.6vw, 6.4rem); word-spacing: 0.05em; }
 .about-intro { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 0.5rem; }
@@ -353,9 +588,15 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 /* The corridor, travelling: a sticky full-bleed stage; page scroll is the
    traveller. Stations resolve at the centre, streaks live between stops. */
-.career-corridor[data-live] { width: 100vw; margin-inline: calc(50% - 50vw); }
-.career-corridor[data-live] .corridor-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
-.career-corridor[data-live] .corridor-canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+.career-corridor[data-live] { --space: 0; width: 100vw; margin-inline: calc(50% - 50vw); }
+.career-corridor[data-live] .corridor-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+.career-corridor[data-live] .corridor-canvas { display: block; position: absolute; inset: 0; opacity: var(--space); }
+.career-corridor[data-live] .corridor-canvas canvas { display: block; width: 100%; height: 100%; }
 .career-corridor[data-live] .corridor-stations { position: absolute; inset: 0; z-index: 1; border-top: 0; }
 .career-corridor[data-live] .corridor-station {
   position: absolute;
@@ -413,11 +654,9 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .about-contact .action { margin-top: 1.5rem; }
 
 /* Work index */
-.work-index-page { padding: clamp(3.5rem, 7vw, 7rem) 0 6rem; }
-.work-index-header { min-height: min(54rem, calc(82svh - var(--site-header-h))); border-bottom: 1px solid var(--ink); padding-bottom: 3rem; }
-.work-index-header h1 { --axis: 106; max-width: 14ch; font-size: clamp(3rem, 9.8vw, 8.75rem); margin-top: clamp(3rem, 8vw, 7rem); }
-.work-index-support { max-width: 24rem; margin-top: 1.5rem; font-size: 0.875rem; line-height: 1.6; color: var(--ink-secondary); }
-.work-index-header > p:last-child { max-width: 42rem; margin-top: 2.5rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
+.work-index-page { padding: 0 0 6rem; }
+/* Below the Work hero: the inspection note and the outcome rail. */
+.work-metric-band { border-bottom: 1px solid var(--hairline); padding: 2.25rem 0 2.5rem; }
 .work-index-list { margin-top: 5rem; }
 .work-index-row {
   display: grid;
@@ -455,39 +694,70 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: calc(84svh - var(--site-header-h));
+  gap: clamp(1.5rem, 3vh, 2.5rem);
+  min-height: calc(92svh - var(--site-header-h));
   border-bottom: 1px solid var(--ink);
-  padding: 2.5rem 0 clamp(2rem, 4vw, 3rem);
+  padding: 0 0 clamp(2rem, 4vw, 3rem);
 }
-.orbit-field { position: absolute; inset: 0 0 16% 8%; }
+.orbit-field {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  min-height: min(34rem, 56svh);
+  /* Deep space behind the planetary animation — a still, near-black
+     blue, vignetting darker at the edges. */
+  background: radial-gradient(115% 85% at 50% 40%, #141a29 0%, #0a0e18 56%, #05070d 100%);
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* While the orbit is being dragged, nothing on the page may select. */
+body.orbit-dragging { user-select: none; -webkit-user-select: none; }
 .orbit-field svg, .orbit-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.orbit-labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.orbit-label { position: absolute; top: 0; left: 0; opacity: 0; font-size: 10px; letter-spacing: 0.12em; color: rgba(16, 20, 16, 0.9); will-change: transform, opacity; }
-.orbit-svg-label { font-family: var(--font-geist-mono), monospace; letter-spacing: 0.12em; }
-.orbit-quote {
+.orbit-live { position: absolute; inset: 0; pointer-events: none; }
+.orbit-field[data-live="true"] .orbit-live { pointer-events: auto; }
+/* The nameplate layer exists for the live scene: the same links the SVG
+   poster carries, repositioned by projection every frame. Until the
+   scene mounts the layer stays out of the document — the poster's SVG
+   links are the navigation. */
+.orbit-labels { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; }
+.orbit-field[data-live="true"] .orbit-labels { display: block; }
+.orbit-label {
   position: absolute;
   top: 0;
   left: 0;
-  max-width: 13rem;
   opacity: 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: rgba(16, 20, 16, 0.85);
-  transition: opacity var(--d-3) var(--ease);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: rgba(242, 246, 252, 0.97);
+  text-decoration: none;
+  /* Each nameplate is one unit: placement moves the whole box, and a
+     label must never wrap to fit. */
+  white-space: nowrap;
   will-change: transform, opacity;
 }
-.orbit-legend { display: block; margin-top: 0.4rem; letter-spacing: 0.1em; color: var(--muted); }
+a.orbit-label { pointer-events: auto; cursor: pointer; }
+a.orbit-label:hover { color: #ffffff; }
+a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2px solid #e8edf5; outline-offset: 3px; }
+.orbit-svg-label { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 500; letter-spacing: 0.1em; }
+.orbit-poster a { cursor: pointer; }
+.orbit-poster a:focus-visible circle { stroke: #e8edf5; stroke-width: 2; }
 .orbit-canvas { display: none; touch-action: pan-y; cursor: grab; }
 .orbit-canvas:active { cursor: grabbing; }
 .orbit-field[data-live="true"] .orbit-poster { display: none; }
 .orbit-field[data-live="true"] .orbit-canvas { display: block; }
-.orbit-caption { position: relative; z-index: 1; display: flex; align-items: baseline; gap: 0.65rem; margin-top: 2.25rem; border-top: 1px solid var(--hairline); padding-top: 1rem; color: var(--muted); }
-.orbit-caption-mark { width: 3px; align-self: stretch; background: var(--mark); }
 .systems-hero-copy { position: relative; z-index: 1; }
 .systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: end; margin-top: 1.25rem; }
 .systems-hero h1 { --axis: 100; max-width: 7ch; }
+/* Sections whose titles are sentences, not a word: the same hero, one
+   display step down so the line composes over the orbit. */
+.systems-hero h1.hero-title-long { max-width: 14ch; font-size: clamp(2.6rem, 6.4vw, 6rem); line-height: 0.92; }
+.hero-lead-stack { display: grid; gap: 0.9rem; }
+.hero-lead-stack p { margin: 0; }
 .systems-lead { max-width: 31rem; padding-bottom: 0.55rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
-.live-node { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--live); }
+.live-node { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--live); box-shadow: 0 0 8px rgba(63, 160, 108, 0.45); }
 .system-record-title { display: flex; align-items: center; gap: 0.65rem; }
 .system-record-title .live-node { flex: none; }
 
@@ -542,17 +812,12 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .work-metric-rail > div { border-left: 0; border-top: 1px solid var(--hairline); padding-left: 0; }
   .work-metric-rail > div:first-child { border-top: 0; }
 
-  :root { --site-header-h: 4.75rem; }
   .site-main { padding-right: 22px; padding-left: 22px; }
   .axis-display { font-size: clamp(2.75rem, 11.8vw, 4.5rem); line-height: 0.84; }
-  .work-index-header h1 { font-size: clamp(2.5rem, 10.9vw, 4.25rem); }
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
-  .home-resolve-stage { padding-right: 22px; padding-left: 22px; }
-  .js .constraint-line { --axis: var(--axis-mobile, 62); }
+  .home-resolve-stage { padding-top: 1.5rem; padding-right: 22px; padding-left: 22px; }
   .resolve-lines { gap: 5rem; margin-top: 3rem; }
-  .home-resolve-support { flex-direction: column; }
-  .js .scroll-cue { display: none; }
-  .home-actions { display: grid; }
+  .home-actions { display: grid; width: 100%; }
   .home-actions .action { width: 100%; }
   .proof-band dl { grid-template-columns: repeat(2, 1fr); }
   .proof-band dl > div { min-height: 8rem; border-top: 1px solid var(--hairline); }
@@ -560,7 +825,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .work-bridge, .systems-bridge, .home-contact { grid-template-columns: 1fr; }
   .systems-bridge { padding-right: 22px; padding-left: 22px; }
   .bridge-record { grid-template-columns: 2rem 1fr auto; padding-right: 0.5rem; padding-left: 0.5rem; }
-  .work-index-header { min-height: auto; }
   .work-index-row { grid-template-columns: 2rem minmax(0, 1fr); min-height: 9rem; gap: 1rem; padding-right: 0.5rem; padding-left: 0.5rem; }
   .work-index-row.is-flagship { min-height: 11rem; }
   .work-index-row.is-flagship .row-company { font-size: clamp(2.5rem, 12vw, 3rem); }
@@ -570,7 +834,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .systems-title-row { grid-template-columns: 1fr; gap: 1.75rem; }
   .systems-lead { max-width: 34rem; padding-bottom: 0; }
   .systems-hero { min-height: auto; padding-top: 2rem; }
-  .orbit-field { position: relative; inset: auto; height: clamp(320px, 46svh, 430px); margin: 0 0 0.5rem; order: -1; }
+  .orbit-field { flex: none; min-height: 0; height: clamp(320px, 46svh, 430px); margin-top: 0; margin-bottom: 0.5rem; order: -1; }
   .about-opening, .career-line-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
   .station-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .station-metrics > div:nth-child(odd) { border-left: 0; padding-left: 0; }
@@ -591,11 +855,137 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .js .resolve-lines .axis-display { font-size: clamp(3rem, 12.5vh, 8.75rem); }
 }
 
+/* Reduced motion changes the choreography, never the architecture: the
+   landing is still one viewport with the map reachable without a scroll.
+   The statements are simply shown resolved and compact, above it. */
+@media (min-width: 769px) and (prefers-reduced-motion: reduce) {
+  .js .home-landing { display: flex; flex-direction: column; height: 100svh; min-height: 38rem; }
+  .js .home-resolve { flex: none; }
+  .js .home-resolve-stage { padding: 1.75rem max(22px, 6vw) 0; }
+  .js .resolve-lines { gap: 0.3rem; margin-top: 0.9rem; }
+  .js .resolve-lines .axis-display {
+    max-width: none;
+    font-size: clamp(1.5rem, 3.1vw, 2.4rem);
+    line-height: 1.06;
+  }
+  .js .home-orbit { flex: 1 1 auto; min-height: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   .resolve-lines { gap: 2.5rem; }
   .constraint-line, .system-line, .release-line { font-variation-settings: "wdth" 100; }
   .case-company { font-variation-settings: "wdth" 106 !important; }
   .route-entering :is(.case-company, .case-headline) { animation: none !important; opacity: 1; transform: none; }
-  .scroll-cue { display: none !important; }
+}
+
+/* Voices — the references, on a turning arc. Cards ride a shallow
+   cylinder: the front one square to the reader, its neighbours swinging
+   away in perspective. Horizontal only; the page never moves. */
+.voices { display: flex; flex-direction: column; gap: 2.5rem; }
+.voices-stage {
+  position: relative;
+  height: clamp(20rem, 32vw, 26rem);
+  perspective: 1600px;
+  perspective-origin: 50% 45%;
+  /* A drag across the arc turns it rather than selecting the quotes. */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
+}
+.voices-stage:active { cursor: grabbing; }
+.voices-stage:focus-visible { outline: 2px solid var(--ink); outline-offset: 12px; border-radius: 2px; }
+
+.voice-card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  width: min(34rem, 82vw);
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  margin: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 1.25rem;
+  background: var(--paper);
+  padding: clamp(1.75rem, 3vw, 2.5rem);
+  /* Everything about a card's place on the arc comes from one number:
+     how far it sits from the front. */
+  transform:
+    translateX(-50%)
+    translateX(calc(var(--offset) * 58%))
+    translateZ(calc(var(--offset) * var(--offset) * -7rem))
+    rotateY(calc(var(--offset) * -34deg));
+  opacity: calc(1 - min(1, max(0, var(--offset) * var(--offset)) * 0.42));
+  box-shadow: 0 2px 4px rgba(16, 20, 16, 0.04), 0 18px 44px rgba(16, 20, 16, 0.09);
+  transition:
+    transform var(--d-3) var(--ease-settle),
+    opacity var(--d-3) var(--ease),
+    box-shadow var(--d-3) var(--ease);
+}
+.voice-card[data-front] {
+  z-index: 1;
+  box-shadow: 0 3px 6px rgba(16, 20, 16, 0.06), 0 26px 66px rgba(16, 20, 16, 0.14);
+}
+.voice-quote {
+  margin: 0;
+  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.voice-quote::before { content: "\201C"; }
+.voice-quote::after { content: "\201D"; }
+
+.voice-attribution { display: flex; align-items: center; gap: 1rem; }
+.voice-portrait {
+  width: 3rem;
+  height: 3rem;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.voice-identity { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
+.voice-name { font-weight: 600; }
+.voice-role, .voice-relationship { font-size: 0.85rem; color: var(--ink-secondary); }
+.voice-relationship { font-style: italic; }
+.voice-link {
+  margin-top: 0.3rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.voices-controls { display: flex; align-items: center; justify-content: center; gap: 1.25rem; }
+.voices-arrow {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  transition: border-color var(--d-1) var(--ease), background var(--d-1) var(--ease);
+}
+.voices-arrow:hover { border-color: var(--ink); background: var(--card); }
+.voices-dots { display: flex; align-items: center; gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
+.voices-dots button {
+  display: block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--ghost);
+  transition: background var(--d-1) var(--ease), transform var(--d-1) var(--ease);
+}
+.voices-dots button[aria-current="true"] { background: var(--ink); transform: scale(1.5); }
+
+/* Reduce keeps the arrangement and drops the travel: cards still sit on
+   the arc, they just arrive there without swinging. */
+@media (prefers-reduced-motion: reduce) {
+  .voice-card { transition: none; }
 }

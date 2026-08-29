@@ -20,6 +20,7 @@ const ROUTES = [
   "/work/wer",
   "/work/campbell-north",
   "/building",
+  "/voices",
   "/about",
   "/contact",
 ];

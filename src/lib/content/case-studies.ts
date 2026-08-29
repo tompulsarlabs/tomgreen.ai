@@ -96,7 +96,7 @@ export const caseStudies: CaseStudy[] = [
         },
       ],
       outcome:
-        "A repeatable cross-market talent system remained: leadership, pipelines, trained interviewers and stronger conversion at every major stage.",
+        "A repeatable cross-market talent system remained: leadership, pipelines, trained interviewers and improved outcomes at every major stage.",
     },
     decisions: [
       {
@@ -121,21 +121,22 @@ export const caseStudies: CaseStudy[] = [
   {
     slug: "chapter-2",
     company: "Chapter 2",
-    role: "Managing Director EMEA",
+    role: "Managing Director",
     period: "2025 – 2026",
-    headline: "Ran the €3.6M EMEA business. Won €2.5M ARR in year one. Then rebuilt how Europe operated.",
+    headline:
+      "Ran the European business. Won €3.3M of new business in twelve months. Then rebuilt how Europe operated.",
     summary:
       "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
       "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how agents could change People Ops.",
     body: [
-      "I led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief People Officer.",
+      "I led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
       "I rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
       "The model became the reference for the group’s wider AI transformation.",
     ],
     metrics: [
-      { value: "€3.6M", label: "EMEA P&L" },
-      { value: "€2.5M", label: "ARR won in year one" },
+      { value: "Europe", label: "P&L owned" },
+      { value: "€3.3M", label: "New business won in twelve months" },
       { value: "4 countries", label: "Recruiting programmes led" },
       { value: "3 roles", label: "Shared-service reliance removed" },
     ],
@@ -279,6 +280,42 @@ export const caseStudies: CaseStudy[] = [
     demonstrates: "Where the hiring bar was set.",
     tier: "foundation",
   },
+];
+
+/**
+ * The Work orbit's planets: projects, not employers.
+ *
+ * The About corridor already says where the work happened, and repeating
+ * the company names here said nothing about what was actually built —
+ * the two pages were showing the same list twice. These name the operator
+ * work instead, and several projects can point at one record because one
+ * record often holds several.
+ *
+ * Every label names something the case study it points at already
+ * evidences; none of them introduces a claim of its own.
+ */
+export type WorkProject = {
+  id: string;
+  label: string;
+  /** The case study that carries the evidence for it. */
+  slug: string;
+};
+
+export const workProjects: WorkProject[] = [
+  // Zalando — the organisation, and a system built inside it.
+  { id: "ai-organisation", label: "0 → 120 AI build", slug: "zalando" },
+  { id: "interviewer-training", label: "Interviewer training system", slug: "zalando" },
+  // Chapter 2 — the commercial result, and the operating rebuild behind it.
+  { id: "new-business", label: "€3.3M new business", slug: "chapter-2" },
+  { id: "agent-people-ops", label: "People Ops on agents", slug: "chapter-2" },
+  // Audibene / Hear.com — the function built from nothing.
+  { id: "product-operations", label: "Product Ops from zero", slug: "audibene" },
+  // Wave — the company itself.
+  { id: "bootstrapped", label: "Bootstrapped to £1M", slug: "wave" },
+  // WeR — the founding team and the system around it.
+  { id: "founding-team", label: "Founding team", slug: "wer" },
+  // Campbell North — the search practice.
+  { id: "quant-search", label: "Quant search", slug: "campbell-north" },
 ];
 
 export function getCaseStudy(slug: string): CaseStudy | undefined {

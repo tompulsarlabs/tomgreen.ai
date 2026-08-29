@@ -32,7 +32,7 @@ export default function Image() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px solid #deded8",
+            borderBottom: "1px solid #e3e3e3",
             paddingBottom: 28,
           }}
         >
