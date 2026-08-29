@@ -100,7 +100,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
     exact: true,
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Make talent the engine of growth.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Talent is the engine for growth.", { exact: true })).toBeVisible();
   // The capsule and the planets are the only doors — no action pills.
   await expect(page.locator(".home-actions")).toHaveCount(0);
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
@@ -137,14 +137,14 @@ test("the release line's composition is authored, not measured", async ({ page }
   // measure would move mid-transition — THE jumping from the first line
   // to the second. The breaks are elements now, so they cannot move.
   const lines = page.locator(".release-line span[aria-hidden]");
-  await expect(lines).toHaveText(["Make talent", "the engine of", "growth."]);
+  await expect(lines).toHaveText(["Talent is", "the engine", "for growth."]);
   for (const line of await lines.all()) {
     await expect(line).toHaveCSS("white-space", "nowrap");
     await expect(line).toHaveCSS("display", "block");
   }
   // The full sentence still reaches assistive technology as one string.
   await expect(page.locator(".release-line .sr-only")).toHaveText(
-    "Make talent the engine of growth.",
+    "Talent is the engine for growth.",
   );
 });
 
@@ -359,7 +359,7 @@ test("no JavaScript keeps every Home sentence and planet link available", async 
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Make talent the engine of growth.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Talent is the engine for growth.", { exact: true })).toBeVisible();
   await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),

@@ -131,10 +131,10 @@ export function HomeResolve() {
             <span>Design</span><span className="system-word">the system.</span>
           </p>
           <p className="axis-display release-line">
-            <span className="sr-only">Make talent the engine of growth.</span>
-            <span aria-hidden="true">Make talent</span>
-            <span aria-hidden="true">the engine of</span>
-            <span aria-hidden="true">growth.</span>
+            <span className="sr-only">Talent is the engine for growth.</span>
+            <span aria-hidden="true">Talent is</span>
+            <span aria-hidden="true">the engine</span>
+            <span aria-hidden="true">for growth.</span>
           </p>
         </div>
       </div>
