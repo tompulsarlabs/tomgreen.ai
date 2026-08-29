@@ -158,6 +158,46 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
 });
 
+test("the crystal plays the opening again", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await waitForFonts(page);
+
+  const crystal = page.locator(".sequence-replay");
+  await expect(crystal).toBeVisible();
+  await expect(crystal).toHaveAttribute("aria-label", "Play the opening again");
+  await expect(page.locator(".crystal-stage canvas")).toBeVisible();
+  // Top left, opposite the Moon.
+  const box = (await crystal.boundingBox())!;
+  expect(box.x).toBeLessThan(1440 / 2);
+  expect(box.y).toBeLessThan(200);
+
+  // Skip to the map, then ask for the sequence back.
+  await page.mouse.wheel(0, 24);
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 3_000 });
+  await crystal.click();
+  await expect(page.locator(".home-resolve")).not.toHaveClass(/is-done/);
+  // And it is genuinely running, not merely un-done.
+  const progress = await page
+    .locator(".home-resolve")
+    .evaluate((el) => Number((el as HTMLElement).style.getPropertyValue("--resolve-progress")));
+  expect(progress).toBeGreaterThan(0);
+  expect(progress).toBeLessThan(1);
+});
+
+test("the crystal is absent where there is no sequence to replay", async ({ page }) => {
+  // Reduced motion and small viewports render the statements as a
+  // resolved document, so there is nothing to play again.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoReduced(page, "/");
+  await expect(page.locator(".sequence-replay")).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await expect(page.locator(".sequence-replay")).toBeHidden();
+});
+
 test("the island is docked to the top right", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });

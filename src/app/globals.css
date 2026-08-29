@@ -250,6 +250,48 @@ body:has(.home-landing) .site-header { display: none; }
   filter: drop-shadow(0 2px 7px rgba(14, 18, 26, 0.30));
 }
 
+/* The crystal that replays the opening. Top left, opposite the Moon,
+   and only where there is a sequence to replay: the same two conditions
+   the timed run itself checks, so it never offers to replay a document
+   that was never animated. */
+.sequence-replay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  display: none;
+  place-items: center;
+  width: 3.05rem;
+  height: 3.05rem;
+  margin: 1.1rem 0 0 max(22px, 6vw);
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 769px) {
+  .sequence-replay { display: grid; }
+}
+.sequence-replay:focus-visible {
+  outline: 2px solid rgba(232, 237, 245, 0.95);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+/* The canvas runs taller than the hit area so the points and the drift
+   are never clipped, and it is pixels — never a target. */
+.crystal-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 3.4rem;
+  height: 5rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.crystal-stage * { pointer-events: none !important; }
+.crystal-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+
 /* The labels ride a track that opens from nothing, so the surface has
    travelled most of its distance before any text is legible. */
 .nav-reveal {
