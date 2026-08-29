@@ -191,10 +191,11 @@ body:has(.home-landing) .site-header { display: none; }
 
 /* The only hit area while collapsed: 44x44, centred on the sphere, with
    nothing painted. The empty space the menu will later occupy cannot be
-   hovered, because this button is the only thing that opens it. */
-.sphere-button {
+   hovered, because the Moon is the only thing that opens it. */
+.sphere-home {
   position: relative;
   z-index: 2;
+  text-decoration: none;
   display: grid;
   /* Exactly the surface's height: the button's centre is then the centre
      of the surface's rounded cap, and the sphere sits inside it with an
@@ -209,8 +210,8 @@ body:has(.home-landing) .site-header { display: none; }
   pointer-events: auto;
   cursor: pointer;
 }
-.sphere-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
-.route-shell:has(.orbit-field):not(:has(.home-landing)) .sphere-button:focus-visible {
+.sphere-home:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
+.route-shell:has(.orbit-field):not(:has(.home-landing)) .sphere-home:focus-visible {
   outline-color: rgba(242, 246, 252, 0.95);
 }
 
@@ -230,6 +231,13 @@ body:has(.home-landing) .site-header { display: none; }
    soft contact shadow. The filter traces the canvas's own alpha, which
    is exactly the moon's disc — it reads as the object floating in front
    of the surface, which is what it is. */
+/* The canvas is pixels, never a target — and that has to be enforced on
+   everything R3F renders, not just the stage. R3F wraps the canvas in
+   divs it styles inline with pointer-events: auto, which the canvas then
+   inherits; that puts them in front of the link as the hit target, and
+   R3F's own event system stops the click's propagation before React ever
+   sees it. The Moon would open the menu and then travel home anyway. */
+.sphere-stage * { pointer-events: none !important; }
 .sphere-stage canvas {
   display: block;
   width: 100% !important;

@@ -158,6 +158,48 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
 });
 
+test("the Moon is the way home", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  // Home hides this header, so from anywhere else the Moon is the only
+  // route back to the landing page — it has to be a real link.
+  const moon = page.locator("a.sphere-home");
+  await expect(moon).toHaveAttribute("href", "/");
+  await expect(moon).toHaveAttribute("aria-label", "Home");
+  // It is a link, not a disclosure dressed as one.
+  await expect(moon).not.toHaveAttribute("aria-expanded", /.*/);
+  await expect(page.locator("button.sphere-home")).toHaveCount(0);
+
+  // And with a mouse the click travels, because hover already opened it.
+  await moon.click();
+  await expect(page).toHaveURL("/");
+});
+
+test("a second touch tap on the open island goes home", async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  const island = page.locator(".nav-island");
+  const moon = island.locator("a.sphere-home");
+  await moon.tap();
+  await expect(island).toHaveAttribute("data-expanded", "true");
+  await expect(page).toHaveURL(/\/work$/);
+  // Open already, so this one travels: touch reaches Home in two taps
+  // rather than never.
+  await moon.tap();
+  await expect(page).toHaveURL("/");
+  await context.close();
+});
+
 test("collapsed, the sphere is the only visible navigation object", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -191,7 +233,7 @@ test("collapsed, the sphere is the only visible navigation object", async ({ pag
   // on it rather than the whole width the open menu will occupy.
   const canvas = island.locator(".sphere-stage canvas");
   await expect(canvas).toBeVisible();
-  const button = island.locator("button.sphere-button");
+  const button = island.locator("a.sphere-home");
   const [buttonBox, canvasBox] = await Promise.all([button.boundingBox(), canvas.boundingBox()]);
   expect(buttonBox!.width).toBeGreaterThanOrEqual(44);
   expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
@@ -206,7 +248,7 @@ test("empty space beside the sphere does not open the navigation", async ({ page
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
-  const button = island.locator("button.sphere-button");
+  const button = island.locator("a.sphere-home");
   const box = (await button.boundingBox())!;
   // Well clear of the sphere, but inside the band the open menu covers.
   await page.mouse.move(box.x + box.width + 160, box.y + box.height / 2);
@@ -221,7 +263,7 @@ test("the navigation grows from the sphere and returns when the pointer leaves",
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
-  const button = island.locator("button.sphere-button");
+  const button = island.locator("a.sphere-home");
   const sphereBefore = (await button.boundingBox())!;
 
   await button.hover();
@@ -239,7 +281,7 @@ test("the navigation grows from the sphere and returns when the pointer leaves",
 
   // The sphere paints in front of the surface it opened.
   const layering = await island.evaluate((element) => ({
-    sphere: Number.parseInt(getComputedStyle(element.querySelector(".sphere-button")!).zIndex, 10),
+    sphere: Number.parseInt(getComputedStyle(element.querySelector(".sphere-home")!).zIndex, 10),
     surface: getComputedStyle(element.querySelector(".nav-surface")!).zIndex,
   }));
   expect(layering.sphere).toBeGreaterThan(0);
@@ -262,8 +304,8 @@ test("keyboard focus opens the island and leaving it closes again", async ({ pag
 
   const island = page.locator(".nav-island");
   await page.keyboard.press("Tab"); // skip link
-  await page.keyboard.press("Tab"); // the island's greeting
-  await expect(island.locator("button.sphere-button")).toBeFocused();
+  await page.keyboard.press("Tab"); // the Moon
+  await expect(island.locator("a.sphere-home")).toBeFocused();
   await expect(island).toHaveAttribute("data-expanded", "true");
 
   // Every navigation link is reachable once open.
@@ -288,10 +330,9 @@ test("a touch tap opens the island instead of navigating, and tapping away close
 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await island.locator("button.sphere-button").tap();
+  await island.locator("a.sphere-home").tap();
   await expect(island).toHaveAttribute("data-expanded", "true");
-  // The collapsed greeting is a disclosure trigger first: the tap must
-  // not travel home.
+  // Touch has no hover, so the first tap only opens: it must not travel.
   await expect(page).toHaveURL(/\/work$/);
 
   await page.locator("body").tap({ position: { x: 40, y: 600 } });

@@ -30,17 +30,23 @@ function PendingMark() {
 }
 
 /**
- * The navigation: one carbon sphere, suspended.
+ * The navigation: one moon, suspended.
  *
- * At rest the sphere is the only visible thing — no capsule, no plate,
- * no ring behind it. It is real geometry on a transparent canvas, and it
+ * At rest the Moon is the only visible thing — no capsule, no plate, no
+ * ring behind it. It is real geometry on a transparent canvas, and it
  * sits in the page's space rather than inside a component. The hit area
  * is a bare 44x44 centred on it, so the empty space where the menu will
  * later appear is not hoverable.
  *
  * Reaching it grows the navigation surface out to the right, from the
- * sphere's own anchor. The sphere never moves into the middle of a pill;
- * it stays at the leading edge and in front of the surface in depth.
+ * Moon's own anchor. The Moon never moves into the middle of a pill; it
+ * stays at the leading edge and in front of the surface in depth.
+ *
+ * It is also the way home. The landing page hides this header entirely,
+ * so from anywhere else the Moon is the one route back to it — which is
+ * why it is a link rather than a disclosure button. Hover and focus open
+ * the navigation; activation travels. Touch has neither hover nor focus,
+ * so there the first tap opens and only a second one goes home.
  */
 export function SiteHeader({ showAbout, showVoices }: { showAbout: boolean; showVoices: boolean }) {
   const pathname = usePathname();
@@ -49,11 +55,6 @@ export function SiteHeader({ showAbout, showVoices }: { showAbout: boolean; show
   const [reduced, setReduced] = useState(false);
   const islandRef = useRef<HTMLDivElement>(null);
   const timers = useRef<{ intent?: number; leave?: number; settle?: number }>({});
-  // On touch the order is pointerdown, pointerup, pointerleave, focusin,
-  // click — so focus opens the navigation before the click is delivered.
-  // The click therefore decides from the state as it was when the
-  // gesture started, not from the state focus has already changed.
-  const gesture = useRef({ openAtPress: false, pointerType: "mouse" });
 
   const navItems = site.nav.filter(
     (item) =>
@@ -167,40 +168,33 @@ export function SiteHeader({ showAbout, showVoices }: { showAbout: boolean; show
             right from the sphere's anchor, and sits behind the sphere. */}
         <div className="nav-surface" aria-hidden />
 
-        <button
-          type="button"
-          className="sphere-button"
-          aria-label={showing ? "Close navigation" : "Open navigation"}
-          aria-expanded={showing}
-          aria-controls="primary-navigation"
-          onPointerDown={(event) => {
-            gesture.current = { openAtPress: SHOWING.has(phase), pointerType: event.pointerType };
-          }}
+        <Link
+          href="/"
+          className="sphere-home"
+          aria-label="Home"
           onPointerEnter={(event) => {
             if (event.pointerType !== "mouse") return;
             clearTimers();
             setPhase((current) => (current === "idle" || current === "collapsing" ? "approaching" : current));
             timers.current.intent = window.setTimeout(() => openNav(false), INTENT_MS);
           }}
-          onClick={(event) => {
-            // Keyboard activation (no pointer behind the click) toggles
-            // from the live state.
-            if (event.detail === 0) {
-              if (showing) closeNav(true);
-              else openNav(false);
-              return;
-            }
-            // With a mouse, hover already governs the navigation; a click
-            // must not fight it.
-            if (gesture.current.pointerType === "mouse") return;
-            if (gesture.current.openAtPress) closeNav(true);
-            else openNav(false);
+          // Mouse and keyboard reveal the navigation before they can
+          // activate anything, so their click simply travels. Touch does
+          // not, so the first tap has to open without travelling — and
+          // cancelling the touch's default is the only reliable way to
+          // stop that: it is what suppresses the click the browser would
+          // otherwise synthesise. Cancelling the click itself is far too
+          // late, since the anchor's own default has already been queued.
+          onTouchEnd={(event) => {
+            if (SHOWING.has(phase)) return;
+            event.preventDefault();
+            openNav(false);
           }}
         >
           <span className="sphere-stage" aria-hidden>
             <NavSphere active={engaged} reduced={reduced} />
           </span>
-        </button>
+        </Link>
 
         <div className="nav-reveal">
           <nav id="primary-navigation" aria-label="Primary navigation" className="island-nav">
