@@ -125,31 +125,40 @@ const FRAGMENT = /* glsl */ `
     vec3 fillDir = normalize(vec3(0.66, -0.22, 0.40));
     vec3 rimDir = normalize(vec3(0.30, 0.42, -0.86));
 
-    // Roughness runs with the fibre: the bands catch light differently,
-    // which is the anisotropy an unwoven ball would not have.
-    float rough = mix(0.34, 0.16, over) + 0.10 * (1.0 - h0);
-    rough = clamp(rough - 0.03 * uActive, 0.05, 0.6);
+    // Matte throughout: the weave modulates the roughness, nothing
+    // polishes it. The bands still catch light differently, which is the
+    // anisotropy an unwoven ball would not have.
+    float rough = mix(0.66, 0.48, over) + 0.10 * (1.0 - h0);
+    rough = clamp(rough - 0.04 * uActive, 0.30, 0.85);
 
-    vec3 base = mix(vec3(0.040, 0.044, 0.052), vec3(0.098, 0.106, 0.120), h0);
+    // Gunmetal: grey with a cool cast, light enough to hold its own
+    // against the page instead of dissolving into it.
+    vec3 base = mix(vec3(0.180, 0.196, 0.216), vec3(0.430, 0.455, 0.492), h0);
 
-    float key = max(dot(N, keyDir), 0.0);
-    float fill = max(dot(N, fillDir), 0.0);
-    vec3 lit = base * (0.16 + 1.06 * key) + base * fill * 0.26;
+    // Wrapped diffuse. A matte surface has no hard terminator — light
+    // bleeds past ninety degrees, which is what keeps the unlit half a
+    // readable grey rather than a black crescent.
+    const float WRAP = 0.42;
+    float key = max((dot(N, keyDir) + WRAP) / (1.0 + WRAP), 0.0);
+    float fill = max((dot(N, fillDir) + WRAP) / (1.0 + WRAP), 0.0);
+    // Hemisphere ambient, so the underside never falls away to nothing.
+    float sky = 0.5 + 0.5 * N.y;
+    vec3 ambient = base * mix(vec3(0.34, 0.35, 0.38), vec3(0.52, 0.54, 0.60), sky);
+    vec3 lit = ambient + base * key * 0.62 + base * fill * 0.24;
 
+    // One broad lobe and no clearcoat: matte resin scatters its highlight
+    // instead of mirroring the key back as a hot spot.
     vec3 hKey = normalize(keyDir + V);
-    float spec = ggx(N, hKey, rough) * key;
-    lit += vec3(0.95, 0.96, 1.0) * spec * (0.030 + 0.016 * uActive);
+    float spec = ggx(N, hKey, rough) * max(dot(N, keyDir), 0.0);
+    lit += vec3(0.86, 0.89, 0.96) * spec * (0.055 + 0.022 * uActive);
 
-    // Clearcoat: a second, tighter lobe over the resin.
-    float coat = ggx(N, hKey, 0.055) * key;
-    lit += vec3(1.0) * coat * (0.020 + 0.012 * uActive);
-
-    // Fresnel edge reflection, weighted toward the rim light so it never
-    // closes into an outline around the whole silhouette.
-    float fres = pow(1.0 - facing, 4.0);
+    // The dull glow: a wide, soft sheen across the whole silhouette
+    // rather than a hard rim line, gathering where the rim light sits
+    // behind the body.
+    float fres = pow(1.0 - facing, 2.2);
     float rimFace = max(dot(N, rimDir), 0.0);
-    lit += vec3(0.34, 0.45, 0.62) * fres * rimFace * (0.62 + 0.42 * uActive);
-    lit += vec3(0.16, 0.19, 0.25) * fres * 0.14;
+    lit += vec3(0.30, 0.36, 0.46) * fres * (0.26 + 0.16 * uActive);
+    lit += vec3(0.42, 0.52, 0.68) * fres * rimFace * (0.40 + 0.30 * uActive);
 
     gl_FragColor = vec4(lit, 1.0);
   }
