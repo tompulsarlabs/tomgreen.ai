@@ -22,7 +22,9 @@ off the tomgreen.ai domain until this checklist closes.
 - [x] **Zalando** case study — full build-out story: 0→120 FTE AI org, DE/IE/CH/FI,
       42% DEI, Shenzhen hub, TtH −32%, conversion +16%, offer accept +21%,
       top-tier rating (~3%), 1,000+ interviewers trained, early-careers programs.
-- [x] **Chapter 2** case study — €3.6M P&L, €2.5M ARR Y1, clients **Neura Robotics**
+- [x] **Chapter 2** case study — EMEA P&L owned (size withheld at Tom's direction,
+      2026-08-29: the founder would not want the P&L advertised), seven figures of new
+      business won in twelve months, clients **Neura Robotics**
       and **Superhuman** named, CPO direct hire, agentic People Ops (DE on 1 FTE,
       3 FTE UK shared-services retired), group AI transformation.
 - [x] **Google EMEA** — appears ONLY as the single CV line on /about

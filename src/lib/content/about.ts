@@ -27,15 +27,15 @@ export const career: CareerStop[] = [
     company: "Chapter 2",
     role: "Managing Director EMEA",
     period: "2025 – 2026",
-    note: "Ran the €3.6M EMEA business. Won €2.5M ARR in year one. Then rebuilt how Europe operated.",
+    note: "Ran the EMEA P&L. Won seven figures of new business in twelve months. Then rebuilt how Europe operated.",
     achievements: [
       "Led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief People Officer.",
       "Rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. The model became the reference for the group’s wider AI transformation.",
       "Delivered a consulting project for Google EMEA on executive recruiting (NDA).",
     ],
     metrics: [
-      { value: "€3.6M", label: "EMEA P&L" },
-      { value: "€2.5M", label: "ARR won in year one" },
+      { value: "EMEA", label: "P&L owned" },
+      { value: "7 figures", label: "new business won in twelve months" },
       { value: "4 countries", label: "recruiting programmes led" },
       { value: "3 roles", label: "shared-service reliance removed" },
     ],

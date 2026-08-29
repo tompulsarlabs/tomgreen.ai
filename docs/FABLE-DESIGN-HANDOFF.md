@@ -68,7 +68,8 @@ The approved evidence includes:
   six months across Germany, Ireland, Switzerland and Finland; led a 22-person talent team
   across Europe and China; Time to Hire −32%; offer acceptance +21%; 1,000+ interviewers
   trained; top performance tier (~3% of the organisation).
-- **Chapter 2, 2025–2026:** owned a €3.6M P&L; won €2.5M ARR in year one; rebuilt EU People
+- **Chapter 2, 2025–2026:** owned the EMEA P&L; won seven figures of new business in twelve
+  months; rebuilt EU People
   Ops around agent workflows so Germany runs as a one-person function without dependency on
   three UK shared-service roles; drove the wider AI transformation.
 - **Audibene / Hear.com, 2019–2022:** grew the technology organisation from about 70 to 180;

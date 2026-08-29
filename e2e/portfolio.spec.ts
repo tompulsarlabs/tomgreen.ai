@@ -315,7 +315,7 @@ test("Work is a six-row evidence index with clear hierarchy", async ({ page }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Weighed by opportunity cost.");
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
   await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
-  await expect(page.locator(".work-metric-rail")).toContainText("ARR won / first year");
+  await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(
     page.locator("[data-work-row]").filter({ hasText: "Zalando" }),
@@ -571,7 +571,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
 test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => {
   await gotoReduced(page, "/work/chapter-2");
   const metrics = page.locator(".case-opening dl");
-  await expect(metrics.locator("dd")).toHaveText(["€3.6M", "€2.5M", "4 countries", "3 roles"]);
+  await expect(metrics.locator("dd")).toHaveText(["EMEA", "7 figures", "4 countries", "3 roles"]);
 
   const system = page.getByRole("region", { name: "How the operating system worked" });
   await expect(system.locator("ol > li h3")).toHaveText([

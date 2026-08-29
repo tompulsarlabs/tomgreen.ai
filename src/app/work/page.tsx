@@ -69,7 +69,7 @@ export default function WorkIndex() {
         <dl className="work-metric-rail">
           {[
             ["0 → 120", "AI organisation / six months"],
-            ["€2.5M", "ARR won / first year"],
+            ["7 figures", "New business won / 12 months"],
             ["£1M", "Bootstrapped / two years"],
           ].map(([value, label]) => (
             <div key={label}>

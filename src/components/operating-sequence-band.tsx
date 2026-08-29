@@ -18,7 +18,7 @@ const steps = [
     verb: "Put it in motion",
     title: "Move repeatable work to agents. Keep sensitive decisions with people.",
     copy: "Agents handle work with a clear process. Exceptions, approvals and decisions that affect people stay with an accountable person.",
-    proof: "Chapter 2 / €3.6M EMEA P&L / €2.5M ARR",
+    proof: "Chapter 2 / EMEA P&L owned / 7 figures won",
   },
 ] as const;
 
