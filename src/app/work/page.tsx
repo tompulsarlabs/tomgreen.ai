@@ -56,7 +56,7 @@ export default function WorkIndex() {
           <div className="systems-title-row">
             <h1 className="axis-display hero-title-long">Weighed by opportunity cost.</h1>
             <p className="systems-lead">
-              Organisation building, operating-model design, product operations and founder economics—under real constraints.
+              Organisation building, operating-model design, product operations and founder economics.
             </p>
           </div>
         </div>

@@ -198,10 +198,10 @@ body:has(.home-landing) .site-header { display: none; }
   align-items: center;
   text-decoration: none;
 }
-/* Inky carbon — the same body the orbit turns around, and like the orbit
-   it never stops. The body gradient stays on the element so it sits under
-   the turning shell; the specular and the bounce move into ::after so they
-   sit over it. A light source does not orbit a planet. */
+/* A carbon ball bearing: polished steel, not a black hole. It turns on
+   its own and the visitor can throw it on any axis. Orientation lives in
+   --orb-rx/--orb-ry so a drag can take it over mid-turn; the keyframe
+   below is only the no-JS path. */
 .island-orb {
   /* one radius, one period — the only two numbers worth tuning */
   --orb-r: 0.8rem;
@@ -218,38 +218,46 @@ body:has(.home-landing) .site-header { display: none; }
   overflow: hidden;
   perspective: calc(var(--orb-r) * 5.6);
   perspective-origin: 50% 50%;
+  /* Machined steel: a bright lit shoulder falling to a dark underside,
+     with enough mid-tone that surface marks have something to read
+     against. */
   background:
-    radial-gradient(circle at 46% 42%, #0d1421 0%, #080d18 34%, #04070e 66%, #010308 100%);
+    radial-gradient(circle at 35% 27%, #c3ccd6 0%, #939ea9 16%, #626c77 38%, #3c444d 63%, #22282e 84%, #171b20 100%);
   box-shadow:
-    inset 0 -1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.5),
     0 1px 2px rgba(4, 6, 12, 0.4),
     0 4px 10px rgba(4, 6, 12, 0.22);
+  /* A drag on the bearing is a spin, not a page scroll or a link drag. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
   /* the hover scale claims `transform` on this element wholesale, so
      nothing else may declare one here — not even a compositing hint. */
   transition: transform var(--d-2) var(--ease-settle);
 }
+.island-orb:active { cursor: grabbing; }
 
-/* The turning shell, spun about the polar axis through the sphere centre.
-   Never give this rule `overflow`, `filter`, `opacity` below 1, `mask`,
-   `mix-blend-mode`, `isolation` or `contain: paint`: each forces
-   transform-style back to flat and the sphere silently collapses into
-   overlapping ellipses that no test would catch. */
+/* The turning shell. Never give this rule `overflow`, `filter`, `opacity`
+   below 1, `mask`, `mix-blend-mode`, `isolation` or `contain: paint`:
+   each forces transform-style back to flat and the sphere silently
+   collapses into overlapping ellipses that no test would catch. */
 .orb-shell {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  transform: rotateY(-64deg);
+  transform: rotateX(var(--orb-rx, -9deg)) rotateY(var(--orb-ry, -64deg));
   animation: orb-spin var(--orb-spin) linear infinite;
 }
+/* Once the script owns the orientation, the keyframe would fight it. */
+.island-orb[data-driven] .orb-shell { animation: none; }
 
 /* Each mark is a full-orb plane pushed out to the surface, so its centre
-   is the sphere's centre and rotateY turns it about the pole rather than
-   about itself. Longitude is the angle, latitude is where the blob sits
-   inside the plane, and translateZ = r·cos(latitude) keeps an off-equator
-   mark on its own smaller circle. The limb compression is projection, not
-   a mask — that is what says "sphere turning" rather than "disc sliding" —
-   and backface culling lands at exactly the angle where projected width is
-   already zero, so a mark vanishes without popping. */
+   is the sphere's centre and the shell's rotation turns it about the ball
+   rather than about itself. The limb compression is projection, not a
+   mask — that is what says "sphere turning" rather than "disc sliding" —
+   and backface culling lands at exactly the angle where projected width
+   is already zero, so a mark vanishes without popping. */
 .orb-mark {
   position: absolute;
   inset: 0;
@@ -258,39 +266,45 @@ body:has(.home-landing) .site-header { display: none; }
   -webkit-backface-visibility: hidden;
   pointer-events: none;
 }
-/* Longitudes are deliberately uneven: evenly spaced marks give the
-   rotation an audible tick. Nothing finer than these — on a body with
-   about 7 ΔL* of headroom before carbon reads as slate, a feature under
-   roughly 7px at this size resamples into shimmer rather than detail. */
+/* Machining grain, not planetary weather: on steel the marks can carry
+   real contrast, which is what makes the spin legible at this size.
+   Longitudes stay uneven so the turn never ticks. */
 .orb-mark-1 {
   transform: rotateY(0deg) translateZ(calc(var(--orb-r) * 0.976));
-  background: radial-gradient(circle 0.46rem at 50% 39%,
-    rgba(78, 104, 148, 0.22) 0%, rgba(78, 104, 148, 0.12) 45%, rgba(78, 104, 148, 0) 100%);
+  background: radial-gradient(circle 0.44rem at 50% 39%,
+    rgba(232, 240, 250, 0.5) 0%, rgba(232, 240, 250, 0.22) 45%, rgba(232, 240, 250, 0) 100%);
 }
 .orb-mark-2 {
   transform: rotateY(54deg) translateZ(calc(var(--orb-r) * 0.954));
   background: radial-gradient(circle 0.4rem at 50% 65%,
-    rgba(1, 3, 8, 0.45) 0%, rgba(1, 3, 8, 0.24) 48%, rgba(1, 3, 8, 0) 100%);
+    rgba(14, 17, 21, 0.62) 0%, rgba(14, 17, 21, 0.3) 48%, rgba(14, 17, 21, 0) 100%);
 }
 .orb-mark-3 {
   transform: rotateY(129deg) translateZ(calc(var(--orb-r) * 0.917));
-  background: radial-gradient(circle 0.3rem at 50% 30%,
-    rgba(88, 114, 158, 0.18) 0%, rgba(88, 114, 158, 0.09) 46%, rgba(88, 114, 158, 0) 100%);
+  background: radial-gradient(circle 0.32rem at 50% 30%,
+    rgba(240, 246, 255, 0.42) 0%, rgba(240, 246, 255, 0.18) 46%, rgba(240, 246, 255, 0) 100%);
 }
 .orb-mark-4 {
   transform: rotateY(198deg) translateZ(calc(var(--orb-r) * 0.995));
-  background: radial-gradient(circle 0.5rem at 50% 55%,
-    rgba(70, 96, 140, 0.2) 0%, rgba(70, 96, 140, 0.11) 50%, rgba(70, 96, 140, 0) 100%);
+  background: radial-gradient(circle 0.48rem at 50% 55%,
+    rgba(18, 22, 27, 0.55) 0%, rgba(18, 22, 27, 0.26) 50%, rgba(18, 22, 27, 0) 100%);
 }
 .orb-mark-5 {
   transform: rotateY(281deg) translateZ(calc(var(--orb-r) * 0.999));
   background: radial-gradient(circle 0.36rem at 50% 47.5%,
-    rgba(1, 3, 8, 0.4) 0%, rgba(1, 3, 8, 0.21) 48%, rgba(1, 3, 8, 0) 100%);
+    rgba(226, 235, 246, 0.44) 0%, rgba(226, 235, 246, 0.2) 48%, rgba(226, 235, 246, 0) 100%);
+}
+/* One mark off the poles, so a tilt has something to reveal — without it
+   spinning about X would look like nothing is happening. */
+.orb-mark-6 {
+  transform: rotateX(74deg) translateZ(calc(var(--orb-r) * 0.94));
+  background: radial-gradient(circle 0.34rem at 50% 50%,
+    rgba(20, 24, 30, 0.5) 0%, rgba(20, 24, 30, 0.22) 50%, rgba(20, 24, 30, 0) 100%);
 }
 
 /* The light, fixed. ::after is last in tree order so it paints over the
-   shell without a z-index — specular first so it survives at full
-   strength over the limb darkening below it. */
+   shell without a z-index. Specular first so it survives at full strength
+   over the limb darkening below it. */
 .island-orb::after {
   position: absolute;
   inset: 0;
@@ -298,22 +312,23 @@ body:has(.home-landing) .site-header { display: none; }
   content: "";
   pointer-events: none;
   background:
-    radial-gradient(circle at 34% 25%, rgba(226, 236, 252, 0.5) 0%, rgba(200, 216, 240, 0.09) 11%, rgba(226, 236, 252, 0) 27%),
-    radial-gradient(circle at 68% 78%, rgba(46, 66, 104, 0.4) 0%, rgba(46, 66, 104, 0) 46%),
+    /* the hot spot a polished bearing throws back at you */
+    radial-gradient(circle at 33% 24%, rgba(255, 255, 255, 0.92) 0%, rgba(246, 250, 255, 0.34) 9%, rgba(255, 255, 255, 0) 24%),
+    /* light bouncing up off whatever the bearing is resting over */
+    radial-gradient(circle at 68% 79%, rgba(188, 204, 222, 0.42) 0%, rgba(188, 204, 222, 0) 44%),
     /* terminator, centred on the light, so a mark turning away from it
-       drowns rather than merely dims */
-    radial-gradient(circle 1.4rem at 30% 22%, rgba(1, 3, 8, 0) 0%, rgba(1, 3, 8, 0) 34%, rgba(1, 3, 8, 0.42) 72%, rgba(1, 3, 8, 0.62) 100%),
+       falls into shadow rather than merely dimming */
+    radial-gradient(circle 1.4rem at 30% 22%, rgba(6, 8, 11, 0) 0%, rgba(6, 8, 11, 0) 36%, rgba(6, 8, 11, 0.34) 74%, rgba(6, 8, 11, 0.5) 100%),
     /* limb darkening — real physics, and it also crushes the one artifact
        this technique has: a lifted mark sliced by the circular clip */
-    radial-gradient(closest-side circle at 50% 50%, rgba(1, 3, 8, 0) 0%, rgba(1, 3, 8, 0) 58%, rgba(1, 3, 8, 0.55) 100%);
+    radial-gradient(closest-side circle at 50% 50%, rgba(6, 8, 11, 0) 0%, rgba(6, 8, 11, 0) 60%, rgba(6, 8, 11, 0.46) 100%);
 }
 
-/* Left to right: features are born at the lit limb and die in shadow,
-   rather than crawling out of blackness. Linear — a planet has no
-   ease-in-out, and easing would make the loop seam audible. */
+/* No-JS only. Linear — a bearing has no ease-in-out, and easing would
+   make the loop seam audible. */
 @keyframes orb-spin {
-  from { transform: rotateY(0deg); }
-  to   { transform: rotateY(360deg); }
+  from { transform: rotateX(-9deg) rotateY(0deg); }
+  to   { transform: rotateX(-9deg) rotateY(360deg); }
 }
 .nav-island:hover .island-orb { transform: scale(1.06); }
 .island-brand:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 999px; }
@@ -409,7 +424,7 @@ body:has(.home-landing) .site-header { display: none; }
   /* Not left to the global 0.01ms sweep: the resting pose is a decision.
      At -64deg a deepening sits just below and left of centre and nothing
      collides with the specular — which 0deg would. */
-  .orb-shell { animation: none; transform: rotateY(-64deg); }
+  .orb-shell { animation: none; transform: rotateX(-9deg) rotateY(-64deg); }
 }
 /* Section landings open on the space panel — the greeting goes light. */
 .route-shell:has(.orbit-field):not(:has(.home-landing)) .brand-mark { color: rgba(242, 246, 252, 0.95); }

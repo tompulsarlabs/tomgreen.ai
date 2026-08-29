@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { IslandOrb } from "@/components/island-orb";
 import { site } from "@/lib/content/site";
 
 function PendingMark() {
@@ -98,19 +99,9 @@ export function SiteHeader({ showAbout }: { showAbout: boolean }) {
             }
           }}
         >
-          {/* The island's resting face: the same carbon body the orbit
-              turns around — and turning. The shell carries the surface in
-              3D; the light stays in ::after, because a light source does
-              not orbit a planet. */}
-          <span aria-hidden className="island-orb">
-            <span className="orb-shell">
-              <span className="orb-mark orb-mark-1" />
-              <span className="orb-mark orb-mark-2" />
-              <span className="orb-mark orb-mark-3" />
-              <span className="orb-mark orb-mark-4" />
-              <span className="orb-mark orb-mark-5" />
-            </span>
-          </span>
+          {/* The island's resting face: a carbon bearing, turning on its
+              own and spinnable on any axis. */}
+          <IslandOrb />
         </Link>
 
         {/* The revealed track: its width animates from nothing to its

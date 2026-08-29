@@ -32,10 +32,10 @@ const orbitBodies: OrbitBody[] = [
     size: defaultBodySize(index),
   })),
   {
-    id: "more-projects",
-    label: "More projects",
+    id: "projects",
+    label: "Projects",
     color: planetColor(clusterOrder.length),
-    target: { kind: "anchor", id: "more-projects" },
+    target: { kind: "anchor", id: "projects" },
     size: defaultBodySize(clusterOrder.length),
   },
 ];
@@ -179,8 +179,8 @@ export default function Building() {
         );
       })}
 
-      <section id="more-projects" className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
-        <p className="record text-muted">More projects</p>
+      <section id="projects" className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
+        <p className="record text-muted">Projects</p>
         <div className="grid gap-x-8 md:grid-cols-2">
           {projects
             .filter((project) => !sceneIds.has(project.slug))

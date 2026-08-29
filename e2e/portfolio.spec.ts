@@ -661,9 +661,9 @@ test("the solar-system navigation runs with motion on the Lab", async ({ page })
     "href",
     "#cluster-companies",
   );
-  await expect(page.locator('a.orbit-label[data-body="more-projects"]')).toHaveAttribute(
+  await expect(page.locator('a.orbit-label[data-body="projects"]')).toHaveAttribute(
     "href",
-    "#more-projects",
+    "#projects",
   );
   // The wrapper line sits on every page, in the footer.
   await expect(page.locator(".site-footer").getByText("Agentic execution · Human judgment")).toBeVisible();
@@ -712,7 +712,7 @@ test("reduced motion serves the linked poster sky, not the canvas", async ({ pag
   await expect(page.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
   // The poster's planets are real links: navigation without any script.
   await expect(page.locator('.orbit-poster a[href="#cluster-companies"]')).toBeAttached();
-  await expect(page.locator('.orbit-poster a[href="#more-projects"]')).toBeAttached();
+  await expect(page.locator('.orbit-poster a[href="#projects"]')).toBeAttached();
 });
 
 test("the poster is server-rendered for no-JS visitors", async ({ browser }) => {
@@ -764,7 +764,7 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
     /"wdth" 100/,
   );
 
-  const workshop = page.getByText("More projects", { exact: true }).locator("..");
+  const workshop = page.getByText("Projects", { exact: true }).locator("..");
   await expect(workshop.locator("article")).toHaveCount(2);
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
