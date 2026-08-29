@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anchorRect, placeLabels, placementOrder, type LabelItem } from "./label-placement";
+import { anchorRect, placeLabels, placementOrder, rectsOverlap, type LabelItem } from "./label-placement";
 
 const VIEW = { width: 1200, height: 700, core: { x: 600, y: 350, radius: 60 } };
 
@@ -112,5 +112,16 @@ describe("placeLabels", () => {
     const previous = new Map(first.map((p) => [p.id, p.anchor]));
     const second = placeLabels(items, { ...VIEW, previous });
     expect(second.map((p) => p.anchor)).toEqual(first.map((p) => p.anchor));
+  });
+});
+
+describe("rectsOverlap", () => {
+  it("is true only when two boxes share area", () => {
+    const a = { x: 0, y: 0, width: 10, height: 10 };
+    expect(rectsOverlap(a, { x: 5, y: 5, width: 10, height: 10 })).toBe(true);
+    // Touching edges are not an overlap.
+    expect(rectsOverlap(a, { x: 10, y: 0, width: 10, height: 10 })).toBe(false);
+    expect(rectsOverlap(a, { x: 0, y: 10, width: 10, height: 10 })).toBe(false);
+    expect(rectsOverlap(a, { x: 40, y: 40, width: 10, height: 10 })).toBe(false);
   });
 });

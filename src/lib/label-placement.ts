@@ -120,6 +120,16 @@ export function anchorRect(item: LabelItem, anchor: Anchor, gap: number): Rect {
   }
 }
 
+/** True when two label boxes share any area at all. */
+export function rectsOverlap(a: Rect, b: Rect) {
+  return (
+    a.x < b.x + b.width &&
+    b.x < a.x + a.width &&
+    a.y < b.y + b.height &&
+    b.y < a.y + a.height
+  );
+}
+
 function overlapArea(a: Rect, b: Rect) {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
   const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);

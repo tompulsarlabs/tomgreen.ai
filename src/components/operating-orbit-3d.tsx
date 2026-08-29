@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { anchorRect, placeLabels, type Anchor, type LabelItem } from "@/lib/label-placement";
+import { anchorRect, placeLabels, rectsOverlap, type Anchor, type LabelItem } from "@/lib/label-placement";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
@@ -680,17 +680,42 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
           core: { x: coreScreenX, y: coreScreenY, radius: coreScreenPx },
           previous: s.anchors,
         });
+        // Which labels are covering another one right now. The dwell
+        // exists to stop a label flicking sides over a pixel of scoring
+        // difference — but an overlap is not a marginal difference, and
+        // waiting it out is exactly how two names end up printed over
+        // each other while the system turns.
+        const held = new Map<string, ReturnType<typeof anchorRect>>();
+        for (const item of s.items) {
+          const anchor = s.anchors.get(item.id);
+          if (anchor) held.set(item.id, anchorRect(item, anchor, 14));
+        }
+        const covering = new Set<string>();
+        for (const [idA, boxA] of held) {
+          for (const [idB, boxB] of held) {
+            if (idA >= idB) continue;
+            if (rectsOverlap(boxA, boxB)) {
+              covering.add(idA);
+              covering.add(idB);
+            }
+          }
+        }
+
         for (const placement of chosen) {
           const current = s.anchors.get(placement.id);
-          const locked = (s.lockedUntil.get(placement.id) ?? 0) > now;
+          // Unplaced, or currently covering something: move at once.
+          const urgent = current === undefined || covering.has(placement.id);
+          const locked = !urgent && (s.lockedUntil.get(placement.id) ?? 0) > now;
           if (current === placement.anchor) {
             s.pending.delete(placement.id);
           } else if (!locked) {
-            // A better anchor must hold for a beat before the label
-            // moves — otherwise it flicks sides as the system rotates.
+            // A better anchor must otherwise hold for a beat before the
+            // label moves — otherwise it flicks sides as the system turns.
             const waiting = s.pending.get(placement.id);
-            if (current === undefined) {
+            if (urgent) {
               s.anchors.set(placement.id, placement.anchor);
+              s.lockedUntil.set(placement.id, now + 0.35);
+              s.pending.delete(placement.id);
             } else if (!waiting || waiting.anchor !== placement.anchor) {
               s.pending.set(placement.id, { anchor: placement.anchor, since: now });
             } else if (now - waiting.since > 0.22) {

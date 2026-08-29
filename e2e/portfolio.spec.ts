@@ -158,6 +158,21 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
 });
 
+test("the island is docked to the top right", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+
+  // It sits in the right half and clears the content column, so it can
+  // never come down on top of the copy the way a centred island did.
+  const island = (await page.locator(".nav-island").boundingBox())!;
+  expect(island.x).toBeGreaterThan(1440 / 2);
+  const moon = (await page.locator("a.sphere-home").boundingBox())!;
+  // The Moon is the island's right-hand end.
+  expectWithin(moon.x + moon.width, island.x + island.width, 1);
+});
+
 test("the Moon is the way home", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -191,7 +206,9 @@ test("a second touch tap on the open island goes home", async ({ browser }) => {
   const island = page.locator(".nav-island");
   const moon = island.locator("a.sphere-home");
   await moon.tap();
-  await expect(island).toHaveAttribute("data-expanded", "true");
+  // Settled, not merely opening: tapping mid-transition races the state
+  // the second tap has to read.
+  await expect(island).toHaveAttribute("data-phase", "open");
   await expect(page).toHaveURL(/\/work$/);
   // Open already, so this one travels: touch reaches Home in two taps
   // rather than never.
@@ -271,13 +288,14 @@ test("the navigation grows from the sphere and returns when the pointer leaves",
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await settleIsland(page);
 
-  // The sphere holds its ground: the menu extended to the right of it
-  // rather than the sphere sliding into the middle of a pill.
+  // The Moon holds its ground at the right-hand end: the menu unrolled
+  // to its left rather than the Moon sliding into the middle of a pill.
   const sphereAfter = (await button.boundingBox())!;
   expectWithin(sphereAfter.x, sphereBefore.x, 2);
   const surface = (await island.locator(".nav-surface").boundingBox())!;
   expect(surface.width).toBeGreaterThan(sphereAfter.width * 2);
-  expect(surface.x + surface.width).toBeGreaterThan(sphereAfter.x + sphereAfter.width);
+  expect(surface.x).toBeLessThan(sphereAfter.x);
+  expectWithin(surface.x + surface.width, sphereAfter.x + sphereAfter.width, 2);
 
   // The sphere paints in front of the surface it opened.
   const layering = await island.evaluate((element) => ({
