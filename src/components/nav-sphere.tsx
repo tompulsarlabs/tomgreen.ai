@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 /** Seconds for one full turn. Calm, but unmistakable at 36px. */
@@ -12,153 +12,272 @@ const AXIS_TILT = THREE.MathUtils.degToRad(23);
 const POINTER_SWING = THREE.MathUtils.degToRad(3.5);
 
 /**
- * Carbon fibre, built rather than sampled.
+ * The Moon, built rather than sampled.
  *
- * The weave lives in object space, so it turns with the geometry and has
- * no UV seam and no pole pinch. Two fibre families run on opposing
- * diagonals and trade places in a coarse twill; the surface normal is
- * perturbed by the weave's own relief, which is what makes the highlight
- * break up and travel rather than sliding across like a decal.
+ * The surface is built the way the real one was: maria laid down as
+ * low-frequency basalt plains, then a cellular field of impacts at two
+ * scales cut into them, then regolith over everything. Craters carry a
+ * depressed floor, a raised rim and an ejecta blanket, and the relief
+ * perturbs the normal, so rims catch the sun and floors fall into shadow
+ * as the body turns.
+ *
+ * That terrain is expensive — twenty-seven cells per octave, per pixel —
+ * and it is also completely static in object space. So it is built once
+ * into a texture at mount and only sampled per frame. The map is
+ * octahedral rather than equirectangular: a direction folds into the
+ * unit square in about six instructions, with no pole to pinch and no
+ * meridian to seam, which is what lets a sphere carry a texture without
+ * the artefacts a UV sphere would show.
+ *
+ * The light response is lunar rather than generic: regolith backscatters,
+ * so this uses Lommel-Seeliger mixed with Lambert — enough of the Moon's
+ * flat, luminous disc to be recognisable, enough shading to still read as
+ * a sphere at thirty-odd pixels. Earthshine fills the night side.
  *
  * Every light is a world-space constant. The mesh rotates underneath
- * them, so highlights sweep across the surface — rotating the lights
+ * them, so the terminator sweeps across the surface — rotating the sun
  * with the body is exactly what makes a spinning sphere look static.
  */
+
+/** Terrain map edge, in texels. The sphere never exceeds ~42px on screen. */
+const BAKE_SIZE = 256;
+
+/**
+ * Octahedral mapping. The two functions are exact inverses: the bake
+ * decodes each texel to a direction, the sphere encodes its direction
+ * back to a texel.
+ */
+const OCTAHEDRAL = /* glsl */ `
+  vec3 octDecode(vec2 f) {
+    f = f * 2.0 - 1.0;
+    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float fold = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -fold : fold;
+    n.y += n.y >= 0.0 ? -fold : fold;
+    return normalize(n);
+  }
+
+  vec2 octEncode(vec3 n) {
+    n /= abs(n.x) + abs(n.y) + abs(n.z);
+    vec2 folded = vec2(
+      (1.0 - abs(n.y)) * (n.x >= 0.0 ? 1.0 : -1.0),
+      (1.0 - abs(n.x)) * (n.y >= 0.0 ? 1.0 : -1.0));
+    vec2 uv = n.z >= 0.0 ? n.xy : folded;
+    return uv * 0.5 + 0.5;
+  }
+`;
+
 const VERTEX = /* glsl */ `
   varying vec3 vObj;
-  varying vec3 vNormalW;
   varying vec3 vViewW;
 
   void main() {
     vObj = normalize(position);
-    vNormalW = normalize(mat3(modelMatrix) * normal);
     vec4 world = modelMatrix * vec4(position, 1.0);
     vViewW = normalize(cameraPosition - world.xyz);
     gl_Position = projectionMatrix * viewMatrix * world;
   }
 `;
 
-const FRAGMENT = /* glsl */ `
+/** The terrain itself. Runs once, into the map. */
+const BAKE_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+  }
+`;
+
+const BAKE_FRAGMENT = /* glsl */ `
   precision highp float;
-
-  uniform float uActive;   // 0 at rest, 1 fully engaged
-  uniform mat3 uNormalM;   // object -> world, for the perturbed normal
-
-  varying vec3 vObj;
-  varying vec3 vNormalW;
-  varying vec3 vViewW;
-
-  // Integer longitude frequency keeps the weave continuous across the
-  // atan seam; latitude carries the opposing diagonal.
-  const float NU = 34.0;
-  const float NV = 25.0;
-
-  float weave(vec2 ll) {
-    float a = NU * ll.x + NV * ll.y;
-    float b = NU * ll.x - NV * ll.y;
-    // Which fibre family sits on top alternates in coarse blocks — the
-    // twill, and the reason the surface reads woven rather than ribbed.
-    float over = smoothstep(-0.12, 0.12, sin(a * 0.25) * sin(b * 0.25));
-    return mix(smoothstep(-1.0, 1.0, sin(b)), smoothstep(-1.0, 1.0, sin(a)), over);
+  varying vec2 vUv;
+` + OCTAHEDRAL + /* glsl */ `
+  // Hashes without sin(): the trigonometric ones band badly on some
+  // drivers, and banding across a crater field reads as a manufacturing
+  // defect rather than terrain.
+  vec3 hash33(vec3 p) {
+    p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+    p += dot(p, p.yxz + 33.33);
+    return fract((p.xxy + p.yxx) * p.zyx);
   }
 
-  float fibreOver(vec2 ll) {
-    float a = NU * ll.x + NV * ll.y;
-    float b = NU * ll.x - NV * ll.y;
-    return smoothstep(-0.12, 0.12, sin(a * 0.25) * sin(b * 0.25));
+  float hash13(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.zyx + 31.32);
+    return fract((p.x + p.y) * p.z);
   }
 
-  float ggx(vec3 n, vec3 h, float rough) {
-    float a = max(rough * rough, 0.0015);
-    float ndh = max(dot(n, h), 0.0);
-    float d = ndh * ndh * (a * a - 1.0) + 1.0;
-    return (a * a) / (3.14159265 * d * d);
+  float vnoise(vec3 x) {
+    vec3 i = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(hash13(i), hash13(i + vec3(1.0, 0.0, 0.0)), f.x),
+          mix(hash13(i + vec3(0.0, 1.0, 0.0)), hash13(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+      mix(mix(hash13(i + vec3(0.0, 0.0, 1.0)), hash13(i + vec3(1.0, 0.0, 1.0)), f.x),
+          mix(hash13(i + vec3(0.0, 1.0, 1.0)), hash13(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
+      f.z);
   }
 
-  // The weave read for one polar frame: relief-perturbed normal in xyz,
-  // and which fibre family is on top in w.
-  vec4 frameWeave(vec3 p) {
-    float lat = asin(clamp(p.y, -0.9999, 0.9999));
-    float lon = atan(p.z, p.x);
-    vec2 ll = vec2(lon, lat);
+  float fbm(vec3 p) {
+    float sum = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 4; i++) {
+      sum += amp * vnoise(p);
+      p *= 2.07;
+      amp *= 0.5;
+    }
+    return sum;
+  }
 
-    // Numeric gradient: cheaper to trust than a hand-derived one, and
-    // this sphere covers only a few thousand fragments.
-    float e = 0.006;
-    float h0 = weave(ll);
-    float dLon = (weave(ll + vec2(e, 0.0)) - h0) / e;
-    float dLat = (weave(ll + vec2(0.0, e)) - h0) / e;
+  // One impact, in crater radii from its centre: a depressed floor, the
+  // rim thrown up around it, the ejecta blanket beyond. The slope comes
+  // back with the height, because deriving it analytically here costs a
+  // few multiplies and sampling for it would cost two more whole passes
+  // over the cell neighbourhood.
+  float impact(float d, out float slope) {
+    float t = clamp((d - 0.30) / 0.70, 0.0, 1.0);
+    float bowl = -0.85 * (1.0 - t * t * (3.0 - 2.0 * t));
+    float bowlSlope = 0.85 * 6.0 * t * (1.0 - t) / 0.70;
 
-    vec3 east = normalize(cross(vec3(0.0, 1.0, 0.0), p) + vec3(1e-5));
-    vec3 north = cross(p, east);
-    float cosLat = max(cos(lat), 0.25);
-    vec3 n = normalize(p - 0.0075 * (dLon * east / cosLat + dLat * north));
-    return vec4(n, fibreOver(ll));
+    float rimOff = d - 0.93;
+    float rim = 0.60 * exp(-rimOff * rimOff * 24.0);
+    float rimSlope = rim * -48.0 * rimOff;
+
+    float ejOff = d - 1.28;
+    float ejecta = 0.12 * exp(-ejOff * ejOff * 5.0);
+    float ejectaSlope = ejecta * -10.0 * ejOff;
+
+    slope = bowlSlope + rimSlope + ejectaSlope;
+    return bowl + rim + ejecta;
+  }
+
+  // A cellular field of impacts at one scale — at most one crater per
+  // cell, jittered off centre with a randomised radius. The whole 3x3x3
+  // neighbourhood is searched so craters cross cell borders freely and
+  // the underlying grid never shows through.
+  float craterField(vec3 p, float scale, float density, float amp, inout vec3 grad) {
+    vec3 q = p * scale;
+    vec3 base = floor(q);
+    float height = 0.0;
+    for (int x = -1; x <= 1; x++) {
+      for (int y = -1; y <= 1; y++) {
+        for (int z = -1; z <= 1; z++) {
+          vec3 cell = base + vec3(float(x), float(y), float(z));
+          vec3 r = hash33(cell);
+          vec3 offset = q - (cell + 0.5 + (r - 0.5) * 0.72);
+          float radius = mix(0.20, 0.50, r.x * r.y);
+          float dist = max(length(offset), 1e-4);
+          float slope = 0.0;
+          float h = impact(dist / radius, slope);
+          float live = step(r.z, density) * radius * 2.0 * amp;
+          height += h * live;
+          grad += (slope * live * scale / (radius * dist)) * offset;
+        }
+      }
+    }
+    return height;
+  }
+
+  // Maria: the basalt plains, laid down late and largely unbombarded, so
+  // they are both darker and smoother than the highlands around them.
+  float maria(vec3 p) {
+    return smoothstep(0.44, 0.60, fbm(p * 1.35 + 19.0));
   }
 
   void main() {
+    vec3 p = octDecode(vUv);
+    float mare = maria(p);
+
+    // Craters, with their gradient accumulated as they are summed.
+    vec3 grad = vec3(0.0);
+    float h = craterField(p, 3.0, 0.55, 0.052, grad);
+    h += craterField(p, 7.2, 0.60, 0.024 * (1.0 - 0.55 * mare), grad);
+
+    // Regolith. Far too fine to be worth an analytic gradient, and cheap
+    // enough to sample for one: this pass runs once.
+    vec3 east = normalize(cross(vec3(0.0, 1.0, 0.0), p) + vec3(1e-5));
+    vec3 north = cross(p, east);
+    float e = 0.013;
+    float d0 = (fbm(p * 15.0) - 0.5) * 0.009 + (fbm(p * 36.0) - 0.5) * 0.004;
+    float dE = (fbm(normalize(p + east * e) * 15.0) - 0.5) * 0.009
+             + (fbm(normalize(p + east * e) * 36.0) - 0.5) * 0.004;
+    float dN = (fbm(normalize(p + north * e) * 15.0) - 0.5) * 0.009
+             + (fbm(normalize(p + north * e) * 36.0) - 0.5) * 0.004;
+    grad += ((dE - d0) * east + (dN - d0) * north) / e;
+    h += d0 - mare * 0.011;
+
+    // Only the tangential part of the gradient tilts a surface normal.
+    vec3 tangential = grad - p * dot(grad, p);
+    vec3 nObj = normalize(p - 0.62 * tangential);
+
+    // Regolith is grey and very slightly warm, the basalt darker and a
+    // shade cooler; the hue difference is small enough to reconstruct
+    // from brightness alone, so only brightness is stored.
+    float albedo = mix(0.735, 0.325, mare);
+    // Fresh material thrown up onto a rim is brighter than the ground it
+    // lands on; the floors of old craters are darker.
+    albedo *= 0.84 + 0.32 * smoothstep(-0.012, 0.028, h);
+    albedo *= 0.93 + 0.15 * fbm(p * 8.5);
+
+    // Ray systems: the bright ejecta streaks flung out by the youngest
+    // impacts, and the detail that reads unmistakably as the Moon.
+    vec3 rayHub = normalize(vec3(0.44, -0.58, 0.68));
+    float fromHub = acos(clamp(dot(p, rayHub), -1.0, 1.0));
+    vec3 around = normalize(p - rayHub * dot(p, rayHub) + vec3(1e-5));
+    float streak = pow(vnoise(around * 7.0 + 4.0), 4.0);
+    albedo += streak * smoothstep(1.45, 0.30, fromHub) * 0.16 * (1.0 - mare);
+
+    gl_FragColor = vec4(nObj * 0.5 + 0.5, clamp(albedo, 0.0, 1.0));
+  }
+`;
+
+/** The sphere itself: one texture fetch, then lunar light. */
+const FRAGMENT = /* glsl */ `
+  precision highp float;
+
+  uniform float uActive;      // 0 at rest, 1 fully engaged
+  uniform mat3 uNormalM;      // object -> world, for the perturbed normal
+  uniform sampler2D uTerrain; // normal in rgb, albedo in a
+
+  varying vec3 vObj;
+  varying vec3 vViewW;
+` + OCTAHEDRAL + /* glsl */ `
+  void main() {
     vec3 p = normalize(vObj);
+    vec4 ground = texture2D(uTerrain, octEncode(p));
 
-    // Two mappings whose poles sit on different axes, blended where the
-    // first would converge. Neither starburst is ever visible, and the
-    // surface keeps its detail everywhere — the fix for a UV sphere's
-    // pole seam without a bald patch.
-    vec4 a = frameWeave(p);
-    vec3 pB = vec3(-p.y, p.x, p.z);
-    vec4 bRaw = frameWeave(pB);
-    vec3 bN = vec3(bRaw.y, -bRaw.x, bRaw.z);
-    float blend = smoothstep(0.52, 0.88, abs(p.y));
-    vec3 nObj = normalize(mix(a.xyz, bN, blend));
-    float over = mix(a.w, bRaw.w, blend);
-
-    float lat = asin(clamp(p.y, -0.9999, 0.9999));
-    float h0 = mix(weave(vec2(atan(p.z, p.x), lat)),
-                   weave(vec2(atan(pB.z, pB.x), asin(clamp(pB.y, -0.9999, 0.9999)))),
-                   blend);
-
-    vec3 N = normalize(uNormalM * nObj);
+    vec3 N = normalize(uNormalM * normalize(ground.rgb * 2.0 - 1.0));
     vec3 V = normalize(vViewW);
-    float facing = max(dot(N, V), 0.0);
+    vec3 L = normalize(vec3(-0.40, 0.60, 0.69));   // the sun, fixed in world space
 
-    // Studio rig, fixed in world space.
-    vec3 keyDir = normalize(vec3(-0.42, 0.70, 0.58));
-    vec3 fillDir = normalize(vec3(0.66, -0.22, 0.40));
-    vec3 rimDir = normalize(vec3(0.30, 0.42, -0.86));
+    // The hue the bake did not store: basalt reads a shade cool against
+    // the warmer grey of the highlands.
+    float grey = ground.a;
+    vec3 albedo = vec3(grey) * mix(
+      vec3(0.955, 0.965, 1.010),
+      vec3(1.030, 1.010, 0.980),
+      smoothstep(0.30, 0.62, grey));
 
-    // Matte throughout: the weave modulates the roughness, nothing
-    // polishes it. The bands still catch light differently, which is the
-    // anisotropy an unwoven ball would not have.
-    float rough = mix(0.66, 0.48, over) + 0.10 * (1.0 - h0);
-    rough = clamp(rough - 0.04 * uActive, 0.30, 0.85);
+    float mu0 = max(dot(N, L), 0.0);
+    float mu = max(dot(N, V), 0.0);
+    // Lommel-Seeliger. Regolith backscatters, which is why a full moon
+    // reads as a flat luminous disc instead of a shaded ball; mixed back
+    // toward Lambert so this one still reads as a sphere at this size.
+    float ls = mu0 / max(mu0 + mu, 0.05);
+    float diffuse = mix(mu0, ls * 1.55, 0.58);
+    // The opposition surge: the sharp brightening at zero phase angle.
+    diffuse *= 1.0 + 0.16 * pow(max(dot(L, V), 0.0), 6.0);
 
-    // Gunmetal: grey with a cool cast, light enough to hold its own
-    // against the page instead of dissolving into it.
-    vec3 base = mix(vec3(0.180, 0.196, 0.216), vec3(0.430, 0.455, 0.492), h0);
-
-    // Wrapped diffuse. A matte surface has no hard terminator — light
-    // bleeds past ninety degrees, which is what keeps the unlit half a
-    // readable grey rather than a black crescent.
-    const float WRAP = 0.42;
-    float key = max((dot(N, keyDir) + WRAP) / (1.0 + WRAP), 0.0);
-    float fill = max((dot(N, fillDir) + WRAP) / (1.0 + WRAP), 0.0);
-    // Hemisphere ambient, so the underside never falls away to nothing.
-    float sky = 0.5 + 0.5 * N.y;
-    vec3 ambient = base * mix(vec3(0.34, 0.35, 0.38), vec3(0.52, 0.54, 0.60), sky);
-    vec3 lit = ambient + base * key * 0.62 + base * fill * 0.24;
-
-    // One broad lobe and no clearcoat: matte resin scatters its highlight
-    // instead of mirroring the key back as a hot spot.
-    vec3 hKey = normalize(keyDir + V);
-    float spec = ggx(N, hKey, rough) * max(dot(N, keyDir), 0.0);
-    lit += vec3(0.86, 0.89, 0.96) * spec * (0.055 + 0.022 * uActive);
-
-    // The dull glow: a wide, soft sheen across the whole silhouette
-    // rather than a hard rim line, gathering where the rim light sits
-    // behind the body.
-    float fres = pow(1.0 - facing, 2.2);
-    float rimFace = max(dot(N, rimDir), 0.0);
-    lit += vec3(0.30, 0.36, 0.46) * fres * (0.26 + 0.16 * uActive);
-    lit += vec3(0.42, 0.52, 0.68) * fres * rimFace * (0.40 + 0.30 * uActive);
+    vec3 lit = albedo * diffuse * (1.26 + 0.12 * uActive);
+    // Earthshine, filling the night side the way it does on a crescent.
+    lit += albedo * vec3(0.10, 0.12, 0.17) * (0.5 + 0.5 * max(dot(N, -L), 0.0)) * 0.34;
+    // A floor, so the unlit limb never disappears into a dark header.
+    lit += albedo * 0.048;
+    // And the faintest edge lift, for the same reason. No atmosphere is
+    // implied: it is far too small to read as glow.
+    float fres = pow(1.0 - mu, 3.0);
+    lit += vec3(0.30, 0.34, 0.42) * fres * (0.05 + 0.09 * uActive);
 
     gl_FragColor = vec4(lit, 1.0);
   }
@@ -194,28 +313,96 @@ function rigOf(node: THREE.Mesh): Rig {
   return rig;
 }
 
+/**
+ * Build the terrain map, once. Renders one full-screen pass of the bake
+ * shader into an octahedral texture and hands it back; the caller owns
+ * disposal. Returns null only if the renderer refuses the target.
+ */
+function bakeTerrain(renderer: THREE.WebGLRenderer): THREE.WebGLRenderTarget {
+  const target = new THREE.WebGLRenderTarget(BAKE_SIZE, BAKE_SIZE, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    wrapS: THREE.ClampToEdgeWrapping,
+    wrapT: THREE.ClampToEdgeWrapping,
+    depthBuffer: false,
+    stencilBuffer: false,
+  });
+  // It holds packed normals and a brightness, not a picture: no colour
+  // management may touch it on the way in or out.
+  target.texture.colorSpace = THREE.NoColorSpace;
+  target.texture.generateMipmaps = false;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  const material = new THREE.ShaderMaterial({
+    vertexShader: BAKE_VERTEX,
+    fragmentShader: BAKE_FRAGMENT,
+    depthTest: false,
+    depthWrite: false,
+  });
+  scene.add(new THREE.Mesh(geometry, material));
+
+  const previousTarget = renderer.getRenderTarget();
+  renderer.setRenderTarget(target);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(previousTarget);
+
+  geometry.dispose();
+  material.dispose();
+  return target;
+}
+
 function Bearing({ active, reduced }: { active: boolean; reduced: boolean }) {
   const mesh = useRef<THREE.Mesh>(null);
   const aim = useRef({ x: 0, y: 0 });
   const setFrameloop = useThree((state) => state.setFrameloop);
+  const renderer = useThree((state) => state.gl);
 
-  const material = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: VERTEX,
-        fragmentShader: FRAGMENT,
-        uniforms: {
-          uActive: { value: 0 },
-          uNormalM: { value: new THREE.Matrix3() },
-        },
-      }),
-    [],
-  );
+  const material = useMemo(() => {
+    // A neutral stand-in, so the first frame samples something valid
+    // whether or not the bake has landed: flat normal, mid grey.
+    const placeholder = new THREE.DataTexture(
+      new Uint8Array([128, 128, 255, 160]),
+      1,
+      1,
+    );
+    placeholder.colorSpace = THREE.NoColorSpace;
+    placeholder.needsUpdate = true;
+    return new THREE.ShaderMaterial({
+      vertexShader: VERTEX,
+      fragmentShader: FRAGMENT,
+      uniforms: {
+        uActive: { value: 0 },
+        uNormalM: { value: new THREE.Matrix3() },
+        uTerrain: { value: placeholder },
+      },
+    });
+  }, []);
 
   useEffect(() => {
     const held = material;
-    return () => held.dispose();
+    return () => {
+      (held.uniforms.uTerrain.value as THREE.Texture | null)?.dispose();
+      held.dispose();
+    };
   }, [material]);
+
+  // The terrain is static in object space, so it is built once rather
+  // than recomputed for every pixel of every frame. A layout effect runs
+  // before the first painted frame.
+  useLayoutEffect(() => {
+    const node = mesh.current;
+    if (!node) return;
+    const shader = node.material as THREE.ShaderMaterial;
+    const target = bakeTerrain(renderer);
+    const placeholder = shader.uniforms.uTerrain.value as THREE.Texture | null;
+    shader.uniforms.uTerrain.value = target.texture;
+    placeholder?.dispose();
+    return () => {
+      target.dispose();
+    };
+  }, [renderer]);
 
   // The pointer's pull is read from the window, never from React state.
   useEffect(() => {
