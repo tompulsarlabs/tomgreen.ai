@@ -79,16 +79,12 @@ export function CareerCorridor({
       const bounds = track.getBoundingClientRect();
       const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
       progress = clamp01(-bounds.top / travel);
-      // Darkness emerges behind the composition on the way in and hands
-      // back to paper on the way out — never a hard rectangle.
+      // The field fades in as the section takes the viewport and hands
+      // back to bare paper on the way out — never a hard rectangle.
       const section = track.parentElement as HTMLElement;
       const sectionBounds = section.getBoundingClientRect();
       const space = spaceProgress(sectionBounds.top, sectionBounds.bottom, window.innerHeight);
       section.style.setProperty("--space", space.toFixed(4));
-      // Text flips fast through the middle of the darkening, so copy is
-      // always ink on light or starlight on dark — never grey on grey.
-      const textFlip = clamp01((space - 0.42) / 0.3);
-      section.style.setProperty("--space-text", textFlip.toFixed(4));
     };
 
     const applyStations = (active: number, intensity: number) => {

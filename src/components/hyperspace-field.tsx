@@ -50,10 +50,13 @@ export function HyperspaceField({ drive }: { drive: MutableRefObject<HyperspaceD
   );
 }
 
-const STAR_WHITE = new THREE.Color("#f4f7ff");
-const CORRIDOR_BLUE = new THREE.Color("#76b9ff");
-const CORRIDOR_PALE = new THREE.Color("#a5d5ff");
-const CORRIDOR_DEEP = new THREE.Color("#5da9ff");
+// The field travels on paper, so every mark is ink: lines darken the
+// page instead of glowing over it, and the corridor gains weight at the
+// rim by going deeper rather than brighter.
+const LINE_BLUE = new THREE.Color("#5da9ff");
+const LINE_DEEP = new THREE.Color("#2f6fbf");
+const CORRIDOR_WASH = new THREE.Color("#8cc2ff");
+const CORRIDOR_EDGE = new THREE.Color("#4f95e0");
 
 const TRAIL_VERTEX = /* glsl */ `
   uniform float uTravel;
@@ -98,8 +101,8 @@ const TRAIL_VERTEX = /* glsl */ `
 const TRAIL_FRAGMENT = /* glsl */ `
   precision highp float;
   uniform float uVel;
-  uniform vec3 uWhite;
-  uniform vec3 uBlue3;
+  uniform vec3 uLine;
+  uniform vec3 uDeep3;
   varying float vLum;
   varying float vBlue;
   varying float vFade;
@@ -112,7 +115,7 @@ const TRAIL_FRAGMENT = /* glsl */ `
     float shade = mix(0.42, 1.0, rim);
     float alpha = vLum * vFade * shade * mix(0.28, 0.9, uVel);
     if (alpha < 0.004) discard;
-    vec3 color = mix(uWhite, uBlue3, clamp(vBlue, 0.0, 0.8));
+    vec3 color = mix(uLine, uDeep3, clamp(vBlue, 0.0, 0.8));
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -144,7 +147,7 @@ const POINT_VERTEX = /* glsl */ `
 const POINT_FRAGMENT = /* glsl */ `
   precision highp float;
   uniform float uVel;
-  uniform vec3 uWhite;
+  uniform vec3 uLine;
   varying float vLum;
   varying float vFade;
   varying vec2 vNdc;
@@ -158,7 +161,7 @@ const POINT_FRAGMENT = /* glsl */ `
     // velocity rises — the same stars, changing state.
     float alpha = core * vLum * vFade * shade * (1.0 - uVel * 0.72);
     if (alpha < 0.004) discard;
-    gl_FragColor = vec4(uWhite, alpha);
+    gl_FragColor = vec4(uLine, alpha);
   }
 `;
 
@@ -187,7 +190,7 @@ const GLOW_FRAGMENT = /* glsl */ `
     // little around the ring so no geometry is ever identifiable.
     float irregular = 0.86 + 0.14 * sin(angle * 3.0 + uTime * 0.16) * sin(angle * 5.0 - uTime * 0.11);
     float rim = pow(smoothstep(0.5, 1.25, radius), 1.7);
-    float alpha = uBlue * rim * irregular * 0.14;
+    float alpha = uBlue * rim * irregular * 0.07;
     if (alpha < 0.003) discard;
     vec3 color = mix(uDeep, uPale, smoothstep(0.6, 1.2, radius));
     gl_FragColor = vec4(color, alpha);
@@ -210,8 +213,8 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
       uTravel: { value: 0 },
       uVel: { value: 0 },
       uBlue: { value: 0 },
-      uWhite: { value: STAR_WHITE },
-      uBlue3: { value: CORRIDOR_BLUE },
+      uLine: { value: LINE_BLUE },
+      uDeep3: { value: LINE_DEEP },
     }),
     [],
   );
@@ -220,7 +223,7 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
       uTravel: { value: 0 },
       uVel: { value: 0 },
       uPixelRatio: { value: 1 },
-      uWhite: { value: STAR_WHITE },
+      uLine: { value: LINE_BLUE },
     }),
     [],
   );
@@ -229,8 +232,8 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
       uBlue: { value: 0 },
       uTime: { value: 0 },
       uAspect: { value: 1 },
-      uDeep: { value: CORRIDOR_DEEP },
-      uPale: { value: CORRIDOR_PALE },
+      uDeep: { value: CORRIDOR_EDGE },
+      uPale: { value: CORRIDOR_WASH },
     }),
     [],
   );
@@ -278,7 +281,7 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
       fragmentShader: TRAIL_FRAGMENT,
       uniforms: trailUniforms,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       depthWrite: false,
       depthTest: false,
     });
@@ -287,7 +290,7 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
       fragmentShader: POINT_FRAGMENT,
       uniforms: pointUniforms,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       depthWrite: false,
       depthTest: false,
     });
@@ -296,7 +299,7 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
       fragmentShader: GLOW_FRAGMENT,
       uniforms: glowUniforms,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       depthWrite: false,
       depthTest: false,
     });
@@ -375,13 +378,13 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
 
   return (
     <>
-      <lineSegments geometry={built.trails} frustumCulled={false}>
+      <lineSegments geometry={built.trails} frustumCulled={false} renderOrder={1}>
         <primitive object={built.trailMaterial} attach="material" />
       </lineSegments>
-      <points geometry={built.points} frustumCulled={false}>
+      <points geometry={built.points} frustumCulled={false} renderOrder={2}>
         <primitive object={built.pointMaterial} attach="material" />
       </points>
-      <mesh geometry={built.glow} frustumCulled={false}>
+      <mesh geometry={built.glow} frustumCulled={false} renderOrder={0}>
         <primitive object={built.glowMaterial} attach="material" />
       </mesh>
     </>
