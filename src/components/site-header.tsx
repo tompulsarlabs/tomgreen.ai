@@ -46,9 +46,13 @@ function PendingMark() {
  * so from anywhere else the Moon is a route back to it — which is why it
  * is a link rather than a disclosure button. Hover and focus open the
  * navigation; activation travels. Touch has neither hover nor focus, so
- * there the first tap opens and only a second one goes home. The row it
- * opens leads with Home in words, for anyone who does not read a moon as
- * a button.
+ * there the first tap opens and only a second one goes home.
+ *
+ * Two doors go home and they are not the same door. The Moon returns to
+ * the landing as it was on arrival, opening and all. The row it opens
+ * leads with Home in words — one label among Work, Lab and About — and
+ * that one goes straight to the planetary map, because a label in a
+ * navigation row should behave like the labels beside it.
  */
 export function SiteHeader({ showVoices }: { showVoices: boolean }) {
   const pathname = usePathname();
@@ -170,7 +174,12 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
         <Link
           href="/"
           className="sphere-home"
-          aria-label="Home"
+          aria-label="Home, from the opening"
+          // Both doors land on "/". What separates them is what the
+          // landing finds waiting for it — and the route transition
+          // reads that from here, because its capture handler stops the
+          // click before this link's own onClick could ever run.
+          data-opening="replay"
           onPointerEnter={(event) => {
             if (event.pointerType !== "mouse") return;
             clearTimers();
@@ -200,6 +209,10 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
             {navItems.map((item) => {
               const isCurrent = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const isCta = item.href === "/contact";
+              // Home is one of the labels, and it goes where the labels
+              // go: the map. It marks the opening seen on the way out,
+              // so the landing arrives already resolved.
+              const isHome = item.href === "/";
               return (
                 <Link
                   key={item.href}
@@ -207,6 +220,7 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
                   aria-current={isCurrent ? "page" : undefined}
                   className={isCta ? "nav-cta" : "nav-link"}
                   tabIndex={showing ? undefined : -1}
+                  data-opening={isHome ? "skip" : undefined}
                 >
                   {item.label}
                   <PendingMark />

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { requestOpening, skipOpening } from "@/lib/opening-sequence";
 
 const EXIT_MS = 280;
 
@@ -113,6 +114,16 @@ export function RouteTransition({ children }: { children: ReactNode }) {
       event.stopPropagation();
       return;
     }
+
+    // This capture handler stops the click before any link's own onClick
+    // can see it, so a link that means something by its navigation has to
+    // say so in markup and be read here. The two doors to the landing do:
+    // the Moon asks for the opening, the Home label skips it. Recorded
+    // only once the navigation is certain — past the guard above, and
+    // never on a modified click, which returned long before this.
+    const opening = anchor.getAttribute("data-opening");
+    if (opening === "replay") requestOpening();
+    else if (opening === "skip") skipOpening();
 
     event.preventDefault();
     event.stopPropagation();

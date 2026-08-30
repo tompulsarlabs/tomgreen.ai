@@ -183,7 +183,7 @@ test("the Moon is the way home", async ({ page }) => {
   // back to the landing page — it has to be a real link.
   const moon = page.locator("a.sphere-home");
   await expect(moon).toHaveAttribute("href", "/");
-  await expect(moon).toHaveAttribute("aria-label", "Home");
+  await expect(moon).toHaveAttribute("aria-label", "Home, from the opening");
   // It is a link, not a disclosure dressed as one.
   await expect(moon).not.toHaveAttribute("aria-expanded", /.*/);
   await expect(page.locator("button.sphere-home")).toHaveCount(0);
@@ -191,6 +191,44 @@ test("the Moon is the way home", async ({ page }) => {
   // And with a mouse the click travels, because hover already opened it.
   await moon.click();
   await expect(page).toHaveURL("/");
+});
+
+test("the Moon goes home to the opening, however many times", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // Sit through the opening once, so the session has already seen it and
+  // an ordinary return would go straight to the map.
+  await page.goto("/");
+  await waitForFonts(page);
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 15_000 });
+
+  await page.goto("/work");
+  await waitForFonts(page);
+  const moon = page.locator("a.sphere-home");
+  await moon.hover();
+  await settleIsland(page);
+  await moon.click();
+  await expect(page).toHaveURL("/");
+
+  // The landing it returns to is the one that arrived: playing, not
+  // resolved. Catching a progress strictly inside (0, 1) is the proof —
+  // it is running, not merely un-done, and not already finished. Polled
+  // rather than read once because this renderer can be seconds late to
+  // mount the landing, and a single read would race that.
+  const stage = page.locator(".home-resolve");
+  const readProgress = () =>
+    stage.evaluate((el) => Number((el as HTMLElement).style.getPropertyValue("--resolve-progress")));
+  let sawRunning = false;
+  await expect
+    .poll(async () => {
+      const progress = await readProgress();
+      if (progress > 0 && progress < 1) sawRunning = true;
+      return sawRunning;
+    }, { timeout: 15_000 })
+    .toBe(true);
+  // And it still finishes on its own clock.
+  await expect(stage).toHaveClass(/is-done/, { timeout: 15_000 });
 });
 
 test("the open island names the way home in words", async ({ page }) => {
@@ -214,9 +252,11 @@ test("the open island names the way home in words", async ({ page }) => {
 
   await home.click();
   await expect(page).toHaveURL("/");
-  // And what it goes back to is the planetary map. On a first arrival
-  // the opening plays first; it yields on its own clock either way.
-  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 15_000 });
+  // Home goes to the map, and goes there directly: no opening, on a
+  // first arrival or any other. The sequence runs 6.2s plus a 0.6s hold
+  // before it can be done, so arriving done inside 6s is only possible
+  // if it never played. The allowance is for a slow mount, not for it.
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 6_000 });
   await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
 });
 

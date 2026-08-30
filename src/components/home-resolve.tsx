@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { site } from "@/lib/content/site";
 import { clampUnit, homeMotionAt } from "@/lib/home-motion";
+import { openingAlreadyPlayed, skipOpening } from "@/lib/opening-sequence";
 
 /** The sequence's clock: three statements, then the map. */
 const SEQUENCE_MS = 6200;
@@ -27,14 +28,11 @@ export function HomeResolve() {
       window.matchMedia("(min-width: 769px)").matches;
     if (!timed) return;
 
-    // The sequence is a first-arrival moment: returning to the landing
-    // (the Moon, Home, a back button) goes straight to the map.
-    let played = false;
-    try {
-      played = window.sessionStorage.getItem("tg-sequence-played") === "1";
-    } catch {
-      played = false;
-    }
+    // The sequence is a first-arrival moment, and the doors home decide
+    // whether this counts as one: Home marks it seen before it leaves,
+    // the Moon clears the mark. A back button does neither, so it lands
+    // wherever the session already stood.
+    const played = openingAlreadyPlayed();
 
     let frame = 0;
     let holdTimer = 0;
@@ -61,11 +59,7 @@ export function HomeResolve() {
       window.clearTimeout(holdTimer);
       apply(1);
       section.classList.add("is-done");
-      try {
-        window.sessionStorage.setItem("tg-sequence-played", "1");
-      } catch {
-        // Private windows may refuse storage; the sequence just replays.
-      }
+      skipOpening();
     };
 
     if (played) {
