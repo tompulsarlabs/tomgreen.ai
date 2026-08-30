@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { SVGProps } from "react";
-import { OperatingOrbit } from "@/components/operating-orbit";
 import { site } from "@/lib/content/site";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -78,21 +76,10 @@ const channels = [
   },
 ] as const;
 
-/** The Contact page's planets: its channels, orbiting talent. */
-const orbitBodies: OrbitBody[] = channels.map((channel, index) => ({
-  id: channel.label.toLowerCase(),
-  label: channel.label,
-  color: planetColor(index),
-  target: { kind: "link", href: channel.href },
-  keepCase: true,
-  size: defaultBodySize(index),
-}));
-
 export default function ContactPage() {
   return (
     <div className="flex min-h-[calc(100svh-4.75rem)] flex-col">
       <header className="systems-hero">
-        <OperatingOrbit bodies={orbitBodies} />
         <div className="systems-hero-copy">
           <p className="record text-muted">
             Contact / {site.location} · global

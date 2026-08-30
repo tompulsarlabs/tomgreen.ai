@@ -13,8 +13,9 @@ export const site = {
     substack: "https://tomgreenlabs.substack.com",
   },
   nav: [
+    // Home is the operating record now — /work redirects here, so it is
+    // not a second destination in the row.
     { href: "/", label: "Home" },
-    { href: "/work", label: "Work" },
     { href: "/building", label: "Lab" },
     { href: "/voices", label: "Voices" },
     { href: "/about", label: "About" },

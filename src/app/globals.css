@@ -141,7 +141,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   pointer-events: none;
 }
 /* The landing needs no island: the planetary map is the navigation. */
-body:has(.home-landing) .site-header { display: none; }
 /* The island is a layout frame and nothing else: no ground, no rim, no
    elevation, nothing behind the sphere. At rest the only thing inside it
    that paints is the sphere itself. */
@@ -434,23 +433,16 @@ body:has(.home-landing) .site-header { display: none; }
 /* Home is one landing, no scroll: the statements resolve over the
    planetary map — the sections in orbit around talent — with the
    support line and actions resting at its foot. */
-.home-landing { position: relative; }
-/* Home is a single dark sheet: no paper strip below the system. */
-body:has(.home-landing) .site-footer { display: none; }
-.home-orbit { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(46rem, 82svh); }
 
 @media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
-  .js .home-landing { display: flex; flex-direction: column; height: 100svh; min-height: 38rem; margin-top: calc(-1 * var(--site-header-h)); }
-  .js .home-landing .home-orbit { flex: 1 1 auto; min-height: 0; }
+
   /* The sequence is a stage over the map: it plays on its own clock,
      then yields — opacity out, hit-testing off, map beneath already
      composed. */
-  .js .route-shell:has(.home-landing) .brand-mark { color: rgba(242, 246, 252, 0.95); }
-  .js .route-shell:has(.home-landing) .brand-mark:hover,
-  .js .route-shell:has(.home-landing) .brand-mark:focus-visible { color: #ffffff; }
+
   /* z 6: the stage must out-stack the field's canvas and nameplate
      layers (labels carry z 2 and their own contexts). */
-  .js .home-resolve { position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; z-index: 6; background: var(--paper); transition: opacity var(--d-4) var(--ease), visibility 0s var(--d-4) linear; }
+  .js .home-resolve { position: fixed; inset: 0; z-index: 7; background: var(--paper); transition: opacity var(--d-4) var(--ease), visibility 0s var(--d-4) linear; }
   .js .home-resolve.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
   .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
   .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 15%; display: block; margin: 0; }
@@ -781,6 +773,11 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .orbit-canvas:active { cursor: grabbing; }
 .orbit-field[data-live="true"] .orbit-poster { display: none; }
 .orbit-field[data-live="true"] .orbit-canvas { display: block; }
+.systems-hero:not(:has(.orbit-field)) {
+  justify-content: flex-start;
+  min-height: auto;
+  padding-top: clamp(2.5rem, 7vh, 5rem);
+}
 .systems-hero-copy { position: relative; z-index: 1; }
 .systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: end; margin-top: 1.25rem; }
 .systems-hero h1 { --axis: 100; max-width: 7ch; }
@@ -892,8 +889,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    landing is still one viewport with the map reachable without a scroll.
    The statements are simply shown resolved and compact, above it. */
 @media (min-width: 769px) and (prefers-reduced-motion: reduce) {
-  .js .home-landing { display: flex; flex-direction: column; height: 100svh; min-height: 38rem; }
-  .js .home-resolve { flex: none; }
+
   .js .home-resolve-stage { padding: 1.75rem max(22px, 6vw) 0; }
   .js .resolve-lines { gap: 0.3rem; margin-top: 0.9rem; }
   .js .resolve-lines .axis-display {
@@ -901,7 +897,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
     font-size: clamp(1.5rem, 3.1vw, 2.4rem);
     line-height: 1.06;
   }
-  .js .home-orbit { flex: 1 1 auto; min-height: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1022,3 +1017,195 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 @media (prefers-reduced-motion: reduce) {
   .voice-card { transition: none; }
 }
+
+/* ── The heirloom orb, and the world behind it ───────────────────────
+   The orb sits in the opposite corner from the navigation island, and
+   that separation is the point: two spherical objects, two jobs, never
+   confused for one another. The island's dark sphere opens the menu and
+   goes home. This one, transparent and faceted, opens the map — and it
+   is deliberately unlabelled, because a thing you are told about is not
+   discovered. */
+.heirloom-trigger {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  /* 44px: the touch-target floor, matching the island's own sphere. */
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 1.7rem 0 0 max(22px, 6vw);
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.heirloom-trigger:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+/* On a dark panel — an open portal, or a case study's space ground —
+   the focus ring has to invert to stay visible. */
+.orbit-portal .heirloom-trigger:focus-visible { outline-color: rgba(232, 237, 245, 0.95); }
+/* The canvas runs wider than the hit area so the facets and the swell
+   are never clipped, and it is pixels — never a pointer target. */
+.heirloom-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 3.6rem;
+  height: 3.6rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.heirloom-stage * { pointer-events: none !important; }
+.heirloom-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 2px 9px rgba(14, 18, 26, 0.22));
+}
+
+/* The portal itself: the whole viewport, over everything, including the
+   island — while it is open the map IS the navigation. */
+.orbit-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  background: #05070d;
+  animation: portal-in var(--d-3) var(--ease-settle) both;
+}
+.orbit-portal:focus { outline: none; }
+@keyframes portal-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-portal { animation: none; }
+}
+.orbit-portal-chrome {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem clamp(1rem, 3vw, 2rem);
+  padding: 1.6rem max(22px, 6vw) 0;
+  /* Clear of the orb in the same corner. */
+  padding-left: calc(max(22px, 6vw) + 3.4rem);
+  color: rgba(232, 237, 245, 0.95);
+}
+.orbit-portal-record { color: rgba(232, 237, 245, 0.62); }
+.orbit-portal-note {
+  flex: 1 1 18rem;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(232, 237, 245, 0.78);
+}
+.orbit-portal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+.orbit-portal-actions button,
+.orbit-portal-actions a {
+  border: 1px solid rgba(232, 237, 245, 0.28);
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  background: none;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 237, 245, 0.92);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--d-1) var(--ease), background var(--d-1) var(--ease);
+}
+.orbit-portal-actions button:hover,
+.orbit-portal-actions a:hover {
+  border-color: rgba(232, 237, 245, 0.7);
+  background: rgba(232, 237, 245, 0.08);
+}
+.orbit-portal-actions :focus-visible {
+  outline: 2px solid rgba(232, 237, 245, 0.95);
+  outline-offset: 3px;
+}
+/* The field fills what the chrome leaves, and drops the full-bleed
+   trick it needs when it is a band inside a page. */
+.orbit-portal-field { position: relative; flex: 1 1 auto; min-height: 0; }
+.orbit-portal-field .orbit-field {
+  width: 100%;
+  height: 100%;
+  margin-left: 0;
+  min-height: 0;
+}
+
+/* ── The personal hero ───────────────────────────────────────────────
+   A face, the positioning line, and the introduction — the three things
+   a visitor needs before any evidence means anything. */
+.personal-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  border-bottom: 1px solid var(--ink);
+  padding: clamp(2.5rem, 7vh, 5rem) 0 clamp(2rem, 4vw, 3rem);
+}
+/* The slot holds its box whether or not the photograph has landed, so
+   adding the file later shifts nothing. */
+.personal-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: 2px;
+  background: var(--card);
+}
+.personal-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.personal-monogram {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-variation-settings: "wdth" 100;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  /* --ghost lands at 1.81:1 on the card and fails AA for large text.
+     --muted clears 3:1 with room, and reads as a mark rather than as a
+     missing image. */
+  color: var(--muted);
+}
+.personal-hero-copy { display: grid; gap: clamp(0.75rem, 2vh, 1.25rem); }
+.personal-headline {
+  --axis: 100;
+  max-width: 18ch;
+  font-size: clamp(2.1rem, 5vw, 4.2rem);
+  line-height: 0.98;
+}
+.personal-bio {
+  max-width: 54ch;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.55;
+  color: var(--ink-secondary);
+}
+@media (max-width: 768px) {
+  .personal-hero { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .personal-portrait { max-width: 11rem; }
+  .orbit-portal-chrome { padding-left: max(22px, 6vw); padding-top: 4.6rem; }
+}
+
+/* The operating record's own masthead, below the personal hero: the
+   page's h1 is the introduction now, so this heading is a section's. */
+.work-index-masthead {
+  display: grid;
+  gap: clamp(0.75rem, 2vh, 1.25rem);
+  padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(1.5rem, 3vw, 2.5rem);
+}
+.work-index-masthead h2 { --axis: 100; }

@@ -55,6 +55,13 @@ const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
 /** How long a clicked planet takes to spiral into the core. */
 const CAPTURE_SECONDS = 0.75;
 
+/** Fragment assembly: how long the system takes to draw itself together
+ *  out of scattered pieces when it first appears, or when one section's
+ *  system replaces another. */
+const ASSEMBLY_SECONDS = 1.45;
+/** How far out the pieces start, in world units of extra orbit radius. */
+const ASSEMBLY_SCATTER = 5.4;
+
 /** Position on a body's ellipse at parameter t, world space (y up). */
 function orbitPoint(el: OrbitElements, t: number, out: THREE.Vector3): THREE.Vector3 {
   const b = el.a * Math.sqrt(1 - el.e * el.e);
@@ -177,6 +184,13 @@ type SceneProps = {
   field: HTMLElement;
   narrow: boolean;
   bodies: OrbitBody[];
+  /**
+   * What a captured planet means. Left out, a capture travels to the
+   * body's target, which is what every section page wants. Supplied,
+   * the scene reports the capture and travels nowhere — which is how
+   * the portal descends into a section's own system instead.
+   */
+  onCapture?: (id: string) => void;
 };
 
 type Capture = {
@@ -187,7 +201,7 @@ type Capture = {
   navigated: boolean;
 };
 
-function OrbitScene({ field, narrow, bodies }: SceneProps) {
+function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
   const { camera, gl, size } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
@@ -307,6 +321,8 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     lastInteraction: -10,
     reveal: 0,
     revealTarget: 0,
+    /** 0 while the system is still scattered, 1 once assembled. */
+    assembly: 0,
     pointerWorld: new THREE.Vector3(99, 0, 99),
     pointerStrength: 0,
     // Label placement: the chosen anchor per body, where each label is
@@ -331,6 +347,13 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     s.capture = { id, progress: 0, active: true, navigated: false };
   };
   const startCaptureRef = useRef(startCapture);
+  // Kept current in an effect, never during render: the scene reads it
+  // from inside useFrame, where a stale closure would silently send a
+  // capture to the wrong handler.
+  const onCaptureRef = useRef(onCapture);
+  useEffect(() => {
+    onCaptureRef.current = onCapture;
+  }, [onCapture]);
 
   const navigate = (target: OrbitTarget) => {
     switch (target.kind) {
@@ -414,6 +437,10 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
     });
 
     bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
+    // Swapping the body set swaps the system. It draws itself together
+    // again rather than cutting, which is what makes descending into a
+    // section read as one continuous world instead of a page change.
+    s.assembly = 0;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -512,6 +539,10 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
 
     // Entry: the well deepens, the system condenses, the camera settles.
     s.reveal += (s.revealTarget - s.reveal) * lerpIn(1.6);
+    if (s.assembly < 1) s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
+    // Cubic-out: the pieces arrive fast and settle slowly, so the last
+    // of the assembly is the part that reads as deliberate.
+    const assembled = 1 - Math.pow(1 - s.assembly, 3);
 
     // Capture: the clicked planet spirals into the core; at the bottom
     // the site travels. Anchor travel keeps the scene alive, so the
@@ -523,10 +554,18 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
         c.progress = Math.min(1, c.progress + dt / CAPTURE_SECONDS);
         if (c.progress >= 1 && !c.navigated) {
           c.navigated = true;
-          const target = bodyById.get(c.id)?.target;
-          if (target) navigateRef.current(target);
-          if (target && (target.kind === "anchor" || target.kind === "station")) {
+          const handler = onCaptureRef.current;
+          if (handler) {
+            // The portal descends instead of travelling; the planet
+            // climbs back out while its section's system assembles.
+            handler(c.id);
             c.active = false;
+          } else {
+            const target = bodyById.get(c.id)?.target;
+            if (target) navigateRef.current(target);
+            if (target && (target.kind === "anchor" || target.kind === "station")) {
+              c.active = false;
+            }
           }
         }
       } else {
@@ -622,15 +661,26 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
       orbitPoint(el, angle, scratch.v1);
+      // Fragment assembly: each piece starts far out along its own
+      // orbital direction and falls in along it, so nothing crosses the
+      // core and the paths never tangle. Deterministic per index, so the
+      // same system assembles identically every time it is opened.
+      if (assembled < 1) {
+        const out = 1 - assembled;
+        const lift = ((index % 3) - 1) * 0.6;
+        scratch.v1.multiplyScalar(1 + ASSEMBLY_SCATTER * out);
+        scratch.v1.y += ASSEMBLY_SCATTER * out * lift;
+      }
       if (suction > 0) scratch.v1.lerp(scratch.core, suction);
       group.position.copy(scratch.v1);
       // Feed the membrane's contact shading (first ten bodies).
       if (index < 10) membraneUniforms.uBodies.value[index].copy(scratch.v1);
       const swell =
-        (1 + 0.08 * nextEase) * (0.35 + 0.65 * s.reveal) * (1 - 0.85 * suction);
+        (1 + 0.08 * nextEase) * (0.35 + 0.65 * s.reveal) * (1 - 0.85 * suction) *
+        (0.3 + 0.7 * assembled);
       group.scale.setScalar(Math.max(swell, 0.001));
       const material = bodyMaterials.current.get(body.id);
-      if (material) material.opacity = s.reveal;
+      if (material) material.opacity = s.reveal * assembled;
 
       // Filament to the core: surfacing on hover, taut during capture.
       const filament = filamentRefs.current.get(body.id);
@@ -1020,7 +1070,7 @@ function OrbitScene({ field, narrow, bodies }: SceneProps) {
   );
 }
 
-export function OperatingOrbit3D({ field, narrow, bodies }: SceneProps) {
+export function OperatingOrbit3D({ field, narrow, bodies, onCapture }: SceneProps) {
   return (
     <Canvas
       className="orbit-canvas"
@@ -1042,7 +1092,7 @@ export function OperatingOrbit3D({ field, narrow, bodies }: SceneProps) {
           (distance fading and line dissolve) instead, and bloom is a
           no-op on white paper — additive highlights cannot exceed the
           page. */}
-      <OrbitScene field={field} narrow={narrow} bodies={bodies} />
+      <OrbitScene field={field} narrow={narrow} bodies={bodies} onCapture={onCapture} />
     </Canvas>
   );
 }
