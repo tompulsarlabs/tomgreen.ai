@@ -455,9 +455,72 @@ body:has(.home-landing) .site-footer { display: none; }
   .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
   .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 15%; display: block; margin: 0; }
   .js .constraint-line, .js .system-line, .js .release-line { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
-  .js .constraint-line { --axis: var(--axis-constraint, 62); opacity: calc(1 - var(--constraint-recede, 0)); transform: translateY(calc(var(--constraint-recede, 0) * -31vh)) scale(calc(1 - var(--constraint-recede, 0) * 0.48)); transform-origin: left top; }
-  .js .system-line { --axis: var(--axis-system, 62); opacity: min(var(--system-arrive, 0), calc(1 - var(--system-recede, 0))); transform: translateY(calc((1 - var(--system-arrive, 0)) * 28px)); }
-  .js .release-line { --axis: var(--axis-release, 106); max-width: 19ch; opacity: var(--release-arrive, 0); transform: translateY(calc((1 - var(--release-arrive, 0)) * 24px)); }
+  /* CONSTRAINT — no arrival transform: the three masked spans wiping up
+     inside overflow:hidden own its entrance, and a fractional translate on
+     their ancestor while the wipe is live would put a moving sub-pixel seam
+     across the emerging glyph tops. Its motion is the departure, and the
+     departure curves. --con-drift is critically damped with zero initial
+     velocity, so it breaks sideways early — 89% of the lateral spent in the
+     first 30% of the window, still at 94% ink — while --con-lift has barely
+     started; then the lift takes over and accelerates away. Two profiles on
+     one clock is the arc. transform-origin stays left top: that is the
+     approved recession toward the stage corner, and it sits well above the
+     type, which is why there is no rotate() here — the lever arm would
+     swing the glyphs far more than it looks. */
+  .js .constraint-line {
+    --axis: var(--axis-constraint, 62);
+    transform-origin: left top;
+    opacity: var(--con-opacity, 1);
+    transform:
+      translate3d(calc(var(--con-drift, 0) * max(-4.2vw, -62px)),
+                  calc(var(--con-lift, 0) * -31vh), 0)
+      scale(calc(1 - var(--con-lift, 0) * 0.48));
+  }
+
+  /* SYSTEM — arrives from lower-left, travelling up and to the right, with
+     the reading direction and with the width axis opening rightward from the
+     same pinned left edge, so the two horizontal signals agree rather than
+     cancel. Travel is in em so it scales with the type at every viewport.
+     0.80x the release's amplitude: same material, smaller statement.
+     (var(--sys-y) goes NEGATIVE through the overshoot lobe by design — calc()
+     resolves a negative number times a length correctly, and that negative IS
+     the spring.) Its exit is the constraint's exit scaled on every channel,
+     so both departures leave along the same ray. */
+  .js .system-line {
+    --axis: var(--axis-system, 62);
+    transform-origin: left top;
+    opacity: var(--sys-opacity, 0);
+    transform:
+      translate3d(
+        calc(var(--sys-x, 1) * -0.29em + var(--sys-drift, 0) * max(-1.344vw, -19.84px)),
+        calc(var(--sys-y, 1) * 0.355em + var(--sys-lift, 0) * -9.92vh), 0)
+      scale(calc(1 - var(--sys-lift, 0) * 0.1536));
+  }
+
+  /* RELEASE — the lateral lives on the PARENT and nowhere else, so all three
+     nowrap blocks carry an identical horizontal offset at every frame and the
+     flush-left rail cannot rag. That is the whole answer to the locked "THE
+     must never move between lines" ruling: the blocks are one block
+     registering into one column. The parent carries no opacity, so .sr-only
+     is untouched; only the vertical staggers, because only the vertical is
+     per-line — three lines settling onto three baselines in reading order. */
+  .js .release-line {
+    --axis: var(--axis-release, 106);
+    max-width: 19ch;
+    transform: translate3d(calc(var(--rel-x, 1) * -0.38em), 0, 0);
+  }
+  /* nth-of-type counts among sibling spans regardless of the attribute
+     selector, and this line's children are span.sr-only then three
+     span[aria-hidden] — so the visible blocks are 2, 3 and 4. A span
+     prepended to that list shifts the mapping, and the fallbacks then read
+     hidden-and-displaced, which fails loudly rather than silently. */
+  .js .release-line > span[aria-hidden] {
+    opacity: var(--rel-o, 0);
+    transform: translate3d(0, calc(var(--rel-y, 1) * 0.465em), 0);
+  }
+  .js .release-line > span[aria-hidden]:nth-of-type(2) { --rel-o: var(--rel-o-1, 0); --rel-y: var(--rel-y-1, 1); }
+  .js .release-line > span[aria-hidden]:nth-of-type(3) { --rel-o: var(--rel-o-2, 0); --rel-y: var(--rel-y-2, 1); }
+  .js .release-line > span[aria-hidden]:nth-of-type(4) { --rel-o: var(--rel-o-3, 0); --rel-y: var(--rel-y-3, 1); }
   .js .resolve-lines, .js .home-eyebrow { opacity: calc(1 - var(--stage-exit, 0)); }
 }
 

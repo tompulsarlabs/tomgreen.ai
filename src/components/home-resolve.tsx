@@ -44,12 +44,30 @@ export function HomeResolve() {
       section.style.setProperty("--axis-constraint", String(state.constraintAxis));
       section.style.setProperty("--axis-system", String(state.systemAxis));
       section.style.setProperty("--axis-release", String(state.releaseAxis));
-      section.style.setProperty("--constraint-recede", String(state.constraintRecede));
       section.style.setProperty("--constraint-word-space", `${(1 - clampUnit((state.constraintAxis - 62) / 38)) * 0.14}em`);
-      section.style.setProperty("--system-arrive", String(state.systemArrive));
-      section.style.setProperty("--system-recede", String(state.systemRecede));
+      // --release-arrive has no CSS consumer since the release line's spans
+      // took their own staggered channels, but e2e/capture-review.mjs polls
+      // it to know when the sequence has landed. It stays for that.
       section.style.setProperty("--release-arrive", String(state.releaseArrive));
       section.style.setProperty("--stage-exit", String(state.stageExit));
+      // The curve and the spring. Offsets are REMAINING fractions of travel:
+      // 1 is fully displaced, 0 is home, and negative is past the mark —
+      // which is where the overshoot lives.
+      section.style.setProperty("--con-drift", String(state.constraintExitDrift));
+      section.style.setProperty("--con-lift", String(state.constraintExitLift));
+      section.style.setProperty("--con-opacity", String(state.constraintOpacity));
+      section.style.setProperty("--sys-x", String(state.systemOffsetX));
+      section.style.setProperty("--sys-y", String(state.systemOffsetY));
+      section.style.setProperty("--sys-opacity", String(state.systemOpacity));
+      section.style.setProperty("--sys-drift", String(state.systemExitDrift));
+      section.style.setProperty("--sys-lift", String(state.systemExitLift));
+      section.style.setProperty("--rel-x", String(state.releaseOffsetX));
+      section.style.setProperty("--rel-y-1", String(state.releaseOffsetY1));
+      section.style.setProperty("--rel-y-2", String(state.releaseOffsetY2));
+      section.style.setProperty("--rel-y-3", String(state.releaseOffsetY3));
+      section.style.setProperty("--rel-o-1", String(state.releaseOpacity1));
+      section.style.setProperty("--rel-o-2", String(state.releaseOpacity2));
+      section.style.setProperty("--rel-o-3", String(state.releaseOpacity3));
     };
 
     const finish = () => {
