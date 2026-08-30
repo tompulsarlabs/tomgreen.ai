@@ -9,7 +9,7 @@ import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
  * The hidden world, in two levels.
  *
  * The planetary map stopped being the site's front door: it is reached
- * only by the heirloom orb, and it is the one place the whole system is
+ * only by clicking the moon, and it is the one place the whole system is
  * visible at once. So it earns a second level. Each planet is a section,
  * and inside each section its own bodies orbit that section's centre —
  * the projects inside Work, the builds inside the Lab, the chapters

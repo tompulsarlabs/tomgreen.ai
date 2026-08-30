@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteHeader } from "@/components/site-header";
 import { hasTestimonials } from "@/lib/content/testimonials";
-import { HeirloomPortal } from "@/components/heirloom-portal";
+import { OrbitPortal } from "@/components/orbit-portal";
 import { isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
 import { RouteTransition } from "@/components/route-transition";
@@ -118,10 +118,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </main>
           <SiteFooter />
         </RouteTransition>
-        {/* The orb and the world behind it, outside the route shell so
-            the map survives a route change and the overlay is never
-            clipped by a page's own stacking context. */}
-        <HeirloomPortal />
+        {/* The world the moon opens, outside the route shell so it
+            survives a route change and its overlay is never clipped by a
+            page's own stacking context. */}
+        <OrbitPortal />
         <Analytics />
         <SpeedInsights />
       </body>

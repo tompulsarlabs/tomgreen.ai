@@ -1018,57 +1018,11 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .voice-card { transition: none; }
 }
 
-/* ── The heirloom orb, and the world behind it ───────────────────────
-   The orb sits in the opposite corner from the navigation island, and
-   that separation is the point: two spherical objects, two jobs, never
-   confused for one another. The island's dark sphere opens the menu and
-   goes home. This one, transparent and faceted, opens the map — and it
-   is deliberately unlabelled, because a thing you are told about is not
-   discovered. */
-.heirloom-trigger {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 6;
-  display: grid;
-  place-items: center;
-  /* 44px: the touch-target floor, matching the island's own sphere. */
-  width: 2.75rem;
-  height: 2.75rem;
-  margin: 1.7rem 0 0 max(22px, 6vw);
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-}
-.heirloom-trigger:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 999px;
-}
-/* On a dark panel — an open portal, or a case study's space ground —
-   the focus ring has to invert to stay visible. */
-.orbit-portal .heirloom-trigger:focus-visible { outline-color: rgba(232, 237, 245, 0.95); }
-/* The canvas runs wider than the hit area so the facets and the swell
-   are never clipped, and it is pixels — never a pointer target. */
-.heirloom-stage {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: block;
-  width: 3.6rem;
-  height: 3.6rem;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.heirloom-stage * { pointer-events: none !important; }
-.heirloom-stage canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-  filter: drop-shadow(0 2px 9px rgba(14, 18, 26, 0.22));
-}
-
+/* ── The world the moon opens ────────────────────────────────────────
+   The moon in the navigation island is the only way in. It carries no
+   label and no affordance beyond being an object worth clicking, which
+   is what makes the map something you find rather than something you
+   are offered. */
 /* The portal itself: the whole viewport, over everything, including the
    island — while it is open the map IS the navigation. */
 .orbit-portal {

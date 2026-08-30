@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
+import { openOrbitPortal } from "@/lib/orbit-portal-bus";
 
 // WebGL is loaded only in the browser; the button and the links are
 // server-rendered without it, so navigation never depends on the canvas.
@@ -42,17 +43,11 @@ function PendingMark() {
  * Moon's own anchor. The Moon never moves into the middle of a pill; it
  * stays at the leading edge and in front of the surface in depth.
  *
- * It is also the way home. The landing page hides this header entirely,
- * so from anywhere else the Moon is a route back to it — which is why it
- * is a link rather than a disclosure button. Hover and focus open the
- * navigation; activation travels. Touch has neither hover nor focus, so
- * there the first tap opens and only a second one goes home.
- *
- * Two doors go home and they are not the same door. The Moon returns to
- * the landing as it was on arrival, opening and all. The row it opens
- * leads with Home in words — one label among Work, Lab and About — and
- * that one goes straight to the planetary map, because a label in a
- * navigation row should behave like the labels beside it.
+ * It is also the only way into the planetary map, and it does nothing
+ * else: it navigates nowhere. Hover and focus open the navigation row,
+ * which carries every destination including Home, so the object itself
+ * is free to carry one meaning. Touch has neither hover nor focus, so
+ * there the first tap opens the row and only a second one opens the map.
  */
 export function SiteHeader({ showVoices }: { showVoices: boolean }) {
   const pathname = usePathname();
@@ -171,15 +166,16 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
             right from the sphere's anchor, and sits behind the sphere. */}
         <div className="nav-surface" aria-hidden />
 
-        <Link
-          href="/"
+        <button
+          type="button"
           className="sphere-home"
-          aria-label="Home, from the opening"
-          // Both doors land on "/". What separates them is what the
-          // landing finds waiting for it — and the route transition
-          // reads that from here, because its capture handler stops the
-          // click before this link's own onClick could ever run.
-          data-opening="replay"
+          aria-label="Open the planetary map"
+          // The moon does not travel any more. It has one meaning: the
+          // hidden world. Every destination — Home included — lives in
+          // the row it reveals on hover, which is why it can afford to.
+          // A button, not a link, because it goes nowhere: there is no
+          // href a crawler or a middle-click should ever follow.
+          onClick={openOrbitPortal}
           onPointerEnter={(event) => {
             if (event.pointerType !== "mouse") return;
             clearTimers();
@@ -187,12 +183,10 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
             timers.current.intent = window.setTimeout(() => openNav(false), INTENT_MS);
           }}
           // Mouse and keyboard reveal the navigation before they can
-          // activate anything, so their click simply travels. Touch does
-          // not, so the first tap has to open without travelling — and
-          // cancelling the touch's default is the only reliable way to
-          // stop that: it is what suppresses the click the browser would
-          // otherwise synthesise. Cancelling the click itself is far too
-          // late, since the anchor's own default has already been queued.
+          // activate anything, so their click can simply mean the map.
+          // Touch has neither, so the first tap must only open the row —
+          // and cancelling the touch's default is what suppresses the
+          // click the browser would otherwise synthesise from it.
           onTouchEnd={(event) => {
             if (SHOWING.has(phase)) return;
             event.preventDefault();
@@ -202,7 +196,7 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
           <span className="sphere-stage" aria-hidden>
             <NavSphere active={engaged} reduced={reduced} />
           </span>
-        </Link>
+        </button>
 
         <div className="nav-reveal">
           <nav id="primary-navigation" aria-label="Primary navigation" className="island-nav">

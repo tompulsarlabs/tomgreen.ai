@@ -10,7 +10,7 @@ export const revalidate = 3600;
  * The opening statements still play on their own clock on first arrival.
  * What they yield to changed: it used to be the planetary map, which
  * made the front door a system diagram. The map is now a second layer,
- * reached only through the heirloom orb, and the page underneath is what
+ * reached only by clicking the moon, and the page underneath is what
  * a portfolio should be — a face, a sentence, and the work.
  *
  * The operating record below is /work's own component, not a copy of it:

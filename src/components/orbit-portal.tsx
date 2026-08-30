@@ -1,30 +1,23 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { displayLabel } from "@/lib/orbit-nav";
+import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
 import { mapBodies, worldById } from "@/lib/orbit-worlds";
 
-const HeirloomOrb = dynamic(
-  () => import("@/components/heirloom-orb").then((module) => module.HeirloomOrb),
-  { ssr: false },
-);
-
 /**
- * The heirloom orb, and the world behind it.
+ * The world behind the moon.
  *
- * The planetary map used to be the site's front page. It is now a
- * second layer: the primary site is a plain, readable portfolio, and
- * the whole system is still there for anyone who touches the orb. That
- * makes discovery the point, so the trigger is a real, quiet object
- * sitting in the page's own corner rather than a labelled button —
- * present on every route, explaining nothing.
+ * The planetary map used to be the site's front page, and then it was on
+ * every page. It is now a second layer with exactly one way in: clicking
+ * the moon in the navigation island. Nothing else opens it, nothing
+ * advertises it, and no page renders it — which is what makes the
+ * primary site a plain, readable portfolio and this a thing you find.
  *
- * It is NOT the navigation sphere. The dark sphere in the island at the
- * other corner opens the menu and goes home. These two objects are kept
- * apart deliberately: different corners, different materials, different
- * jobs. Neither should ever learn the other's behaviour.
+ * The moon does not navigate any more. The navigation row it reveals on
+ * hover carries every destination, including Home, so the object itself
+ * is free to mean one thing.
  *
  * Two levels live inside: the map (every section as a planet) and a
  * section's own system (its projects, chapters or channels orbiting its
@@ -34,27 +27,19 @@ const HeirloomOrb = dynamic(
 
 type View = { kind: "map" } | { kind: "section"; id: string };
 
-export function HeirloomPortal() {
+export function OrbitPortal() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "map" });
-  const [hovering, setHovering] = useState(false);
-  const [reduced, setReduced] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
+  // The moon asks; this answers. It is the only opener there is.
+  useEffect(() => onOrbitPortalOpen(() => setOpen(true)), []);
 
   const close = useCallback(() => {
     setOpen(false);
     setView({ kind: "map" });
-    // The orb opened it, so the orb is where focus belongs afterwards.
-    triggerRef.current?.focus();
+    // The moon opened it, so the moon is where focus belongs afterwards.
+    document.querySelector<HTMLElement>(".sphere-home")?.focus();
   }, []);
 
   // Escape closes a section back to the map first, then the portal —
@@ -104,57 +89,40 @@ export function HeirloomPortal() {
     if (worldById(id)) setView({ kind: "section", id });
   }, []);
 
-  return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="heirloom-trigger"
-        aria-label="Open the planetary map"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        onPointerEnter={() => setHovering(true)}
-        onPointerLeave={() => setHovering(false)}
-        onFocus={() => setHovering(true)}
-        onBlur={() => setHovering(false)}
-      >
-        <span className="heirloom-stage" aria-hidden>
-          <HeirloomOrb active={hovering} reduced={reduced} />
-        </span>
-      </button>
+  if (!open) return null;
 
-      {open ? (
-        <div
-          className="orbit-portal"
-          data-view={view.kind}
-          role="dialog"
-          aria-modal="true"
-          aria-label={world ? `${world.label} — orbit` : "Planetary map"}
-          ref={dialogRef}
-          tabIndex={-1}
-        >
-          <div className="orbit-portal-chrome">
-            <p className="record orbit-portal-record">
-              {world ? `${displayLabel(world.label)} / system` : "The system / all of it"}
-            </p>
-            <p className="orbit-portal-note">
-              {world ? world.note : "Every section, in orbit around talent. Choose one."}
-            </p>
-            <div className="orbit-portal-actions">
-              {world ? (
-                <button type="button" className="orbit-portal-back" onClick={() => setView({ kind: "map" })}>
-                  ← All sections
-                </button>
-              ) : null}
-              {world ? (
-                <a className="orbit-portal-open" href={world.href}>
-                  Open {displayLabel(world.label)} →
-                </a>
-              ) : null}
-              <button type="button" className="orbit-portal-close" onClick={close} aria-label="Close the planetary map">
-                Close
+  return (
+    <div
+      className="orbit-portal"
+      data-view={view.kind}
+      role="dialog"
+      aria-modal="true"
+      aria-label={world ? `${world.label} — orbit` : "Planetary map"}
+      ref={dialogRef}
+      tabIndex={-1}
+    >
+        <div className="orbit-portal-chrome">
+          <p className="record orbit-portal-record">
+            {world ? `${displayLabel(world.label)} / system` : "The system / all of it"}
+          </p>
+          <p className="orbit-portal-note">
+            {world ? world.note : "Every section, in orbit around talent. Choose one."}
+          </p>
+          <div className="orbit-portal-actions">
+            {world ? (
+              <button type="button" className="orbit-portal-back" onClick={() => setView({ kind: "map" })}>
+                ← All sections
               </button>
-            </div>
+            ) : null}
+            {world ? (
+              <a className="orbit-portal-open" href={world.href}>
+                Open {displayLabel(world.label)} →
+              </a>
+            ) : null}
+            <button type="button" className="orbit-portal-close" onClick={close} aria-label="Close the planetary map">
+              Close
+            </button>
+          </div>
           </div>
 
           {/* Remounting on the view key is deliberate: a new key is a new
@@ -183,8 +151,6 @@ export function HeirloomPortal() {
               onCapture={world ? undefined : onCapture}
             />
           </div>
-        </div>
-      ) : null}
-    </>
+    </div>
   );
 }
