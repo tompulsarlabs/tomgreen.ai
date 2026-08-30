@@ -42,7 +42,7 @@ export function WorkIndex() {
     <div className="work-index-page">
       <header className="work-index-masthead">
         <p className="record">Evidence / selected operating records</p>
-        <h2 className="axis-display hero-title-long">Weighed by opportunity cost.</h2>
+        <h2 className="axis-display">Weighed by opportunity cost.</h2>
         <p className="systems-lead">
           Building organisations, talent engines and operating models, in founder mode.
         </p>

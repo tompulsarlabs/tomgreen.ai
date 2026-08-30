@@ -1163,3 +1163,273 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(1.5rem, 3vw, 2.5rem);
 }
 .work-index-masthead h2 { --axis: 100; }
+/* ═══════════════════════════════════════════════════════════════════════
+   HOME — the ladder and the rhythm.
+
+   This block must stay at the end of the file. Several rules below are
+   single-class and win only on source order, and all of them have to come
+   after the `@media (max-width: 768px)` block, whose bare `.axis-display`
+   and `.axis-heading` rules would otherwise capture mobile. Moving it up
+   beside the Work index rules silently drops the hero seam and the hero's
+   internal rhythm.
+
+   Everything here is scoped to `.home-page`, `.work-index-page`,
+   `.work-index-masthead` or a `.personal-*` class. The global
+   `.axis-display`, `.axis-heading` and `.axis-index` definitions are left
+   alone, so /about, /contact, /building, /work/[slug] and the Lab render
+   exactly as before.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+
+/* ── 0. THE UNIT ──────────────────────────────────────────────────────
+   One fluid baseline solved through two points: 8px at 390 and 16px at
+   1440, so the same multiple gives the right absolute number at both ends,
+   which a fixed unit cannot. Four multiples, and nothing on this route
+   invents a fifth vertical value. Declared on :root so no rule becomes
+   invalid at computed-value time if the page wrapper is ever refactored;
+   nothing outside this block reads them. */
+:root {
+  --u:     clamp(0.5rem, 0.32rem + 0.76vw, 1.125rem); /*  8.1 → 16.1 → 18  */
+  --air-1: calc(var(--u) *  2);   /* 16 →  32  a label and the thing it labels */
+  --air-2: calc(var(--u) *  3);   /* 24 →  48  a thing and its own prose       */
+  --air-3: calc(var(--u) *  6);   /* 49 →  97  block → block, one movement     */
+  --air-4: calc(var(--u) * 10);   /* 81 → 161  movement → movement             */
+  /* The hinge is 5u above the hero's rule and 9u below it. Deliberately
+     not a token: it happens once and must not be reachable by habit. */
+}
+
+
+/* ── 1. THE STATEMENT ─────────────────────────────────────────────────
+   The only 800 on the page. Everything else comes down; this goes up,
+   because the answer to too much bold is bold once. Weight and letter
+   spacing were inherited from `.axis-display` and are now stated: -0.075em
+   is an optical setting for a 170px instance and closes the word spaces at
+   76px. */
+.home-page .personal-headline {
+  --axis: 100;
+  max-width: 18ch;
+  font-size: clamp(2.5rem, 1.66rem + 3.43vw, 4.75rem);  /* 40 → 76 → 76 */
+  font-weight: 800;
+  line-height: 0.97;
+  letter-spacing: -0.045em;
+  word-spacing: 0.06em;
+  text-wrap: balance;
+}
+
+/* 54ch was already inside the comfortable band; narrowing further adds
+   lines while pretending to add air. */
+.home-page .personal-bio { max-width: 50ch; }
+
+/* The portrait was a fixed 288px: 22% of the content column at 1440 but
+   32% at 1024, which is what squeezed the headline on a laptop. The clamp
+   holds 20-24% at every width. The 4:5 aspect and the reserved box are
+   untouched, so dropping /public/tom-green.jpg in later still shifts
+   nothing. */
+.home-page .personal-hero {
+  grid-template-columns: minmax(0, clamp(9rem, 18vw, 17rem)) minmax(0, 1fr);
+  align-items: end;                       /* the hero closes on one line  */
+  gap: clamp(1.5rem, 3.4vw, 3.5rem);      /* 24 → 49 → 56 */
+  padding-top: var(--air-3);              /* 49 → 97 — see the gate below */
+  padding-bottom: calc(var(--u) * 5);     /* 41 → 81, above the rule      */
+}
+
+/* The internal rhythm stops being uniform. A flat gap is what makes a
+   stack read as a list: the eyebrow belongs to the h1, the bio does not. */
+.home-page .personal-hero-copy { display: grid; gap: 0; }
+.home-page .personal-hero-copy > .personal-headline { margin-top: var(--air-1); }
+.home-page .personal-hero-copy > .personal-bio       { margin-top: var(--air-2); }
+
+
+/* ── 2. THE HINGE, AND THE MASTHEAD ───────────────────────────────────
+   The masthead h2 used to carry `hero-title-long`, which is authored as
+   `.systems-hero h1.hero-title-long` and so matched nothing here: the
+   element fell through to bare `.axis-display` and set at 170px, larger
+   than the page's own h1. The class is gone from the markup, and this rule
+   is specific enough to beat `.axis-display`, its ≤768 override and
+   `.work-index-masthead h2` at any file position. */
+.work-index-masthead h2.axis-display {
+  --axis: 88;
+  font-size: clamp(1.6875rem, 1.06rem + 2.57vw, 3.375rem); /* 27 → 54 → 54 */
+  font-weight: 600;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+/* 9u below the rule against 5u above it. The rule closes the hero, so the
+   larger measure sits on the far side, with the movement it opens. The
+   60rem cap gives the introduction column structural right margin while
+   every hairline and record row keeps the full grid — the rules are the
+   skeleton and stay full-bleed. */
+.work-index-masthead {
+  display: grid;
+  gap: 0;
+  max-width: 60rem;
+  padding-top: calc(var(--u) * 9);      /* 73 → 145, below the rule */
+  padding-bottom: 0;
+}
+.work-index-masthead > h2       { margin-top: var(--air-1); }
+.work-index-masthead > .systems-lead { margin-top: var(--air-2); }
+
+/* `.systems-lead` is not a home-page class — it is also on /building,
+   /contact and /about. Unscoped, this would strip the baseline nudge that
+   holds the Lab's lead against its h1 in an end-aligned grid, and would
+   beat the ≤768 `.systems-lead` max-width on three other routes. */
+.work-index-masthead .systems-lead { max-width: 30rem; padding-bottom: 0; }
+
+
+/* ── 3. THE METRIC BAND ───────────────────────────────────────────────
+   air-3, not air-4: the band is the masthead's evidence, the same
+   movement's second sentence. air-4 here would make the page read as six
+   blocks with no grouping. The band keeps its hairline — without it the
+   band copy is an orphan grey paragraph floating in the new air. */
+.work-index-page .work-metric-band {
+  margin-top: var(--air-3);
+  padding-block: 0 var(--air-3);
+}
+/* Unlayered, so it beats the `max-w-2xl` utility in the markup. */
+.work-index-page .work-metric-band > p { max-width: 38rem; }
+
+.work-index-page .work-metric-rail { margin-top: var(--air-3); }
+/* padding-block only. The rail's `padding` shorthand is re-set to
+   `padding-left: 0` inside @media(≤768); a shorthand here would resurrect
+   the inline padding and knock mobile rail cells 2 and 3 out of alignment
+   with cell 1. */
+.work-index-page .work-metric-rail > div { padding-block: var(--air-2) 0; }
+
+/* Size kept, weight down. The width axis stays at `.axis-index`'s 92 — the
+   numerals and the company names are one ledger and must not read as two
+   fonts. */
+.work-index-page .work-metric-rail dd {
+  --axis: 92;
+  font-size: clamp(1.75rem, 1.47rem + 1.14vw, 2.5rem);  /* 28 → 40 → 40 */
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+/* 1u, not air-1. A dd/dt pair is one object; air-1 is calibrated for an
+   eyebrow sitting above its heading, and the same number applied below a
+   numeral reads as separation rather than as a label. */
+.work-index-page .work-metric-rail dt { margin-top: var(--u); }
+
+
+/* ── 4. THE GROUPS AND THE CLOSING ASK ────────────────────────────── */
+.work-index-page .work-index-group { margin-top: var(--air-4); }
+
+/* The signpost voice. Both selectors beat the ≤768 `.axis-heading`, so the
+   ladder holds at 390 without a second media query. The closing ask is a
+   <p class="axis-heading">, which meant it was sitting at the full 64px/800
+   with a 12ch measure — roughly four lines of solid ExtraBold as the last
+   thing a visitor sees. It joins the group tier here. */
+.work-index-page .work-group-intro .axis-heading,
+.work-index-page .work-index-next  .axis-heading {
+  --axis: 88;
+  font-size: clamp(1.5rem, 1.27rem + 0.95vw, 2.125rem);  /* 24 → 34 → 34 */
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.work-index-page .work-group-intro .axis-heading { max-width: 26ch; margin-top: var(--air-1); }
+.work-index-page .work-index-next  .axis-heading { max-width: 22ch; }
+
+.work-index-page .work-group-lead { margin-top: var(--air-2); }
+.work-index-page .work-index-group .work-index-list { margin-top: var(--air-3); }
+
+/* Both ink rules on the closing band are kept — a ruled closing band is
+   the site's own vocabulary, shared with .sequence-band, .range-records
+   and .about-contact. */
+.work-index-page .work-index-next { margin-top: var(--air-4); padding-block: var(--air-3); }
+.work-index-page { padding-bottom: var(--air-4); }
+
+
+/* ── 5. THE RECORD ROWS ───────────────────────────────────────────────
+   Six rows at 64px/800 are, by area and repetition, the actual wall below
+   the fold. These rules beat the tier sizes in the ≤768 block, where the
+   old flagship clamp resolved to 46.8px and would now sit above the h1.
+   The hover and focus width resolve, and the route-exit narrowing, are
+   untouched. */
+.work-index-page .work-index-row .row-company {
+  --axis: 92;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+.work-index-page .work-index-row.is-flagship .row-company {
+  font-size: clamp(1.875rem, 1.46rem + 1.71vw, 3rem);    /* 30 → 48 → 48 */
+}
+.work-index-page .work-index-row.is-supporting .row-company {
+  font-size: clamp(1.375rem, 1.14rem + 0.95vw, 2rem);    /* 22 → 32 → 32 */
+}
+
+/* 54rem at 16px is about 95 characters — nearly twice a readable measure,
+   on the six blocks carrying most of the document's height. */
+.work-index-page .row-headline,
+.work-index-page .row-summary { max-width: 42rem; }
+
+/* Fluid block padding instead of a fixed min-height that forced dead air
+   into short rows and squeezed long ones. Flagship keeps a taller box and
+   its darker rule. */
+.work-index-page .work-index-row {
+  min-height: clamp(6.5rem, 9.5vw, 8rem);
+  padding-block: clamp(1.5rem, 2.1vw, 2rem);
+}
+.work-index-page .work-index-row.is-flagship { min-height: clamp(8rem, 12vw, 10.5rem); }
+
+
+/* ── 6. THE EYEBROWS ──────────────────────────────────────────────────
+   Unchanged in size, weight, family and case. They are the page's
+   furniture: the thing that makes an index read as a record rather than a
+   blog, and quieting them would cost the document quality the rest of this
+   is buying. Only the colour moves, --ink → --muted, so the four caps
+   labels label rather than announce. Child combinators keep `.row-index`
+   and `.row-period`, also `.record` and also on this page, at their
+   existing colours. */
+.home-page .personal-hero-copy > .record,
+.work-index-masthead > .record,
+.work-index-page .work-group-intro > .record,
+.work-index-page .work-index-next > .record { color: var(--muted); }
+
+
+/* ── 7. THE GATES ─────────────────────────────────────────────────────
+   Island clearance, matched to the exact query in which it is needed.
+   `.js .home-resolve { position: fixed }` applies only inside
+   `(min-width: 769px) and (prefers-reduced-motion: no-preference)`, and
+   only there is `.personal-hero` genuinely first in flow under the
+   floating island — where the old clamp resolved to 63px at a 900px-tall
+   window, so the eyebrow had been sliding under the nav. Outside that
+   query — at ≤768, with JS off, and under reduced motion, which is the
+   path every Playwright test takes — `.home-resolve` is a normal flow
+   block with its own padding above the hero, and an unconditional island
+   offset would stack about 200px of dead air mid-document. */
+@media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
+  .js .home-page .personal-hero {
+    padding-top: calc(var(--island-clear) + var(--air-2));   /* 129 @1440 */
+  }
+}
+
+@media (max-width: 768px) {
+  .home-page .personal-hero {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--air-2);
+  }
+  .home-page .personal-portrait { max-width: 10rem; }
+  /* Full column. A short measure at the top of a phone screen reads as
+     broken, not as air. */
+  .home-page .personal-headline { max-width: none; letter-spacing: -0.04em; }
+  .work-index-masthead h2.axis-display { letter-spacing: -0.03em; }
+  .work-index-masthead { max-width: none; }
+
+  /* The opening sequence, at ≤768 only. This is the one place the block
+     reaches outside the named blocks, and it is necessary: `.js
+     .home-resolve { position: fixed }` does not apply here, so the three
+     statements render in flow above the hero, and the ≤768 `.axis-display`
+     puts them at 46px/800 against a 40px h1 — the h1 would not be the
+     largest structural type on the page at the width where crowding bites
+     hardest. On desktop with motion the sequence is a fixed full-viewport
+     stage at 137px and is not touched; under desktop reduced motion it is
+     already compacted. The identity moment is intact, and the release
+     line's nowrap spans are safe because a smaller size only narrows
+     them. */
+  .home-page .resolve-lines .axis-display { font-size: clamp(2rem, 8.4vw, 3.125rem); }
+}
