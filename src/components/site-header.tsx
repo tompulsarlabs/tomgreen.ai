@@ -43,12 +43,14 @@ function PendingMark() {
  * stays at the leading edge and in front of the surface in depth.
  *
  * It is also the way home. The landing page hides this header entirely,
- * so from anywhere else the Moon is the one route back to it — which is
- * why it is a link rather than a disclosure button. Hover and focus open
- * the navigation; activation travels. Touch has neither hover nor focus,
- * so there the first tap opens and only a second one goes home.
+ * so from anywhere else the Moon is a route back to it — which is why it
+ * is a link rather than a disclosure button. Hover and focus open the
+ * navigation; activation travels. Touch has neither hover nor focus, so
+ * there the first tap opens and only a second one goes home. The row it
+ * opens leads with Home in words, for anyone who does not read a moon as
+ * a button.
  */
-export function SiteHeader({ showAbout, showVoices }: { showAbout: boolean; showVoices: boolean }) {
+export function SiteHeader({ showVoices }: { showVoices: boolean }) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("idle");
   const [seenPath, setSeenPath] = useState(pathname);
@@ -56,10 +58,7 @@ export function SiteHeader({ showAbout, showVoices }: { showAbout: boolean; show
   const islandRef = useRef<HTMLDivElement>(null);
   const timers = useRef<{ intent?: number; leave?: number; settle?: number }>({});
 
-  const navItems = site.nav.filter(
-    (item) =>
-      (showAbout || item.href !== "/about") && (showVoices || item.href !== "/voices"),
-  );
+  const navItems = site.nav.filter((item) => showVoices || item.href !== "/voices");
 
   const clearTimers = useCallback(() => {
     const held = timers.current;

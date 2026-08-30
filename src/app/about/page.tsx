@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { CareerCorridor } from "@/components/career-corridor";
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
@@ -8,7 +7,6 @@ import { sceneNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { testimonials } from "@/lib/content/testimonials";
 import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
-import { isAboutPublic } from "@/lib/site-env";
 
 export const metadata: Metadata = {
   title: "About",
@@ -26,8 +24,6 @@ const orbitBodies: OrbitBody[] = career.map((stop, index) => ({
 }));
 
 export default function About() {
-  if (!isAboutPublic) notFound();
-
   return (
     <div className="about-page">
       <header className="systems-hero about-opening-hero">
