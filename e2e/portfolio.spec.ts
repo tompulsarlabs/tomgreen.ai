@@ -100,7 +100,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
     exact: true,
   })).toBeVisible();
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Talent is the engine for growth.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
   // The capsule and the planets are the only doors — no action pills.
   await expect(page.locator(".home-actions")).toHaveCount(0);
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
@@ -137,14 +137,14 @@ test("the release line's composition is authored, not measured", async ({ page }
   // measure would move mid-transition — THE jumping from the first line
   // to the second. The breaks are elements now, so they cannot move.
   const lines = page.locator(".release-line span[aria-hidden]");
-  await expect(lines).toHaveText(["Talent is", "the engine", "for growth."]);
+  await expect(lines).toHaveText(["Make talent", "the engine", "for growth."]);
   for (const line of await lines.all()) {
     await expect(line).toHaveCSS("white-space", "nowrap");
     await expect(line).toHaveCSS("display", "block");
   }
   // The full sentence still reaches assistive technology as one string.
   await expect(page.locator(".release-line .sr-only")).toHaveText(
-    "Talent is the engine for growth.",
+    "Make talent the engine for growth.",
   );
 });
 
@@ -156,46 +156,6 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
   await page.mouse.wheel(0, 24);
   await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 3_000 });
   await expect(page.locator(".home-resolve")).toHaveCSS("visibility", "hidden");
-});
-
-test("the crystal plays the opening again", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
-  await waitForFonts(page);
-
-  const crystal = page.locator(".sequence-replay");
-  await expect(crystal).toBeVisible();
-  await expect(crystal).toHaveAttribute("aria-label", "Play the opening again");
-  await expect(page.locator(".crystal-stage canvas")).toBeVisible();
-  // Top left, opposite the Moon.
-  const box = (await crystal.boundingBox())!;
-  expect(box.x).toBeLessThan(1440 / 2);
-  expect(box.y).toBeLessThan(200);
-
-  // Skip to the map, then ask for the sequence back.
-  await page.mouse.wheel(0, 24);
-  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 3_000 });
-  await crystal.click();
-  await expect(page.locator(".home-resolve")).not.toHaveClass(/is-done/);
-  // And it is genuinely running, not merely un-done.
-  const progress = await page
-    .locator(".home-resolve")
-    .evaluate((el) => Number((el as HTMLElement).style.getPropertyValue("--resolve-progress")));
-  expect(progress).toBeGreaterThan(0);
-  expect(progress).toBeLessThan(1);
-});
-
-test("the crystal is absent where there is no sequence to replay", async ({ page }) => {
-  // Reduced motion and small viewports render the statements as a
-  // resolved document, so there is nothing to play again.
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await gotoReduced(page, "/");
-  await expect(page.locator(".sequence-replay")).toBeHidden();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
-  await expect(page.locator(".sequence-replay")).toBeHidden();
 });
 
 test("the island is docked to the top right", async ({ page }) => {
@@ -219,8 +179,8 @@ test("the Moon is the way home", async ({ page }) => {
   await page.goto("/work");
   await waitForFonts(page);
 
-  // Home hides this header, so from anywhere else the Moon is the only
-  // route back to the landing page — it has to be a real link.
+  // Home hides this header, so from anywhere else the Moon is a route
+  // back to the landing page — it has to be a real link.
   const moon = page.locator("a.sphere-home");
   await expect(moon).toHaveAttribute("href", "/");
   await expect(moon).toHaveAttribute("aria-label", "Home");
@@ -231,6 +191,33 @@ test("the Moon is the way home", async ({ page }) => {
   // And with a mouse the click travels, because hover already opened it.
   await moon.click();
   await expect(page).toHaveURL("/");
+});
+
+test("the open island names the way home in words", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/work");
+  await waitForFonts(page);
+
+  // The Moon is a picture of home; not everyone reads it as one. The
+  // open island says it, and leads the row it opens with.
+  await page.locator("a.sphere-home").hover();
+  await settleIsland(page);
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  const home = nav.getByRole("link", { name: "Home", exact: true });
+  await expect(home).toBeVisible();
+  await expect(home).toHaveAttribute("href", "/");
+  // allInnerTexts reports what is painted, and the row is uppercased in
+  // CSS — the leading item is what matters, not its casing.
+  const labels = await nav.locator("a").allInnerTexts();
+  expect(labels[0].trim().toLowerCase()).toBe("home");
+
+  await home.click();
+  await expect(page).toHaveURL("/");
+  // And what it goes back to is the planetary map. On a first arrival
+  // the opening plays first; it yields on its own clock either way.
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 15_000 });
+  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
 });
 
 test("a second touch tap on the open island goes home", async ({ browser }) => {
@@ -458,7 +445,7 @@ test("no JavaScript keeps every Home sentence and planet link available", async 
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
-  await expect(page.getByText("Talent is the engine for growth.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
   await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),

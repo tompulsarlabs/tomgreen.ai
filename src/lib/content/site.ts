@@ -13,6 +13,7 @@ export const site = {
     substack: "https://tomgreenlabs.substack.com",
   },
   nav: [
+    { href: "/", label: "Home" },
     { href: "/work", label: "Work" },
     { href: "/building", label: "Lab" },
     { href: "/voices", label: "Voices" },

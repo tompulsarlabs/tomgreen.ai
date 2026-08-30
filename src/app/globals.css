@@ -5,7 +5,7 @@
   --site-header-h: 0rem;
   /* The floating island's occupied band — it takes no flow space, so
      content that begins at the very top clears it explicitly. */
-  --island-clear: 4.75rem;
+  --island-clear: 5.05rem;
   --paper: #ffffff;
   --ink: #101410;
   --ink-secondary: #4f554d;
@@ -154,8 +154,11 @@ body:has(.home-landing) .site-header { display: none; }
      keep their own reading order. */
   flex-direction: row-reverse;
   align-items: center;
-  max-width: calc(100vw - 24px);
-  margin-top: 1.1rem;
+  /* The header already carries the page's own inset, so the cap is its
+     content box — measuring the viewport again let the island widen the
+     header past the document on a very narrow phone. */
+  max-width: 100%;
+  margin-top: 1.7rem;
   pointer-events: auto;
   color: var(--ink);
 }
@@ -170,7 +173,7 @@ body:has(.home-landing) .site-header { display: none; }
   /* Flush with the island's leading edge, so the cap this rounds into is
      concentric with the Moon rather than offset behind it. */
   right: 0;
-  height: 3.05rem;
+  height: 2.75rem;
   width: 100%;
   transform: translateY(-50%) scaleX(0);
   transform-origin: right center;
@@ -204,9 +207,11 @@ body:has(.home-landing) .site-header { display: none; }
   display: grid;
   /* Exactly the surface's height: the button's centre is then the centre
      of the surface's rounded cap, and the sphere sits inside it with an
-     even margin all the way round instead of breaking out of the end. */
-  width: 3.05rem;
-  height: 3.05rem;
+     even margin all the way round instead of breaking out of the end.
+     2.75rem is also 44px — the touch-target floor — so the bar cannot
+     take another size cut without the Moon dropping through it. */
+  width: 2.75rem;
+  height: 2.75rem;
   flex: none;
   place-items: center;
   border: 0;
@@ -227,8 +232,8 @@ body:has(.home-landing) .site-header { display: none; }
   top: 50%;
   left: 50%;
   display: block;
-  width: 4rem;
-  height: 4rem;
+  width: 3.6rem;
+  height: 3.6rem;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -250,48 +255,6 @@ body:has(.home-landing) .site-header { display: none; }
   filter: drop-shadow(0 2px 7px rgba(14, 18, 26, 0.30));
 }
 
-/* The crystal that replays the opening. Top left, opposite the Moon,
-   and only where there is a sequence to replay: the same two conditions
-   the timed run itself checks, so it never offers to replay a document
-   that was never animated. */
-.sequence-replay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 6;
-  display: none;
-  place-items: center;
-  width: 3.05rem;
-  height: 3.05rem;
-  margin: 1.1rem 0 0 max(22px, 6vw);
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-}
-@media (prefers-reduced-motion: no-preference) and (min-width: 769px) {
-  .sequence-replay { display: grid; }
-}
-.sequence-replay:focus-visible {
-  outline: 2px solid rgba(232, 237, 245, 0.95);
-  outline-offset: 3px;
-  border-radius: 999px;
-}
-/* The canvas runs taller than the hit area so the points and the drift
-   are never clipped, and it is pixels — never a target. */
-.crystal-stage {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: block;
-  width: 3.4rem;
-  height: 5rem;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.crystal-stage * { pointer-events: none !important; }
-.crystal-stage canvas { display: block; width: 100% !important; height: 100% !important; }
-
 /* The labels ride a track that opens from nothing, so the surface has
    travelled most of its distance before any text is legible. */
 .nav-reveal {
@@ -306,12 +269,12 @@ body:has(.home-landing) .site-header { display: none; }
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 1rem;
+  gap: 0.9rem;
   overflow: hidden;
   /* The canvas runs wider than the hit area, so the last label ends
      clear of the Moon's overhang rather than under it. */
-  padding-right: 0.95rem;
-  padding-left: 0.55rem;
+  padding-right: 1.1rem;
+  padding-left: 1.5rem;
   /* Pinned to the Moon, so the row unrolls away from it to the left. */
   justify-content: flex-end;
   white-space: nowrap;
@@ -332,9 +295,9 @@ body:has(.home-landing) .site-header { display: none; }
 .nav-link {
   position: relative;
   display: inline-flex;
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   align-items: center;
-  font-size: 0.7rem;
+  font-size: 0.63rem;
   font-weight: 500;
   color: var(--ink-secondary);
   text-decoration: none;
@@ -354,12 +317,12 @@ body:has(.home-landing) .site-header { display: none; }
 .nav-link:hover::after, .nav-link:focus-visible::after, .nav-link[aria-current="page"]::after { right: 0; }
 .nav-cta {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: 1.75rem;
   align-items: center;
   border-radius: 999px;
-  padding: 0 1rem;
+  padding: 0 0.9rem;
   background: var(--ink);
-  font-size: 0.7rem;
+  font-size: 0.63rem;
   font-weight: 500;
   color: var(--paper);
   text-decoration: none;
@@ -378,6 +341,13 @@ body:has(.home-landing) .site-header { display: none; }
 }
 .nav-pending.is-pending { opacity: 0.8; }
 
+/* Five labels and the Moon do not fit a 320px phone at the comfortable
+   metrics, and the row would clip its own first label. Below the 360px
+   floor the spacing tightens rather than the text disappearing. */
+@media (max-width: 359px) {
+  .island-nav { gap: 0.55rem; padding-right: 0.8rem; padding-left: 1rem; }
+  .nav-cta { padding: 0 0.7rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   .nav-surface, .nav-reveal, .island-nav { transition: none; }
 }
@@ -454,7 +424,7 @@ body:has(.home-landing) .site-header { display: none; }
 .resolve-lines .line-mask > span { overflow: hidden; }
 .resolve-lines .line-mask > span > span { display: block; }
 .constraint-line { max-width: 15ch; word-spacing: var(--constraint-word-space, 0); font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }
-/* Six words — one step below the display size so "Talent is" and its
+/* Six words — one step below the display size so "Make talent" and its
    fellows compose as three lines at wdth 125. */
 .release-line { max-width: 19ch; font-size: clamp(2.75rem, 8.35vw, 7.6rem); line-height: 0.88; }
 /* The middle line grew to a sentence — it takes a display step down so

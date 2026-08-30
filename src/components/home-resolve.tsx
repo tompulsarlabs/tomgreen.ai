@@ -1,16 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { site } from "@/lib/content/site";
 import { clampUnit, homeMotionAt } from "@/lib/home-motion";
-
-// WebGL is loaded only in the browser; the sequence and the statements
-// are server-rendered without it, so nothing depends on the canvas.
-const KyberCrystal = dynamic(
-  () => import("@/components/kyber-crystal").then((m) => m.KyberCrystal),
-  { ssr: false },
-);
 
 /** The sequence's clock: three statements, then the map. */
 const SEQUENCE_MS = 6200;
@@ -26,11 +18,6 @@ const HOLD_MS = 600;
  */
 export function HomeResolve() {
   const sectionRef = useRef<HTMLElement>(null);
-  // Bumped to play the sequence again. The effect keys off it, so a
-  // replay tears the old run down and starts a clean one.
-  const [run, setRun] = useState(0);
-  const [holding, setHolding] = useState(false);
-  const replay = useCallback(() => setRun((current) => current + 1), []);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -41,15 +28,12 @@ export function HomeResolve() {
     if (!timed) return;
 
     // The sequence is a first-arrival moment: returning to the landing
-    // (the brand lockup, a back button) goes straight to the map. Asking
-    // for it again is deliberate, so a replay ignores that memory.
+    // (the Moon, Home, a back button) goes straight to the map.
     let played = false;
-    if (run === 0) {
-      try {
-        played = window.sessionStorage.getItem("tg-sequence-played") === "1";
-      } catch {
-        played = false;
-      }
+    try {
+      played = window.sessionStorage.getItem("tg-sequence-played") === "1";
+    } catch {
+      played = false;
     }
 
     let frame = 0;
@@ -104,18 +88,10 @@ export function HomeResolve() {
     };
 
     // Any attempt to move on — click, wheel, touch, key, focus into the
-    // page — completes the sequence immediately. Reaching for the
-    // crystal is the one thing that is not moving on: it asks for the
-    // sequence, and skipping the run it just started would be absurd.
-    const fromCrystal = (target: EventTarget | null) =>
-      target instanceof Element && Boolean(target.closest(".sequence-replay"));
-    const skip = (event: Event) => {
-      if (fromCrystal(event.target)) return;
-      finish();
-    };
+    // page — completes the sequence immediately.
+    const skip = () => finish();
     const onFocusIn = (event: FocusEvent) => {
       if (!(event.target instanceof Element)) return;
-      if (fromCrystal(event.target)) return;
       if (event.target.closest(".home-landing")) finish();
     };
     section.addEventListener("pointerdown", skip);
@@ -136,26 +112,9 @@ export function HomeResolve() {
       document.removeEventListener("focusin", onFocusIn);
       section.classList.remove("is-done");
     };
-  }, [run]);
+  }, []);
 
   return (
-    <>
-      {/* Outside the section on purpose: the section's own pointerdown
-          listener is what skips the sequence. */}
-      <button
-        type="button"
-        className="sequence-replay"
-        aria-label="Play the opening again"
-        onClick={replay}
-        onPointerEnter={() => setHolding(true)}
-        onPointerLeave={() => setHolding(false)}
-        onFocus={() => setHolding(true)}
-        onBlur={() => setHolding(false)}
-      >
-        <span className="crystal-stage" aria-hidden>
-          <KyberCrystal active={holding} reduced={false} />
-        </span>
-      </button>
     <section ref={sectionRef} className="home-resolve" aria-labelledby="home-title">
       <div className="home-resolve-stage">
         <p className="record home-eyebrow">
@@ -172,14 +131,13 @@ export function HomeResolve() {
             <span>Design</span><span className="system-word">the system.</span>
           </p>
           <p className="axis-display release-line">
-            <span className="sr-only">Talent is the engine for growth.</span>
-            <span aria-hidden="true">Talent is</span>
+            <span className="sr-only">Make talent the engine for growth.</span>
+            <span aria-hidden="true">Make talent</span>
             <span aria-hidden="true">the engine</span>
             <span aria-hidden="true">for growth.</span>
           </p>
         </div>
       </div>
     </section>
-    </>
   );
 }
