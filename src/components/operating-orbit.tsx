@@ -1,4 +1,5 @@
 import { OperatingOrbitLive } from "./operating-orbit-live";
+import type { Flare } from "@/components/orbit-flare";
 import {
   DEFAULT_CAMERA,
   NUCLEUS_ID,
@@ -51,10 +52,13 @@ const BODY_PX = 38;
 export function OperatingOrbit({
   bodies,
   onCapture,
+  flare,
 }: {
   bodies: OrbitBody[];
   /** Redirects a captured planet away from travel — see OrbitScene. */
   onCapture?: (id: string) => void;
+  /** The core burst, owned by the portal so it outlives this scene. */
+  flare?: Flare | null;
 }) {
   const elements = bodies.map((_, index) => navOrbitElements(index, bodies.length));
   // Normalise the nav-scene world (a up to ~3.2) into the poster's field
@@ -242,7 +246,7 @@ export function OperatingOrbit({
           {displayLabel(NUCLEUS_LABEL)}
         </span>
       </div>
-      <OperatingOrbitLive bodies={bodies} onCapture={onCapture} />
+      <OperatingOrbitLive bodies={bodies} onCapture={onCapture} flare={flare} />
     </nav>
   );
 }

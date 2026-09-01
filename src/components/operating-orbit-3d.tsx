@@ -19,6 +19,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
+import { OrbitFlare, type Flare } from "@/components/orbit-flare";
 import { isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
@@ -199,6 +200,12 @@ type SceneProps = {
    * the portal descends into a section's own system instead.
    */
   onCapture?: (id: string) => void;
+  /**
+   * The burst at the core, owned by the portal rather than the scene so
+   * it survives the remount a descent performs. Both the outgoing scene
+   * and the incoming one read the same detonation time.
+   */
+  flare?: Flare | null;
 };
 
 type Capture = {
@@ -209,7 +216,7 @@ type Capture = {
   navigated: boolean;
 };
 
-function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
+function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
   const { camera, gl, size } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
@@ -994,6 +1001,10 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
           nothing, and never enters the raycaster. */}
       <OrbitNebula narrow={narrow} />
 
+      {/* The burst at the core. Mounted last so it draws over the
+          system it just tore a planet out of. */}
+      <OrbitFlare flare={flare ?? null} origin={[0, CORE_Y, 0]} narrow={narrow} />
+
       {/* The spacetime membrane: displaced funnel geometry rendered as a
           procedural graphite lattice — sub-pixel AA lines, no boundary. */}
       <mesh geometry={membraneGeometry} renderOrder={2}>
@@ -1143,7 +1154,7 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
   );
 }
 
-export function OperatingOrbit3D({ field, narrow, bodies, onCapture }: SceneProps) {
+export function OperatingOrbit3D({ field, narrow, bodies, onCapture, flare }: SceneProps) {
   return (
     <Canvas
       className="orbit-canvas"
@@ -1165,7 +1176,13 @@ export function OperatingOrbit3D({ field, narrow, bodies, onCapture }: SceneProp
           (distance fading and line dissolve) instead, and bloom is a
           no-op on white paper — additive highlights cannot exceed the
           page. */}
-      <OrbitScene field={field} narrow={narrow} bodies={bodies} onCapture={onCapture} />
+      <OrbitScene
+        field={field}
+        narrow={narrow}
+        bodies={bodies}
+        onCapture={onCapture}
+        flare={flare}
+      />
     </Canvas>
   );
 }

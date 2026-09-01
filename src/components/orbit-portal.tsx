@@ -7,6 +7,7 @@ import { displayLabel } from "@/lib/orbit-nav";
 import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
 import { mapBodies, worldById } from "@/lib/orbit-worlds";
 import { planetsById } from "@/lib/planet-model";
+import type { Flare } from "@/components/orbit-flare";
 
 /**
  * The world behind the moon.
@@ -29,18 +30,25 @@ import { planetsById } from "@/lib/planet-model";
 
 type View = { kind: "map" } | { kind: "section"; id: string };
 
+/** How long the flare holds the screen before a capture travels. */
+const TRAVEL_HOLD_MS = 380;
+
 export function OrbitPortal() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "map" });
+  const [flare, setFlare] = useState<Flare | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const travelTimer = useRef(0);
 
   // The moon asks; this answers. It is the only opener there is.
   useEffect(() => onOrbitPortalOpen(() => setOpen(true)), []);
 
   const close = useCallback(() => {
+    window.clearTimeout(travelTimer.current);
     setOpen(false);
     setView({ kind: "map" });
+    setFlare(null);
     // The moon opened it, so the moon is where focus belongs afterwards.
     document.querySelector<HTMLElement>(".sphere-home")?.focus();
   }, []);
@@ -82,6 +90,11 @@ export function OrbitPortal() {
     if (open) dialogRef.current?.focus();
   }, [open]);
 
+  // A pending travel must not outlive the portal: closing by Escape or
+  // by the close button during the flare would otherwise navigate a
+  // moment later, from a page the visitor had already returned to.
+  useEffect(() => () => window.clearTimeout(travelTimer.current), []);
+
   const world = view.kind === "section" ? worldById(view.id) : undefined;
   const bodies = world ? world.bodies : mapBodies;
 
@@ -93,20 +106,32 @@ export function OrbitPortal() {
   // so the portal is what closes before the page changes underneath it.
   const onCapture = useCallback(
     (id: string) => {
-      if (worldById(id)) {
+      const node = planetsById.get(id);
+      const action = node?.action;
+      if (!action) return;
+
+      // Detonate first, whatever happens next. The flare is state here
+      // rather than inside the scene because descending replaces the
+      // scene outright — the burst has to belong to the thing that
+      // survives, so the tear-down happens inside its brightest frame.
+      setFlare({ color: node.visual.color, at: performance.now() });
+
+      if (action.type === "children") {
         setView({ kind: "section", id });
         return;
       }
-      const action = planetsById.get(id)?.action;
-      if (!action) return;
-      if (action.type === "route") {
+
+      // Travelling ends the portal, so the burst gets a beat to land
+      // before the page changes. Long enough to read as the cause of
+      // the arrival, short enough that nobody waits for it.
+      window.clearTimeout(travelTimer.current);
+      travelTimer.current = window.setTimeout(() => {
         close();
-        if (action.external) window.location.assign(action.href);
-        else router.push(action.href);
-        return;
-      }
-      if (action.type === "content") {
-        close();
+        if (action.type === "route") {
+          if (action.external) window.location.assign(action.href);
+          else router.push(action.href);
+          return;
+        }
         // The portal unmounts first, so the target is on screen to
         // scroll to rather than behind a dialog.
         requestAnimationFrame(() => {
@@ -114,7 +139,7 @@ export function OrbitPortal() {
             .getElementById(action.targetId)
             ?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
-      }
+      }, TRAVEL_HOLD_MS);
     },
     [close, router],
   );
@@ -179,6 +204,7 @@ export function OrbitPortal() {
               key={world ? world.id : "map"}
               bodies={bodies}
               onCapture={onCapture}
+              flare={flare}
             />
           </div>
     </div>
