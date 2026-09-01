@@ -20,6 +20,7 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { isInteractive } from "@/lib/planet-model";
+import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 import {
   navOrbitElements,
@@ -1104,7 +1105,12 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
             <sphereGeometry args={[body.size, 48, 48]} />
             <meshPhysicalMaterial
               ref={(material) => {
-                if (material) bodyMaterials.current.set(body.id, material);
+                if (!material) return;
+                bodyMaterials.current.set(body.id, material);
+                // Terrain, not a snooker ball. Patched onto the material
+                // the body already has, so its mineral colour, clearcoat
+                // and environment reflection all survive.
+                applyPlanetSurface(material, planetSeed(body.id));
               }}
               color={body.color}
               roughness={0.42}
