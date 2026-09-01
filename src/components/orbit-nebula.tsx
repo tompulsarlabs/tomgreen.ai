@@ -3,6 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
+import type { Flare } from "@/components/orbit-flare";
 
 /**
  * The deep field behind the planetary map.
@@ -61,6 +62,9 @@ const fragmentShader = /* glsl */ `
   uniform vec2  uParallax;
   uniform float uOctaves;
   uniform float uOpacity;
+  uniform float uEcho;
+  uniform float uEchoRadius;
+  uniform vec3  uEchoColor;
 
   // Hash / value noise. Cheap, stable, and enough once it is warped —
   // gradient noise costs more and the difference disappears under fbm.
@@ -161,6 +165,15 @@ const fragmentShader = /* glsl */ `
     float dust = smoothstep(0.40, 0.92, near);
     emission *= (1.0 - dust * 0.82);
 
+    // LIGHT ECHO. When a planet falls into the core, the burst's light
+    // reaches successively more distant gas: an annulus walking outward
+    // through the field, lighting the cloud where there is cloud to
+    // light. Real echoes cross parsecs over years; this one crosses the
+    // frame in a couple of seconds. Zero unless a burst is live, so it
+    // costs one exp per pixel only while it is on screen.
+    float echo = uEcho * exp(-pow((length(p) - uEchoRadius) / 0.16, 2.0));
+    emission += uEchoColor * echo * (0.3 + 0.7 * smoothstep(0.30, 0.9, far));
+
     // Stars sit behind the dust too, so the lanes cut them out.
     vec3 field = stars(uv, 0.055, 220.0) * (1.0 - dust * 0.9)
                + stars(uv, 0.020, 90.0) * (1.0 - dust * 0.6) * 1.15;
@@ -184,9 +197,26 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-export function OrbitNebula({ narrow }: { narrow: boolean }) {
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = clamp01((x - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+
+export function OrbitNebula({
+  narrow,
+  flare,
+}: {
+  narrow: boolean;
+  /** The live burst, if any: the field carries its light echo. */
+  flare: Flare | null;
+}) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const { size } = useThree();
+  const planet = useMemo(
+    () => new THREE.Color(flare?.color ?? "#ffffff"),
+    [flare?.color],
+  );
 
   const uniforms = useMemo(
     () => ({
@@ -197,6 +227,9 @@ export function OrbitNebula({ narrow }: { narrow: boolean }) {
       // does not.
       uOctaves: { value: narrow ? 3 : 4 },
       uOpacity: { value: 0 },
+      uEcho: { value: 0 },
+      uEchoRadius: { value: 0 },
+      uEchoColor: { value: new THREE.Color() },
     }),
     [narrow],
   );
@@ -209,10 +242,30 @@ export function OrbitNebula({ narrow }: { narrow: boolean }) {
     u.uResolution.value.set(size.width, size.height);
     // Parallax from the camera's own drift and the visitor's drag, so
     // the field moves against the planets rather than with them.
-    u.uParallax.value.set(state.camera.position.x * 0.06, state.camera.position.y * 0.06);
+    u.uParallax.value.set(
+      state.camera.position.x * 0.06,
+      state.camera.position.y * 0.06,
+    );
     // Fade up rather than snapping on, so opening the portal reveals a
     // depth that was already there.
     u.uOpacity.value = Math.min(1, u.uOpacity.value + delta * 0.55);
+
+    // The echo runs on the burst's own wall clock, so the scene that
+    // replaces this one at the descent draws the same ring in the same
+    // place. It leaves the frame's corners a little after two seconds.
+    const t = flare ? (performance.now() - flare.at) / 1000 : -1;
+    if (t > 0 && t < 2.6) {
+      const on = Math.min(1, t / 0.15);
+      const off = 1 - smoothstep(1.7, 2.6, t);
+      u.uEcho.value = 0.5 * on * off;
+      u.uEchoRadius.value = 0.42 * t;
+      // Scattered light keeps the source's spectrum — breakout's
+      // blue-white — with a third of the planet's colour, which is the
+      // dramatisation that ties the echo to the thing that fell in.
+      u.uEchoColor.value.setRGB(0.86, 0.9, 0.98).lerp(planet, 0.35);
+    } else {
+      u.uEcho.value = 0;
+    }
   });
 
   return (

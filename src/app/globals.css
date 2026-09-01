@@ -1124,6 +1124,34 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   outline: 2px solid rgba(232, 237, 245, 0.95);
   outline-offset: 3px;
 }
+/* Shock breakout, drawn by the compositor. Centred on the core's
+   projection, it snaps to full inside the first frames and is gone
+   inside the plateau — the one piece of the burst that survives the
+   scene being rebuilt underneath it. */
+.orbit-portal-breakout {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  z-index: 3;
+  width: 60vmin;
+  height: 60vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(183, 205, 255, 0.85) 28%, rgba(183, 205, 255, 0) 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: orbit-breakout 700ms linear both;
+}
+@keyframes orbit-breakout {
+  0%    { opacity: 0;    transform: translate(-50%, -50%) scale(0.35); }
+  8.6%  { opacity: 1;    transform: translate(-50%, -50%) scale(0.7); }
+  25.7% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.9); }
+  60%   { opacity: 0.12; transform: translate(-50%, -50%) scale(1); }
+  100%  { opacity: 0;    transform: translate(-50%, -50%) scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-portal-breakout { display: none; }
+}
+
 /* The field fills what the chrome leaves, and drops the full-bleed
    trick it needs when it is a band inside a page. */
 .orbit-portal-field { position: relative; flex: 1 1 auto; min-height: 0; }

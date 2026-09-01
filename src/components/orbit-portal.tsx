@@ -30,8 +30,13 @@ import type { Flare } from "@/components/orbit-flare";
 
 type View = { kind: "map" } | { kind: "section"; id: string };
 
-/** How long the flare holds the screen before a capture travels. */
-const TRAVEL_HOLD_MS = 380;
+/**
+ * How long the burst holds the screen before a capture travels to a
+ * real page. Breakout and the whole rise fit inside it and the page
+ * arrives as the light starts to cool, and it stays under the second at
+ * which a delay begins to register as waiting.
+ */
+const TRAVEL_HOLD_MS = 650;
 
 export function OrbitPortal() {
   const router = useRouter();
@@ -156,57 +161,83 @@ export function OrbitPortal() {
       ref={dialogRef}
       tabIndex={-1}
     >
-        <div className="orbit-portal-chrome">
-          <p className="record orbit-portal-record">
-            {world ? `${displayLabel(world.label)} / system` : "The system / all of it"}
-          </p>
-          <p className="orbit-portal-note">
-            {world ? world.note : "Every section, in orbit around talent. Choose one."}
-          </p>
-          <div className="orbit-portal-actions">
-            {world ? (
-              <button type="button" className="orbit-portal-back" onClick={() => setView({ kind: "map" })}>
-                ← All sections
-              </button>
-            ) : null}
-            {world ? (
-              <a className="orbit-portal-open" href={world.href}>
-                Open {displayLabel(world.label)} →
-              </a>
-            ) : null}
-            <button type="button" className="orbit-portal-close" onClick={close} aria-label="Close the planetary map">
-              Close
+      <div className="orbit-portal-chrome">
+        <p className="record orbit-portal-record">
+          {world
+            ? `${displayLabel(world.label)} / system`
+            : "The system / all of it"}
+        </p>
+        <p className="orbit-portal-note">
+          {world
+            ? world.note
+            : "Every section, in orbit around talent. Choose one."}
+        </p>
+        <div className="orbit-portal-actions">
+          {world ? (
+            <button
+              type="button"
+              className="orbit-portal-back"
+              onClick={() => setView({ kind: "map" })}
+            >
+              ← All sections
             </button>
-          </div>
-          </div>
+          ) : null}
+          {world ? (
+            <a className="orbit-portal-open" href={world.href}>
+              Open {displayLabel(world.label)} →
+            </a>
+          ) : null}
+          <button
+            type="button"
+            className="orbit-portal-close"
+            onClick={close}
+            aria-label="Close the planetary map"
+          >
+            Close
+          </button>
+        </div>
+      </div>
 
-          {/* Remounting on the view key is deliberate: a new key is a new
+      {/* Remounting on the view key is deliberate: a new key is a new
               system, and the scene assembles itself from scattered
               fragments whenever its bodies change. */}
+      <div
+        className="orbit-portal-field"
+        // A nameplate is a real link, because the poster fallback
+        // needs it to be. But on the map inside the portal a click
+        // must descend, never travel — and the WebGL scene that
+        // normally intercepts it attaches its listeners a moment
+        // after the nameplates become visible. Without this, a click
+        // landing in that window follows the href and throws the
+        // visitor out of the world they just opened. Capture phase,
+        // so it runs before the scene's own handler and cannot be
+        // stopped by it; the scene still owns the capture animation.
+        onClickCapture={(event) => {
+          if (view.kind !== "map") return;
+          const target = event.target as Element | null;
+          if (target?.closest("a.orbit-label")) event.preventDefault();
+        }}
+      >
+        <OperatingOrbit
+          key={world ? world.id : "map"}
+          bodies={bodies}
+          onCapture={onCapture}
+          flare={flare}
+        />
+        {/* Shock breakout, in the DOM rather than the scene: the scene
+                is torn down and rebuilt at the instant of capture, and the
+                rebuilt one needs a GL context and compiled shaders before
+                its first frame. The brightest sixty milliseconds of the
+                event would fall into that gap; a compositor animation
+                cannot. Keyed by the detonation, so a new burst restarts it. */}
+        {flare ? (
           <div
-            className="orbit-portal-field"
-            // A nameplate is a real link, because the poster fallback
-            // needs it to be. But on the map inside the portal a click
-            // must descend, never travel — and the WebGL scene that
-            // normally intercepts it attaches its listeners a moment
-            // after the nameplates become visible. Without this, a click
-            // landing in that window follows the href and throws the
-            // visitor out of the world they just opened. Capture phase,
-            // so it runs before the scene's own handler and cannot be
-            // stopped by it; the scene still owns the capture animation.
-            onClickCapture={(event) => {
-              if (view.kind !== "map") return;
-              const target = event.target as Element | null;
-              if (target?.closest("a.orbit-label")) event.preventDefault();
-            }}
-          >
-            <OperatingOrbit
-              key={world ? world.id : "map"}
-              bodies={bodies}
-              onCapture={onCapture}
-              flare={flare}
-            />
-          </div>
+            key={flare.at}
+            className="orbit-portal-breakout"
+            aria-hidden="true"
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

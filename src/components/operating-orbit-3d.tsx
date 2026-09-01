@@ -20,6 +20,7 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
+import { lightCurve } from "@/lib/supernova";
 import { isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
@@ -72,7 +73,11 @@ const ASSEMBLY_SECONDS = 1.45;
 const ASSEMBLY_SCATTER = 5.4;
 
 /** Position on a body's ellipse at parameter t, world space (y up). */
-function orbitPoint(el: OrbitElements, t: number, out: THREE.Vector3): THREE.Vector3 {
+function orbitPoint(
+  el: OrbitElements,
+  t: number,
+  out: THREE.Vector3,
+): THREE.Vector3 {
   const b = el.a * Math.sqrt(1 - el.e * el.e);
   const px = el.a * (Math.cos(t) - el.e * 0.6);
   const pz = b * Math.sin(t);
@@ -225,7 +230,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     () => bodies.map((_, index) => navOrbitElements(index, bodies.length)),
     [bodies],
   );
-  const bodyById = useMemo(() => new Map(bodies.map((body) => [body.id, body])), [bodies]);
+  const bodyById = useMemo(
+    () => new Map(bodies.map((body) => [body.id, body])),
+    [bodies],
+  );
 
   // Route destinations warm up while the visitor is still orbiting, so
   // the travel after a capture is immediate.
@@ -256,7 +264,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       }
     }
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(positions, 3),
+    );
     geometry.setIndex(indices);
     return geometry;
   }, [narrow]);
@@ -272,7 +283,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       uWake: { value: 0 },
       uHoverTheta: { value: 0 },
       uHoverStrength: { value: 0 },
-      uBodies: { value: Array.from({ length: 10 }, () => new THREE.Vector3(99, 0, 99)) },
+      uBodies: {
+        value: Array.from({ length: 10 }, () => new THREE.Vector3(99, 0, 99)),
+      },
     }),
     [],
   );
@@ -298,7 +311,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         const points: THREE.Vector3[] = [];
         const v = new THREE.Vector3();
         for (let sample = 0; sample <= samples; sample += 1) {
-          points.push(orbitPoint(el, (sample / samples) * Math.PI * 2, v).clone());
+          points.push(
+            orbitPoint(el, (sample / samples) * Math.PI * 2, v).clone(),
+          );
         }
         return { id: body.id, points };
       }),
@@ -307,7 +322,16 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
 
   const bodyRefs = useRef(new Map<string, THREE.Group>());
   const bodyMaterials = useRef(new Map<string, THREE.MeshPhysicalMaterial>());
-  const filamentRefs = useRef(new Map<string, { line: { visible: boolean }; material: { opacity: number }; setPoints: (points: THREE.Vector3[]) => void }>());
+  const filamentRefs = useRef(
+    new Map<
+      string,
+      {
+        line: { visible: boolean };
+        material: { opacity: number };
+        setPoints: (points: THREE.Vector3[]) => void;
+      }
+    >(),
+  );
   const coreRef = useRef<THREE.Mesh>(null);
   const coreMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
   const pathMaterials = useRef<{ opacity: number }[]>([]);
@@ -386,7 +410,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         router.push(target.href);
         break;
       case "anchor":
-        document.getElementById(target.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document
+          .getElementById(target.id)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
         break;
       case "link":
         window.location.assign(target.href);
@@ -394,10 +420,15 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       case "station": {
         // The corridor's rail already knows how to travel to a stop; the
         // anchor is the fallback when the rail is not live.
-        const rail = document.querySelectorAll<HTMLButtonElement>(".corridor-rail button");
+        const rail = document.querySelectorAll<HTMLButtonElement>(
+          ".corridor-rail button",
+        );
         const button = rail.item(target.index);
         if (button) button.click();
-        else document.getElementById(target.anchorId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        else
+          document
+            .getElementById(target.anchorId)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
         break;
       }
     }
@@ -425,7 +456,14 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       // capture, while modified clicks (new tab, download) pass through
       // untouched.
       const onClick = (event: MouseEvent) => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          event.button !== 0
+        )
+          return;
         event.preventDefault();
         startCaptureRef.current(id);
       };
@@ -463,7 +501,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       watchingFonts = false;
     });
 
-    bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
+    bodies.forEach((body, index) =>
+      s.angles.set(body.id, elements[index].phase),
+    );
     // Swapping the body set swaps the system. It draws itself together
     // again rather than cutting, which is what makes descending into a
     // section read as one continuous world instead of a page change.
@@ -488,7 +528,11 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       document.getSelection()?.removeAllRanges();
       // Armed, not dragging: the camera stays still until the pointer
       // has actually travelled DRAG_THRESHOLD_PX, so a click is a click.
-      s.pressOrigin = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      s.pressOrigin = {
+        x: event.clientX,
+        y: event.clientY,
+        id: event.pointerId,
+      };
       s.lastPointer = { x: event.clientX, y: event.clientY };
       s.lastInteraction = performance.now() / 1000;
     };
@@ -505,7 +549,7 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         const ty = event.clientY - s.pressOrigin.y;
         if (Math.hypot(tx, ty) > DRAG_THRESHOLD_PX) {
           s.dragging = true;
-          s.pendingPress = null;   // it was a drag, not a click
+          s.pendingPress = null; // it was a drag, not a click
           document.body.classList.add("orbit-dragging");
           dom.style.cursor = "grabbing";
           try {
@@ -536,7 +580,11 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       const press = s.pendingPress;
       s.pendingPress = null;
       s.pressOrigin = null;
-      if (!s.dragging && press && performance.now() - press.t < PRESS_GRACE_MS) {
+      if (
+        !s.dragging &&
+        press &&
+        performance.now() - press.t < PRESS_GRACE_MS
+      ) {
         startCaptureRef.current(press.id);
       }
       document.body.classList.remove("orbit-dragging");
@@ -571,7 +619,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
   }, [field, gl, bodies, elements, setFrameloop]);
 
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
-  const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.4), []);
+  const groundPlane = useMemo(
+    () => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.4),
+    [],
+  );
   const scratch = useMemo(
     () => ({
       v1: new THREE.Vector3(),
@@ -591,7 +642,8 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
 
     // Entry: the well deepens, the system condenses, the camera settles.
     s.reveal += (s.revealTarget - s.reveal) * lerpIn(1.6);
-    if (s.assembly < 1) s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
+    if (s.assembly < 1)
+      s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
     // Cubic-out: the pieces arrive fast and settle slowly, so the last
     // of the assembly is the part that reads as deliberate.
     const assembled = 1 - Math.pow(1 - s.assembly, 3);
@@ -648,7 +700,11 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         s.targetOffsetPolar += (0 - s.targetOffsetPolar) * lerpIn(0.3);
       }
     }
-    s.targetOffsetPolar = THREE.MathUtils.clamp(s.targetOffsetPolar, -0.22, 0.22);
+    s.targetOffsetPolar = THREE.MathUtils.clamp(
+      s.targetOffsetPolar,
+      -0.22,
+      0.22,
+    );
     s.offsetAzimuth += (s.targetOffsetAzimuth - s.offsetAzimuth) * lerpIn(7);
     s.offsetPolar += (s.targetOffsetPolar - s.offsetPolar) * lerpIn(7);
     s.parallaxYaw += (s.parallaxYawTarget - s.parallaxYaw) * lerpIn(3);
@@ -656,7 +712,11 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
 
     const distance = (narrow ? 8.6 : 7.4) + (1 - s.reveal) * 1.1;
     const azimuth = s.drift + s.offsetAzimuth + s.parallaxYaw;
-    const polar = THREE.MathUtils.clamp(1.1 + s.offsetPolar + s.parallaxPitch, 0.84, 1.36);
+    const polar = THREE.MathUtils.clamp(
+      1.1 + s.offsetPolar + s.parallaxPitch,
+      0.84,
+      1.36,
+    );
     camera.position.set(
       distance * Math.sin(polar) * Math.sin(azimuth),
       distance * Math.cos(polar),
@@ -670,11 +730,23 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     membraneUniforms.uOpacity.value = s.reveal;
     s.coreWake += ((s.hover === NUCLEUS_ID ? 1 : 0) - s.coreWake) * lerpIn(6);
     // A capture feeds the core: the well wakes as the planet goes in.
-    membraneUniforms.uWake.value = Math.max(s.coreWake, captureEased);
+    // A live burst lights the lattice with its own light curve, so the
+    // section's system arrives on a membrane that is still glowing and
+    // relaxes as the remnant cools.
+    const burstLight = flare
+      ? lightCurve((performance.now() - flare.at) / 1000)
+      : 0;
+    membraneUniforms.uWake.value = Math.min(
+      1,
+      Math.max(s.coreWake, captureEased, 1.3 * Math.pow(burstLight, 0.6)),
+    );
 
     // Pointer → world point on the fabric plane, for the tension dent.
     if (s.parallaxYawTarget !== 0 || s.parallaxPitchTarget !== 0) {
-      scratch.ndc.set(s.parallaxYawTarget / 0.065, -s.parallaxPitchTarget / 0.05);
+      scratch.ndc.set(
+        s.parallaxYawTarget / 0.065,
+        -s.parallaxPitchTarget / 0.05,
+      );
       raycaster.setFromCamera(scratch.ndc, camera);
       const hit = raycaster.ray.intersectPlane(groundPlane, scratch.v1);
       if (hit) {
@@ -685,7 +757,8 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       s.pointerStrength += (0 - s.pointerStrength) * lerpIn(4);
     }
     membraneUniforms.uPointer.value.copy(s.pointerWorld);
-    membraneUniforms.uPointerStrength.value = s.pointerStrength * (s.dragging ? 0 : 1);
+    membraneUniforms.uPointerStrength.value =
+      s.pointerStrength * (s.dragging ? 0 : 1);
 
     // The core turns slowly enough for its reflections to evolve.
     if (coreRef.current) coreRef.current.rotation.y = now * 0.08;
@@ -696,7 +769,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     const width = size.width;
     const height = size.height;
     scratch.core.set(0, CORE_Y, 0);
-    const cameraToCore = scratch.v3.copy(scratch.core).sub(camera.position).length();
+    const cameraToCore = scratch.v3
+      .copy(scratch.core)
+      .sub(camera.position)
+      .length();
     let hoverTheta = 0;
     let hoverStrength = 0;
 
@@ -712,7 +788,8 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       // The spiral: as the planet falls it also runs faster around.
       const speedBoost = captured ? 1 + 9 * (s.capture?.progress ?? 0) : 1;
       const angle =
-        (s.angles.get(body.id) ?? 0) + dt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
+        (s.angles.get(body.id) ?? 0) +
+        dt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
       s.angles.set(body.id, angle);
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
@@ -741,7 +818,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       // Feed the membrane's contact shading (first ten bodies).
       if (index < 10) membraneUniforms.uBodies.value[index].copy(scratch.v1);
       const swell =
-        (1 + 0.08 * nextEase) * (0.35 + 0.65 * s.reveal) * (1 - 0.85 * suction) *
+        (1 + 0.08 * nextEase) *
+        (0.35 + 0.65 * s.reveal) *
+        (1 - 0.85 * suction) *
         (0.3 + 0.7 * assembled);
       group.scale.setScalar(Math.max(swell, 0.001));
       const material = bodyMaterials.current.get(body.id);
@@ -769,22 +848,36 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       const y = ((1 - scratch.v2.y) / 2) * height;
       const label = s.labels.get(body.id);
       if (label) {
-        const cameraDistance = scratch.v3.copy(scratch.v1).sub(camera.position).length();
-        const pxScale = height / 2 / (Math.tan((40 * Math.PI) / 360) * cameraDistance);
+        const cameraDistance = scratch.v3
+          .copy(scratch.v1)
+          .sub(camera.position)
+          .length();
+        const pxScale =
+          height / 2 / (Math.tan((40 * Math.PI) / 360) * cameraDistance);
         const bodyPx = body.size * swell * pxScale;
-        const near = THREE.MathUtils.clamp(1 - (cameraDistance - 5.2) / 5.2, 0, 1);
+        const near = THREE.MathUtils.clamp(
+          1 - (cameraDistance - 5.2) / 5.2,
+          0,
+          1,
+        );
         // Behind the core: the ray to the body grazes the sphere.
         scratch.v3.copy(scratch.v1).sub(camera.position).normalize();
         const toCore = scratch.core.clone().sub(camera.position);
         const along = toCore.dot(scratch.v3);
-        const closest = Math.sqrt(Math.max(toCore.lengthSq() - along * along, 0));
-        const occluded = closest < CORE_RADIUS * 1.05 && cameraDistance > cameraToCore;
+        const closest = Math.sqrt(
+          Math.max(toCore.lengthSq() - along * along, 0),
+        );
+        const occluded =
+          closest < CORE_RADIUS * 1.05 && cameraDistance > cameraToCore;
         // Nameplates stay near-white on space: depth and occlusion cue
         // them, but never bury them. A captured planet takes its
         // nameplate down with it.
-        const base = ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
+        const base =
+          ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
         const opacity =
-          (base + (1 - base) * nextEase) * s.reveal * (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
+          (base + (1 - base) * nextEase) *
+          s.reveal *
+          (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
         // Measuring every frame would thrash layout. A nameplate's box
         // only changes when its text, its font or the viewport does, and
@@ -794,7 +887,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         // is animating at the time.
         let box = s.measured.get(body.id);
         if (!box || box.width === 0) {
-          box = { width: label.offsetWidth || 70, height: label.offsetHeight || 16 };
+          box = {
+            width: label.offsetWidth || 70,
+            height: label.offsetHeight || 16,
+          };
           if (box.width > 0) s.measured.set(body.id, box);
         }
         s.items.push({
@@ -816,7 +912,8 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       const coreScreenX = ((scratch.v2.x + 1) / 2) * width;
       const coreScreenY = ((1 - scratch.v2.y) / 2) * height;
       const coreScreenPx =
-        (CORE_RADIUS * 1.2 * (height / 2)) / (Math.tan((40 * Math.PI) / 360) * cameraToCore);
+        (CORE_RADIUS * 1.2 * (height / 2)) /
+        (Math.tan((40 * Math.PI) / 360) * cameraToCore);
 
       if (now - s.placeAt > 0.14) {
         s.placeAt = now;
@@ -834,7 +931,11 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         const held = new Map<string, ReturnType<typeof anchorRect>>();
         for (const item of s.items) {
           const anchor = s.anchors.get(item.id);
-          if (anchor) held.set(item.id, anchorRect(item, anchor, s.gaps.get(item.id) ?? 14));
+          if (anchor)
+            held.set(
+              item.id,
+              anchorRect(item, anchor, s.gaps.get(item.id) ?? 14),
+            );
         }
         const covering = new Set<string>();
         for (const [idA, boxA] of held) {
@@ -853,10 +954,12 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
           // out to the far ring is a real move, and treating it as no
           // change would strand a label on top of another one.
           const settled =
-            current === placement.anchor && (s.gaps.get(placement.id) ?? 14) === placement.gap;
+            current === placement.anchor &&
+            (s.gaps.get(placement.id) ?? 14) === placement.gap;
           // Unplaced, or currently covering something: move at once.
           const urgent = current === undefined || covering.has(placement.id);
-          const locked = !urgent && (s.lockedUntil.get(placement.id) ?? 0) > now;
+          const locked =
+            !urgent && (s.lockedUntil.get(placement.id) ?? 0) > now;
           if (settled) {
             s.pending.delete(placement.id);
           } else if (!locked) {
@@ -869,7 +972,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
               s.lockedUntil.set(placement.id, now + 0.35);
               s.pending.delete(placement.id);
             } else if (!waiting || waiting.anchor !== placement.anchor) {
-              s.pending.set(placement.id, { anchor: placement.anchor, since: now });
+              s.pending.set(placement.id, {
+                anchor: placement.anchor,
+                since: now,
+              });
             } else if (now - waiting.since > 0.22) {
               s.anchors.set(placement.id, placement.anchor);
               s.gaps.set(placement.id, placement.gap);
@@ -922,7 +1028,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       // — the planets all remain, and tapping one still travels.
       if (narrow && drawn.length > NARROW_LABELS) {
         const byDepth = [...drawn].sort(
-          (a, b) => (s.baseOpacity.get(b.item.id) ?? 0) - (s.baseOpacity.get(a.item.id) ?? 0),
+          (a, b) =>
+            (s.baseOpacity.get(b.item.id) ?? 0) -
+            (s.baseOpacity.get(a.item.id) ?? 0),
         );
         for (const { item } of byDepth.slice(NARROW_LABELS)) {
           if (!item.active) withdraw.add(item.id);
@@ -949,7 +1057,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         const hide = s.hidden.get(item.id) ?? 0;
         const next = hide + (wanted - hide) * fade;
         s.hidden.set(item.id, next);
-        label.style.opacity = ((s.baseOpacity.get(item.id) ?? 1) * (1 - next)).toFixed(3);
+        label.style.opacity = (
+          (s.baseOpacity.get(item.id) ?? 1) *
+          (1 - next)
+        ).toFixed(3);
       }
       s.items.length = 0;
     }
@@ -962,15 +1073,20 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     const coreX = ((scratch.v2.x + 1) / 2) * width;
     const coreY = ((1 - scratch.v2.y) / 2) * height;
     const corePx =
-      (CORE_RADIUS * 1.2 * (height / 2)) / (Math.tan((40 * Math.PI) / 360) * cameraToCore);
+      (CORE_RADIUS * 1.2 * (height / 2)) /
+      (Math.tan((40 * Math.PI) / 360) * cameraToCore);
     const coreLabel = s.labels.get(NUCLEUS_ID);
     if (coreLabel) {
       coreLabel.style.transform = `translate3d(${(coreX + corePx + 10).toFixed(1)}px, ${(coreY - 6).toFixed(1)}px, 0)`;
-      coreLabel.style.opacity = ((0.9 + 0.1 * membraneUniforms.uWake.value) * s.reveal).toFixed(3);
+      coreLabel.style.opacity = (
+        (0.9 + 0.1 * membraneUniforms.uWake.value) *
+        s.reveal
+      ).toFixed(3);
     }
 
     // Orbit paths stay quiet — the membrane carries the depth.
-    for (const material of pathMaterials.current) material.opacity = 0.1 * s.reveal;
+    for (const material of pathMaterials.current)
+      material.opacity = 0.1 * s.reveal;
   });
 
   const setHover = (id: string | null) => {
@@ -989,9 +1105,25 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
           built as light-formers so the glass and graphite have real
           reflections, with no texture fetched from anywhere. */}
       <Environment resolution={128} frames={1}>
-        <Lightformer intensity={2.6} position={[-3, 6, 4]} scale={[7, 5, 1]} form="rect" />
-        <Lightformer intensity={0.9} position={[5, 2, -4]} scale={[6, 4, 1]} form="rect" />
-        <Lightformer intensity={1.4} position={[0, -4, -6]} scale={[9, 2, 1]} form="rect" color="#ffffff" />
+        <Lightformer
+          intensity={2.6}
+          position={[-3, 6, 4]}
+          scale={[7, 5, 1]}
+          form="rect"
+        />
+        <Lightformer
+          intensity={0.9}
+          position={[5, 2, -4]}
+          scale={[6, 4, 1]}
+          form="rect"
+        />
+        <Lightformer
+          intensity={1.4}
+          position={[0, -4, -6]}
+          scale={[9, 2, 1]}
+          form="rect"
+          color="#ffffff"
+        />
       </Environment>
       <directionalLight position={[-4, 7, 5]} intensity={1.5} />
       <ambientLight intensity={0.55} />
@@ -999,11 +1131,15 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
       {/* The deep field. Renders first, with depth off, so it is a
           backdrop rather than an object: it occludes nothing, receives
           nothing, and never enters the raycaster. */}
-      <OrbitNebula narrow={narrow} />
+      <OrbitNebula narrow={narrow} flare={flare ?? null} />
 
       {/* The burst at the core. Mounted last so it draws over the
           system it just tore a planet out of. */}
-      <OrbitFlare flare={flare ?? null} origin={[0, CORE_Y, 0]} narrow={narrow} />
+      <OrbitFlare
+        flare={flare ?? null}
+        origin={[0, CORE_Y, 0]}
+        narrow={narrow}
+      />
 
       {/* The spacetime membrane: displaced funnel geometry rendered as a
           procedural graphite lattice — sub-pixel AA lines, no boundary. */}
@@ -1063,7 +1199,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
           depthWrite={false}
           renderOrder={2}
           ref={(line) => {
-            if (line) pathMaterials.current[index] = line.material as unknown as { opacity: number };
+            if (line)
+              pathMaterials.current[index] = line.material as unknown as {
+                opacity: number;
+              };
           }}
         />
       ))}
@@ -1089,7 +1228,9 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
                 line,
                 material: line.material as unknown as { opacity: number },
                 setPoints: (points: THREE.Vector3[]) => {
-                  line.geometry.setPositions(points.flatMap((p) => [p.x, p.y, p.z]));
+                  line.geometry.setPositions(
+                    points.flatMap((p) => [p.x, p.y, p.z]),
+                  );
                 },
               });
             }
@@ -1099,9 +1240,12 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
 
       {/* The planets: the page's headers, individually modelled. */}
       {bodies.map((body) => (
-        <group key={body.id} ref={(group) => {
-          if (group) bodyRefs.current.set(body.id, group);
-        }}>
+        <group
+          key={body.id}
+          ref={(group) => {
+            if (group) bodyRefs.current.set(body.id, group);
+          }}
+        >
           <mesh
             onPointerOver={(event) => {
               event.stopPropagation();
@@ -1154,7 +1298,13 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
   );
 }
 
-export function OperatingOrbit3D({ field, narrow, bodies, onCapture, flare }: SceneProps) {
+export function OperatingOrbit3D({
+  field,
+  narrow,
+  bodies,
+  onCapture,
+  flare,
+}: SceneProps) {
   return (
     <Canvas
       className="orbit-canvas"
