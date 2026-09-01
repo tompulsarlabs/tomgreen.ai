@@ -3,6 +3,17 @@ export const site = {
   domain: "tomgreen.ai",
   location: "Berlin",
   email: "tom@tomgreen.ai",
+  /**
+   * The page's opening headline.
+   */
+  headline: "Building organisations, talent engines and operating models, in founder mode.",
+  /**
+   * The claim the site is indexed and shared under — description,
+   * og:description, twitter:description and the JSON-LD in layout.tsx all
+   * read this, so it is deliberately independent of whichever block of
+   * copy happens to open the page. It also appears on the page, under the
+   * operating record's masthead.
+   */
   positioning: "I build the teams, the operating model, and the agents to run it.",
   intro:
     "Executive talent leader and systems builder. I’ve built a 120-person AI organisation in six months, led global talent teams, and redesigned People Ops around agent workflows.",

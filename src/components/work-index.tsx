@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WorkIndexRow } from "@/components/work-index-row";
 import { caseStudies } from "@/lib/content/case-studies";
+import { site } from "@/lib/content/site";
 
 /**
  * The operating record — the site's primary content.
@@ -43,9 +44,7 @@ export function WorkIndex() {
       <header className="work-index-masthead">
         <p className="record">Evidence / selected operating records</p>
         <h2 className="axis-display">Weighed by opportunity cost.</h2>
-        <p className="systems-lead">
-          Building organisations, talent engines and operating models, in founder mode.
-        </p>
+        <p className="systems-lead">{site.positioning}</p>
       </header>
 
       <section aria-label="Selected outcomes" className="work-metric-band">

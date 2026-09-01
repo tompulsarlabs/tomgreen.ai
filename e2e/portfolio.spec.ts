@@ -99,7 +99,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   // is the introduction underneath it.
   await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building organisations, talent engines and operating models, in founder mode.",
   );
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
@@ -476,11 +476,19 @@ test("the home route is the six-row evidence index, under the introduction", asy
   // it as a section heading, which is the hierarchy a reader expects.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building organisations, talent engines and operating models, in founder mode.",
   );
   await expect(
     page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
   ).toBeVisible();
+  // The positioning line did not leave the page, it moved: it now sits
+  // under the operating record's masthead rather than opening the page.
+  await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
+    "I build the teams, the operating model, and the agents to run it.",
+  );
+  // No photograph, and no placeholder standing in for one.
+  await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
+  await expect(page.locator(".personal-hero img")).toHaveCount(0);
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
   await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
   await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
@@ -1393,6 +1401,6 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
   // Exactly one h1, and it names the person rather than the epigraph.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building organisations, talent engines and operating models, in founder mode.",
   );
 });
