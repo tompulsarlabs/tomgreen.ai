@@ -133,12 +133,16 @@ export function HomeResolve() {
           Executive talent leader · Systems builder · {site.location}
         </p>
         <div className="resolve-lines">
-          <h1 id="home-title" className="axis-display constraint-line">
+          {/* Not an h1 any more: the page continues below the opening
+              with an introduction that is the document's real subject,
+              and a document gets one h1. The sr-only sentence and the
+              section's aria-labelledby are untouched. */}
+          <p id="home-title" className="axis-display constraint-line">
             <span className="sr-only">Identify the constraint. Then subtract.</span>
             <span className="line-mask desktop-constraint" aria-hidden="true">
               <span><span>Identify the</span></span><span><span>constraint.</span></span><span><span>Then subtract.</span></span>
             </span>
-          </h1>
+          </p>
           <p className="axis-display system-line" aria-label="Design the system.">
             <span>Design</span><span className="system-word">the system.</span>
           </p>

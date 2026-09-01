@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { CareerCorridor } from "@/components/career-corridor";
-import { OperatingOrbit } from "@/components/operating-orbit";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
 import { sceneNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { testimonials } from "@/lib/content/testimonials";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "About",
@@ -14,20 +12,10 @@ export const metadata: Metadata = {
     "Fifteen years building teams — travel the career stop by stop, then jump into the case studies and systems behind it.",
 };
 
-/** The About page's planets: its career stops, orbiting talent. */
-const orbitBodies: OrbitBody[] = career.map((stop, index) => ({
-  id: `station-${index}`,
-  label: stop.company,
-  color: planetColor(index),
-  target: { kind: "station", index, anchorId: `station-${index}` },
-  size: defaultBodySize(index),
-}));
-
 export default function About() {
   return (
     <div className="about-page">
       <header className="systems-hero about-opening-hero">
-        <OperatingOrbit bodies={orbitBodies} />
         <div className="systems-hero-copy">
           <p className="record">About / operating record</p>
           <div className="systems-title-row">

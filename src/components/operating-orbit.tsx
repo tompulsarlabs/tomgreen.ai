@@ -48,7 +48,14 @@ const BODY_PX = 38;
  * clicking a planet there pulls it into the core before the site
  * travels. Bodies come from the page: each declares its own headers.
  */
-export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
+export function OperatingOrbit({
+  bodies,
+  onCapture,
+}: {
+  bodies: OrbitBody[];
+  /** Redirects a captured planet away from travel — see OrbitScene. */
+  onCapture?: (id: string) => void;
+}) {
   const elements = bodies.map((_, index) => navOrbitElements(index, bodies.length));
   // Normalise the nav-scene world (a up to ~3.2) into the poster's field
   // scale, where the well lattice reaches 1.05.
@@ -235,7 +242,7 @@ export function OperatingOrbit({ bodies }: { bodies: OrbitBody[] }) {
           {displayLabel(NUCLEUS_LABEL)}
         </span>
       </div>
-      <OperatingOrbitLive bodies={bodies} />
+      <OperatingOrbitLive bodies={bodies} onCapture={onCapture} />
     </nav>
   );
 }

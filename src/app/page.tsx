@@ -1,42 +1,29 @@
 import { HomeResolve } from "@/components/home-resolve";
-import { OperatingOrbit } from "@/components/operating-orbit";
-import { hasTestimonials } from "@/lib/content/testimonials";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
+import { PersonalHero } from "@/components/personal-hero";
+import { WorkIndex } from "@/components/work-index";
 
 export const revalidate = 3600;
 
-/** Home's planets: the sections themselves, orbiting talent. */
-const homeSections = [
-  { id: "work", label: "Work", href: "/work" },
-  { id: "lab", label: "Lab", href: "/building" },
-  ...(hasTestimonials ? [{ id: "voices", label: "Voices", href: "/voices" }] : []),
-  { id: "about", label: "About", href: "/about" },
-  { id: "contact", label: "Contact", href: "/contact" },
-];
-const orbitBodies: OrbitBody[] = homeSections.map((section, index) => ({
-  id: section.id,
-  label: section.label,
-  color: planetColor(index),
-  target: { kind: "route", href: section.href },
-  size: defaultBodySize(index),
-}));
-
 /**
- * Home is one landing, no scroll: the three statements resolve on
- * their own clock, then the planetary map appears — the sections in
- * orbit around talent. The nav capsule and the planets carry every
- * journey from here.
+ * Home, and the whole primary site in one route.
+ *
+ * The opening statements still play on their own clock on first arrival.
+ * What they yield to changed: it used to be the planetary map, which
+ * made the front door a system diagram. The map is now a second layer,
+ * reached only by clicking the moon, and the page underneath is what
+ * a portfolio should be — a face, a sentence, and the work.
+ *
+ * The operating record below is /work's own component, not a copy of it:
+ * /work redirects here, so there is one implementation and one place to
+ * edit it.
  */
 export default function Home() {
   return (
     <div className="home-page">
-      <div className="home-landing">
-        <HomeResolve />
-        {/* Just the system — the capsule and the planets are the doors. */}
-        <section className="home-orbit">
-          <OperatingOrbit bodies={orbitBodies} />
-        </section>
-      </div>
+      {/* The opening plays over the page and then hands it over. */}
+      <HomeResolve />
+      <PersonalHero />
+      <WorkIndex />
     </div>
   );
 }

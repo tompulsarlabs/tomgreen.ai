@@ -1,9 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+// /work is a permanent redirect to "/" now — the operating record moved
+// to the home route — so the page itself is audited as "/".
 const requiredRoutes = [
   "/",
-  "/work",
   "/work/zalando",
   "/work/chapter-2",
   "/building",
@@ -94,11 +95,12 @@ async function inkedCanvasPixels(page: Page, selector: string) {
 test("Home presents the complete Load-Bearing Type journey", async ({ page }) => {
   await gotoReduced(page, "/");
 
-  await expect(page.getByRole("heading", {
-    level: 1,
-    name: "Identify the constraint. Then subtract.",
-    exact: true,
-  })).toBeVisible();
+  // The opening statement is the page's epigraph, not its title: the h1
+  // is the introduction underneath it.
+  await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "I build the teams, the operating model, and the agents to run it.",
+  );
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
   // The capsule and the planets are the only doors — no action pills.
@@ -106,7 +108,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   await expect(page.locator(".operating-field, .operating-sequence")).toHaveCount(0);
 });
 
-test("Home's statements resolve on their own clock, then yield to the map", async ({ page }) => {
+test("Home's statements resolve on their own clock, then yield to the page", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
@@ -120,11 +122,17 @@ test("Home's statements resolve on their own clock, then yield to the map", asyn
   await expect(hero).toHaveClass(/is-done/, { timeout: 10_000 });
   await expect(hero).toHaveCSS("visibility", "hidden");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  // One dark sheet: the landing is the whole document — no footer strip,
-  // nothing below the fold.
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
-  await expect(page.locator(".site-footer")).toBeHidden();
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  // What it yields to is the portfolio, not a system diagram: the face,
+  // the headline and the operating record. The planetary map is behind
+  // the moon now and must NOT be on the page.
+  await expect(page.locator(".personal-hero")).toBeVisible();
+  await expect(page.locator(".personal-headline")).toBeVisible();
+  await expect(page.locator("[data-work-row]").first()).toBeAttached();
+  await expect(page.locator(".orbit-field")).toHaveCount(0);
+  // And the page is a page again — header, footer, something to scroll.
+  await expect(page.locator(".site-header")).toBeVisible();
+  await expect(page.locator(".site-footer")).toBeAttached();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)).toBe(true);
 });
 
 test("the release line's composition is authored, not measured", async ({ page }) => {
@@ -168,78 +176,41 @@ test("the island is docked to the top right", async ({ page }) => {
   // never come down on top of the copy the way a centred island did.
   const island = (await page.locator(".nav-island").boundingBox())!;
   expect(island.x).toBeGreaterThan(1440 / 2);
-  const moon = (await page.locator("a.sphere-home").boundingBox())!;
+  const moon = (await page.locator("button.sphere-home").boundingBox())!;
   // The Moon is the island's right-hand end.
   expectWithin(moon.x + moon.width, island.x + island.width, 1);
 });
 
-test("the Moon is the way home", async ({ page }) => {
+test("the Moon is the way into the map, not a way home", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
-  // Home hides this header, so from anywhere else the Moon is a route
-  // back to the landing page — it has to be a real link.
-  const moon = page.locator("a.sphere-home");
-  await expect(moon).toHaveAttribute("href", "/");
-  await expect(moon).toHaveAttribute("aria-label", "Home, from the opening");
-  // It is a link, not a disclosure dressed as one.
-  await expect(moon).not.toHaveAttribute("aria-expanded", /.*/);
-  await expect(page.locator("button.sphere-home")).toHaveCount(0);
+  // It used to be a link home. It is a control now, and it says so: no
+  // href, and a label that names what it actually does.
+  const moon = page.locator("button.sphere-home");
+  await expect(moon).toHaveAttribute("aria-label", "Open the planetary map");
+  await expect(moon).not.toHaveAttribute("href", /.*/);
 
-  // And with a mouse the click travels, because hover already opened it.
-  await moon.click();
-  await expect(page).toHaveURL("/");
-});
-
-test("the Moon goes home to the opening, however many times", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.setViewportSize({ width: 1440, height: 900 });
-
-  // Sit through the opening once, so the session has already seen it and
-  // an ordinary return would go straight to the map.
-  await page.goto("/");
-  await waitForFonts(page);
-  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 15_000 });
-
-  await page.goto("/work");
-  await waitForFonts(page);
-  const moon = page.locator("a.sphere-home");
+  // Hover reveals the row; the click means the map, not travel.
   await moon.hover();
   await settleIsland(page);
   await moon.click();
-  await expect(page).toHaveURL("/");
-
-  // The landing it returns to is the one that arrived: playing, not
-  // resolved. Catching a progress strictly inside (0, 1) is the proof —
-  // it is running, not merely un-done, and not already finished. Polled
-  // rather than read once because this renderer can be seconds late to
-  // mount the landing, and a single read would race that.
-  const stage = page.locator(".home-resolve");
-  const readProgress = () =>
-    stage.evaluate((el) => Number((el as HTMLElement).style.getPropertyValue("--resolve-progress")));
-  let sawRunning = false;
-  await expect
-    .poll(async () => {
-      const progress = await readProgress();
-      if (progress > 0 && progress < 1) sawRunning = true;
-      return sawRunning;
-    }, { timeout: 15_000 })
-    .toBe(true);
-  // And it still finishes on its own clock.
-  await expect(stage).toHaveClass(/is-done/, { timeout: 15_000 });
+  await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
+  await expect(page).toHaveURL("/building");
 });
+
 
 test("the open island names the way home in words", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   // The Moon is a picture of home; not everyone reads it as one. The
   // open island says it, and leads the row it opens with.
-  await page.locator("a.sphere-home").hover();
+  await page.locator("button.sphere-home").hover();
   await settleIsland(page);
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   const home = nav.getByRole("link", { name: "Home", exact: true });
@@ -252,42 +223,43 @@ test("the open island names the way home in words", async ({ page }) => {
 
   await home.click();
   await expect(page).toHaveURL("/");
-  // Home goes to the map, and goes there directly: no opening, on a
+  // Home goes to the record, and goes there directly: no opening, on a
   // first arrival or any other. The sequence runs 6.2s plus a 0.6s hold
   // before it can be done, so arriving done inside 6s is only possible
   // if it never played. The allowance is for a slow mount, not for it.
   await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 6_000 });
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  await expect(page.locator(".personal-hero")).toBeVisible();
 });
 
-test("a second touch tap on the open island goes home", async ({ browser }) => {
+test("a second touch tap on the open island opens the map", async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     hasTouch: true,
     isMobile: true,
   });
   const page = await context.newPage();
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
-  const moon = island.locator("a.sphere-home");
+  const moon = island.locator("button.sphere-home");
   await moon.tap();
   // Settled, not merely opening: tapping mid-transition races the state
   // the second tap has to read.
   await expect(island).toHaveAttribute("data-phase", "open");
-  await expect(page).toHaveURL(/\/work$/);
-  // Open already, so this one travels: touch reaches Home in two taps
-  // rather than never.
+  await expect(page).toHaveURL(/\/building$/);
+  // Open already, so this one means the map: touch reaches the world in
+  // two taps rather than never, and still travels nowhere.
   await moon.tap();
-  await expect(page).toHaveURL("/");
+  await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
+  await expect(page).toHaveURL(/\/building$/);
   await context.close();
 });
 
 test("collapsed, the sphere is the only visible navigation object", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
@@ -317,7 +289,7 @@ test("collapsed, the sphere is the only visible navigation object", async ({ pag
   // on it rather than the whole width the open menu will occupy.
   const canvas = island.locator(".sphere-stage canvas");
   await expect(canvas).toBeVisible();
-  const button = island.locator("a.sphere-home");
+  const button = island.locator("button.sphere-home");
   const [buttonBox, canvasBox] = await Promise.all([button.boundingBox(), canvas.boundingBox()]);
   expect(buttonBox!.width).toBeGreaterThanOrEqual(44);
   expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
@@ -328,11 +300,11 @@ test("collapsed, the sphere is the only visible navigation object", async ({ pag
 test("empty space beside the sphere does not open the navigation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
-  const button = island.locator("a.sphere-home");
+  const button = island.locator("button.sphere-home");
   const box = (await button.boundingBox())!;
   // Well clear of the sphere, but inside the band the open menu covers.
   await page.mouse.move(box.x + box.width + 160, box.y + box.height / 2);
@@ -343,11 +315,11 @@ test("empty space beside the sphere does not open the navigation", async ({ page
 test("the navigation grows from the sphere and returns when the pointer leaves", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
-  const button = island.locator("a.sphere-home");
+  const button = island.locator("button.sphere-home");
   const sphereBefore = (await button.boundingBox())!;
 
   await button.hover();
@@ -384,17 +356,17 @@ test("the navigation grows from the sphere and returns when the pointer leaves",
 test("keyboard focus opens the island and leaving it closes again", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
   await page.keyboard.press("Tab"); // skip link
   await page.keyboard.press("Tab"); // the Moon
-  await expect(island.locator("a.sphere-home")).toBeFocused();
+  await expect(island.locator("button.sphere-home")).toBeFocused();
   await expect(island).toHaveAttribute("data-expanded", "true");
 
   // Every navigation link is reachable once open.
-  for (const name of ["Work", "Lab", "Contact"]) {
+  for (const name of ["Home", "Lab", "Contact"]) {
     await expect(island.getByRole("link", { name, exact: true })).toBeVisible();
   }
   await expect(island.locator(".island-nav a").first()).toHaveJSProperty("tabIndex", 0);
@@ -410,15 +382,15 @@ test("a touch tap opens the island instead of navigating, and tapping away close
     isMobile: true,
   });
   const page = await context.newPage();
-  await page.goto("/work");
+  await page.goto("/building");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await island.locator("a.sphere-home").tap();
+  await island.locator("button.sphere-home").tap();
   await expect(island).toHaveAttribute("data-expanded", "true");
   // Touch has no hover, so the first tap only opens: it must not travel.
-  await expect(page).toHaveURL(/\/work$/);
+  await expect(page).toHaveURL(/\/building$/);
 
   await page.locator("body").tap({ position: { x: 40, y: 600 } });
   await expect(island).toHaveAttribute("data-expanded", "false");
@@ -454,13 +426,13 @@ test("reduced motion renders Home as a resolved linear document", async ({ page 
   const journeyRatio = await hero.evaluate((element) => (element as HTMLElement).offsetHeight / window.innerHeight);
   expect(journeyRatio).toBeLessThan(2);
   // Reduced motion changes the choreography, not the architecture: the
-  // landing is still one viewport and the planets stay clickable without
-  // a scroll, so "land and click" holds for these visitors too.
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
+  // statements are a resolved document, and the page under them is the
+  // portfolio — a face, a headline, and the record, all without script.
+  await expect(page.locator(".personal-headline")).toBeVisible();
   const reachable = await page.evaluate(() =>
-    [...document.querySelectorAll(".orbit-poster a")].filter((link) => {
+    [...document.querySelectorAll("[data-work-row]")].filter((link) => {
       const box = link.getBoundingClientRect();
-      return box.width > 0 && box.top >= 0 && box.bottom <= window.innerHeight;
+      return box.width > 0;
     }).length,
   );
   expect(reachable).toBeGreaterThanOrEqual(3);
@@ -469,13 +441,14 @@ test("reduced motion renders Home as a resolved linear document", async ({ page 
   );
   expect(displays.every((value) => value.includes("100"))).toBe(true);
   await expect(page.locator(".scroll-cue")).toHaveCount(0);
-  // The planetary map still lands, as its linked poster.
-  await expect(page.locator(".orbit-poster")).toBeVisible();
-  await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
-  await expect(page.locator('.orbit-poster a[href="/building"]')).toBeAttached();
+  // The operating record lands with it — under reduced motion the page is
+  // simply the document, with no map anywhere on it.
+  await expect(page.locator(".personal-hero")).toBeVisible();
+  await expect(page.locator("[data-work-row]").first()).toBeAttached();
+  await expect(page.locator(".orbit-field")).toHaveCount(0);
 });
 
-test("no JavaScript keeps every Home sentence and planet link available", async ({ browser }) => {
+test("no JavaScript keeps every Home sentence and the operating record available", async ({ browser }) => {
   const context = await browser.newContext({
     javaScriptEnabled: false,
     reducedMotion: "reduce",
@@ -486,7 +459,10 @@ test("no JavaScript keeps every Home sentence and planet link available", async 
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
-  await expect(page.locator('.orbit-poster a[href="/work"]')).toBeAttached();
+  // Without script there is no orb and no portal, so the record itself
+  // has to be the thing that is served — and it is.
+  await expect(page.locator(".personal-hero")).toBeVisible();
+  await expect(page.locator('[data-work-row][href="/work/zalando"]')).toBeAttached();
   const axes = await page.locator(".resolve-lines .axis-display").evaluateAll((items) =>
     items.map((item) => getComputedStyle(item).fontVariationSettings),
   );
@@ -494,9 +470,17 @@ test("no JavaScript keeps every Home sentence and planet link available", async 
   await context.close();
 });
 
-test("Work is a six-row evidence index with clear hierarchy", async ({ page }) => {
-  await gotoReduced(page, "/work");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Weighed by opportunity cost.");
+test("the home route is the six-row evidence index, under the introduction", async ({ page }) => {
+  await gotoReduced(page, "/");
+  // One h1, and it is the person — the record's own masthead sits under
+  // it as a section heading, which is the hierarchy a reader expects.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "I build the teams, the operating model, and the agents to run it.",
+  );
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
+  ).toBeVisible();
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
   await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
   await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
@@ -508,7 +492,7 @@ test("Work is a six-row evidence index with clear hierarchy", async ({ page }) =
 
 test("Work preserves flagship hierarchy and 48px targets at 390px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await gotoReduced(page, "/work");
+  await gotoReduced(page, "/");
 
   const flagship = page.locator("[data-work-row].is-flagship").first();
   const supporting = page.locator("[data-work-row].is-supporting").first();
@@ -531,7 +515,7 @@ test("Work preserves flagship hierarchy and 48px targets at 390px", async ({ pag
 
 test("Work hover and keyboard focus resolve the same width state", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/work");
+  await page.goto("/");
   await waitForFonts(page);
   const row = page.locator("[data-work-row]").first();
   const company = row.locator("[data-travel-name]");
@@ -546,12 +530,11 @@ test("Work hover and keyboard focus resolve the same width state", async ({ page
 test("Work to case navigation aligns the travelling name with tolerant geometry", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/work");
+  await page.goto("/");
   await waitForFonts(page);
-  // Let the orbit landing finish its first expensive frames (shader
-  // compile is CPU-bound on software GL) so the handoff choreography is
-  // measured on a settled page, as a visitor would reach it.
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
+  // Let the opening finish and hand the page over, so the handoff
+  // choreography is measured on a settled page as a visitor reaches it.
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/, { timeout: 15_000 });
   await page.waitForTimeout(600);
 
   const row = page.locator("[data-work-row]").filter({ hasText: "Zalando" });
@@ -770,17 +753,19 @@ test("Work to case navigation aligns the travelling name with tolerant geometry"
 
 test("reduced-motion header, row and in-content navigation use the direct fallback", async ({ page }) => {
   const journeys = [
-    // The chrome is gone: poster planets are the doors on every landing —
-    // SVG links, so they take a native click (SVGAElement has no .click()).
-    { from: "/", selector: '.orbit-poster a[href="/work"]', to: "/work", native: true },
-    { from: "/work", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
-    { from: "/", selector: '.orbit-poster a[href="/building"]', to: "/building", native: true },
+    // The record's own rows and the in-content links are the doors now:
+    // the map is behind the orb and is never the primary navigation.
+    { from: "/", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
+    { from: "/", selector: '.work-index-next a[href="/building"]', to: "/building" },
+    { from: "/about", selector: 'a[href="/contact"]', to: "/contact" },
   ];
 
   for (const journey of journeys) {
     await gotoReduced(page, journey.from);
-    if (journey.native) await page.locator(journey.selector).click();
-    else await page.locator(journey.selector).evaluate((element) => (element as HTMLElement).click());
+    // Every door here is an HTML anchor now, so a scripted click is the
+    // honest activation — the SVG poster planets that needed a native
+    // click are no longer on any page.
+    await page.locator(journey.selector).first().evaluate((element) => (element as HTMLElement).click());
     await expect(page.locator(".travelling-name")).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveClass(/route-leaving|travelling-active/);
     await expect(page).toHaveURL(journey.to);
@@ -789,7 +774,7 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
 });
 
 test("reduced-motion Work to case arrival exposes the headline immediately", async ({ page }) => {
-  await gotoReduced(page, "/work");
+  await gotoReduced(page, "/");
   await page.locator('[data-work-row][href="/work/zalando"]').evaluate((element) =>
     (element as HTMLElement).click(),
   );
@@ -904,175 +889,183 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
-test("the solar-system navigation runs with motion on the Lab", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/building");
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  await expect(page.locator(".orbit-poster")).toBeHidden();
-  // The orbit is navigation now — a labelled landmark, never decoration.
-  await expect(page.locator("nav.orbit-field")).toHaveAttribute("aria-label", "Orbit navigation");
-  // No caption strip (owner cut), no pinned quotes (nav replaced them).
-  await expect(page.locator(".orbit-caption")).toHaveCount(0);
-  await expect(page.locator(".orbit-quote")).toHaveCount(0);
-  // The Lab's five section planets ride as live links, plus the nucleus
-  // nameplate — talent, the black hole, a destination and not a control.
-  await expect(page.locator("a.orbit-label")).toHaveCount(5);
-  await expect(page.locator(".orbit-label")).toHaveCount(6);
-  await expect(page.locator('a.orbit-label[data-body="cluster-companies"]')).toHaveAttribute(
-    "href",
-    "#cluster-companies",
-  );
-  await expect(page.locator('a.orbit-label[data-body="projects"]')).toHaveAttribute(
-    "href",
-    "#projects",
-  );
-  // The wrapper line sits on every page, in the footer.
-  await expect(page.locator(".site-footer").getByText("Agentic execution · Human judgment")).toBeVisible();
-});
+/**
+ * The planetary map is a second layer now. It is not on any page: it
+ * lives behind the moon, and these contracts pin both halves of
+ * that — the primary site stays a plain document, and the hidden world
+ * is complete when it is opened.
+ *
+ * Under software GL the scene's per-frame delta is clamped, so an
+ * assembly and a capture take several seconds of wall clock here that
+ * take well under one in a real browser. The waits below are sized for
+ * the slow case on purpose.
+ */
 
-test("every section lands on the solar system", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  for (const route of ["/work", "/building", "/about", "/contact"]) {
-    await page.goto(route);
-    await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  }
-});
-
-test("Home shows the planetary map after the three statements", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  // The sections are Home's planets, and the map follows the spine.
-  await expect(page.locator('a.orbit-label[data-body="work"]')).toHaveAttribute("href", "/work");
-  await expect(page.locator('a.orbit-label[data-body="lab"]')).toHaveAttribute("href", "/building");
-  await expect(page.locator('a.orbit-label[data-body="contact"]')).toHaveAttribute("href", "/contact");
-  const mapFollowsSpine = await page.evaluate(() => {
-    const spine = document.querySelector(".home-resolve");
-    const map = document.querySelector(".home-orbit");
-    if (!spine || !map) return false;
-    return Boolean(spine.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING);
+/** Open the portal from whatever page is loaded, and wait for the map. */
+async function openPortal(page: Page) {
+  await page.locator(".sphere-home").click();
+  await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
+  await expect(page.locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')).toBeVisible({
+    timeout: 20_000,
   });
-  expect(mapFollowsSpine).toBe(true);
-});
+  // A visible canvas is not a wired scene: the nameplates are positioned
+  // from inside useFrame, so a non-zero inline opacity is the first proof
+  // that frames — and therefore the effects before them — have run.
+  await expect
+    .poll(
+      async () =>
+        page.locator('.orbit-portal .orbit-label[data-body]').first()
+          .evaluate((element) => Number((element as HTMLElement).style.opacity || 0)),
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(0);
+}
 
-test("nameplates take their own side of the well, and hold it", async ({ page }) => {
+test("no page carries the planetary map any more", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/work");
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  await page.locator(".orbit-field").scrollIntoViewIfNeeded();
-  // The placement pass re-settles at ~7Hz and the labels glide to it;
-  // give the reveal and the first few passes time to finish.
-  await page.waitForTimeout(2500);
-
-  const read = () =>
-    page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>("a.orbit-label[data-anchor]")].map((element) => {
-        const box = element.getBoundingClientRect();
-        return {
-          id: element.dataset.body ?? "",
-          anchor: element.dataset.anchor ?? "",
-          x: box.x,
-          y: box.y,
-          width: box.width,
-          height: box.height,
-        };
-      }),
-    );
-
-  const first = await read();
-  expect(first.length).toBeGreaterThanOrEqual(5);
-
-  // The old layout put every nameplate at the same offset to the right.
-  // A composition uses the space around each planet instead: several
-  // anchors, and text on both sides of the well.
-  expect(new Set(first.map((label) => label.anchor)).size).toBeGreaterThanOrEqual(3);
-  expect(first.filter((label) => label.anchor.includes("left")).length).toBeGreaterThanOrEqual(1);
-  expect(first.filter((label) => label.anchor.includes("right")).length).toBeGreaterThanOrEqual(1);
-
-  // No nameplate may land on another. The tolerance is for labels still
-  // gliding to a target, not for a stack.
-  for (let i = 0; i < first.length; i += 1) {
-    for (let j = i + 1; j < first.length; j += 1) {
-      const a = first[i];
-      const b = first[j];
-      const across = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
-      const down = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
-      expect(across < 4 || down < 4, `${a.id} sits on ${b.id}`).toBe(true);
-    }
+  for (const route of ["/", "/building", "/about", "/contact", "/work/zalando"]) {
+    await page.goto(route);
+    await waitForFonts(page);
+    // Neither the live scene nor the server-rendered poster.
+    await expect(page.locator(".orbit-field")).toHaveCount(0);
+    await expect(page.locator(".orbit-poster")).toHaveCount(0);
+    // But the way in is on every one of them.
+    await expect(page.locator(".sphere-home")).toBeVisible();
   }
-
-  // And the choice settles: the system keeps turning, the anchors do not
-  // flick from side to side while it does.
-  await page.waitForTimeout(4000);
-  const later = await read();
-  const switched = later.filter(
-    (label) => first.find((earlier) => earlier.id === label.id)?.anchor !== label.anchor,
-  );
-  expect(switched.length).toBeLessThanOrEqual(2);
 });
 
-test("clicking a planet pulls it into the black hole, then travels", async ({ page }) => {
+test("the moon opens the map and navigates nowhere", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/work");
-  await expect(page.locator('.orbit-field[data-live="true"] .orbit-canvas')).toBeVisible();
-  const label = page.locator('a.orbit-label[data-body="ai-organisation"]');
-  await expect(label).toHaveAttribute("href", "/work/zalando");
-  // The capture spirals the planet into the core (~0.75s), then the
-  // site travels to the case study.
-  await label.evaluate((element) => (element as HTMLElement).click());
-  await expect(page).toHaveURL(/\/work\/zalando$/, { timeout: 8000 });
-});
-
-test("reduced motion serves the linked poster sky, not the canvas", async ({ page }) => {
-  await gotoReduced(page, "/building");
-  await expect(page.locator(".orbit-poster")).toBeVisible();
-  await expect(page.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
-  // The poster's planets are real links: navigation without any script.
-  await expect(page.locator('.orbit-poster a[href="#cluster-companies"]')).toBeAttached();
-  await expect(page.locator('.orbit-poster a[href="#projects"]')).toBeAttached();
-});
-
-test("the poster is server-rendered for no-JS visitors", async ({ browser }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
-  const page = await context.newPage();
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/building");
-  // Well lattice (19 polylines) + five orbit ellipses, split into
-  // front/behind chunks around the nucleus; the count varies with camera.
-  expect(await page.locator(".orbit-poster path").count()).toBeGreaterThanOrEqual(20);
-  // Five planets + the nucleus paper disc, stone shading and ink ring.
-  await expect(page.locator(".orbit-poster circle")).toHaveCount(8);
-  // The poster names every planet and the nucleus in real SVG text.
-  await expect(page.locator(".orbit-poster text")).toHaveCount(6);
-  await expect(page.locator(".orbit-poster a")).toHaveCount(5);
+  await waitForFonts(page);
+
+  // One object, one meaning. It is a button, not a link: there is no
+  // href for a crawler or a middle-click to follow, because it does not
+  // go anywhere — it opens the world.
+  const moon = page.locator(".sphere-home");
+  await expect(moon).toBeVisible();
+  expect(await moon.evaluate((element) => element.tagName)).toBe("BUTTON");
+  await expect(moon).not.toHaveAttribute("href", /.*/);
+  await expect(page.locator("a.sphere-home")).toHaveCount(0);
+  await expect(page.locator(".sphere-stage canvas")).toBeVisible();
+
+  // Nothing is open until it is clicked, and clicking it does not travel.
+  await expect(page.locator(".orbit-portal")).toHaveCount(0);
+  await moon.click();
+  await expect(page.locator(".orbit-portal")).toBeVisible();
+  await expect(page).toHaveURL("/building");
+
+  // Every destination lives in the row instead, Home included.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".orbit-portal")).toHaveCount(0);
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await expect(nav.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/");
+});
+
+test("the orb opens the complete map, from any page", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/about");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  await expect(portal).toHaveAttribute("data-view", "map");
+  await expect(portal).toHaveAttribute("aria-modal", "true");
+  // Every section is a planet, plus the nucleus nameplate.
+  await expect(portal.locator("a.orbit-label")).toHaveCount(4);
+  await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached();
+  await expect(portal.locator('a.orbit-label[data-body="lab"]')).toBeAttached();
+  await expect(portal.locator('a.orbit-label[data-body="about"]')).toBeAttached();
+  await expect(portal.locator('a.orbit-label[data-body="contact"]')).toBeAttached();
+  await expect(portal.locator('.orbit-label[data-body="talent"]')).toBeAttached();
+  // The page behind cannot scroll while the world is open.
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  // And it did not navigate to get here.
+  await expect(page).toHaveURL("/about");
+});
+
+test("capturing a planet opens that section's own system", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  await portal.locator('a.orbit-label[data-body="work"]').dispatchEvent("click");
+
+  // The planet is captured, and what emerges is Work's own bodies —
+  // its projects — orbiting the section centre. No navigation.
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 30_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
+  await expect(page).toHaveURL("/building");
+  await expect(portal.locator('a.orbit-label[data-body="ai-organisation"]')).toBeAttached({
+    timeout: 20_000,
+  });
+  await expect(portal.locator('a.orbit-label[data-body="quant-search"]')).toBeAttached();
+  // Eight projects, and none of them is a section any more.
+  await expect(portal.locator("a.orbit-label")).toHaveCount(8);
+  await expect(portal.locator('a.orbit-label[data-body="lab"]')).toHaveCount(0);
+  // A body inside a section is the one that finally travels.
+  await expect(portal.locator('a.orbit-label[data-body="ai-organisation"]')).toHaveAttribute(
+    "href",
+    "/work/zalando",
+  );
+});
+
+test("the portal steps back one level at a time, then closes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/contact");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  await portal.locator('a.orbit-label[data-body="lab"]').dispatchEvent("click");
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 30_000 });
+
+  // Escape inside a section returns to the map rather than throwing the
+  // whole world away — one step back per press.
+  await page.keyboard.press("Escape");
+  await expect(portal).toHaveAttribute("data-view", "map");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".orbit-portal")).toHaveCount(0);
+
+  // Closing restores the page it was opened over, and the focus.
+  await expect(page).toHaveURL("/contact");
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+  expect(await page.evaluate(() => document.activeElement?.className)).toContain("sphere-home");
+});
+
+test("the map is reachable under reduced motion, as its poster", async ({ page }) => {
+  await gotoReduced(page, "/building");
+  await page.locator(".sphere-home").click();
+  const portal = page.locator(".orbit-portal");
+  await expect(portal).toBeVisible();
+  // No WebGL scene under reduced motion — the composed poster instead,
+  // whose planets are real links out to the sections.
+  await expect(portal.locator(".orbit-poster")).toBeVisible();
+  await expect(portal.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
+  await expect(portal.locator('.orbit-poster a[href="/building"]')).toBeAttached();
+  await expect(portal.locator('.orbit-poster a[href="/contact"]')).toBeAttached();
+});
+
+test("the site navigates completely without the orb", async ({ browser }) => {
+  // The map is an Easter egg, so it may be script-only — but then every
+  // destination it offers has to be reachable without it.
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator(".orbit-portal")).toHaveCount(0);
+  for (const href of ["/building", "/about", "/contact"]) {
+    await expect(page.locator(`a[href="${href}"]`).first()).toBeAttached();
+  }
+  await expect(page.locator('[data-work-row][href="/work/zalando"]')).toBeAttached();
   await context.close();
 });
 
-test("each page's headers are its planets", async ({ browser }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1005, height: 900 } });
-  const page = await context.newPage();
-  await page.goto("/work");
-  // Work's planets are its projects, not its employers — the About
-  // corridor already carries the companies, and two of these records
-  // hold more than one project, so several planets share a destination.
-  await expect(page.locator(".orbit-poster a")).toHaveCount(8);
-  await expect(page.locator('.orbit-poster a[href="/work/zalando"]')).toHaveCount(2);
-  await expect(page.locator('.orbit-poster a[href="/work/chapter-2"]')).toHaveCount(2);
-  // Nameplates read in caps, so match what is actually rendered.
-  await expect(page.locator(".orbit-poster")).toContainText("0 → 120 AI BUILD");
-  await expect(page.locator(".orbit-poster")).toContainText("INTERVIEWER TRAINING SYSTEM");
-  // And no company name among them — that is the duplication this
-  // replaced, and the check is worthless unless it is cased to match.
-  for (const company of ["ZALANDO", "CHAPTER 2", "CAMPBELL NORTH", "AUDIBENE"]) {
-    await expect(page.locator(".orbit-poster")).not.toContainText(company);
-  }
-  await page.goto("/contact");
-  await expect(page.locator(".orbit-poster a")).toHaveCount(4);
-  await expect(page.locator('.orbit-poster a[href^="mailto:"]')).toBeAttached();
-  await page.goto("/about");
-  await expect(page.locator(".orbit-poster a")).toHaveCount(8);
-  await expect(page.locator('.orbit-poster a[href="#station-0"]')).toBeAttached();
-  await context.close();
-});
 
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
@@ -1097,13 +1090,12 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
-  // Under reduced motion the WebGL orbit never mounts — no context is
-  // created at all — and the server-rendered poster carries the field.
-  // The navigation sphere is a separate canvas and stays: reduced motion
-  // takes its movement away, not its dimensionality.
-  await expect(page.locator(".orbit-field canvas")).toHaveCount(0);
+  // The map is not on this page at all now, in any form. The navigation
+  // sphere is a separate object and stays: reduced motion takes its
+  // movement away, not its dimensionality.
+  await expect(page.locator(".orbit-field")).toHaveCount(0);
+  await expect(page.locator(".orbit-poster")).toHaveCount(0);
   await expect(page.locator(".sphere-stage canvas")).toHaveCount(1);
-  await expect(page.locator(".orbit-poster")).toBeVisible();
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 
@@ -1116,9 +1108,10 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   const page = await context.newPage();
   await page.goto("/building");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
-  // Without JavaScript the canvas never activates: the poster carries the field.
-  await expect(page.locator(".orbit-canvas")).toBeHidden();
-  await expect(page.locator(".orbit-poster")).toBeVisible();
+  // Without JavaScript there is no orb and no map — the semantic index
+  // below is the whole page, and it is complete.
+  await expect(page.locator(".orbit-canvas")).toHaveCount(0);
+  await expect(page.locator(".orbit-poster")).toHaveCount(0);
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();
@@ -1249,14 +1242,14 @@ test("Voices stays invisible until someone has actually spoken", async ({ page }
   await expect(page.locator(".voices")).toHaveCount(0);
   await expect(page.getByText(/introduced privately/)).toBeVisible();
   await gotoReduced(page, "/");
-  await expect(page.locator('.orbit-poster a[href="/voices"]')).toHaveCount(0);
-  // The island is absent from the landing page by design, so the nav is
-  // checked where one exists.
-  await gotoReduced(page, "/work");
+  // No planet for it in the hidden world either.
+  await expect(page.locator('a[href="/voices"]')).toHaveCount(0);
   const island = page.locator(".nav-island");
   await island.hover();
   await expect(island.getByRole("link", { name: "Voices" })).toHaveCount(0);
-  await expect(island.getByRole("link", { name: "Work" })).toBeVisible();
+  // A real sibling is still there, so the absence above is Voices being
+  // gated rather than the row failing to open.
+  await expect(island.getByRole("link", { name: "Lab" })).toBeVisible();
 });
 
 test("Contact keeps direct channels and mailto primary", async ({ page }) => {
@@ -1279,7 +1272,8 @@ test("the 390px Home sets the production spine without overflow", async ({ page 
     "constraint.",
     "Then subtract.",
   ]);
-  await expect(page.getByRole("heading", { level: 1, name: "Identify the constraint. Then subtract." })).toBeVisible();
+  await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.locator(".home-actions")).toHaveCount(0);
 });
 
@@ -1291,7 +1285,9 @@ test("the 390px Home renders the statements resolved, no journey", async ({ page
     items.map((item) => getComputedStyle(item).fontVariationSettings),
   );
   expect(axes.every((value) => value.includes("100"))).toBe(true);
-  await expect(page.locator(".orbit-poster, .orbit-canvas").first()).toBeAttached();
+  // What is under the resolved statements is the portfolio itself.
+  await expect(page.locator(".personal-hero")).toBeAttached();
+  await expect(page.locator("[data-work-row]").first()).toBeAttached();
 });
 
 test("required responsive compositions do not overflow", async ({ page }) => {
@@ -1394,9 +1390,9 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
     violation.impact === "serious" || violation.impact === "critical",
   )).toEqual([]);
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
-  await expect(page.getByRole("heading", {
-    level: 1,
-    name: "Identify the constraint. Then subtract.",
-    exact: true,
-  })).toBeVisible();
+  // Exactly one h1, and it names the person rather than the epigraph.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "I build the teams, the operating model, and the agents to run it.",
+  );
 });

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { OperatingOrbit } from "@/components/operating-orbit";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { site } from "@/lib/content/site";
 import { testimonials } from "@/lib/content/testimonials";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Voices",
@@ -12,21 +10,10 @@ export const metadata: Metadata = {
     "References from the leaders Tom Green has built teams and operating systems alongside.",
 };
 
-/** This page's planets: the people who worked with him, orbiting talent. */
-const orbitBodies: OrbitBody[] = testimonials.map((testimonial, index) => ({
-  id: testimonial.id,
-  label: testimonial.author,
-  color: planetColor(index),
-  target: { kind: "anchor", id: "references" },
-  size: defaultBodySize(index),
-  keepCase: true,
-}));
-
 export default function VoicesPage() {
   return (
     <div className="stack-page">
       <section className="systems-hero">
-        <OperatingOrbit bodies={orbitBodies} />
         <div className="systems-hero-copy">
           <p className="record text-muted">References</p>
           <h1 className="axis-display">Voices</h1>

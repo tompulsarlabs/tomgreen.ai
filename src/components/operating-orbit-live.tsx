@@ -16,7 +16,13 @@ const OperatingOrbit3D = dynamic(
  * static frame with every label and note present. WebGL never runs on
  * the server: the scene module itself is imported client-side only.
  */
-export function OperatingOrbitLive({ bodies }: { bodies: OrbitBody[] }) {
+export function OperatingOrbitLive({
+  bodies,
+  onCapture,
+}: {
+  bodies: OrbitBody[];
+  onCapture?: (id: string) => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState<{ field: HTMLElement; narrow: boolean } | null>(null);
 
@@ -43,7 +49,14 @@ export function OperatingOrbitLive({ bodies }: { bodies: OrbitBody[] }) {
 
   return (
     <div ref={hostRef} className="orbit-live" aria-hidden="true">
-      {live ? <OperatingOrbit3D field={live.field} narrow={live.narrow} bodies={bodies} /> : null}
+      {live ? (
+        <OperatingOrbit3D
+          field={live.field}
+          narrow={live.narrow}
+          bodies={bodies}
+          onCapture={onCapture}
+        />
+      ) : null}
     </div>
   );
 }

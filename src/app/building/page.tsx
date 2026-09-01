@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { OperatingOrbit } from "@/components/operating-orbit";
 import { Reveal } from "@/components/reveal";
 import { projects } from "@/lib/content/building";
 import { caseStudies } from "@/lib/content/case-studies";
@@ -12,7 +11,6 @@ import {
   sceneNodeIds,
   type GraphNode,
 } from "@/lib/content/graph";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
 
 export const metadata: Metadata = {
   title: "Lab",
@@ -21,24 +19,6 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = { themeColor: "#ffffff" };
-
-/** The Lab's planets: its section headings, orbiting talent. */
-const orbitBodies: OrbitBody[] = [
-  ...clusterOrder.map((clusterId, index) => ({
-    id: `cluster-${clusterId}`,
-    label: clusters[clusterId].label,
-    color: planetColor(index),
-    target: { kind: "anchor" as const, id: `cluster-${clusterId}` },
-    size: defaultBodySize(index),
-  })),
-  {
-    id: "projects",
-    label: "Projects",
-    color: planetColor(clusterOrder.length),
-    target: { kind: "anchor", id: "projects" },
-    size: defaultBodySize(clusterOrder.length),
-  },
-];
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
@@ -116,7 +96,6 @@ export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
       <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
-        <OperatingOrbit bodies={orbitBodies} />
         <div className="systems-hero-copy">
           <p className="record">Lab</p>
           <div className="systems-title-row">

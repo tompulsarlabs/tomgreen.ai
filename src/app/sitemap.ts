@@ -6,7 +6,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const base = `https://${site.domain}`;
   return [
     { url: `${base}/`, priority: 1 },
-    { url: `${base}/work`, priority: 0.9 },
     ...caseStudies.map((study) => ({
       url: `${base}/work/${study.slug}`,
       priority: 0.8,
