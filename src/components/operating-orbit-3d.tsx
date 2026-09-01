@@ -58,6 +58,11 @@ const CAPTURE_SECONDS = 0.75;
 /** Fragment assembly: how long the system takes to draw itself together
  *  out of scattered pieces when it first appears, or when one section's
  *  system replaces another. */
+/** Travel, in px, before an armed press becomes a camera drag. */
+const DRAG_THRESHOLD_PX = 5;
+/** How long a press stays eligible to complete as a click. */
+const PRESS_GRACE_MS = 900;
+
 const ASSEMBLY_SECONDS = 1.45;
 /** How far out the pieces start, in world units of extra orbit radius. */
 const ASSEMBLY_SCATTER = 5.4;
@@ -304,6 +309,10 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
     hoverEase: new Map<string, number>(),
     coreWake: 0,
     capture: null as Capture | null,
+    /** Where a pointer went down, before it is known to be a drag. */
+    pressOrigin: null as { x: number; y: number; id: number } | null,
+    /** The planet a press landed on, completed as a click on release. */
+    pendingPress: null as { id: string; t: number } | null,
     angles: new Map<string, number>(),
     dragging: false,
     drift: 0.58,
@@ -346,6 +355,11 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
     if (!bodyById.has(id)) return;
     s.capture = { id, progress: 0, active: true, navigated: false };
   };
+  /** A pointer went down on a planet. Release decides if it was a click. */
+  const armPress = (id: string) => {
+    state.current.pendingPress = { id, t: performance.now() };
+  };
+  const armPressRef = useRef(armPress);
   const startCaptureRef = useRef(startCapture);
   // Kept current in an effect, never during render: the scene reads it
   // from inside useFrame, where a stale closure would silently send a
@@ -382,6 +396,7 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
   // after render so neither ever goes stale.
   useEffect(() => {
     startCaptureRef.current = startCapture;
+    armPressRef.current = armPress;
     navigateRef.current = navigate;
   });
 
@@ -458,15 +473,12 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
     dom.style.cursor = "grab";
 
     const onPointerDown = (event: PointerEvent) => {
-      // A drag must never start or extend a page text selection.
-      event.preventDefault();
       document.getSelection()?.removeAllRanges();
-      document.body.classList.add("orbit-dragging");
-      s.dragging = true;
+      // Armed, not dragging: the camera stays still until the pointer
+      // has actually travelled DRAG_THRESHOLD_PX, so a click is a click.
+      s.pressOrigin = { x: event.clientX, y: event.clientY, id: event.pointerId };
       s.lastPointer = { x: event.clientX, y: event.clientY };
       s.lastInteraction = performance.now() / 1000;
-      dom.style.cursor = "grabbing";
-      dom.setPointerCapture(event.pointerId);
     };
     const onPointerMove = (event: PointerEvent) => {
       const bounds = dom.getBoundingClientRect();
@@ -475,6 +487,23 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
       // Restrained parallax: never more than ~4 degrees.
       s.parallaxYawTarget = nx * 0.065;
       s.parallaxPitchTarget = ny * 0.05;
+      // Promote an armed press into a drag only once it has travelled.
+      if (!s.dragging && s.pressOrigin) {
+        const tx = event.clientX - s.pressOrigin.x;
+        const ty = event.clientY - s.pressOrigin.y;
+        if (Math.hypot(tx, ty) > DRAG_THRESHOLD_PX) {
+          s.dragging = true;
+          s.pendingPress = null;   // it was a drag, not a click
+          document.body.classList.add("orbit-dragging");
+          dom.style.cursor = "grabbing";
+          try {
+            dom.setPointerCapture(s.pressOrigin.id);
+          } catch {
+            // A pointer that already ended cannot be captured; the drag
+            // simply proceeds without capture.
+          }
+        }
+      }
       if (s.dragging && s.lastPointer) {
         const dx = event.clientX - s.lastPointer.x;
         const dy = event.clientY - s.lastPointer.y;
@@ -487,11 +516,22 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
       }
     };
     const onPointerUp = () => {
+      // A press that never became a drag is a click on whichever planet
+      // was under the pointer when it went down. The planet keeps
+      // orbiting between press and release, so asking what is under the
+      // pointer NOW would lose the click on exactly the fast-moving
+      // bodies that are hardest to hit.
+      const press = s.pendingPress;
+      s.pendingPress = null;
+      s.pressOrigin = null;
+      if (!s.dragging && press && performance.now() - press.t < PRESS_GRACE_MS) {
+        startCaptureRef.current(press.id);
+      }
       document.body.classList.remove("orbit-dragging");
       s.dragging = false;
       s.lastPointer = null;
       s.lastInteraction = performance.now() / 1000;
-      dom.style.cursor = s.hover ? "pointer" : "grab";
+      dom.style.cursor = s.hover && s.hover !== NUCLEUS_ID ? "pointer" : "grab";
     };
     const onPointerLeave = () => {
       s.parallaxYawTarget = 0;
@@ -563,9 +603,13 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
           } else {
             const target = bodyById.get(c.id)?.target;
             if (target) navigateRef.current(target);
-            if (target && (target.kind === "anchor" || target.kind === "station")) {
-              c.active = false;
-            }
+            // Every branch releases. A route or link used to leave the
+            // capture active forever: router.push is client-side, the
+            // portal survives it, and startCapture refuses to run while
+            // a capture is active — so one click killed every click
+            // after it. Releasing costs nothing when the page really
+            // does leave, and is the whole fix when it does not.
+            c.active = false;
           }
         }
       } else {
@@ -910,7 +954,12 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
 
   const setHover = (id: string | null) => {
     state.current.hover = id;
-    if (!state.current.dragging) gl.domElement.style.cursor = id ? "pointer" : "grab";
+    // The nucleus is the destination, not a control. It may glow on
+    // approach, but it must never claim the cursor of something
+    // clickable — nothing happens when it is pressed.
+    if (!state.current.dragging) {
+      gl.domElement.style.cursor = id && id !== NUCLEUS_ID ? "pointer" : "grab";
+    }
   };
 
   return (
@@ -1029,9 +1078,9 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
               setHover(body.id);
             }}
             onPointerOut={() => setHover(null)}
-            onClick={(event) => {
+            onPointerDown={(event) => {
               event.stopPropagation();
-              startCaptureRef.current(body.id);
+              armPressRef.current(body.id);
             }}
           >
             <sphereGeometry args={[body.size, 48, 48]} />
@@ -1056,9 +1105,9 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
               setHover(body.id);
             }}
             onPointerOut={() => setHover(null)}
-            onClick={(event) => {
+            onPointerDown={(event) => {
               event.stopPropagation();
-              startCaptureRef.current(body.id);
+              armPressRef.current(body.id);
             }}
           >
             <sphereGeometry args={[body.size * 2.6, 12, 12]} />

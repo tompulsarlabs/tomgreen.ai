@@ -1023,6 +1023,25 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
   );
 });
 
+test("the nucleus is a destination, not a control", async ({ page }) => {
+  // It carries a label and it glows on approach, so it must not also
+  // carry the cursor of something clickable: pressing it does nothing,
+  // and an object that looks like a control and has no outcome is the
+  // exact thing the map must never ship.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached({
+    timeout: 20_000,
+  });
+  // The nucleus never becomes one of the activatable nameplates.
+  await expect(portal.locator('a.orbit-label[data-body="talent"]')).toHaveCount(0);
+});
+
 test("the portal steps back one level at a time, then closes", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
