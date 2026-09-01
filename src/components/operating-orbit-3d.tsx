@@ -18,6 +18,7 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
+import { isInteractive } from "@/lib/planet-model";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 import {
   navOrbitElements,
@@ -353,6 +354,7 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
     const s = state.current;
     if (s.capture?.active) return;
     if (!bodyById.has(id)) return;
+    if (!isInteractive(id)) return;
     s.capture = { id, progress: 0, active: true, navigated: false };
   };
   /** A pointer went down on a planet. Release decides if it was a click. */
@@ -408,7 +410,8 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
     field.querySelectorAll<HTMLElement>(".orbit-label").forEach((label) => {
       const id = label.dataset.body!;
       s.labels.set(id, label);
-      if (id === NUCLEUS_ID) return;
+      // Only a body the model calls interactive is wired as a control.
+      if (!isInteractive(id)) return;
       // The nameplate is a real link; a plain activation becomes the
       // capture, while modified clicks (new tab, download) pass through
       // untouched.
@@ -531,7 +534,7 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
       s.dragging = false;
       s.lastPointer = null;
       s.lastInteraction = performance.now() / 1000;
-      dom.style.cursor = s.hover && s.hover !== NUCLEUS_ID ? "pointer" : "grab";
+      dom.style.cursor = s.hover && isInteractive(s.hover) ? "pointer" : "grab";
     };
     const onPointerLeave = () => {
       s.parallaxYawTarget = 0;
@@ -958,7 +961,7 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
     // approach, but it must never claim the cursor of something
     // clickable — nothing happens when it is pressed.
     if (!state.current.dragging) {
-      gl.domElement.style.cursor = id && id !== NUCLEUS_ID ? "pointer" : "grab";
+      gl.domElement.style.cursor = id && isInteractive(id) ? "pointer" : "grab";
     }
   };
 
