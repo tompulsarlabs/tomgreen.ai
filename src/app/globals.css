@@ -1104,42 +1104,19 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 }
 
 /* ── The personal hero ───────────────────────────────────────────────
-   A face, the positioning line, and the introduction — the three things
-   a visitor needs before any evidence means anything. */
+   The headline and the introduction — what a visitor needs before any
+   evidence means anything. No portrait: the owner does not want a
+   photograph here, so the copy takes the full column rather than
+   sitting beside a reserved box with nothing in it. */
 .personal-hero {
   display: grid;
-  grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
-  align-items: end;
-  gap: clamp(1.5rem, 4vw, 3.5rem);
   border-bottom: 1px solid var(--ink);
   padding: clamp(2.5rem, 7vh, 5rem) 0 clamp(2rem, 4vw, 3rem);
-}
-/* The slot holds its box whether or not the photograph has landed, so
-   adding the file later shifts nothing. */
-.personal-portrait {
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  aspect-ratio: 4 / 5;
-  border-radius: 2px;
-  background: var(--card);
-}
-.personal-portrait img { width: 100%; height: 100%; object-fit: cover; }
-.personal-monogram {
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  font-variation-settings: "wdth" 100;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  /* --ghost lands at 1.81:1 on the card and fails AA for large text.
-     --muted clears 3:1 with room, and reads as a mark rather than as a
-     missing image. */
-  color: var(--muted);
 }
 .personal-hero-copy { display: grid; gap: clamp(0.75rem, 2vh, 1.25rem); }
 .personal-headline {
   --axis: 100;
-  max-width: 18ch;
+  max-width: 22ch;
   font-size: clamp(2.1rem, 5vw, 4.2rem);
   line-height: 0.98;
 }
@@ -1150,8 +1127,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   color: var(--ink-secondary);
 }
 @media (max-width: 768px) {
-  .personal-hero { grid-template-columns: minmax(0, 1fr); align-items: start; }
-  .personal-portrait { max-width: 11rem; }
   .orbit-portal-chrome { padding-left: max(22px, 6vw); padding-top: 4.6rem; }
 }
 
@@ -1207,7 +1182,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    76px. */
 .home-page .personal-headline {
   --axis: 100;
-  max-width: 18ch;
+  /* 22ch, not 18ch: the shorter previous headline set in four lines at
+     18ch, but this one spills to five and strands "Building" alone on
+     the first. 22ch is the narrowest measure that recovers the four-line
+     set — past it the text stops reflowing, so this stays a measure
+     rather than becoming full-bleed by default. */
+  max-width: 22ch;
   font-size: clamp(2.5rem, 1.66rem + 3.43vw, 4.75rem);  /* 40 → 76 → 76 */
   font-weight: 800;
   line-height: 0.97;
@@ -1220,15 +1200,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    lines while pretending to add air. */
 .home-page .personal-bio { max-width: 50ch; }
 
-/* The portrait was a fixed 288px: 22% of the content column at 1440 but
-   32% at 1024, which is what squeezed the headline on a laptop. The clamp
-   holds 20-24% at every width. The 4:5 aspect and the reserved box are
-   untouched, so dropping /public/tom-green.jpg in later still shifts
-   nothing. */
+/* One column, so the headline is measured by its own max-width rather
+   than by what a portrait left over. */
 .home-page .personal-hero {
-  grid-template-columns: minmax(0, clamp(9rem, 18vw, 17rem)) minmax(0, 1fr);
-  align-items: end;                       /* the hero closes on one line  */
-  gap: clamp(1.5rem, 3.4vw, 3.5rem);      /* 24 → 49 → 56 */
   padding-top: var(--air-3);              /* 49 → 97 — see the gate below */
   padding-bottom: calc(var(--u) * 5);     /* 41 → 81, above the rule      */
 }
@@ -1408,12 +1382,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 }
 
 @media (max-width: 768px) {
-  .home-page .personal-hero {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: var(--air-2);
-  }
-  .home-page .personal-portrait { max-width: 10rem; }
   /* Full column. A short measure at the top of a phone screen reads as
      broken, not as air. */
   .home-page .personal-headline { max-width: none; letter-spacing: -0.04em; }
