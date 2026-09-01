@@ -297,13 +297,16 @@ export function OrbitFlare({
     const camera = rootState.camera as THREE.PerspectiveCamera;
     const group = groupRef.current;
     if (!group) return;
+    const lightSource = lightRef.current;
     if (!flare) {
       group.visible = false;
+      if (lightSource) lightSource.intensity = 0;
       return;
     }
     const t = (performance.now() - flare.at) / 1000;
     if (t <= 0 || t >= BURST_LIFE) {
       group.visible = false;
+      if (lightSource) lightSource.intensity = 0;
       return;
     }
     group.visible = true;
@@ -351,7 +354,6 @@ export function OrbitFlare({
     // event: white as they assemble, amber as the visitor lands, red as
     // the remnant cools. Inside the core it lights the core's surface
     // from behind, so the black hole stays black.
-    const lightSource = lightRef.current;
     if (lightSource) {
       lightSource.color.setRGB(heat[0], heat[1], heat[2]);
       lightSource.intensity = 4 * Math.pow(light, 0.8);
@@ -396,73 +398,90 @@ export function OrbitFlare({
   });
 
   return (
-    <group ref={groupRef} position={origin} visible={false}>
-      <pointLight ref={lightRef} intensity={0} decay={2} distance={7} />
-      {/* depthTest off: a flare is light, and light is not occluded by
+    <>
+      {/* Always mounted, driven to zero when idle — never inside the
+          group below. three keys every lit program on the number of
+          visible lights, so a light that appears with the burst would
+          recompile every planet, the core and the glass synchronously
+          inside the first frame of breakout. Intensity 0 compiles
+          nothing. */}
+      <pointLight
+        ref={lightRef}
+        position={origin}
+        intensity={0}
+        decay={2}
+        distance={7}
+      />
+      <group ref={groupRef} position={origin} visible={false}>
+        {/* depthTest off: a flare is light, and light is not occluded by
           the object at its centre. */}
-      <mesh
-        ref={flashRef}
-        renderOrder={20}
-        raycast={() => null}
-        frustumCulled={false}
-      >
-        <planeGeometry args={[1, 1]} />
-        <shaderMaterial
-          ref={flashMaterial}
-          uniforms={uniforms.flash}
-          vertexShader={flashVertex}
-          fragmentShader={flashFragment}
-          blending={THREE.AdditiveBlending}
-          transparent
-          depthTest={false}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh ref={shellRef} renderOrder={19} raycast={() => null}>
-        <sphereGeometry args={[1, 32, 24]} />
-        <shaderMaterial
-          ref={shellMaterial}
-          uniforms={uniforms.shell}
-          vertexShader={shellVertex}
-          fragmentShader={shellFragment}
-          blending={THREE.AdditiveBlending}
-          transparent
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <points
-        ref={ejectaRef}
-        renderOrder={18}
-        raycast={() => null}
-        frustumCulled={false}
-      >
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[ejecta.positions, 3]}
+        <mesh
+          ref={flashRef}
+          renderOrder={20}
+          raycast={() => null}
+          frustumCulled={false}
+        >
+          <planeGeometry args={[1, 1]} />
+          <shaderMaterial
+            ref={flashMaterial}
+            uniforms={uniforms.flash}
+            vertexShader={flashVertex}
+            fragmentShader={flashFragment}
+            blending={THREE.AdditiveBlending}
+            transparent
+            depthTest={false}
+            depthWrite={false}
+            toneMapped={false}
           />
-          <bufferAttribute attach="attributes-aDir" args={[ejecta.dirs, 3]} />
-          <bufferAttribute
-            attach="attributes-aSpeed"
-            args={[ejecta.speeds, 1]}
+        </mesh>
+
+        <mesh ref={shellRef} renderOrder={19} raycast={() => null}>
+          <sphereGeometry args={[1, 32, 24]} />
+          <shaderMaterial
+            ref={shellMaterial}
+            uniforms={uniforms.shell}
+            vertexShader={shellVertex}
+            fragmentShader={shellFragment}
+            blending={THREE.AdditiveBlending}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
           />
-          <bufferAttribute attach="attributes-aSize" args={[ejecta.sizes, 1]} />
-        </bufferGeometry>
-        <shaderMaterial
-          ref={ejectaMaterial}
-          uniforms={uniforms.ejecta}
-          vertexShader={ejectaVertex}
-          fragmentShader={ejectaFragment}
-          blending={THREE.AdditiveBlending}
-          transparent
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </points>
-    </group>
+        </mesh>
+
+        <points
+          ref={ejectaRef}
+          renderOrder={18}
+          raycast={() => null}
+          frustumCulled={false}
+        >
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              args={[ejecta.positions, 3]}
+            />
+            <bufferAttribute attach="attributes-aDir" args={[ejecta.dirs, 3]} />
+            <bufferAttribute
+              attach="attributes-aSpeed"
+              args={[ejecta.speeds, 1]}
+            />
+            <bufferAttribute
+              attach="attributes-aSize"
+              args={[ejecta.sizes, 1]}
+            />
+          </bufferGeometry>
+          <shaderMaterial
+            ref={ejectaMaterial}
+            uniforms={uniforms.ejecta}
+            vertexShader={ejectaVertex}
+            fragmentShader={ejectaFragment}
+            blending={THREE.AdditiveBlending}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </points>
+      </group>
+    </>
   );
 }

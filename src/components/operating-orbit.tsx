@@ -1,5 +1,7 @@
 import { OperatingOrbitLive } from "./operating-orbit-live";
+import type { MutableRefObject } from "react";
 import type { Flare } from "@/components/orbit-flare";
+import type { SceneHandoff } from "@/components/operating-orbit-3d";
 import {
   DEFAULT_CAMERA,
   NUCLEUS_ID,
@@ -53,12 +55,15 @@ export function OperatingOrbit({
   bodies,
   onCapture,
   flare,
+  handoff,
 }: {
   bodies: OrbitBody[];
   /** Redirects a captured planet away from travel — see OrbitScene. */
   onCapture?: (id: string) => void;
   /** The core burst, owned by the portal so it outlives this scene. */
   flare?: Flare | null;
+  /** The outgoing scene's camera and reveal, for the one replacing it. */
+  handoff?: MutableRefObject<SceneHandoff | null>;
 }) {
   const elements = bodies.map((_, index) => navOrbitElements(index, bodies.length));
   // Normalise the nav-scene world (a up to ~3.2) into the poster's field
@@ -246,7 +251,7 @@ export function OperatingOrbit({
           {displayLabel(NUCLEUS_LABEL)}
         </span>
       </div>
-      <OperatingOrbitLive bodies={bodies} onCapture={onCapture} flare={flare} />
+      <OperatingOrbitLive bodies={bodies} onCapture={onCapture} flare={flare} handoff={handoff} />
     </nav>
   );
 }

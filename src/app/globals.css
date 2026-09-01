@@ -1139,15 +1139,26 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   background: radial-gradient(circle, #ffffff 0%, rgba(183, 205, 255, 0.85) 28%, rgba(183, 205, 255, 0) 70%);
   mix-blend-mode: screen;
   pointer-events: none;
+  will-change: opacity, transform;
   animation: orbit-breakout 700ms linear both;
 }
+/* Starts above zero and holds its peak: if the incoming scene's first
+   render blocks the main thread before the compositor promotes this
+   layer, the frame that does paint is already bright, and a late first
+   paint anywhere in the first two hundred milliseconds still meets the
+   flash at full. */
 @keyframes orbit-breakout {
-  0%    { opacity: 0;    transform: translate(-50%, -50%) scale(0.35); }
+  0%    { opacity: 0.6;  transform: translate(-50%, -50%) scale(0.5); }
   8.6%  { opacity: 1;    transform: translate(-50%, -50%) scale(0.7); }
-  25.7% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.9); }
-  60%   { opacity: 0.12; transform: translate(-50%, -50%) scale(1); }
+  28.6% { opacity: 1;    transform: translate(-50%, -50%) scale(0.9); }
+  45.7% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.95); }
+  68.6% { opacity: 0.14; transform: translate(-50%, -50%) scale(1); }
   100%  { opacity: 0;    transform: translate(-50%, -50%) scale(1.05); }
 }
+/* The static poster the field shows until its canvas is live: under a
+   live burst a remount would paint the new section's grey planets for a
+   frame beneath the flash. */
+.orbit-portal-field[data-burst="true"] .orbit-poster { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .orbit-portal-breakout { display: none; }
 }

@@ -4,6 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Flare } from "@/components/orbit-flare";
+import { BURST_LIFE } from "@/lib/supernova";
 
 /**
  * The deep field behind the planetary map.
@@ -248,7 +249,11 @@ export function OrbitNebula({
     );
     // Fade up rather than snapping on, so opening the portal reveals a
     // depth that was already there.
-    u.uOpacity.value = Math.min(1, u.uOpacity.value + delta * 0.55);
+    // A field that mounts into a live burst is a remount, not a first
+    // open: the fade-up is skipped, so the remnant is not seen through
+    // a sky that arrives from black underneath it.
+    const remount = flare && (performance.now() - flare.at) / 1000 < BURST_LIFE;
+    u.uOpacity.value = remount ? 1 : Math.min(1, u.uOpacity.value + delta * 0.55);
 
     // The echo runs on the burst's own wall clock, so the scene that
     // replaces this one at the descent draws the same ring in the same

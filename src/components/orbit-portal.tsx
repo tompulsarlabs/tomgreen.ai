@@ -8,6 +8,8 @@ import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
 import { mapBodies, worldById } from "@/lib/orbit-worlds";
 import { planetsById } from "@/lib/planet-model";
 import type { Flare } from "@/components/orbit-flare";
+import type { SceneHandoff } from "@/components/operating-orbit-3d";
+import { BURST_LIFE } from "@/lib/supernova";
 
 /**
  * The world behind the moon.
@@ -45,12 +47,20 @@ export function OrbitPortal() {
   const [flare, setFlare] = useState<Flare | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const travelTimer = useRef(0);
+  const remnantTimer = useRef(0);
+  // What the outgoing scene hands the incoming one at the cut — camera
+  // drift, drag offsets — so a remnant is seen through a camera that
+  // does not jump. Written by the scene every frame, read once by its
+  // replacement, owned here because the two scenes never overlap.
+  const handoff = useRef<SceneHandoff | null>(null);
 
   // The moon asks; this answers. It is the only opener there is.
   useEffect(() => onOrbitPortalOpen(() => setOpen(true)), []);
 
   const close = useCallback(() => {
     window.clearTimeout(travelTimer.current);
+    window.clearTimeout(remnantTimer.current);
+    handoff.current = null;
     setOpen(false);
     setView({ kind: "map" });
     setFlare(null);
@@ -65,6 +75,10 @@ export function OrbitPortal() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.stopPropagation();
+      // A pending travel dies with the step back: the view returned to
+      // the map, and the page must not change underneath it a moment
+      // later.
+      window.clearTimeout(travelTimer.current);
       setView((current) => {
         if (current.kind === "section") return { kind: "map" };
         close();
@@ -98,7 +112,13 @@ export function OrbitPortal() {
   // A pending travel must not outlive the portal: closing by Escape or
   // by the close button during the flare would otherwise navigate a
   // moment later, from a page the visitor had already returned to.
-  useEffect(() => () => window.clearTimeout(travelTimer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(travelTimer.current);
+      window.clearTimeout(remnantTimer.current);
+    },
+    [],
+  );
 
   const world = view.kind === "section" ? worldById(view.id) : undefined;
   const bodies = world ? world.bodies : mapBodies;
@@ -119,7 +139,18 @@ export function OrbitPortal() {
       // rather than inside the scene because descending replaces the
       // scene outright — the burst has to belong to the thing that
       // survives, so the tear-down happens inside its brightest frame.
-      setFlare({ color: node.visual.color, at: performance.now() });
+      const at = performance.now();
+      setFlare({ color: node.visual.color, at });
+      // The burst has a life; its state should not outlive it. Cleared
+      // only if no newer detonation has replaced it.
+      window.clearTimeout(remnantTimer.current);
+      remnantTimer.current = window.setTimeout(
+        () =>
+          setFlare((current) =>
+            current && current.at === at ? null : current,
+          ),
+        BURST_LIFE * 1000 + 500,
+      );
 
       if (action.type === "children") {
         setView({ kind: "section", id });
@@ -203,6 +234,10 @@ export function OrbitPortal() {
               fragments whenever its bodies change. */}
       <div
         className="orbit-portal-field"
+        // A remount paints the new section's static poster for a frame
+        // before its canvas exists; under a live burst that frame is grey
+        // planets beneath a white flash. Hidden while the burst is live.
+        data-burst={flare ? "true" : undefined}
         // A nameplate is a real link, because the poster fallback
         // needs it to be. But on the map inside the portal a click
         // must descend, never travel — and the WebGL scene that
@@ -223,6 +258,7 @@ export function OrbitPortal() {
           bodies={bodies}
           onCapture={onCapture}
           flare={flare}
+          handoff={handoff}
         />
         {/* Shock breakout, in the DOM rather than the scene: the scene
                 is torn down and rebuilt at the instant of capture, and the

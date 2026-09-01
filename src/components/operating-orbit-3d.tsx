@@ -5,7 +5,7 @@
  * imperative three.js is the design here, keeping React state out of
  * the render loop entirely. */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 import {
   anchorRect,
@@ -20,7 +20,7 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
-import { lightCurve } from "@/lib/supernova";
+import { BURST_LIFE, lightCurve } from "@/lib/supernova";
 import { isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
@@ -211,17 +211,53 @@ type SceneProps = {
    * and the incoming one read the same detonation time.
    */
   flare?: Flare | null;
+  /**
+   * The camera the outgoing scene was looking through, for the scene
+   * that replaces it. A remnant lasts long enough to be seen across the
+   * cut, and without this the cut restarted the idle drift and dropped
+   * the visitor's drag, so the burst was seen through a camera that
+   * jumped. Written every frame, read once, only under a live burst.
+   */
+  handoff?: MutableRefObject<SceneHandoff | null>;
 };
+
+export type SceneHandoff = {
+  at: number;
+  drift: number;
+  offsetAzimuth: number;
+  offsetPolar: number;
+  targetOffsetAzimuth: number;
+  targetOffsetPolar: number;
+  azimuthVelocity: number;
+  polarVelocity: number;
+  lastInteraction: number;
+};
+
+/** A handoff older than this is from some earlier life of the portal. */
+const HANDOFF_FRESH_MS = 1000;
 
 type Capture = {
   id: string;
   progress: number;
   /** true while spiralling in; false while easing back out. */
   active: boolean;
+  /**
+   * The portal has accepted the capture and is about to replace or
+   * close this scene: the planet stays inside the core rather than
+   * climbing back out through its own explosion.
+   */
+  held: boolean;
   navigated: boolean;
 };
 
-function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
+function OrbitScene({
+  field,
+  narrow,
+  bodies,
+  onCapture,
+  flare,
+  handoff,
+}: SceneProps) {
   const { camera, gl, size } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
@@ -366,6 +402,10 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     revealTarget: 0,
     /** 0 while the system is still scattered, 1 once assembled. */
     assembly: 0,
+    /** The first frame has run; the continuity seed happens only once. */
+    seeded: false,
+    /** Seeded into a live burst: nameplates wait for assembly instead. */
+    labelGate: false,
     pointerWorld: new THREE.Vector3(99, 0, 99),
     pointerStrength: 0,
     // Label placement: the chosen anchor per body, where each label is
@@ -385,10 +425,18 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
 
   const startCapture = (id: string) => {
     const s = state.current;
-    if (s.capture?.active) return;
+    // Any capture, not only an active one: a held capture belongs to a
+    // scene the portal is about to replace.
+    if (s.capture) return;
     if (!bodyById.has(id)) return;
     if (!isInteractive(id)) return;
-    s.capture = { id, progress: 0, active: true, navigated: false };
+    s.capture = {
+      id,
+      progress: 0,
+      active: true,
+      held: false,
+      navigated: false,
+    };
   };
   /** A pointer went down on a planet. Release decides if it was a click. */
   const armPress = (id: string) => {
@@ -640,6 +688,35 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     const now = rootState.clock.elapsedTime;
     const lerpIn = (rate: number) => Math.min(1, dt * rate);
 
+    // A scene that mounts into a live burst is a remount, not a first
+    // open. It skips the entry choreography — the dolly in, the well
+    // deepening, the core and lattice fading up — because the remnant
+    // must be seen through a stage that is already there, and it takes
+    // the camera the outgoing scene was looking through so nothing
+    // jumps at the cut. A first open, and a step back with no remnant
+    // live, are unchanged.
+    if (!s.seeded) {
+      s.seeded = true;
+      const wall = performance.now();
+      const live = !!flare && (wall - flare.at) / 1000 < BURST_LIFE;
+      if (live) {
+        s.reveal = 1;
+        s.revealTarget = 1;
+        s.labelGate = true;
+        const h = handoff?.current;
+        if (h && wall - h.at < HANDOFF_FRESH_MS) {
+          s.drift = h.drift;
+          s.offsetAzimuth = h.offsetAzimuth;
+          s.offsetPolar = h.offsetPolar;
+          s.targetOffsetAzimuth = h.targetOffsetAzimuth;
+          s.targetOffsetPolar = h.targetOffsetPolar;
+          s.azimuthVelocity = h.azimuthVelocity;
+          s.polarVelocity = h.polarVelocity;
+          s.lastInteraction = h.lastInteraction;
+        }
+      }
+    }
+
     // Entry: the well deepens, the system condenses, the camera settles.
     s.reveal += (s.revealTarget - s.reveal) * lerpIn(1.6);
     if (s.assembly < 1)
@@ -660,10 +737,14 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
           c.navigated = true;
           const handler = onCaptureRef.current;
           if (handler) {
-            // The portal descends instead of travelling; the planet
-            // climbs back out while its section's system assembles.
+            // The portal takes it from here — descending, or closing to
+            // travel — and this scene is about to be replaced. The
+            // planet is held inside the core: released, it climbed most
+            // of the way back onto its orbit during the travel hold,
+            // through the middle of its own explosion.
             handler(c.id);
             c.active = false;
+            c.held = true;
           } else {
             const target = bodyById.get(c.id)?.target;
             if (target) navigateRef.current(target);
@@ -676,7 +757,7 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
             c.active = false;
           }
         }
-      } else {
+      } else if (!c.held) {
         c.progress = Math.max(0, c.progress - dt / 0.9);
         if (c.progress === 0) s.capture = null;
       }
@@ -877,6 +958,7 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
         const opacity =
           (base + (1 - base) * nextEase) *
           s.reveal *
+          (s.labelGate ? assembled : 1) *
           (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
         // Measuring every frame would thrash layout. A nameplate's box
@@ -1087,6 +1169,32 @@ function OrbitScene({ field, narrow, bodies, onCapture, flare }: SceneProps) {
     // Orbit paths stay quiet — the membrane carries the depth.
     for (const material of pathMaterials.current)
       material.opacity = 0.1 * s.reveal;
+
+    // Hand the camera to whatever scene replaces this one.
+    if (handoff) {
+      const h =
+        handoff.current ??
+        (handoff.current = {
+          at: 0,
+          drift: 0,
+          offsetAzimuth: 0,
+          offsetPolar: 0,
+          targetOffsetAzimuth: 0,
+          targetOffsetPolar: 0,
+          azimuthVelocity: 0,
+          polarVelocity: 0,
+          lastInteraction: 0,
+        });
+      h.at = performance.now();
+      h.drift = s.drift;
+      h.offsetAzimuth = s.offsetAzimuth;
+      h.offsetPolar = s.offsetPolar;
+      h.targetOffsetAzimuth = s.targetOffsetAzimuth;
+      h.targetOffsetPolar = s.targetOffsetPolar;
+      h.azimuthVelocity = s.azimuthVelocity;
+      h.polarVelocity = s.polarVelocity;
+      h.lastInteraction = s.lastInteraction;
+    }
   });
 
   const setHover = (id: string | null) => {
@@ -1302,6 +1410,7 @@ export function OperatingOrbit3D({
   field,
   narrow,
   bodies,
+  handoff,
   onCapture,
   flare,
 }: SceneProps) {
@@ -1332,6 +1441,7 @@ export function OperatingOrbit3D({
         bodies={bodies}
         onCapture={onCapture}
         flare={flare}
+        handoff={handoff}
       />
     </Canvas>
   );
