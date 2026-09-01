@@ -18,6 +18,7 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
+import { OrbitNebula } from "@/components/orbit-nebula";
 import { isInteractive } from "@/lib/planet-model";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 import {
@@ -977,6 +978,11 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
       </Environment>
       <directionalLight position={[-4, 7, 5]} intensity={1.5} />
       <ambientLight intensity={0.55} />
+
+      {/* The deep field. Renders first, with depth off, so it is a
+          backdrop rather than an object: it occludes nothing, receives
+          nothing, and never enters the raycaster. */}
+      <OrbitNebula narrow={narrow} />
 
       {/* The spacetime membrane: displaced funnel geometry rendered as a
           procedural graphite lattice — sub-pixel AA lines, no boundary. */}
