@@ -30,7 +30,9 @@ export function PersonalHero() {
           {site.name} / {site.location}
         </p>
         <div className="systems-title-row">
-          <h1 className="axis-display hero-title-long personal-headline">{site.headline}</h1>
+          <h1 className="axis-display hero-title-long personal-headline">
+            {site.positioning}
+          </h1>
           <p className="systems-lead personal-bio">{site.intro}</p>
         </div>
       </div>

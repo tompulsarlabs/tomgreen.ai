@@ -47,13 +47,14 @@ export function WorkIndex() {
         <p className="record">Evidence / selected operating records</p>
         <div className="section-split-body">
           <h2 className="axis-display">Weighed by opportunity cost.</h2>
-          <p className="systems-lead">{site.positioning}</p>
+          <p className="systems-lead">{site.recordLead}</p>
         </div>
       </header>
 
       <section aria-label="Selected outcomes" className="work-metric-band">
         <p className="max-w-2xl leading-relaxed text-ink-secondary">
-          Inspect the mandate, operating logic, judgment and evidence behind every decision.
+          Inspect the mandate, operating logic, judgment and evidence behind
+          every decision.
         </p>
         <dl className="work-metric-rail">
           {[
@@ -74,17 +75,27 @@ export function WorkIndex() {
           (group.tiers as readonly string[]).includes(study.tier),
         );
         return (
-          <section key={group.id} aria-labelledby={`${group.id}-heading`} className="work-index-group">
+          <section
+            key={group.id}
+            aria-labelledby={`${group.id}-heading`}
+            className="work-index-group"
+          >
             <div className="work-group-intro section-split">
               <p className="record">{group.label}</p>
               <div className="section-split-body">
-                <h2 id={`${group.id}-heading`} className="axis-heading">{group.heading}</h2>
+                <h2 id={`${group.id}-heading`} className="axis-heading">
+                  {group.heading}
+                </h2>
                 {group.lead && <p className="work-group-lead">{group.lead}</p>}
               </div>
             </div>
             <div className="work-index-list">
               {members.map((study) => (
-                <WorkIndexRow key={study.slug} study={study} index={rowIndex++} />
+                <WorkIndexRow
+                  key={study.slug}
+                  study={study}
+                  index={rowIndex++}
+                />
               ))}
             </div>
           </section>
@@ -94,12 +105,17 @@ export function WorkIndex() {
       <aside className="work-index-next section-split">
         <p className="record">Next / the operating logic</p>
         <div className="section-split-body">
-          <p className="axis-heading">Want the operating logic, not just the result?</p>
+          <p className="axis-heading">
+            Want the operating logic, not just the result?
+          </p>
           <p className="work-next-lead">
-            The Lab connects the agent workflows, products, case studies and public build record behind this work.
+            The Lab connects the agent workflows, products, case studies and
+            public build record behind this work.
           </p>
         </div>
-        <Link href="/building" className="action action-light">Explore the Lab →</Link>
+        <Link href="/building" className="action action-light">
+          Explore the Lab →
+        </Link>
       </aside>
     </div>
   );

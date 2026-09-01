@@ -95,11 +95,11 @@ async function inkedCanvasPixels(page: Page, selector: string) {
 test("Home presents the complete Load-Bearing Type journey", async ({ page }) => {
   await gotoReduced(page, "/");
 
-  // The opening statement is the page's epigraph, not its title: the h1
-  // is the introduction underneath it.
+  // The opening statements are the page's epigraph, not its title: the
+  // h1 is the positioning claim underneath them.
   await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organizations, talent systems, and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
@@ -476,15 +476,16 @@ test("the home route is the six-row evidence index, under the introduction", asy
   // it as a section heading, which is the hierarchy a reader expects.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organizations, talent systems, and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
   await expect(
     page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
   ).toBeVisible();
-  // The positioning line did not leave the page, it moved: it now sits
-  // under the operating record's masthead rather than opening the page.
+  // The two lines swapped rather than one leaving: the positioning
+  // claim opens the page as its h1 — the same string the site is indexed
+  // under — and the founder-mode line sits under the record's masthead.
   await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building organizations, talent systems, and operating models, in founder mode.",
   );
   // No photograph, and no placeholder standing in for one.
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
@@ -1417,9 +1418,9 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
     violation.impact === "serious" || violation.impact === "critical",
   )).toEqual([]);
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
-  // Exactly one h1, and it names the person rather than the epigraph.
+  // Exactly one h1, and it is the positioning claim, not the epigraph.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organizations, talent systems, and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
 });
