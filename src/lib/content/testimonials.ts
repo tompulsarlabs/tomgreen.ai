@@ -20,7 +20,7 @@ export type Testimonial = {
   quote: string;
   author: string;
   role: string;
-  organisation: string;
+  organization: string;
   /** How they worked with Tom — the reason their word carries weight. */
   relationship?: string;
   /** Public profile, so the reference is checkable rather than asserted. */

@@ -43,29 +43,29 @@ export const caseStudies: CaseStudy[] = [
     company: "Zalando",
     role: "Global Lead, Talent Acquisition",
     period: "2022 – 2025",
-    headline: "An AI organisation from zero to 120 people in six months",
+    headline: "An AI organization from zero to 120 people in six months",
     summary:
-      "Built a pan-European AI organisation from zero to 120 people across four countries, led a 22-person talent team across Europe and China, and moved every headline hiring metric.",
+      "Built a pan-European AI organization from zero to 120 people across four countries, led a 22-person talent team across Europe and China, and moved every headline hiring metric.",
     context:
-      "Europe's leading fashion platform was making its big bet on AI. It needed an entire cross-functional AI organisation — research, ML engineering, product — built from nothing, at speed, across markets it hadn't hired in before.",
+      "Europe's leading fashion platform was making its big bet on AI. It needed an entire cross-functional AI organization — research, ML engineering, product — built from nothing, at speed, across markets it hadn't hired in before.",
     body: [
       "I led talent acquisition globally across AI and machine learning, Research, Technology, Commercial, Product, Design and corporate functions — a team of 22 across Europe and China.",
-      "The AI build-out went from zero to 120 people in six months across Germany, Ireland, Switzerland and Finland. Under the organisation’s internal reporting definition, 42% were diversity hires. The work included market entry, executive search for the leadership team, and standing up a Technology and AI hub in Shenzhen.",
+      "The AI build-out went from zero to 120 people in six months across Germany, Ireland, Switzerland and Finland. Under the organization’s internal reporting definition, 42% were diversity hires. The work included market entry, executive search for the leadership team, and standing up a Technology and AI hub in Shenzhen.",
       "Beyond the build-out: launched AI/ML and Research early-careers programs and an Associate PM MBA program, and built an interviewer training system grounded in hiring data and neuroscience — over 1,000 interviewers trained.",
       "The system-level results: Time to Hire down 32%, final-stage-to-hire conversion up 16%, offer acceptance up 21%. Rated in Zalando's top performance tier (~3% of the org).",
     ],
     metrics: [
-      { value: "0 → 120", label: "AI organisation in six months" },
+      { value: "0 → 120", label: "AI organization in six months" },
       { value: "−32%", label: "Time to Hire" },
       { value: "+21%", label: "Offer acceptance" },
       { value: "1,000+", label: "Interviewers trained" },
     ],
     demonstrates:
-      "Scale and speed at the executive level: building an entire AI organisation, not filling roles.",
+      "Scale and speed at the executive level: building an entire AI organization, not filling roles.",
     tier: "flagship",
     system: {
       eyebrow: "Reconstructed operating model",
-      title: "A talent system built around the organisation—not a list of vacancies.",
+      title: "A talent system built around the organization—not a list of vacancies.",
       description:
         "The build linked capability planning, market entry, leadership search, talent pipelines and interviewer quality into one operating loop across four countries.",
       steps: [
@@ -90,8 +90,8 @@ export const caseStudies: CaseStudy[] = [
           owner: "system",
         },
         {
-          label: "AI organisation",
-          detail: "Land the leadership spine and 120-person cross-functional organisation in six months.",
+          label: "AI organization",
+          detail: "Land the leadership spine and 120-person cross-functional organization in six months.",
           owner: "team",
         },
       ],
@@ -102,7 +102,7 @@ export const caseStudies: CaseStudy[] = [
       {
         title: "Build the leadership spine first",
         detail:
-          "Executive search and capability planning set the shape of the organisation before volume hiring accelerated.",
+          "Executive search and capability planning set the shape of the organization before volume hiring accelerated.",
       },
       {
         title: "Treat each market as a product",
@@ -130,14 +130,14 @@ export const caseStudies: CaseStudy[] = [
     context:
       "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how agents could change People Ops.",
     body: [
-      "I led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
+      "I led recruiting programs across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
       "I rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
       "The model became the reference for the group’s wider AI transformation.",
     ],
     metrics: [
       { value: "Europe", label: "P&L owned" },
       { value: "€3.3M", label: "New business won in twelve months" },
-      { value: "4 countries", label: "Recruiting programmes led" },
+      { value: "4 countries", label: "Recruiting programs led" },
       { value: "3 roles", label: "Shared-service reliance removed" },
     ],
     demonstrates:
@@ -203,17 +203,17 @@ export const caseStudies: CaseStudy[] = [
     company: "Audibene / Hear.com",
     role: "Technology Talent Lead → Product Operations",
     period: "2019 – 2022",
-    headline: "Scaled the technology organisation—then built Product Operations from zero",
+    headline: "Scaled the technology organization—then built Product Operations from zero",
     summary:
-      "Scaled the technology organisation from about 70 to 180 people before IPO, then moved into the organisation to build Product Operations from zero.",
+      "Scaled the technology organization from about 70 to 180 people before IPO, then moved into the organization to build Product Operations from zero.",
     context:
-      "An EQT Ventures-backed HealthTech had two consecutive mandates: scale the technology organisation toward IPO, then make the product portfolio itself run better.",
+      "An EQT Ventures-backed HealthTech had two consecutive mandates: scale the technology organization toward IPO, then make the product portfolio itself run better.",
     body: [
-      "Leading three talent-acquisition teams across the US, Germany and India, I doubled the function and grew the technology organisation from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
-      "Then the crossover: I moved into the organisation to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
+      "Leading three talent-acquisition teams across the US, Germany and India, I doubled the function and grew the technology organization from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
+      "Then the crossover: I moved into the organization to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
     ],
     metrics: [
-      { value: "~70 → 180", label: "Technology organisation" },
+      { value: "~70 → 180", label: "Technology organization" },
       { value: "40+", label: "Direct hires pre-IPO" },
       { value: "−75%", label: "Low-ROI projects" },
       { value: "~20%", label: "Faster release cycles" },
@@ -302,7 +302,7 @@ export type WorkProject = {
 };
 
 export const workProjects: WorkProject[] = [
-  // Zalando — the organisation, and a system built inside it.
+  // Zalando — the organization, and a system built inside it.
   { id: "ai-organisation", label: "0 → 120 AI build", slug: "zalando" },
   { id: "interviewer-training", label: "Interviewer training system", slug: "zalando" },
   // Chapter 2 — the commercial result, and the operating rebuild behind it.

@@ -17,7 +17,7 @@ const groups = [
     id: "flagship",
     label: "01 / Flagship",
     heading: "Two constraints. Two systems in motion.",
-    lead: "One built an AI organisation across four countries. One ran a European business, then rebuilt its People Ops around agents.",
+    lead: "One built an AI organization across four countries. One ran a European business, then rebuilt its People Ops around agents.",
     tiers: ["flagship"],
   },
   {
@@ -53,7 +53,7 @@ export function WorkIndex() {
         </p>
         <dl className="work-metric-rail">
           {[
-            ["0 → 120", "AI organisation / six months"],
+            ["0 → 120", "AI organization / six months"],
             ["€3.3M", "New business won / 12 months"],
             ["£1M", "Bootstrapped / two years"],
           ].map(([value, label]) => (

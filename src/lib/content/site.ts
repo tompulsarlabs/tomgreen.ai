@@ -6,7 +6,7 @@ export const site = {
   /**
    * The page's opening headline.
    */
-  headline: "Building organisations, talent engines and operating models, in founder mode.",
+  headline: "Building organizations, talent systems, and operating models, in founder mode.",
   /**
    * The claim the site is indexed and shared under — description,
    * og:description, twitter:description and the JSON-LD in layout.tsx all
@@ -16,7 +16,7 @@ export const site = {
    */
   positioning: "I build the teams, the operating model, and the agents to run it.",
   intro:
-    "Executive talent leader and systems builder. I’ve built a 120-person AI organisation in six months, led global talent teams, and redesigned People Ops around agent workflows.",
+    "Executive talent leader and systems builder. I’ve built a 120-person AI organization in six months, led global talent teams, and redesigned Operations around agent workflows.",
   links: {
     calendly: "https://calendly.com/tom-tomgreen",
     github: "https://github.com/tompulsarlabs",

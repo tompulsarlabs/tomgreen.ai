@@ -1188,7 +1188,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
      set — past it the text stops reflowing, so this stays a measure
      rather than becoming full-bleed by default. */
   max-width: 22ch;
-  font-size: clamp(2.5rem, 1.66rem + 3.43vw, 4.75rem);  /* 40 → 76 → 76 */
+  font-size: clamp(1.875rem, 1.1rem + 4.05vw, 4.75rem); /* 31 → 76 → 76 */
   font-weight: 800;
   line-height: 0.97;
   letter-spacing: -0.045em;
@@ -1239,7 +1239,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   display: grid;
   gap: 0;
   max-width: 60rem;
-  padding-top: calc(var(--u) * 9);      /* 73 → 145, below the rule */
+  padding-top: calc(var(--u) * 7);      /* 57 → 113, below the rule */
   padding-bottom: 0;
 }
 .work-index-masthead > h2       { margin-top: var(--air-1); }
@@ -1249,7 +1249,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    /contact and /about. Unscoped, this would strip the baseline nudge that
    holds the Lab's lead against its h1 in an end-aligned grid, and would
    beat the ≤768 `.systems-lead` max-width on three other routes. */
-.work-index-masthead .systems-lead { max-width: 30rem; padding-bottom: 0; }
+.work-index-masthead .systems-lead { max-width: 38rem; padding-bottom: 0; }
 
 
 /* ── 3. THE METRIC BAND ───────────────────────────────────────────────
@@ -1259,12 +1259,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    band copy is an orphan grey paragraph floating in the new air. */
 .work-index-page .work-metric-band {
   margin-top: var(--air-3);
-  padding-block: 0 var(--air-3);
+  padding-block: 0 var(--air-2);
 }
 /* Unlayered, so it beats the `max-w-2xl` utility in the markup. */
 .work-index-page .work-metric-band > p { max-width: 38rem; }
 
-.work-index-page .work-metric-rail { margin-top: var(--air-3); }
+.work-index-page .work-metric-rail { margin-top: var(--air-2); }
 /* padding-block only. The rail's `padding` shorthand is re-set to
    `padding-left: 0` inside @media(≤768); a shorthand here would resurrect
    the inline padding and knock mobile rail cells 2 and 3 out of alignment

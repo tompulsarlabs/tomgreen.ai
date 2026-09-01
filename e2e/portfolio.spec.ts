@@ -99,7 +99,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   // is the introduction underneath it.
   await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organisations, talent engines and operating models, in founder mode.",
+    "Building organizations, talent systems, and operating models, in founder mode.",
   );
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
@@ -476,7 +476,7 @@ test("the home route is the six-row evidence index, under the introduction", asy
   // it as a section heading, which is the hierarchy a reader expects.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organisations, talent engines and operating models, in founder mode.",
+    "Building organizations, talent systems, and operating models, in founder mode.",
   );
   await expect(
     page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
@@ -820,7 +820,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
   const metrics = page.locator(".case-opening dl");
   await expect(metrics.locator("dd")).toHaveText(["0 → 120", "−32%", "+21%", "1,000+"]);
   await expect(metrics.locator("dt")).toHaveText([
-    "AI organisation in six months",
+    "AI organization in six months",
     "Time to Hire",
     "Offer acceptance",
     "Interviewers trained",
@@ -828,20 +828,20 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
 
   const system = page.getByRole("region", { name: "How the operating system worked" });
   await expect(system.getByRole("heading", {
-    name: "A talent system built around the organisation—not a list of vacancies.",
+    name: "A talent system built around the organization—not a list of vacancies.",
   })).toBeVisible();
   await expect(system.locator("ol > li h3")).toHaveText([
     "Capability map",
     "Market entry",
     "Talent engine",
     "Quality loop",
-    "AI organisation",
+    "AI organization",
   ]);
   await expect(page.getByText(
     "Evidence note · Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
     { exact: true },
   )).toBeVisible();
-  await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
+  await expect(page.getByText(/evidence object|typeset|M01|organization structure reconstructed/i)).toHaveCount(0);
   await expect(page.locator(".zalando-evidence, .month-ruler, .role-crowd")).toHaveCount(0);
 
   // Brand casing is a ruling, not a style: WeR is never WER.
@@ -1401,6 +1401,6 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
   // Exactly one h1, and it names the person rather than the epigraph.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organisations, talent engines and operating models, in founder mode.",
+    "Building organizations, talent systems, and operating models, in founder mode.",
   );
 });

@@ -28,7 +28,7 @@ export const categories: Record<CategoryId, { label: string; blurb: string }> = 
   talent: {
     label: "Talent systems",
     blurb:
-      "Organisations and operating models built at scale. This is where the systems earn their keep.",
+      "Organizations and operating models built at scale. This is where the systems earn their keep.",
   },
   craft: {
     label: "Craft & tooling",
@@ -44,13 +44,13 @@ export const clusters: Record<
     label: "Where I’ve worked",
     eyebrow: "Work in context",
     blurb:
-      "The organisations, businesses and operating environments where the outcomes were built.",
+      "The organizations, businesses and operating environments where the outcomes were built.",
   },
   practice: {
     label: "Teams & operating models",
     eyebrow: "How I operate",
     blurb:
-      "Organisation design, talent systems and operating workflows—the connected craft of building teams and making work run better.",
+      "Organization design, talent systems and operating workflows—the connected craft of building teams and making work run better.",
   },
   systems: {
     label: "AI & agents",
@@ -62,7 +62,7 @@ export const clusters: Record<
     label: "Writing & ideas",
     eyebrow: "What I publish",
     blurb:
-      "Essays and field notes on talent, AI, organisations and the work behind the work.",
+      "Essays and field notes on talent, AI, organizations and the work behind the work.",
   },
 };
 
@@ -84,7 +84,7 @@ export const projectCategory: Record<string, CategoryId> = {
 const practiceNodes: GraphNode[] = [
   {
     id: "building-practice",
-    label: "Organisation design",
+    label: "Organization design",
     kind: "practice",
     category: "craft",
     cluster: "practice",

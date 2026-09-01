@@ -90,7 +90,7 @@ export default function Image() {
             display: "flex",
           }}
         >
-          AI organisations · People systems · Agent workflows
+          AI organizations · People systems · Agent workflows
         </div>
       </div>
     ),

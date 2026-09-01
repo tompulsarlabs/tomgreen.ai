@@ -29,14 +29,14 @@ export const career: CareerStop[] = [
     period: "2025 – 2026",
     note: "Ran the European business. Won €3.3M of new business in twelve months. Then rebuilt how Europe operated.",
     achievements: [
-      "Led recruiting programmes across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
+      "Led recruiting programs across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
       "Rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. The model became the reference for the group’s wider AI transformation.",
       "Delivered a consulting project for Google EMEA on executive recruiting (NDA).",
     ],
     metrics: [
       { value: "Europe", label: "P&L owned" },
       { value: "€3.3M", label: "new business won in twelve months" },
-      { value: "4 countries", label: "recruiting programmes led" },
+      { value: "4 countries", label: "recruiting programs led" },
       { value: "3 roles", label: "shared-service reliance removed" },
     ],
     href: "/work/chapter-2",
@@ -48,12 +48,12 @@ export const career: CareerStop[] = [
     note: "Europe's leading fashion platform makes its AI bet — and needs the org built.",
     achievements: [
       "Led talent acquisition globally—a team of 22 across Europe and China—for AI and machine learning, Research, Technology, Commercial, Product, Design and corporate functions.",
-      "Built a cross-functional AI organisation from zero to 120 people in six months across Germany, Ireland, Switzerland and Finland; 42% were diversity hires under the organisation’s internal reporting definition. Led market entry, executive search, and a Technology and AI hub in Shenzhen.",
+      "Built a cross-functional AI organization from zero to 120 people in six months across Germany, Ireland, Switzerland and Finland; 42% were diversity hires under the organization’s internal reporting definition. Led market entry, executive search, and a Technology and AI hub in Shenzhen.",
       "Launched AI/ML and Research early-careers programs and an Associate PM MBA program; built an interviewer training system on hiring data and neuroscience — 1,000+ trained.",
       "Rated Delivering Breakthroughs — Zalando's top performance tier (~3% of the org).",
     ],
     metrics: [
-      { value: "0 → 120", label: "AI organisation in six months" },
+      { value: "0 → 120", label: "AI organization in six months" },
       { value: "−32%", label: "Time to Hire" },
       { value: "+21%", label: "Offer acceptance" },
     ],
@@ -65,11 +65,11 @@ export const career: CareerStop[] = [
     period: "2019 – 2022",
     note: "An EQT Ventures-backed HealthTech, scaled toward IPO — then the crossover.",
     achievements: [
-      "Led three talent-acquisition teams across the US, Germany and India; doubled the function and grew the technology organisation from about 70 to 180 people; directly hired 40+ people before IPO, including the Group Technology Officer and senior Commercial, Product, Platform, Data and information-security leaders.",
+      "Led three talent-acquisition teams across the US, Germany and India; doubled the function and grew the technology organization from about 70 to 180 people; directly hired 40+ people before IPO, including the Group Technology Officer and senior Commercial, Product, Platform, Data and information-security leaders.",
       "Promoted to build Product Operations 0→1: established Tech and Product OKRs with the executive team, cut 75% of low-ROI projects, and release cycles ran ~20% faster.",
     ],
     metrics: [
-      { value: "~70 → 180", label: "Technology organisation" },
+      { value: "~70 → 180", label: "Technology organization" },
       { value: "40+", label: "Direct hires pre-IPO" },
     ],
     href: "/work/audibene",
