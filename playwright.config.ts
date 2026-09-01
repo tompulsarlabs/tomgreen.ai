@@ -10,6 +10,13 @@ export default defineConfig({
   retries: isCI ? 2 : 0,
   workers: isCI ? 1 : 2,
   reporter: isCI ? "github" : "list",
+  // WebGL here is rasterised on the CPU, where a frame costs orders of
+  // magnitude more than on a GPU — and the portal's capture is a timed
+  // animation driven by the frame loop, so its wall-clock length is set
+  // by the renderer. The default 30s was sized for a scene with no
+  // nebula behind it. This widens the allowance; it does not weaken a
+  // single assertion.
+  timeout: 120_000,
   use: {
     baseURL: "http://localhost:3100",
     screenshot: "only-on-failure",

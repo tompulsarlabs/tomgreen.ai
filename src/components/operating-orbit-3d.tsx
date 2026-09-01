@@ -719,6 +719,15 @@ function OrbitScene({ field, narrow, bodies, onCapture }: SceneProps) {
         scratch.v1.multiplyScalar(1 + ASSEMBLY_SCATTER * out);
         scratch.v1.y += ASSEMBLY_SCATTER * out * lift;
       }
+      // Ride above the sheet. The orbits are inclined ellipses about the
+      // origin, but the membrane falls away as a funnel, so out where the
+      // funnel flattens toward y=0 a low-inclination body sits *in* the
+      // mesh and the lattice draws straight across it. Lifting each body
+      // clear of the local surface by its own radius keeps it a planet
+      // above a sheet rather than a bead threaded onto it.
+      const groundR = Math.hypot(scratch.v1.x, scratch.v1.z);
+      const clearance = body.size * 1.9 + 0.08;
+      scratch.v1.y = Math.max(scratch.v1.y, wellDepth(groundR) + clearance);
       if (suction > 0) scratch.v1.lerp(scratch.core, suction);
       group.position.copy(scratch.v1);
       // Feed the membrane's contact shading (first ten bodies).

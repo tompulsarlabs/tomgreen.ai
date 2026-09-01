@@ -914,7 +914,7 @@ async function openPortal(page: Page) {
   await page.locator(".sphere-home").click();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
   await expect(page.locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')).toBeVisible({
-    timeout: 20_000,
+    timeout: 45_000,
   });
   // A visible canvas is not a wired scene: the nameplates are positioned
   // from inside useFrame, so a non-zero inline opacity is the first proof
@@ -924,7 +924,7 @@ async function openPortal(page: Page) {
       async () =>
         page.locator('.orbit-portal .orbit-label[data-body]').first()
           .evaluate((element) => Number((element as HTMLElement).style.opacity || 0)),
-      { timeout: 30_000 },
+      { timeout: 45_000 },
     )
     .toBeGreaterThan(0);
 }
@@ -1006,11 +1006,11 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
 
   // The planet is captured, and what emerges is Work's own bodies —
   // its projects — orbiting the section centre. No navigation.
-  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 30_000 });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 45_000 });
   await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
   await expect(page).toHaveURL("/building");
   await expect(portal.locator('a.orbit-label[data-body="ai-organisation"]')).toBeAttached({
-    timeout: 20_000,
+    timeout: 45_000,
   });
   await expect(portal.locator('a.orbit-label[data-body="quant-search"]')).toBeAttached();
   // Eight projects, and none of them is a section any more.
@@ -1036,7 +1036,7 @@ test("the nucleus is a destination, not a control", async ({ page }) => {
 
   const portal = page.locator(".orbit-portal");
   await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached({
-    timeout: 20_000,
+    timeout: 45_000,
   });
   // The nucleus never becomes one of the activatable nameplates.
   await expect(portal.locator('a.orbit-label[data-body="talent"]')).toHaveCount(0);
@@ -1051,7 +1051,7 @@ test("the portal steps back one level at a time, then closes", async ({ page }) 
 
   const portal = page.locator(".orbit-portal");
   await portal.locator('a.orbit-label[data-body="lab"]').dispatchEvent("click");
-  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 30_000 });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 45_000 });
 
   // Escape inside a section returns to the map rather than throwing the
   // whole world away — one step back per press.

@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { displayLabel } from "@/lib/orbit-nav";
 import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
 import { mapBodies, worldById } from "@/lib/orbit-worlds";
+import { planetsById } from "@/lib/planet-model";
 
 /**
  * The world behind the moon.
@@ -28,6 +30,7 @@ import { mapBodies, worldById } from "@/lib/orbit-worlds";
 type View = { kind: "map" } | { kind: "section"; id: string };
 
 export function OrbitPortal() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "map" });
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -82,12 +85,39 @@ export function OrbitPortal() {
   const world = view.kind === "section" ? worldById(view.id) : undefined;
   const bodies = world ? world.bodies : mapBodies;
 
-  // On the map a capture descends into that section. Inside a section it
-  // is left undefined, so the scene's own travel takes over and the body
-  // finally goes to its page.
-  const onCapture = useCallback((id: string) => {
-    if (worldById(id)) setView({ kind: "section", id });
-  }, []);
+  // Every capture ends here, at both levels. Leaving it undefined inside
+  // a section handed travel to the scene, which pushed the route while
+  // the portal stayed open on top of it — so a planet went in, climbed
+  // back out, and appeared to go nowhere, with the page it had actually
+  // travelled to hidden behind the overlay. The portal owns being open,
+  // so the portal is what closes before the page changes underneath it.
+  const onCapture = useCallback(
+    (id: string) => {
+      if (worldById(id)) {
+        setView({ kind: "section", id });
+        return;
+      }
+      const action = planetsById.get(id)?.action;
+      if (!action) return;
+      if (action.type === "route") {
+        close();
+        if (action.external) window.location.assign(action.href);
+        else router.push(action.href);
+        return;
+      }
+      if (action.type === "content") {
+        close();
+        // The portal unmounts first, so the target is on screen to
+        // scroll to rather than behind a dialog.
+        requestAnimationFrame(() => {
+          document
+            .getElementById(action.targetId)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    },
+    [close, router],
+  );
 
   if (!open) return null;
 
@@ -148,7 +178,7 @@ export function OrbitPortal() {
             <OperatingOrbit
               key={world ? world.id : "map"}
               bodies={bodies}
-              onCapture={world ? undefined : onCapture}
+              onCapture={onCapture}
             />
           </div>
     </div>
