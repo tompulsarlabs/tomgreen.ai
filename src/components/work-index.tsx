@@ -41,10 +41,14 @@ export function WorkIndex() {
 
   return (
     <div className="work-index-page">
-      <header className="work-index-masthead">
+      {/* The Lab's section format: a mono label held on the left, the
+          heading and its lead carried on the right. */}
+      <header className="work-index-masthead section-split">
         <p className="record">Evidence / selected operating records</p>
-        <h2 className="axis-display">Weighed by opportunity cost.</h2>
-        <p className="systems-lead">{site.positioning}</p>
+        <div className="section-split-body">
+          <h2 className="axis-display">Weighed by opportunity cost.</h2>
+          <p className="systems-lead">{site.positioning}</p>
+        </div>
       </header>
 
       <section aria-label="Selected outcomes" className="work-metric-band">
@@ -71,10 +75,12 @@ export function WorkIndex() {
         );
         return (
           <section key={group.id} aria-labelledby={`${group.id}-heading`} className="work-index-group">
-            <div className="work-group-intro">
+            <div className="work-group-intro section-split">
               <p className="record">{group.label}</p>
-              <h2 id={`${group.id}-heading`} className="axis-heading">{group.heading}</h2>
-              {group.lead && <p className="work-group-lead">{group.lead}</p>}
+              <div className="section-split-body">
+                <h2 id={`${group.id}-heading`} className="axis-heading">{group.heading}</h2>
+                {group.lead && <p className="work-group-lead">{group.lead}</p>}
+              </div>
             </div>
             <div className="work-index-list">
               {members.map((study) => (
@@ -85,9 +91,9 @@ export function WorkIndex() {
         );
       })}
 
-      <aside className="work-index-next">
+      <aside className="work-index-next section-split">
         <p className="record">Next / the operating logic</p>
-        <div>
+        <div className="section-split-body">
           <p className="axis-heading">Want the operating logic, not just the result?</p>
           <p className="work-next-lead">
             The Lab connects the agent workflows, products, case studies and public build record behind this work.

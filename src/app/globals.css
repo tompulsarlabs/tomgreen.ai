@@ -1401,3 +1401,43 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
      them. */
   .home-page .resolve-lines .axis-display { font-size: clamp(2rem, 8.4vw, 3.125rem); }
 }
+
+
+/* ── The Lab's section format, shared ────────────────────────────────
+   A mono label held on the left, the heading and its lead carried on the
+   right. The Lab already composed its sections this way at 0.65fr/1.35fr;
+   Home stacked everything in one column and read as a different site.
+   This is that composition named once, so the two pages move together. */
+.section-split {
+  display: grid;
+  grid-template-columns: 0.65fr 1.35fr;
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: start;
+}
+.section-split > .record { margin: 0; }
+.section-split-body { display: grid; gap: 0; min-width: 0; }
+
+/* The home masthead now sits inside the split, so the vertical rhythm
+   that used to run down one column runs down the right-hand one. */
+.work-index-page .work-index-masthead.section-split > .record { margin-top: 0; }
+.work-index-page .section-split-body > h2 { margin-top: 0; }
+.work-index-page .section-split-body > .systems-lead { margin-top: var(--air-2); }
+.work-index-page .work-group-intro.section-split .axis-heading { margin-top: 0; }
+
+/* Home's masthead is the Lab's, so it inherits the Lab's measures — but
+   the Lab's title is one word and this one is a sentence. `hero-title-long`
+   already exists for that case; its floor is 2.6rem, and at 320px the word
+   "ORGANIZATIONS," measures wider than the content box at that size, which
+   is the overflow this page fixed once already. The floor comes down, the
+   desktop size is the Lab's. */
+.home-page .systems-hero h1.hero-title-long.personal-headline {
+  max-width: 16ch;
+  font-size: clamp(1.875rem, 1.1rem + 4.05vw, 6rem);
+}
+
+@media (max-width: 768px) {
+  /* One column on a phone: a 0.65fr label column strands the mono line
+     against a measure too narrow to read. */
+  .section-split { grid-template-columns: minmax(0, 1fr); gap: var(--air-1); }
+  .home-page .systems-hero h1.hero-title-long.personal-headline { max-width: none; }
+}
