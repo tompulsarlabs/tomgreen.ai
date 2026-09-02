@@ -86,8 +86,6 @@ const CLICK_SLOP_PX = 20;
 const HIT_MIN_PX = 26;
 /** Hit radius as a multiple of the body's drawn radius. */
 const HIT_SCALE = 1.9;
-/** How long a press stays eligible to complete as a click. */
-const PRESS_GRACE_MS = 900;
 
 const ASSEMBLY_SECONDS = 1.45;
 /** How far out the pieces start, in world units of extra orbit radius. */
@@ -737,12 +735,9 @@ function OrbitScene({
       s.pendingPress = null;
       s.pressOrigin = null;
       const nervous = s.pressTravel < CLICK_SLOP_PX && held < CLICK_MAX_MS;
-      if (
-        complete &&
-        press &&
-        held < PRESS_GRACE_MS &&
-        (!s.dragging || nervous)
-      ) {
+      // No upper limit on how long a press is held: a slow, still press
+      // is a deliberate one. Only a drag that stayed a drag is not a click.
+      if (complete && press && (!s.dragging || nervous)) {
         startCaptureRef.current(press.id);
       }
       document.body.classList.remove("orbit-dragging");
