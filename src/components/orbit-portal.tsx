@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OperatingOrbit } from "@/components/operating-orbit";
-import { displayLabel } from "@/lib/orbit-nav";
+import { displayLabel, navOrbitElements } from "@/lib/orbit-nav";
 import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
 import { mapBodies, worldById } from "@/lib/orbit-worlds";
 import { planetsById } from "@/lib/planet-model";
@@ -34,19 +34,24 @@ type View = { kind: "map" } | { kind: "section"; id: string };
 
 /**
  * How long the burst holds the screen before a capture travels to a
- * real page. Breakout and the whole rise fit inside it and the page
- * arrives as the light starts to cool, and it stays under the second at
- * which a delay begins to register as waiting.
+ * real page: breakout, the whole rise and the first of the plateau are
+ * seen. Then the portal fades over TRAVEL_FADE_MS with the remnant still
+ * burning inside it, so the second-level cut is a dissolve rather than
+ * a cut, and the page arrives as the light begins to cool — still under
+ * the second at which a delay registers as waiting.
  */
-const TRAVEL_HOLD_MS = 650;
+const TRAVEL_HOLD_MS = 640;
+const TRAVEL_FADE_MS = 220;
 
 export function OrbitPortal() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "map" });
   const [flare, setFlare] = useState<Flare | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const travelTimer = useRef(0);
+  const leaveTimer = useRef(0);
   const remnantTimer = useRef(0);
   // What the outgoing scene hands the incoming one at the cut — camera
   // drift, drag offsets — so a remnant is seen through a camera that
@@ -59,8 +64,10 @@ export function OrbitPortal() {
 
   const close = useCallback(() => {
     window.clearTimeout(travelTimer.current);
+    window.clearTimeout(leaveTimer.current);
     window.clearTimeout(remnantTimer.current);
     handoff.current = null;
+    setLeaving(false);
     setOpen(false);
     setView({ kind: "map" });
     setFlare(null);
@@ -79,6 +86,8 @@ export function OrbitPortal() {
       // the map, and the page must not change underneath it a moment
       // later.
       window.clearTimeout(travelTimer.current);
+      window.clearTimeout(leaveTimer.current);
+      setLeaving(false);
       setView((current) => {
         if (current.kind === "section") return { kind: "map" };
         close();
@@ -115,6 +124,7 @@ export function OrbitPortal() {
   useEffect(
     () => () => {
       window.clearTimeout(travelTimer.current);
+      window.clearTimeout(leaveTimer.current);
       window.clearTimeout(remnantTimer.current);
     },
     [],
@@ -129,6 +139,14 @@ export function OrbitPortal() {
   // back out, and appeared to go nowhere, with the page it had actually
   // travelled to hidden behind the overlay. The portal owns being open,
   // so the portal is what closes before the page changes underneath it.
+  // The bodies the scene is drawing right now, readable from inside a
+  // stable callback: a stale closure would compute the fallen planet's
+  // plane from the wrong system.
+  const bodiesRef = useRef(bodies);
+  useEffect(() => {
+    bodiesRef.current = bodies;
+  }, [bodies]);
+
   const onCapture = useCallback(
     (id: string) => {
       const node = planetsById.get(id);
@@ -140,7 +158,17 @@ export function OrbitPortal() {
       // scene outright — the burst has to belong to the thing that
       // survives, so the tear-down happens inside its brightest frame.
       const at = performance.now();
-      setFlare({ color: node.visual.color, at });
+      // The plane the planet fell from, from the same elements the
+      // scene drew its orbit with — so the disc the debris settles into
+      // lies exactly where the planet used to travel.
+      const current = bodiesRef.current;
+      const index = current.findIndex((body) => body.id === id);
+      const elements = navOrbitElements(Math.max(0, index), current.length);
+      setFlare({
+        color: node.visual.color,
+        at,
+        plane: { incl: elements.incl, node: elements.node },
+      });
       // The burst has a life; its state should not outlive it. Cleared
       // only if no newer detonation has replaced it.
       window.clearTimeout(remnantTimer.current);
@@ -161,7 +189,12 @@ export function OrbitPortal() {
       // before the page changes. Long enough to read as the cause of
       // the arrival, short enough that nobody waits for it.
       window.clearTimeout(travelTimer.current);
-      travelTimer.current = window.setTimeout(() => {
+      window.clearTimeout(leaveTimer.current);
+      travelTimer.current = window.setTimeout(
+        () => setLeaving(true),
+        TRAVEL_HOLD_MS,
+      );
+      leaveTimer.current = window.setTimeout(() => {
         close();
         if (action.type === "route") {
           if (action.external) window.location.assign(action.href);
@@ -175,7 +208,7 @@ export function OrbitPortal() {
             .getElementById(action.targetId)
             ?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
-      }, TRAVEL_HOLD_MS);
+      }, TRAVEL_HOLD_MS + TRAVEL_FADE_MS);
     },
     [close, router],
   );
@@ -186,6 +219,7 @@ export function OrbitPortal() {
     <div
       className="orbit-portal"
       data-view={view.kind}
+      data-leaving={leaving ? "true" : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={world ? `${world.label} — orbit` : "Planetary map"}

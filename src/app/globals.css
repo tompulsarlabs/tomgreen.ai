@@ -1163,6 +1163,18 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .orbit-portal-breakout { display: none; }
 }
 
+/* Travelling to a real page: the portal dissolves with the remnant
+   still burning inside it, so the second-level cut is a fade and not a
+   cut. Under reduced motion no burst ever exists, so this never runs. */
+.orbit-portal[data-leaving="true"] {
+  animation: orbit-portal-out 220ms var(--ease-settle) both;
+  pointer-events: none;
+}
+@keyframes orbit-portal-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 /* The field fills what the chrome leaves, and drops the full-bleed
    trick it needs when it is a band inside a page. */
 .orbit-portal-field { position: relative; flex: 1 1 auto; min-height: 0; }

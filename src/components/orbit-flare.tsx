@@ -5,65 +5,75 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   BURST_LIFE,
+  blackbody,
   blastAlpha,
   blastRadius,
   blastTint,
+  blastWidth,
+  discAlpha,
+  discKelvin,
   lightCurve,
-  plateau,
-  spike,
-  tail,
-  thermal,
+  photosphereKelvin,
+  smoothstep,
 } from "@/lib/supernova";
 
 /**
- * The moment a planet reaches the core, and the ten seconds after it.
+ * The event: a planet falls into the core, and for the next fourteen
+ * seconds the universe around it is different.
  *
- * A capture used to end quietly: the body spiralled down, the well
- * flexed, and the section simply appeared. The most dramatic event in
- * the map — a world falling into a black hole — was the one thing with
- * no visual consequence. The first answer to that was a 1.6-second pop:
- * up, and down, and gone. This is the second, and it is shaped the way
- * the real event is shaped.
+ * A capture used to end quietly. Then it was a 1.6-second pop: up, and
+ * down, and gone before anyone had looked at it. This is the event
+ * staged the way the physics stages it, and every piece reads one
+ * shared light curve, one shared temperature, and one shared blast law
+ * (src/lib/supernova.ts), so nothing here can disagree about how bright
+ * the moment is, what colour it has cooled to, or how far the front has
+ * travelled.
  *
- * A supernova is an asymmetry. Shock breakout is a spike you barely
- * catch; everything after it is a decline you live with: a photospheric
- * plateau while the section's own system assembles inside the light,
- * then a tail that fades as the debris falls back onto the hole and is
- * still faintly there ten seconds later. Every piece here reads one
- * shared light curve and one shared thermal ramp (src/lib/supernova.ts),
- * so the flash, the front and the debris cannot disagree about how
- * bright the event is or what colour it has cooled to.
+ *   PHOTOSPHERE. A bloom at the core that ignores depth, because light
+ *   is not occluded by the object at its centre. It rises to full in
+ *   half a second and HOLDS — the section's own system assembles inside
+ *   the light, with the core hidden under an opaque warm-white heart —
+ *   then the heart dissolves as the envelope goes transparent and the
+ *   black core re-emerges inside a soft, cooling halo. The core is never
+ *   lit; it comes back out of the white.
  *
- *   FLASH. The photosphere: a bloom at the core that ignores depth,
- *   because light is not occluded by the object at its centre. Its hard
- *   white heart exists only through breakout and the plateau; in the
- *   tail it dissolves, and the black core re-emerges inside a cooling
- *   ring of ember. The core is never lit — it comes back out of the
- *   white, and that is the image the sub-page arrives on.
- *
- *   FRONT. The blast wave: a silhouette-only sphere that bursts out
- *   through the core's surface at the breakout peak, expands freely,
- *   then rolls over into Sedov–Taylor deceleration as it sweeps the
- *   system up — a front that slows is what distinguishes a blast wave
- *   from a balloon — and is extinguished as it crosses the outermost
- *   orbit. It runs hotter than the photosphere behind it, so it stays a
- *   third bluer at every moment.
+ *   FRONT. The blast wave as a thin camera-facing band at the core's
+ *   depth: a sharp leading edge in front of a soft trailing tail, which
+ *   is what a shock is. It bursts out through the core's surface at
+ *   breakout, expands freely, rolls over into Sedov–Taylor deceleration
+ *   as it sweeps the system up, and dies as it crosses the outermost
+ *   orbit — hotter than the photosphere behind it at every moment.
  *
  *   EJECTA. Debris thrown outward, white-hot, cooling into the captured
- *   planet's own mineral colour by the end of breakout, then darkening
- *   as dust condenses in it. The fast parcels die in a couple of
- *   seconds; the slow ones live for ten, coast outward on the remnant's
- *   slow expansion, and the slowest fall back into the well.
+ *   planet's own mineral colour and then reddening as dust condenses in
+ *   it. About half is unbound: it decelerates to a terminal shell and
+ *   coasts slowly outward for the rest of the event. The other half is
+ *   bound — a tidal disruption keeps roughly half its debris — and
+ *   returns on a spread of Keplerian orbits, each parcel out to its own
+ *   apocentre and back, whitening as stream shocks heat it, to settle
+ *   into the disc.
+ *
+ *   DISC. The accretion disc, in the orbital plane the planet fell
+ *   from, fed by the returning debris: rising as it arrives, peaking
+ *   when the last of it has settled, then fading on the fallback law.
+ *   Half the planet's colour, so the remnant is unmistakably made of
+ *   the thing that fell in. This is what the sub-page keeps.
+ *
+ *   LIGHT. A point light at the core on the same thermal ramp, so the
+ *   arriving planets are lit by the event itself and the visitor
+ *   watches that light cool on them.
  *
  * WHERE IT LIVES matters more than what it draws. The portal replaces
  * the whole scene when it descends into a section, so anything owned by
- * the scene dies at the exact instant the capture completes. The portal
- * owns the burst and both scenes read it: the one being torn down starts
+ * the scene dies at the instant the capture completes. The portal owns
+ * the burst and both scenes read it — the one being torn down starts
  * it, the one being built finishes it — which is why the remnant is
- * still burning on the sub-page. For the same reason it runs on
- * wall-clock time rather than the scene's clamped delta (two scenes can
- * only agree on real time), and the debris is a Fibonacci sphere rather
- * than a random scatter, so it does not reshuffle at the seam.
+ * still burning when the visitor lands. For the same reason it runs on
+ * wall-clock time (two scenes can only agree on real time), and every
+ * per-parcel quantity is deterministic, so nothing reshuffles at the
+ * seam. Shock breakout itself is not drawn here at all: only a
+ * compositor animation survives the instant of capture, so the portal
+ * draws it in the DOM.
  */
 
 export type Flare = {
@@ -71,9 +81,15 @@ export type Flare = {
   color: string;
   /** performance.now() at detonation, shared across the remount. */
   at: number;
+  /**
+   * The orbital plane the planet fell from, as the inclination and node
+   * of its own ellipse. The debris that stays bound returns to settle
+   * into an accretion disc in this plane.
+   */
+  plane: { incl: number; node: number };
 };
 
-const flashVertex = /* glsl */ `
+const photosphereVertex = /* glsl */ `
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -81,62 +97,54 @@ const flashVertex = /* glsl */ `
   }
 `;
 
-const flashFragment = /* glsl */ `
+const photosphereFragment = /* glsl */ `
   varying vec2 vUv;
   uniform vec3 uColor;
   uniform float uAlpha;
   uniform float uHeart;
-  uniform float uSoft;
-  uniform float uEmber;
-  uniform vec3 uEmberColor;
+  uniform float uFit;
   void main() {
-    float d = length(vUv - 0.5) * 2.0;
-    float body = smoothstep(1.0, 0.0, d);
-    // The remnant: as the photosphere recedes, the glow of the debris
-    // falling back onto the hole takes its place — a ring just outside
-    // the core's radius, soft on both sides, and the thing the sub-page
-    // keeps for the next ten seconds. A ring rather than a disc, because
-    // the black hole stays black: it re-emerges from inside the light.
-    float ember = exp(-pow((d - 0.42) / 0.26, 2.0)) * uEmber;
-    // Two falloffs: a wide halo and a small hard heart. The heart is the
-    // photosphere and exists only while the event is at its peak; once
-    // it goes, the black core shows through the halo again. The halo's
-    // falloff softens as the event cools: the remnant is a large, dim
-    // glow, and a large dim glow is seen where a small one is not.
-    float halo = pow(body, uSoft);
-    float heart = pow(body, 14.0) * uHeart;
+    // The quad is shrunk to its visible contour as the glow dims; d is
+    // scaled back up so the profile never changes, only the raster.
+    float d = length(vUv - 0.5) * 2.0 * uFit;
+    float body = 1.0 - smoothstep(0.0, 1.0, d);
+    // A wide halo, and a heart wide enough to cover the core at full
+    // brightness. The heart is the photosphere: while it exists the
+    // core is inside it; when it dissolves the core shows through.
+    float halo = pow(body, 2.6);
+    float heart = (1.0 - smoothstep(0.15, 0.55, d)) * uHeart;
     vec3 tint = mix(uColor, vec3(1.0), heart);
-    gl_FragColor = vec4(tint * (halo * 0.42 + heart * 1.05) * uAlpha + uEmberColor * ember, 1.0);
+    gl_FragColor = vec4(tint * (0.42 * halo + 1.05 * heart) * uAlpha, 1.0);
   }
 `;
 
-const shellVertex = /* glsl */ `
-  varying vec3 vNormalView;
-  varying vec3 vViewDir;
+const frontVertex = /* glsl */ `
+  uniform float uR;
+  uniform float uW;
+  varying float vV;
   void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    vNormalView = normalize(normalMatrix * normal);
-    vViewDir = normalize(-mv.xyz);
-    gl_Position = projectionMatrix * mv;
+    // The ring's radial coordinate, 0.5..1.5, maps to a band exactly uW
+    // thick at radius uR, whatever uR is. Only the band is rasterised.
+    float rho = length(position.xy);
+    float v = rho - 1.0;
+    vV = v;
+    vec2 dir = position.xy / max(rho, 1e-4);
+    vec3 p = vec3(dir * (uR + v * 2.0 * uW), 0.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
 
-const shellFragment = /* glsl */ `
-  varying vec3 vNormalView;
-  varying vec3 vViewDir;
+const frontFragment = /* glsl */ `
+  varying float vV;
   uniform vec3 uColor;
   uniform float uAlpha;
   void main() {
-    // Silhouette only. A shock front is an edge; at a gentle exponent
-    // the whole sphere lights and it reads as a balloon laid over the
-    // scene, which is exactly what this must not look like.
-    float rim = 1.0 - abs(dot(normalize(vNormalView), normalize(vViewDir)));
-    float edge = pow(rim, 9.0);
-    // The interior of the disc costs nothing: a front that covers half
-    // the frame for a second must not also blend half the frame.
-    if (edge < 0.003) discard;
-    vec3 tint = mix(uColor, vec3(1.0), pow(rim, 20.0));
-    gl_FragColor = vec4(tint * edge * uAlpha, 1.0);
+    // A shock is a discontinuity in front of cooling gas: a sharp
+    // leading edge over the outer tenth of the band, a soft tail
+    // across the inner half.
+    float lead = 1.0 - smoothstep(0.40, 0.5, vV);
+    float trail = smoothstep(-0.5, 0.0, vV);
+    gl_FragColor = vec4(uColor * lead * trail * uAlpha, 1.0);
   }
 `;
 
@@ -144,76 +152,120 @@ const ejectaVertex = /* glsl */ `
   attribute vec3 aDir;
   attribute float aSpeed;
   attribute float aSize;
-  varying float vLife;
+  attribute float aApo;
+  attribute float aTapo;
+  varying float vFade;
+  varying float vGain;
+  varying float vWhiten;
   uniform float uT;
+  uniform float uAlpha;
   uniform float uPixelScale;
+  uniform vec3 uU;
+  uniform vec3 uV;
+  const float PI = 3.14159265;
   void main() {
-    // How fast this parcel was thrown, 0..1 across the spread.
-    float speed = clamp((aSpeed - 0.55) / 3.2, 0.0, 1.0);
-    // Fast parcels burn out in a couple of seconds; slow ones are the
-    // remnant, and live for most of the event.
-    float life = 2.2 + 9.3 * (1.0 - speed);
-    vLife = clamp(uT / life, 0.0, 1.0);
-    // Three motions. The throw, then drag: exp decay reaches most of its
-    // distance in the first fifth of a second, which is what makes it
-    // read as an explosion rather than an expansion. The remnant's slow
-    // Sedov coast, shared by all, so the cloud is never static. And
-    // fallback: the slowest parcels are bound, and drift back toward
-    // the well from the third second on.
-    float travel = aSpeed * (1.0 - exp(-3.4 * uT))
-      + 0.22 * (pow(1.0 + uT / 0.6, 0.4) - 1.0)
-      - 0.35 * pow(1.0 - speed, 2.0) * smoothstep(2.5, 9.0, uT);
-    vec4 mv = modelViewMatrix * vec4(position + aDir * max(travel, 0.0), 1.0);
-    // A hot mote is small; as it cools it swells into a dust grain.
-    float swell = 1.0 + 1.2 * smoothstep(0.6, 3.0, uT);
-    float shrink = 1.0 - 0.5 * smoothstep(0.6, 1.0, vLife);
-    // uPixelScale is the projection's pixels-per-world-unit at unit
-    // depth, so aSize is a real radius and a mote keeps its size in the
-    // scene rather than in the framebuffer. Capped because a handful of
-    // very near points would otherwise each cost a large fill.
-    gl_PointSize = min(48.0, aSize * swell * shrink * uPixelScale / max(-mv.z, 0.001));
+    float speedNorm = clamp((aSpeed - 0.55) / 3.2, 0.0, 1.0);
+    vec3 offset;
+    float fade;
+    float gain = 1.0;
+    float whiten = 0.0;
+    if (aSpeed >= 1.05) {
+      // UNBOUND. The reverse shock decelerates the parcel to a terminal
+      // shell inside the first couple of seconds; then the remnant's
+      // slow coast, so the cloud is never static and never leaves the
+      // system. The fastest, thinnest parcels die first.
+      float travel = aSpeed * 0.55 * (1.0 - exp(-uT / 0.55)) + 0.05 * aSpeed * log(1.0 + uT);
+      offset = aDir * travel;
+      float life = 9.0 + 5.0 * (1.0 - speedNorm);
+      fade = pow(1.0 - clamp(uT / life, 0.0, 1.0), 1.2);
+    } else {
+      // BOUND. Out to its own apocentre and back, on its own clock; on
+      // the way down it re-crosses the disc's radius and settles into
+      // the disc plane, whitening as stream shocks heat it. The spread
+      // of return times is what physically produces the fallback tail.
+      float tRet = 2.0 * aTapo * (1.0 - asin(clamp(0.62 / aApo, 0.0, 1.0)) / PI);
+      if (uT < tRet) {
+        offset = aDir * max(aApo * sin(PI * uT / (2.0 * aTapo)), 0.0);
+      } else {
+        float theta = atan(dot(aDir, uV), dot(aDir, uU));
+        vec3 onDisc = 0.62 * (cos(theta) * uU + sin(theta) * uV);
+        offset = mix(aDir * 0.62, onDisc, smoothstep(tRet, tRet + 0.8, uT));
+      }
+      fade = 1.0 - smoothstep(tRet, tRet + 0.8, uT);
+      gain = 1.0 + 1.2 * smoothstep(aTapo, tRet, uT);
+      whiten = 0.5 * smoothstep(aTapo, tRet, uT);
+    }
+    vFade = fade;
+    vGain = gain;
+    vWhiten = whiten;
+    // A dead parcel costs nothing: culled here, never a zero-size point.
+    if (fade * gain * uAlpha < 0.004) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      gl_PointSize = 1.0;
+      return;
+    }
+    vec4 mv = modelViewMatrix * vec4(position + offset, 1.0);
+    // Parcels puff as they expand, then hold; the fade is carried by
+    // alpha, not size. uPixelScale is the projection's pixels per world
+    // unit at unit depth, so aSize is a real radius. The cap stays: some
+    // mobile drivers clamp point sprites at 64.
+    gl_PointSize = min(48.0, aSize * (0.75 + 0.45 * smoothstep(0.0, 1.5, uT)) * uPixelScale / max(-mv.z, 0.001));
     gl_Position = projectionMatrix * mv;
   }
 `;
 
 const ejectaFragment = /* glsl */ `
-  varying float vLife;
+  varying float vFade;
+  varying float vGain;
+  varying float vWhiten;
   uniform vec3 uColor;
-  uniform vec3 uThermal;
   uniform float uAlpha;
   uniform float uT;
   void main() {
     float d = length(gl_PointCoord - 0.5);
-    float disc = smoothstep(0.5, 0.05, d);
-    // White-hot through breakout, the planet's own colour by the end of
-    // it — the burst is made of the thing that fell in — then darkening
-    // as dust condenses.
-    vec3 tint = mix(uThermal, uColor, smoothstep(0.12, 0.7, uT));
-    tint *= 1.0 - 0.35 * smoothstep(1.5, 6.0, uT);
-    float fade = pow(1.0 - vLife, 1.2);
-    gl_FragColor = vec4(tint * disc * uAlpha * fade, 1.0);
+    float disc = 1.0 - smoothstep(0.05, 0.5, d);
+    // White-hot on the way out, the planet's own colour by a third of a
+    // second, then reddened and dulled as dust condenses in it — by six
+    // seconds the filaments are ash, not the planet.
+    vec3 tint = mix(vec3(1.0), uColor, smoothstep(0.0, 0.35, uT));
+    tint *= mix(vec3(1.0), vec3(1.0, 0.62, 0.45), smoothstep(2.25, 6.0, uT));
+    tint = mix(tint, vec3(1.0), vWhiten);
+    gl_FragColor = vec4(tint * disc * uAlpha * vFade * vGain, 1.0);
+  }
+`;
+
+const discVertex = /* glsl */ `
+  varying float vRho;
+  varying float vTheta;
+  void main() {
+    float r = length(position.xy);
+    vRho = clamp((r - 0.42) / 0.53, 0.0, 1.0);
+    vTheta = atan(position.y, position.x);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const discFragment = /* glsl */ `
+  varying float vRho;
+  varying float vTheta;
+  uniform vec3 uColor;
+  uniform float uAlpha;
+  uniform float uT;
+  void main() {
+    // Thin-disc emission peaks inward, and two faint trailing arms turn
+    // slowly: enough to read as matter in orbit, never busy.
+    float arms = 0.82 + 0.18 * sin(2.0 * vTheta + 3.0 * vRho - 0.9 * uT);
+    float intensity = smoothstep(0.0, 0.10, vRho) * pow(1.0 - vRho, 1.8) * arms;
+    gl_FragColor = vec4(uColor * intensity * uAlpha, 1.0);
   }
 `;
 
 /** Even spacing around the axis, the same for every burst. */
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-
 const fract = (value: number) => value - Math.floor(value);
-const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
-const smoothstep = (a: number, b: number, x: number) => {
-  const t = clamp01((x - a) / (b - a));
-  return t * t * (3 - 2 * t);
-};
 
-/**
- * The photosphere's half-width in world units: grows through breakout
- * and the plateau to its full extent, then recedes toward the ember
- * halo the remnant keeps.
- */
-function flashRadius(t: number): number {
-  if (t <= 1.2) return 0.55 + 1.25 * (1 - Math.exp(-t / 0.35));
-  return 1.25 + (1.76 - 1.25) * Math.exp(-(t - 1.2) / 1.5);
-}
+/** A parcel slower than this stays bound to the hole. */
+const BOUND_BELOW = 1.05;
 
 export function OrbitFlare({
   flare,
@@ -224,21 +276,24 @@ export function OrbitFlare({
   origin: [number, number, number];
   narrow: boolean;
 }) {
-  const flashRef = useRef<THREE.Mesh>(null);
-  const shellRef = useRef<THREE.Mesh>(null);
-  const ejectaRef = useRef<THREE.Points>(null);
   const groupRef = useRef<THREE.Group>(null);
-  // Uniforms are written through the materials rather than through the
-  // memoised object they were created from, which is how the nebula does
-  // it: the frame loop drives three.js objects, not React values.
-  const flashMaterial = useRef<THREE.ShaderMaterial>(null);
+  const photosphereRef = useRef<THREE.Mesh>(null);
+  const frontRef = useRef<THREE.Mesh>(null);
+  const ejectaRef = useRef<THREE.Points>(null);
+  const discRef = useRef<THREE.Mesh>(null);
   const lightRef = useRef<THREE.PointLight>(null);
-  const shellMaterial = useRef<THREE.ShaderMaterial>(null);
+  // Uniforms are written through the materials rather than through the
+  // memoised objects they were created from, which is how the nebula
+  // does it: the frame loop drives three.js objects, not React values.
+  const photosphereMaterial = useRef<THREE.ShaderMaterial>(null);
+  const frontMaterial = useRef<THREE.ShaderMaterial>(null);
   const ejectaMaterial = useRef<THREE.ShaderMaterial>(null);
+  const discMaterial = useRef<THREE.ShaderMaterial>(null);
   const { size } = useThree();
 
   // A phone throws less debris. The count is fixed at mount because the
-  // buffers are built once.
+  // buffers are built once; a resize across the threshold during a
+  // remnant cannot change it.
   const count = narrow ? 180 : 380;
 
   const ejecta = useMemo(() => {
@@ -246,6 +301,8 @@ export function OrbitFlare({
     const dirs = new Float32Array(count * 3);
     const speeds = new Float32Array(count);
     const sizes = new Float32Array(count);
+    const apo = new Float32Array(count);
+    const tapo = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       // A Fibonacci sphere: even directions with no pole and no seam,
       // and — unlike a random scatter — the same debris every time. The
@@ -258,12 +315,18 @@ export function OrbitFlare({
       dirs[i * 3 + 1] = u;
       dirs[i * 3 + 2] = r * Math.sin(phi);
       // A wide spread of speeds: a few outrunners carry the drama, the
-      // body of the debris stays near the core. Two incommensurable
-      // ratios keep speed and size from correlating into a pattern.
-      speeds[i] = 0.55 + Math.pow(fract(i * 0.7548776662), 2.1) * 3.2;
+      // body of the debris stays near the core. Incommensurable
+      // low-discrepancy constants keep speed, size, apocentre and timing
+      // from correlating into a pattern.
+      const speed = 0.55 + Math.pow(fract(i * 0.7548776662), 2.1) * 3.2;
+      speeds[i] = speed;
       sizes[i] = 0.012 + fract(i * 0.5698402909) * 0.042;
+      if (speed < BOUND_BELOW) {
+        apo[i] = 0.75 + 1.05 * fract(i * 0.6710436067);
+        tapo[i] = 0.45 + 0.85 * fract(i * 0.8191725134);
+      }
     }
-    return { positions, dirs, speeds, sizes };
+    return { positions, dirs, speeds, sizes, apo, tapo };
   }, [count]);
 
   const planet = useMemo(
@@ -271,23 +334,51 @@ export function OrbitFlare({
     [flare?.color],
   );
 
+  // The disc's basis: the fallen planet's own orbital plane. U and V
+  // are the same vectors the scene draws its orbit with, so the debris
+  // settles exactly where the planet used to travel.
+  const plane = useMemo(() => {
+    const incl = flare?.plane.incl ?? 0;
+    const node = flare?.plane.node ?? 0;
+    const u = new THREE.Vector3(Math.cos(node), 0, Math.sin(node));
+    const v = new THREE.Vector3(
+      -Math.sin(node) * Math.cos(incl),
+      Math.sin(incl),
+      Math.cos(node) * Math.cos(incl),
+    );
+    const n = new THREE.Vector3().crossVectors(u, v);
+    const quaternion = new THREE.Quaternion().setFromRotationMatrix(
+      new THREE.Matrix4().makeBasis(u, v, n),
+    );
+    return { u, v, quaternion };
+  }, [flare?.plane.incl, flare?.plane.node]);
+
   const uniforms = useMemo(
     () => ({
-      flash: {
+      photosphere: {
         uColor: { value: new THREE.Color() },
         uAlpha: { value: 0 },
         uHeart: { value: 0 },
-        uSoft: { value: 2.6 },
-        uEmber: { value: 0 },
-        uEmberColor: { value: new THREE.Color() },
+        uFit: { value: 1 },
       },
-      shell: { uColor: { value: new THREE.Color() }, uAlpha: { value: 0 } },
+      front: {
+        uColor: { value: new THREE.Color() },
+        uAlpha: { value: 0 },
+        uR: { value: 0.12 },
+        uW: { value: 0.05 },
+      },
       ejecta: {
         uColor: { value: new THREE.Color() },
-        uThermal: { value: new THREE.Color() },
         uAlpha: { value: 0 },
         uT: { value: 0 },
         uPixelScale: { value: 300 },
+        uU: { value: new THREE.Vector3(1, 0, 0) },
+        uV: { value: new THREE.Vector3(0, 0, 1) },
+      },
+      disc: {
+        uColor: { value: new THREE.Color() },
+        uAlpha: { value: 0 },
+        uT: { value: 0 },
       },
     }),
     [],
@@ -298,13 +389,8 @@ export function OrbitFlare({
     const group = groupRef.current;
     if (!group) return;
     const lightSource = lightRef.current;
-    if (!flare) {
-      group.visible = false;
-      if (lightSource) lightSource.intensity = 0;
-      return;
-    }
-    const t = (performance.now() - flare.at) / 1000;
-    if (t <= 0 || t >= BURST_LIFE) {
+    const t = flare ? (performance.now() - flare.at) / 1000 : -1;
+    if (!flare || t <= 0 || t >= BURST_LIFE) {
       group.visible = false;
       if (lightSource) lightSource.intensity = 0;
       return;
@@ -312,99 +398,99 @@ export function OrbitFlare({
     group.visible = true;
 
     const light = lightCurve(t);
-    const heat = thermal(t);
+    const heat = blackbody(photosphereKelvin(t));
 
-    // FLASH. Faces the camera, so it is a light and not a card seen
-    // edge on. Brightness weights the spike hardest: breakout is what
-    // covers the core, the plateau is what the section assembles in,
-    // the tail is the ember the sub-page keeps.
-    const flash = flashRef.current;
-    const flashUniforms = flashMaterial.current?.uniforms;
-    if (flash && flashUniforms) {
-      const a = 2.4 * spike(t) + 1.1 * plateau(t) + 1.4 * tail(t);
-      // The halo follows the thermal ramp and, from the plateau on,
-      // carries a fifth of the planet's colour.
-      flashUniforms.uColor.value
+    // PHOTOSPHERE. Faces the camera, so it is a light and not a card
+    // seen edge on. Grows through the rise, holds through the plateau,
+    // and from 2.25 s recedes not by shrinking but by its heart
+    // dissolving. The quad shrinks to its visible contour as it dims.
+    const photosphere = photosphereRef.current;
+    const photosphereUniforms = photosphereMaterial.current?.uniforms;
+    if (photosphere && photosphereUniforms) {
+      const fit = Math.min(
+        1,
+        Math.max(
+          0.45,
+          0.62 + 0.16 * Math.log10(Math.max(1, 0.42 * light * 255)),
+        ),
+      );
+      const half = 0.45 + 0.75 * smoothstep(0, 0.9, t);
+      photosphereUniforms.uColor.value
         .setRGB(heat[0], heat[1], heat[2])
-        .lerp(planet, 0.2 * smoothstep(0.45, 1.2, t));
-      flashUniforms.uAlpha.value = a;
-      flashUniforms.uHeart.value = clamp01(spike(t) * 2 + plateau(t) / 0.55);
-      flashUniforms.uSoft.value = 2.6 - 1.0 * smoothstep(1.2, 3.0, t);
-      // The handover: the ember rises as the plateau falls, at about
-      // the luminance the photosphere is giving up, then fades on the
-      // fallback law and is extinguished with everything else.
-      const emberOn = smoothstep(1.4, 2.4, t);
-      const emberDecay =
-        Math.pow(1 + Math.max(0, t - 2.4) / 4.0, -5 / 3) *
-        (1 - smoothstep(BURST_LIFE - 3, BURST_LIFE, t));
-      const ember = 0.65 * emberOn * emberDecay;
-      flashUniforms.uEmber.value = ember;
-      flashUniforms.uEmberColor.value
-        .setRGB(heat[0], heat[1], heat[2])
-        .lerp(planet, 0.3);
-      flash.visible = a > 0.002 || ember > 0.002;
-      if (flash.visible) {
-        flash.quaternion.copy(camera.quaternion);
-        flash.scale.setScalar(2 * flashRadius(t));
+        .lerp(planet, 0.2);
+      photosphereUniforms.uAlpha.value = light;
+      photosphereUniforms.uHeart.value = 1 - smoothstep(2.25, 3.2, t);
+      photosphereUniforms.uFit.value = fit;
+      photosphere.visible = 0.42 * light >= 1 / 255;
+      if (photosphere.visible) {
+        photosphere.quaternion.copy(camera.quaternion);
+        photosphere.scale.setScalar(2 * half * fit * (narrow ? 0.85 : 1));
       }
     }
 
-    // LIGHT. A point light at the core, coloured by the same thermal
-    // ramp as the glow, so the planets' core-facing sides carry the
-    // event: white as they assemble, amber as the visitor lands, red as
-    // the remnant cools. Inside the core it lights the core's surface
-    // from behind, so the black hole stays black.
+    // LIGHT. Always mounted, never inside the group: three keys every
+    // lit program on the number of visible lights. Inside the core it
+    // lights the core's surface from behind, so the black hole stays
+    // black; the planets and the glass rim catch it.
     if (lightSource) {
       lightSource.color.setRGB(heat[0], heat[1], heat[2]);
       lightSource.intensity = 4 * Math.pow(light, 0.8);
     }
 
-    // FRONT. Bursts out through the core's surface at the breakout
-    // peak; extinguished as it leaves the system. A phone's GPU is
-    // bound by overdraw rather than arithmetic, so there the front is
-    // let go early, before it covers most of the frame.
-    const shell = shellRef.current;
-    const shellUniforms = shellMaterial.current?.uniforms;
-    if (shell && shellUniforms) {
-      const radius = blastRadius(t);
-      const a = blastAlpha(t) * (narrow ? 1 - smoothstep(1.4, 1.8, t) : 1);
+    // FRONT. At the core's depth, so it bursts out through the surface
+    // by the depth test alone. A phone's GPU is bound by overdraw, so
+    // there the front is let go early.
+    const front = frontRef.current;
+    const frontUniforms = frontMaterial.current?.uniforms;
+    if (front && frontUniforms) {
+      const alpha = blastAlpha(t) * (narrow ? 1 - smoothstep(1.4, 1.8, t) : 1);
       const tint = blastTint(t);
-      shellUniforms.uColor.value.setRGB(tint[0], tint[1], tint[2]);
-      shellUniforms.uAlpha.value = a;
-      shell.visible = a > 0.002;
-      if (shell.visible) shell.scale.setScalar(radius);
+      frontUniforms.uColor.value.setRGB(tint[0], tint[1], tint[2]);
+      frontUniforms.uAlpha.value = alpha;
+      frontUniforms.uR.value = blastRadius(t);
+      frontUniforms.uW.value = blastWidth(t);
+      front.visible = alpha >= 0.005;
+      if (front.visible) front.quaternion.copy(camera.quaternion);
     }
 
-    // EJECTA. Brightness compressed against the light curve so the
+    // EJECTA. Brightness compressed against the light curve, so the
     // filaments outlast the central glow, as a remnant's do.
     const points = ejectaRef.current;
     const ejectaUniforms = ejectaMaterial.current?.uniforms;
     if (points && ejectaUniforms) {
-      const a =
-        0.9 *
-        Math.min(1, t / 0.05) *
-        (0.35 + 0.65 * Math.pow(Math.max(light, 0.02), 0.6));
+      const alpha = 0.85 * Math.min(1, t / 0.05) * Math.pow(light, 0.6);
       ejectaUniforms.uColor.value.copy(planet);
-      ejectaUniforms.uThermal.value.setRGB(heat[0], heat[1], heat[2]);
-      ejectaUniforms.uAlpha.value = a;
+      ejectaUniforms.uAlpha.value = alpha;
       ejectaUniforms.uT.value = t;
+      ejectaUniforms.uU.value.copy(plane.u);
+      ejectaUniforms.uV.value.copy(plane.v);
       // The projection's own scale: half the viewport height over the
-      // tangent of half the vertical field of view. Anything else makes
-      // the debris a different physical size on every screen.
+      // tangent of half the vertical field of view.
       ejectaUniforms.uPixelScale.value =
         size.height / 2 / Math.tan((camera.fov * Math.PI) / 360);
-      points.visible = a > 0.002;
+      points.visible = alpha >= 0.004;
+    }
+
+    // DISC. In the fallen planet's plane, half its colour, fed by the
+    // returning debris. The opaque core occludes its far inner part, so
+    // the disc visibly passes behind the black hole.
+    const disc = discRef.current;
+    const discUniforms = discMaterial.current?.uniforms;
+    if (disc && discUniforms) {
+      const alpha = discAlpha(t);
+      const glow = blackbody(discKelvin(t));
+      discUniforms.uColor.value
+        .setRGB(glow[0], glow[1], glow[2])
+        .lerp(planet, 0.5);
+      discUniforms.uAlpha.value = alpha;
+      discUniforms.uT.value = t;
+      disc.visible = alpha >= 0.004;
+      if (disc.visible) disc.quaternion.copy(plane.quaternion);
     }
   });
 
   return (
     <>
-      {/* Always mounted, driven to zero when idle — never inside the
-          group below. three keys every lit program on the number of
-          visible lights, so a light that appears with the burst would
-          recompile every planet, the core and the glass synchronously
-          inside the first frame of breakout. Intensity 0 compiles
-          nothing. */}
       <pointLight
         ref={lightRef}
         position={origin}
@@ -414,19 +500,19 @@ export function OrbitFlare({
       />
       <group ref={groupRef} position={origin} visible={false}>
         {/* depthTest off: a flare is light, and light is not occluded by
-          the object at its centre. */}
+            the object at its centre. */}
         <mesh
-          ref={flashRef}
+          ref={photosphereRef}
           renderOrder={20}
           raycast={() => null}
           frustumCulled={false}
         >
           <planeGeometry args={[1, 1]} />
           <shaderMaterial
-            ref={flashMaterial}
-            uniforms={uniforms.flash}
-            vertexShader={flashVertex}
-            fragmentShader={flashFragment}
+            ref={photosphereMaterial}
+            uniforms={uniforms.photosphere}
+            vertexShader={photosphereVertex}
+            fragmentShader={photosphereFragment}
             blending={THREE.AdditiveBlending}
             transparent
             depthTest={false}
@@ -435,13 +521,18 @@ export function OrbitFlare({
           />
         </mesh>
 
-        <mesh ref={shellRef} renderOrder={19} raycast={() => null}>
-          <sphereGeometry args={[1, 32, 24]} />
+        <mesh
+          ref={frontRef}
+          renderOrder={19}
+          raycast={() => null}
+          frustumCulled={false}
+        >
+          <ringGeometry args={[0.5, 1.5, narrow ? 64 : 96, 1]} />
           <shaderMaterial
-            ref={shellMaterial}
-            uniforms={uniforms.shell}
-            vertexShader={shellVertex}
-            fragmentShader={shellFragment}
+            ref={frontMaterial}
+            uniforms={uniforms.front}
+            vertexShader={frontVertex}
+            fragmentShader={frontFragment}
             blending={THREE.AdditiveBlending}
             transparent
             depthWrite={false}
@@ -469,6 +560,11 @@ export function OrbitFlare({
               attach="attributes-aSize"
               args={[ejecta.sizes, 1]}
             />
+            <bufferAttribute attach="attributes-aApo" args={[ejecta.apo, 1]} />
+            <bufferAttribute
+              attach="attributes-aTapo"
+              args={[ejecta.tapo, 1]}
+            />
           </bufferGeometry>
           <shaderMaterial
             ref={ejectaMaterial}
@@ -481,6 +577,26 @@ export function OrbitFlare({
             toneMapped={false}
           />
         </points>
+
+        <mesh
+          ref={discRef}
+          renderOrder={17}
+          raycast={() => null}
+          frustumCulled={false}
+        >
+          <ringGeometry args={[0.42, 0.95, 96, 1]} />
+          <shaderMaterial
+            ref={discMaterial}
+            uniforms={uniforms.disc}
+            vertexShader={discVertex}
+            fragmentShader={discFragment}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
       </group>
     </>
   );

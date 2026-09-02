@@ -4,7 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Flare } from "@/components/orbit-flare";
-import { BURST_LIFE } from "@/lib/supernova";
+import { BURST_LIFE, lightCurve, thermal } from "@/lib/supernova";
 
 /**
  * The deep field behind the planetary map.
@@ -66,6 +66,8 @@ const fragmentShader = /* glsl */ `
   uniform float uEcho;
   uniform float uEchoRadius;
   uniform vec3  uEchoColor;
+  uniform float uGlow;
+  uniform vec3  uGlowColor;
 
   // Hash / value noise. Cheap, stable, and enough once it is warped —
   // gradient noise costs more and the difference disappears under fbm.
@@ -173,7 +175,11 @@ const fragmentShader = /* glsl */ `
     // frame in a couple of seconds. Zero unless a burst is live, so it
     // costs one exp per pixel only while it is on screen.
     float echo = uEcho * exp(-pow((length(p) - uEchoRadius) / 0.16, 2.0));
-    emission += uEchoColor * echo * (0.3 + 0.7 * smoothstep(0.30, 0.9, far));
+    // AFTERGLOW. The remnant lighting the gas nearest the core in its own
+    // cooling colour, for as long as the light curve lasts: the sky
+    // recovers gradually, not at a cut.
+    float afterglow = uGlow / (1.0 + 6.0 * dot(p, p));
+    emission += (uEchoColor * echo + uGlowColor * afterglow) * (0.3 + 0.7 * smoothstep(0.30, 0.9, far));
 
     // Stars sit behind the dust too, so the lanes cut them out.
     vec3 field = stars(uv, 0.055, 220.0) * (1.0 - dust * 0.9)
@@ -231,6 +237,8 @@ export function OrbitNebula({
       uEcho: { value: 0 },
       uEchoRadius: { value: 0 },
       uEchoColor: { value: new THREE.Color() },
+      uGlow: { value: 0 },
+      uGlowColor: { value: new THREE.Color() },
     }),
     [narrow],
   );
@@ -253,16 +261,28 @@ export function OrbitNebula({
     // open: the fade-up is skipped, so the remnant is not seen through
     // a sky that arrives from black underneath it.
     const remount = flare && (performance.now() - flare.at) / 1000 < BURST_LIFE;
-    u.uOpacity.value = remount ? 1 : Math.min(1, u.uOpacity.value + delta * 0.55);
+    u.uOpacity.value = remount
+      ? 1
+      : Math.min(1, u.uOpacity.value + delta * 0.55);
 
     // The echo runs on the burst's own wall clock, so the scene that
     // replaces this one at the descent draws the same ring in the same
     // place. It leaves the frame's corners a little after two seconds.
     const t = flare ? (performance.now() - flare.at) / 1000 : -1;
-    if (t > 0 && t < 2.6) {
+    // The afterglow follows the light curve for the whole event; the
+    // echo is the burst's light crossing the field, faster than any
+    // matter in the foreground, and leaves by the third second.
+    if (t > 0 && t < BURST_LIFE) {
+      const heat = thermal(t);
+      u.uGlow.value = 0.22 * lightCurve(t);
+      u.uGlowColor.value.setRGB(heat[0], heat[1], heat[2]).lerp(planet, 0.3);
+    } else {
+      u.uGlow.value = 0;
+    }
+    if (t > 0 && t < 2.8) {
       const on = Math.min(1, t / 0.15);
-      const off = 1 - smoothstep(1.7, 2.6, t);
-      u.uEcho.value = 0.5 * on * off;
+      const off = 1 - smoothstep(1.9, 2.8, t);
+      u.uEcho.value = 0.32 * on * off;
       u.uEchoRadius.value = 0.42 * t;
       // Scattered light keeps the source's spectrum — breakout's
       // blue-white — with a third of the planet's colour, which is the

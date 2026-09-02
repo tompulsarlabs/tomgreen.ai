@@ -20,7 +20,12 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
-import { BURST_LIFE, lightCurve } from "@/lib/supernova";
+import {
+  BURST_LIFE,
+  lightCurve,
+  smoothstep as burstStep,
+  thermal,
+} from "@/lib/supernova";
 import { isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
@@ -64,7 +69,23 @@ const CAPTURE_SECONDS = 0.75;
  *  out of scattered pieces when it first appears, or when one section's
  *  system replaces another. */
 /** Travel, in px, before an armed press becomes a camera drag. */
-const DRAG_THRESHOLD_PX = 5;
+/**
+ * A press becomes a drag only after this much travel. Five pixels was
+ * inside the jitter of an ordinary trackpad click, which turned clicks
+ * into drags that moved the camera a hair and captured nothing.
+ */
+const DRAG_THRESHOLD_PX = 12;
+/**
+ * A press that ends inside this time and travel is a click even if it
+ * crossed the drag threshold on the way: a nervous click is still a
+ * click, and the hair of camera drift it caused is not worth losing it.
+ */
+const CLICK_MAX_MS = 350;
+const CLICK_SLOP_PX = 20;
+/** The smallest hit radius a body gets on screen, however small it draws. */
+const HIT_MIN_PX = 26;
+/** Hit radius as a multiple of the body's drawn radius. */
+const HIT_SCALE = 1.9;
 /** How long a press stays eligible to complete as a click. */
 const PRESS_GRACE_MS = 900;
 
@@ -94,11 +115,14 @@ uniform float uTime;
 uniform float uReveal;
 uniform vec3 uPointer;
 uniform float uPointerStrength;
+uniform float uShockR;
+uniform float uShockA;
 varying float vR;
 varying float vTheta;
 varying float vViewDist;
 varying vec2 vXZ;
 varying float vY;
+varying float vRing;
 
 const float DROP = ${WELL.drop.toFixed(3)};
 const float SHOULDER = ${WELL.shoulder.toFixed(3)};
@@ -117,6 +141,14 @@ void main() {
   // Pointer proximity dents the fabric slightly, like touched material.
   float dent = -0.05 * uPointerStrength * exp(-pow(distance(p.xz, uPointer.xz) / 0.55, 2.0));
   p.y = depth + tension + dent;
+  // The crest: a capture is the one event that sends a wave across the
+  // membrane. A Ricker wavelet — one crest, two shallow troughs, the
+  // impulse response of a stretched sheet — travels outward behind the
+  // blast front, the surface answering the event a beat after the light.
+  float su = (r - uShockR) / 0.30;
+  float ring = exp(-su * su / 2.0);
+  p.y += uShockA * (1.0 - su * su) * ring;
+  vRing = ring;
   vY = p.y;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vViewDist = -mv.z;
@@ -131,11 +163,15 @@ uniform float uWake;
 uniform float uHoverTheta;
 uniform float uHoverStrength;
 uniform vec3 uBodies[10];
+uniform float uRingLight;
+uniform float uThroat;
+uniform vec3 uBurstColor;
 varying float vR;
 varying float vTheta;
 varying float vViewDist;
 varying vec2 vXZ;
 varying float vY;
+varying float vRing;
 
 const float R_MAX = ${WELL.radius.toFixed(1)};
 
@@ -189,8 +225,16 @@ void main() {
 
   float alpha = lattice * rimFade * innerFade * distanceFade * throat * (1.0 + 0.8 * contact)
     * (0.34 + 0.12 * uWake) * uOpacity + hoverBoost * 0.3 * uOpacity;
+  // The lines glow along the crest and in the throat while the burst is
+  // live. Line-masked, so it lights the lattice itself and never a disc;
+  // pulled at most halfway toward the event's colour, so the graphite
+  // reads as lit rather than tinted.
+  float glow = lattice * rimFade * innerFade * distanceFade
+    * (0.5 * vRing * uRingLight + 0.35 * uThroat * exp(-pow(vR / 1.1, 2.0)));
+  alpha += glow;
+  vec3 ink = mix(uInk, uBurstColor, min(0.5, 0.6 * (vRing * uRingLight + uThroat)));
   if (alpha < 0.004) discard;
-  gl_FragColor = vec4(uInk, alpha);
+  gl_FragColor = vec4(ink, alpha);
 }
 `;
 
@@ -317,6 +361,11 @@ function OrbitScene({
       uInk: { value: INK.clone() },
       uOpacity: { value: 0 },
       uWake: { value: 0 },
+      uShockR: { value: 0 },
+      uShockA: { value: 0 },
+      uRingLight: { value: 0 },
+      uThroat: { value: 0 },
+      uBurstColor: { value: INK.clone() },
       uHoverTheta: { value: 0 },
       uHoverStrength: { value: 0 },
       uBodies: {
@@ -383,6 +432,15 @@ function OrbitScene({
     pressOrigin: null as { x: number; y: number; id: number } | null,
     /** The planet a press landed on, completed as a click on release. */
     pendingPress: null as { id: string; t: number } | null,
+    /** The furthest the pointer has travelled since it went down. */
+    pressTravel: 0,
+    /**
+     * Where every body is on screen this frame, in field pixels, with
+     * its drawn radius. This is what a press is resolved against: not a
+     * raycast, and not whichever element happens to be under the
+     * pointer, both of which lose the click on a body that has moved.
+     */
+    screen: new Map<string, { x: number; y: number; r: number }>(),
     angles: new Map<string, number>(),
     dragging: false,
     drift: 0.58,
@@ -438,11 +496,6 @@ function OrbitScene({
       navigated: false,
     };
   };
-  /** A pointer went down on a planet. Release decides if it was a click. */
-  const armPress = (id: string) => {
-    state.current.pendingPress = { id, t: performance.now() };
-  };
-  const armPressRef = useRef(armPress);
   const startCaptureRef = useRef(startCapture);
   // Kept current in an effect, never during render: the scene reads it
   // from inside useFrame, where a stale closure would silently send a
@@ -486,7 +539,6 @@ function OrbitScene({
   // after render so neither ever goes stale.
   useEffect(() => {
     startCaptureRef.current = startCapture;
-    armPressRef.current = armPress;
     navigateRef.current = navigate;
   });
 
@@ -503,6 +555,10 @@ function OrbitScene({
       // The nameplate is a real link; a plain activation becomes the
       // capture, while modified clicks (new tab, download) pass through
       // untouched.
+      // Pointer presses are resolved by the field, which captures the
+      // pointer the moment it goes down. This click is the keyboard's
+      // path — Enter on a focused nameplate — and the modified-click
+      // passthrough (new tab, download) stays untouched.
       const onClick = (event: MouseEvent) => {
         if (
           event.metaKey ||
@@ -513,7 +569,7 @@ function OrbitScene({
         )
           return;
         event.preventDefault();
-        startCaptureRef.current(id);
+        if (event.detail === 0) startCaptureRef.current(id);
       };
       const onEnter = () => {
         s.hover = id;
@@ -524,10 +580,19 @@ function OrbitScene({
       label.addEventListener("click", onClick);
       label.addEventListener("mouseenter", onEnter);
       label.addEventListener("mouseleave", onLeave);
+      // Enter activates a link on its own; Space does not, and a visitor
+      // who reaches a planet by keyboard should not have to know that.
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== " " && event.key !== "Spacebar") return;
+        event.preventDefault();
+        startCaptureRef.current(id);
+      };
+      label.addEventListener("keydown", onKeyDown);
       label.addEventListener("focus", onEnter);
       label.addEventListener("blur", onLeave);
       removers.push(() => {
         label.removeEventListener("click", onClick);
+        label.removeEventListener("keydown", onKeyDown);
         label.removeEventListener("mouseenter", onEnter);
         label.removeEventListener("mouseleave", onLeave);
         label.removeEventListener("focus", onEnter);
@@ -572,7 +637,37 @@ function OrbitScene({
     dom.style.touchAction = "pan-y";
     dom.style.cursor = "grab";
 
+    /**
+     * Which body a point on the field belongs to. The nameplate is asked
+     * first, because a press on the type is a press on the planet; then
+     * the nearest body by its projected position, inside a radius that
+     * never shrinks below a fingertip.
+     */
+    const bodyAt = (event: PointerEvent): string | null => {
+      const target = event.target instanceof Element ? event.target : null;
+      const plate = target?.closest<HTMLElement>(".orbit-label")?.dataset.body;
+      if (plate && isInteractive(plate)) return plate;
+      const rect = field.getBoundingClientRect();
+      const px = event.clientX - rect.left;
+      const py = event.clientY - rect.top;
+      let best: string | null = null;
+      let bestDistance = Infinity;
+      s.screen.forEach((at, id) => {
+        if (!isInteractive(id)) return;
+        const reach = Math.max(HIT_MIN_PX, at.r * HIT_SCALE);
+        const distance = Math.hypot(px - at.x, py - at.y);
+        if (distance <= reach && distance < bestDistance) {
+          best = id;
+          bestDistance = distance;
+        }
+      });
+      return best;
+    };
+
     const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0 && event.pointerType === "mouse") return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return;
       document.getSelection()?.removeAllRanges();
       // Armed, not dragging: the camera stays still until the pointer
       // has actually travelled DRAG_THRESHOLD_PX, so a click is a click.
@@ -581,6 +676,23 @@ function OrbitScene({
         y: event.clientY,
         id: event.pointerId,
       };
+      s.pressTravel = 0;
+      const id = bodyAt(event);
+      s.pendingPress = id ? { id, t: performance.now() } : null;
+      // The response begins on the press, not the release: the body's
+      // filament and nameplate wake the way they do under hover, and the
+      // body swells a hair, so the visitor sees the planet acknowledge
+      // the touch before the release confirms it.
+      if (id) s.hover = id;
+      // Capture the pointer now, not when a drag begins: the planet and
+      // its nameplate keep moving under a held pointer, and a release
+      // that lands on the nameplate would otherwise go to the anchor
+      // and never reach this listener — the press was simply lost.
+      try {
+        field.setPointerCapture(event.pointerId);
+      } catch {
+        // A pointer that already ended cannot be captured.
+      }
       s.lastPointer = { x: event.clientX, y: event.clientY };
       s.lastInteraction = performance.now() / 1000;
     };
@@ -592,20 +704,16 @@ function OrbitScene({
       s.parallaxYawTarget = nx * 0.065;
       s.parallaxPitchTarget = ny * 0.05;
       // Promote an armed press into a drag only once it has travelled.
-      if (!s.dragging && s.pressOrigin) {
+      // The press itself survives: a short, small drag is undone into a
+      // click on release.
+      if (s.pressOrigin) {
         const tx = event.clientX - s.pressOrigin.x;
         const ty = event.clientY - s.pressOrigin.y;
-        if (Math.hypot(tx, ty) > DRAG_THRESHOLD_PX) {
+        s.pressTravel = Math.max(s.pressTravel, Math.hypot(tx, ty));
+        if (!s.dragging && s.pressTravel > DRAG_THRESHOLD_PX) {
           s.dragging = true;
-          s.pendingPress = null; // it was a drag, not a click
           document.body.classList.add("orbit-dragging");
           dom.style.cursor = "grabbing";
-          try {
-            dom.setPointerCapture(s.pressOrigin.id);
-          } catch {
-            // A pointer that already ended cannot be captured; the drag
-            // simply proceeds without capture.
-          }
         }
       }
       if (s.dragging && s.lastPointer) {
@@ -619,46 +727,52 @@ function OrbitScene({
         s.lastInteraction = performance.now() / 1000;
       }
     };
-    const onPointerUp = () => {
-      // A press that never became a drag is a click on whichever planet
-      // was under the pointer when it went down. The planet keeps
-      // orbiting between press and release, so asking what is under the
-      // pointer NOW would lose the click on exactly the fast-moving
-      // bodies that are hardest to hit.
+    const endPress = (complete: boolean) => {
+      // A press is a click on whichever planet it landed on when it
+      // went down. The planet keeps orbiting between press and release,
+      // so asking what is under the pointer NOW would lose the click on
+      // exactly the fast-moving bodies that are hardest to hit.
       const press = s.pendingPress;
+      const held = press ? performance.now() - press.t : Infinity;
       s.pendingPress = null;
       s.pressOrigin = null;
+      const nervous = s.pressTravel < CLICK_SLOP_PX && held < CLICK_MAX_MS;
       if (
-        !s.dragging &&
+        complete &&
         press &&
-        performance.now() - press.t < PRESS_GRACE_MS
+        held < PRESS_GRACE_MS &&
+        (!s.dragging || nervous)
       ) {
         startCaptureRef.current(press.id);
       }
       document.body.classList.remove("orbit-dragging");
       s.dragging = false;
+      s.pressTravel = 0;
       s.lastPointer = null;
       s.lastInteraction = performance.now() / 1000;
       dom.style.cursor = s.hover && isInteractive(s.hover) ? "pointer" : "grab";
     };
+    const onPointerUp = () => endPress(true);
+    // A cancelled pointer is not a click.
+    const onPointerCancel = () => endPress(false);
     const onPointerLeave = () => {
       s.parallaxYawTarget = 0;
       s.parallaxPitchTarget = 0;
       s.pointerStrength = 0;
     };
-    dom.addEventListener("pointerdown", onPointerDown);
-    dom.addEventListener("pointermove", onPointerMove);
-    dom.addEventListener("pointerup", onPointerUp);
-    dom.addEventListener("pointercancel", onPointerUp);
-    dom.addEventListener("pointerleave", onPointerLeave);
+    field.addEventListener("pointerdown", onPointerDown, true);
+    field.addEventListener("pointermove", onPointerMove);
+    field.addEventListener("pointerup", onPointerUp);
+    field.addEventListener("pointercancel", onPointerCancel);
+    field.addEventListener("pointerleave", onPointerLeave);
     return () => {
       observer.disconnect();
       for (const remove of removers) remove();
-      dom.removeEventListener("pointerdown", onPointerDown);
-      dom.removeEventListener("pointermove", onPointerMove);
-      dom.removeEventListener("pointerup", onPointerUp);
-      dom.removeEventListener("pointercancel", onPointerUp);
-      dom.removeEventListener("pointerleave", onPointerLeave);
+      field.removeEventListener("pointerdown", onPointerDown, true);
+      field.removeEventListener("pointermove", onPointerMove);
+      field.removeEventListener("pointerup", onPointerUp);
+      field.removeEventListener("pointercancel", onPointerCancel);
+      field.removeEventListener("pointerleave", onPointerLeave);
       document.body.classList.remove("orbit-dragging");
       s.labels.forEach((label) => {
         label.style.opacity = "0";
@@ -678,6 +792,8 @@ function OrbitScene({
       v3: new THREE.Vector3(),
       ndc: new THREE.Vector2(),
       core: new THREE.Vector3(),
+      /** An orphan used to aim a body at the core. */
+      aim: new THREE.Object3D(),
     }),
     [],
   );
@@ -811,16 +927,37 @@ function OrbitScene({
     membraneUniforms.uOpacity.value = s.reveal;
     s.coreWake += ((s.hover === NUCLEUS_ID ? 1 : 0) - s.coreWake) * lerpIn(6);
     // A capture feeds the core: the well wakes as the planet goes in.
-    // A live burst lights the lattice with its own light curve, so the
-    // section's system arrives on a membrane that is still glowing and
-    // relaxes as the remnant cools.
-    const burstLight = flare
-      ? lightCurve((performance.now() - flare.at) / 1000)
-      : 0;
+    // The burst, on its own wall clock, lights the lattice with the light
+    // curve — so the section's system arrives on a membrane that is
+    // still glowing — and sends the crest across it, trailing the blast
+    // front the way a surface wave trails the light. A capture is the
+    // one event that moves spacetime here.
+    const burstT = flare ? (performance.now() - flare.at) / 1000 : -1;
+    const burstLive = burstT > 0 && burstT < BURST_LIFE;
+    const burstLight = burstLive ? lightCurve(burstT) : 0;
     membraneUniforms.uWake.value = Math.min(
       1,
-      Math.max(s.coreWake, captureEased, 1.3 * Math.pow(burstLight, 0.6)),
+      Math.max(s.coreWake, captureEased, 1.2 * burstLight),
     );
+    if (burstLive) {
+      const shockR = 0.34 + 0.95 * burstT;
+      const window = 1 - burstStep(3.6, 4.6, burstT);
+      membraneUniforms.uShockR.value = shockR;
+      // 1/sqrt(r): energy conservation for a wave on a membrane.
+      membraneUniforms.uShockA.value =
+        0.09 *
+        Math.min(1, burstT / 0.12) *
+        Math.sqrt(0.6 / Math.max(shockR, 0.6)) *
+        window;
+      membraneUniforms.uRingLight.value = Math.min(1, burstT / 0.12) * window;
+      membraneUniforms.uThroat.value = 0.9 * burstLight;
+      const heat = thermal(burstT);
+      membraneUniforms.uBurstColor.value.setRGB(heat[0], heat[1], heat[2]);
+    } else {
+      membraneUniforms.uShockA.value = 0;
+      membraneUniforms.uRingLight.value = 0;
+      membraneUniforms.uThroat.value = 0;
+    }
 
     // Pointer → world point on the fabric plane, for the tension dent.
     if (s.parallaxYawTarget !== 0 || s.parallaxPitchTarget !== 0) {
@@ -898,12 +1035,33 @@ function OrbitScene({
       group.position.copy(scratch.v1);
       // Feed the membrane's contact shading (first ten bodies).
       if (index < 10) membraneUniforms.uBodies.value[index].copy(scratch.v1);
+      const pressBump = s.pendingPress?.id === body.id ? 1 : 0;
       const swell =
-        (1 + 0.08 * nextEase) *
+        (1 + 0.08 * nextEase + 0.06 * pressBump) *
         (0.35 + 0.65 * s.reveal) *
         (1 - 0.85 * suction) *
         (0.3 + 0.7 * assembled);
-      group.scale.setScalar(Math.max(swell, 0.001));
+      if (captured && suction > 0) {
+        // Tidal compression. A body falling toward the core is stretched
+        // along the fall and squeezed across it — the tide across its
+        // own width — and the stretch accelerates with the last of the
+        // fall. It turns to face the core as it goes.
+        const along = 1 + 2.0 * suction;
+        const across = 1 - 0.55 * suction;
+        scratch.aim.position.copy(scratch.v1);
+        scratch.aim.lookAt(scratch.core);
+        group.quaternion.slerp(
+          scratch.aim.quaternion,
+          Math.min(1, suction * 4),
+        );
+        group.scale.set(
+          Math.max(swell * across, 0.001),
+          Math.max(swell * across, 0.001),
+          Math.max(swell * along, 0.001),
+        );
+      } else {
+        group.scale.setScalar(Math.max(swell, 0.001));
+      }
       const material = bodyMaterials.current.get(body.id);
       if (material) material.opacity = s.reveal * assembled;
 
@@ -936,6 +1094,19 @@ function OrbitScene({
         const pxScale =
           height / 2 / (Math.tan((40 * Math.PI) / 360) * cameraDistance);
         const bodyPx = body.size * swell * pxScale;
+        // Where the body is on screen, for the press model — and on the
+        // nameplate, so a test can aim a real pointer at the planet.
+        const at = s.screen.get(body.id) ?? { x: 0, y: 0, r: 0 };
+        at.x = x;
+        at.y = y;
+        at.r = bodyPx;
+        s.screen.set(body.id, at);
+        const cx = Math.round(x);
+        const cy = Math.round(y);
+        if (label.dataset.cx !== String(cx)) label.dataset.cx = String(cx);
+        if (label.dataset.cy !== String(cy)) label.dataset.cy = String(cy);
+        const cr = Math.round(bodyPx);
+        if (label.dataset.r !== String(cr)) label.dataset.r = String(cr);
         const near = THREE.MathUtils.clamp(
           1 - (cameraDistance - 5.2) / 5.2,
           0,
@@ -1170,6 +1341,15 @@ function OrbitScene({
     for (const material of pathMaterials.current)
       material.opacity = 0.1 * s.reveal;
 
+    // The live capture, on the field: the contract is that an accepted
+    // press begins exactly one transition, and this is how a test sees
+    // it begin rather than inferring it from the descent seconds later.
+    const capturing = s.capture ? s.capture.id : "";
+    if (field.dataset.capturing !== capturing) {
+      if (capturing) field.dataset.capturing = capturing;
+      else delete field.dataset.capturing;
+    }
+
     // Hand the camera to whatever scene replaces this one.
     if (handoff) {
       const h =
@@ -1360,10 +1540,6 @@ function OrbitScene({
               setHover(body.id);
             }}
             onPointerOut={() => setHover(null)}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-              armPressRef.current(body.id);
-            }}
           >
             <sphereGeometry args={[body.size, 48, 48]} />
             <meshPhysicalMaterial
@@ -1392,10 +1568,6 @@ function OrbitScene({
               setHover(body.id);
             }}
             onPointerOut={() => setHover(null)}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-              armPressRef.current(body.id);
-            }}
           >
             <sphereGeometry args={[body.size * 2.6, 12, 12]} />
             <meshBasicMaterial visible={false} />

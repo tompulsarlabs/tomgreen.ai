@@ -4,26 +4,17 @@ import {
   BURST_LIFE,
   CORE_SURFACE,
   SYSTEM_EDGE,
+  blackbody,
   blastAlpha,
+  blastKelvin,
   blastRadius,
   blastSpeed,
+  blastWidth,
+  discAlpha,
   lightCurve,
-  plateau,
-  spike,
-  tail,
+  photosphereKelvin,
   thermal,
 } from "@/lib/supernova";
-
-const argmax = (
-  f: (t: number) => number,
-  from: number,
-  to: number,
-  step: number,
-) => {
-  let best = from;
-  for (let t = from; t <= to; t += step) if (f(t) > f(best)) best = t;
-  return best;
-};
 
 describe("the light curve", () => {
   it("is dark before detonation and after the burst's life", () => {
@@ -33,41 +24,40 @@ describe("the light curve", () => {
     expect(lightCurve(BURST_LIFE + 5)).toBe(0);
   });
 
-  it("peaks at shock breakout, inside the first tenth of a second", () => {
-    const peak = argmax(lightCurve, 0, 2, 0.001);
-    expect(peak).toBeCloseTo(BREAKOUT_PEAK, 2);
-    expect(spike(BREAKOUT_PEAK)).toBeCloseTo(1, 6);
+  it("rises to a peak in half a second and holds a plateau near it", () => {
+    // The pinned values of the specification, not a shape argued about.
+    expect(lightCurve(0.3)).toBeCloseTo(0.568, 2);
+    expect(lightCurve(0.55)).toBeCloseTo(1, 6);
+    expect(lightCurve(1)).toBeCloseTo(0.968, 3);
+    expect(lightCurve(2)).toBeCloseTo(0.898, 3);
+    expect(lightCurve(2.25)).toBeCloseTo(0.88, 3);
   });
 
-  it("holds a plateau roughly a magnitude under the spike", () => {
-    // The characteristic asymmetry: a brief peak, then a long, lower hold.
-    expect(lightCurve(0.4)).toBeGreaterThan(0.45);
-    expect(lightCurve(0.4)).toBeLessThan(0.7);
-    expect(lightCurve(0.9)).toBeGreaterThan(0.4);
-    expect(plateau(0.5)).toBeCloseTo(0.55 * (1 - 0.12 * 0.2), 2);
-  });
-
-  it("declines monotonically after the plateau and follows a power-law tail", () => {
-    let previous = lightCurve(1.6);
-    for (let t = 1.7; t < BURST_LIFE; t += 0.1) {
-      const now = lightCurve(t);
-      expect(now).toBeLessThanOrEqual(previous + 1e-9);
-      previous = now;
-    }
-    // Between 3 and 6 seconds the tail is a pure t^(-5/3) in its own clock,
-    // before the extinction window bites.
-    const ratio = tail(6) / tail(3);
+  it("falls off the plateau, then fades as a t^(-5/3) tail", () => {
+    expect(lightCurve(2.5)).toBeCloseTo(0.631, 2);
+    expect(lightCurve(2.95)).toBeCloseTo(0.346, 3);
+    expect(lightCurve(4.45)).toBeCloseTo(0.176, 2);
+    expect(lightCurve(5.95)).toBeCloseTo(0.109, 2);
+    expect(lightCurve(8.95)).toBeCloseTo(0.055, 2);
+    expect(lightCurve(10)).toBeCloseTo(0.046, 2);
+    // A pure power law in its own clock, before the extinction window.
+    const ratio = lightCurve(8) / lightCurve(4);
     const expected = Math.pow(
-      (1 + (6 - 0.9) / 3.0) / (1 + (3 - 0.9) / 3.0),
+      (1 + (8 - 2.95) / 3) / (1 + (4 - 2.95) / 3),
       -5 / 3,
     );
     expect(ratio).toBeCloseTo(expected, 6);
   });
 
-  it("is still faintly there deep into the sub-page, then genuinely gone", () => {
-    expect(lightCurve(6)).toBeGreaterThan(0.05);
-    expect(lightCurve(8)).toBeGreaterThan(0.02);
-    expect(lightCurve(11.5)).toBeLessThan(0.01);
+  it("declines monotonically after the peak and is extinguished invisibly", () => {
+    let previous = lightCurve(0.55);
+    for (let t = 0.56; t < BURST_LIFE; t += 0.05) {
+      const now = lightCurve(t);
+      expect(now).toBeLessThanOrEqual(previous + 1e-9);
+      previous = now;
+    }
+    expect(lightCurve(11.95)).toBeCloseTo(0.026, 2);
+    expect(lightCurve(13)).toBeLessThan(0.01);
   });
 });
 
@@ -75,61 +65,86 @@ describe("the thermal ramp", () => {
   it("starts blue-white, passes through white, and cools to a red ember", () => {
     const [r0, , b0] = thermal(0);
     expect(b0).toBeGreaterThan(r0);
-    expect(thermal(0.12)).toEqual([1, 1, 1]);
-    const [r4, g4, b4] = thermal(4.5);
+    const [r1, g1, b1] = thermal(0.9);
+    expect(Math.min(r1, g1, b1)).toBeGreaterThan(0.85);
+    const [r4, g4, b4] = thermal(7);
     expect(r4).toBeGreaterThan(g4);
     expect(g4).toBeGreaterThan(b4);
   });
 
-  it("only ever cools past the peak: red gains on blue monotonically", () => {
-    let previous = thermal(0.12);
-    for (let t = 0.2; t <= 12; t += 0.1) {
-      const c = thermal(t);
-      expect(c[2] / c[0]).toBeLessThanOrEqual(previous[2] / previous[0] + 1e-9);
-      previous = c;
+  it("only ever cools", () => {
+    let previous = photosphereKelvin(0);
+    for (let t = 0.05; t <= 16; t += 0.05) {
+      const k = photosphereKelvin(t);
+      expect(k).toBeLessThanOrEqual(previous + 1e-9);
+      previous = k;
     }
   });
 
-  it("holds the last stop rather than wrapping or going dark", () => {
-    expect(thermal(20)).toEqual(thermal(12));
+  it("has no stop below 2000 K, so nothing can reach a saturated orange", () => {
+    expect(blackbody(500)).toEqual(blackbody(2000));
+    const [r, g, b] = blackbody(2000);
+    expect(r).toBe(1);
+    expect(g).toBeGreaterThan(0.5);
+    expect(b).toBeGreaterThan(0);
   });
 });
 
 describe("the blast wave", () => {
-  it("crosses the core's surface at the breakout peak", () => {
-    // Breakout is the shock leaving the surface: the flash peaks as the
-    // front clears the core.
+  it("crosses the core's surface at breakout", () => {
     expect(blastRadius(BREAKOUT_PEAK)).toBeCloseTo(CORE_SURFACE, 1);
   });
 
-  it("expands freely at first, then decelerates into Sedov–Taylor", () => {
-    expect(blastSpeed(0.02)).toBeGreaterThan(0.9);
-    expect(blastSpeed(2)).toBeLessThan(0.3);
+  it("expands freely, then decelerates into Sedov–Taylor without a kink", () => {
+    expect(blastSpeed(0.02)).toBeGreaterThan(0.95);
+    expect(blastSpeed(0.42)).toBeCloseTo(0.568, 2);
+    expect(blastSpeed(1)).toBeCloseTo(0.277, 2);
+    expect(blastSpeed(2.25)).toBeCloseTo(0.152, 2);
     // Late-time growth follows R ∝ t^(2/5): a log-log slope near 0.4.
     const slope = Math.log(blastRadius(3.2) / blastRadius(1.6)) / Math.log(2);
-    expect(slope).toBeGreaterThan(0.35);
-    expect(slope).toBeLessThan(0.5);
-  });
-
-  it("only ever grows", () => {
-    let previous = blastRadius(0);
-    for (let t = 0.01; t < 6; t += 0.01) {
-      const r = blastRadius(t);
-      expect(r).toBeGreaterThan(previous);
-      previous = r;
+    expect(slope).toBeCloseTo(0.4, 1);
+    // No kink: the speed never rises, and never drops by more than a
+    // few percent between neighbouring samples.
+    let previous = blastSpeed(0.001);
+    for (let t = 0.011; t < 4; t += 0.01) {
+      const v = blastSpeed(t);
+      expect(v).toBeLessThanOrEqual(previous + 1e-9);
+      expect(previous - v).toBeLessThan(0.03);
+      previous = v;
     }
   });
 
   it("reaches the edge of the system in a few seconds and dies there", () => {
-    let arrival = 0;
-    for (let t = 0; t < 10; t += 0.01)
-      if (blastRadius(t) >= SYSTEM_EDGE) {
-        arrival = t;
-        break;
-      }
-    expect(arrival).toBeGreaterThan(2.5);
-    expect(arrival).toBeLessThan(4);
-    expect(blastAlpha(arrival)).toBeLessThan(1e-6);
+    expect(blastRadius(1)).toBeCloseTo(1.93, 1);
+    expect(blastRadius(2.25)).toBeCloseTo(2.72, 1);
+    expect(blastRadius(3.3)).toBeCloseTo(SYSTEM_EDGE, 1);
+    expect(blastAlpha(3.3)).toBeLessThan(1e-6);
     expect(blastAlpha(0.3)).toBeGreaterThan(0.3);
+    expect(blastWidth(0.07)).toBeCloseTo(0.05, 2);
+    expect(blastWidth(3)).toBeCloseTo(0.16, 2);
+  });
+
+  it("runs hotter than the photosphere and cools as it slows", () => {
+    expect(blastKelvin(0.07)).toBeGreaterThan(13000);
+    expect(blastKelvin(1)).toBeGreaterThan(photosphereKelvin(1) - 1500);
+    expect(blastKelvin(2.95)).toBeLessThan(3000);
+    expect(blastKelvin(3.3)).toBeGreaterThanOrEqual(2000);
+  });
+});
+
+describe("the accretion disc", () => {
+  it("rises as the bound debris returns, peaks, then follows the fallback law", () => {
+    expect(discAlpha(1)).toBeCloseTo(0.05, 1);
+    expect(discAlpha(2.3)).toBeCloseTo(0.55, 2);
+    expect(discAlpha(3)).toBeCloseTo(0.35, 1);
+    expect(discAlpha(6)).toBeCloseTo(0.11, 1);
+    expect(discAlpha(10)).toBeCloseTo(0.047, 1);
+    expect(discAlpha(BURST_LIFE)).toBe(0);
+    let previous = discAlpha(2.3);
+    for (let t = 2.35; t < BURST_LIFE; t += 0.05) {
+      const a = discAlpha(t);
+      expect(a).toBeLessThanOrEqual(previous + 1e-9);
+      previous = a;
+    }
   });
 });

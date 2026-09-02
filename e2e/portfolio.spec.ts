@@ -1024,6 +1024,179 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
   );
 });
 
+test("one real press on a planet's body captures it, jitter and all", async ({ page }) => {
+  // The defect this guards: a press that started on a planet was lost
+  // when the release landed on its moving nameplate, or when the pointer
+  // wandered a few pixels the way a trackpad click does. A single
+  // press, with that jitter, must capture — every time.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const plate = portal.locator('a.orbit-label[data-body="lab"]');
+  // The scene publishes where each body is drawn, in field pixels.
+  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+  const field = await portal.locator(".orbit-field").boundingBox();
+  const cx = Number(await plate.getAttribute("data-cx"));
+  const cy = Number(await plate.getAttribute("data-cy"));
+  expect(field).not.toBeNull();
+
+  const x = field!.x + cx;
+  const y = field!.y + cy;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  // Six pixels of travel between down and up: a nervous click, not a drag.
+  await page.mouse.move(x + 6, y + 3, { steps: 2 });
+  await page.mouse.up();
+
+  // The activation begins on the release — one transition, this planet.
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("LAB");
+});
+
+test("one real press on a nameplate captures its planet", async ({ page }) => {
+  // A nameplate is an anchor floating above the canvas. A press on it
+  // used to depend on the anchor still being under the pointer at
+  // release, which a moving nameplate does not guarantee.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const plate = portal.locator('a.orbit-label[data-body="work"]');
+  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+  const box = await plate.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "work", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
+});
+
+test("Space on a focused nameplate captures its planet, like Enter", async ({ page }) => {
+  // A nameplate is a link, and links do not activate on Space. A visitor
+  // who reached a planet by keyboard should not have to know that.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const plate = portal.locator('a.orbit-label[data-body="about"]');
+  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+  await plate.focus();
+  await page.keyboard.press("Space");
+
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("ABOUT");
+});
+
+test("one touch tap on a planet's body captures it", async ({ browser }) => {
+  // A tap is a pointerdown and a pointerup with a little travel between
+  // them, on a canvas whose touch-action lets the page pan vertically.
+  // The press model must read it as a click, not a cancelled pan.
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 1024, height: 768 },
+    reducedMotion: "no-preference",
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto("/building");
+    await waitForFonts(page);
+    await openPortal(page);
+    const portal = page.locator(".orbit-portal");
+    const plate = portal.locator('a.orbit-label[data-body="contact"]');
+    await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+    const field = await portal.locator(".orbit-field").boundingBox();
+    expect(field).not.toBeNull();
+    const x = field!.x + Number(await plate.getAttribute("data-cx"));
+    const y = field!.y + Number(await plate.getAttribute("data-cy"));
+    await page.touchscreen.tap(x, y);
+    await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "contact", {
+      timeout: 30_000,
+    });
+    await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  } finally {
+    await context.close();
+  }
+});
+
+test("a press still lands after the window is resized", async ({ page }) => {
+  // Positions are read from the scene's own projection every frame, so
+  // a resized field must not leave the press model aiming at the old
+  // layout.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+  await page.setViewportSize({ width: 1100, height: 760 });
+  const portal = page.locator(".orbit-portal");
+  const plate = portal.locator('a.orbit-label[data-body="lab"]');
+  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+  // Let the projection settle at the new size before reading it.
+  await page.waitForTimeout(1500);
+  const field = await portal.locator(".orbit-field").boundingBox();
+  expect(field).not.toBeNull();
+  const x = field!.x + Number(await plate.getAttribute("data-cx"));
+  const y = field!.y + Number(await plate.getAttribute("data-cy"));
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+});
+
+test("the same planet works again after stepping back to the map", async ({ page }) => {
+  // A capture is held inside the core for the scene the portal is about
+  // to replace. Stepping back rebuilds the map, and the planet that fell
+  // in must be a control again — and so must every other planet.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+  const portal = page.locator(".orbit-portal");
+  const field = portal.locator(".orbit-field");
+
+  const press = async (body: string) => {
+    const plate = portal.locator(`a.orbit-label[data-body="${body}"]`);
+    await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+    const box = await field.boundingBox();
+    expect(box).not.toBeNull();
+    const x = box!.x + Number(await plate.getAttribute("data-cx"));
+    const y = box!.y + Number(await plate.getAttribute("data-cy"));
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect(field).toHaveAttribute("data-capturing", body, { timeout: 30_000 });
+    await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  };
+
+  await press("work");
+  await page.keyboard.press("Escape");
+  await expect(portal).toHaveAttribute("data-view", "map");
+  await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached({ timeout: 45_000 });
+  await press("work");
+});
+
 test("the nucleus is a destination, not a control", async ({ page }) => {
   // It carries a label and it glows on approach, so it must not also
   // carry the cursor of something clickable: pressing it does nothing,
