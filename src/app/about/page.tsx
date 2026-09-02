@@ -19,7 +19,9 @@ export default function About() {
         <div className="systems-hero-copy">
           <p className="record">About / operating record</p>
           <div className="systems-title-row">
-            <h1 className="axis-display hero-title-long">A career at the intersection.</h1>
+            <h1 className="axis-display hero-title-long">
+              A career at the intersection.
+            </h1>
             <div className="systems-lead about-intro">
               {aboutIntro.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
@@ -30,22 +32,34 @@ export default function About() {
       </header>
 
       <section aria-labelledby="career-heading" className="career-line">
-        <div className="career-line-heading">
-          <p className="record">2011 → now</p>
-          <h2 id="career-heading" className="axis-heading">The work, in sequence.</h2>
-          <p>
-            Search, company building, global talent leadership, product operations and agentic
-            operating design. One continuous record, from the first search to current systems work.
-          </p>
-        </div>
-
-        <CareerCorridor stops={career} systemsIds={[...sceneNodeIds]} />
+        <CareerCorridor
+          stops={career}
+          systemsIds={[...sceneNodeIds]}
+          heading={
+            <>
+              <p className="record">2011 → now</p>
+              <h2 id="career-heading" className="axis-heading">
+                The work, in sequence.
+              </h2>
+              <p>
+                Search, company building, global talent leadership, product
+                operations and agentic operating design. One continuous record,
+                from the first search to current systems work.
+              </p>
+            </>
+          }
+        />
       </section>
 
-      <section aria-labelledby="references-heading" className="about-references">
+      <section
+        aria-labelledby="references-heading"
+        className="about-references"
+      >
         <div>
           <p className="record">References / contact</p>
-          <h2 id="references-heading" className="axis-heading">Seen up close.</h2>
+          <h2 id="references-heading" className="axis-heading">
+            Seen up close.
+          </h2>
         </div>
         <div className="about-reference-body">
           {testimonials.length > 0 ? (

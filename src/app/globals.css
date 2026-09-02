@@ -584,9 +584,35 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .about-opening h1 { --axis: 82; max-width: 11.5ch; margin-top: clamp(2.5rem, 6vw, 5rem); font-size: clamp(2.7rem, 6.6vw, 6.4rem); word-spacing: 0.05em; }
 .about-intro { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 0.5rem; }
 .about-intro p { max-width: 42rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
-.career-line-heading { display: grid; grid-template-columns: 0.42fr 0.78fr 0.8fr; gap: clamp(2rem, 5vw, 5rem); align-items: end; margin-bottom: clamp(3rem, 6vw, 5rem); }
-.career-line-heading h2 { max-width: 9ch; }
-.career-line-heading > p:last-child { max-width: 34rem; line-height: 1.6; color: var(--ink-secondary); }
+/* The sequence heading rides at the top of the corridor's stage rather
+   than above it. The stage is a full viewport with the first station at
+   its centre, so a heading placed above it left a screen of paper
+   between the two. Inside, heading and first station share the first
+   screen; the heading turns paper-on-dark as the field arrives and fades
+   as the traveller leaves for the second stop. */
+.corridor-heading { display: grid; grid-template-columns: 0.42fr 0.78fr 0.8fr; gap: clamp(2rem, 5vw, 5rem); align-items: start; }
+.corridor-heading .record { padding-top: 0.3rem; }
+.corridor-heading h2 { max-width: 9ch; }
+.corridor-heading > p:last-child { max-width: 34rem; line-height: 1.6; color: var(--ink-secondary); }
+.career-corridor:not([data-live]) .corridor-heading { margin-bottom: clamp(3rem, 6vw, 5rem); }
+.career-corridor[data-live] .corridor-heading {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--site-header-h) + 1.5rem);
+  left: max(22px, 7vw);
+  right: max(84px, 9vw);
+  opacity: var(--heading-presence, 1);
+  pointer-events: none;
+}
+.career-corridor[data-live] .corridor-heading {
+  --paper-mix: calc(clamp(0, (var(--space, 0) - 0.6) / 0.25, 1) * 100%);
+}
+.career-corridor[data-live] .corridor-heading :is(h2, .record) {
+  color: color-mix(in oklab, var(--paper) var(--paper-mix), var(--ink));
+}
+.career-corridor[data-live] .corridor-heading > p:last-child {
+  color: color-mix(in oklab, rgba(232, 237, 245, 0.78) var(--paper-mix), var(--ink-secondary));
+}
 /* Career corridor. Fallback-first: the DOM below reads as the complete
    linear record without JavaScript or with reduced motion; `data-live`
    recomposes the same stations into the travel corridor. */
@@ -700,7 +726,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .work-index-row:hover .row-company, .work-index-row:focus-visible .row-company { font-variation-settings: "wdth" 100; }
 .row-headline { display: block; max-width: 54rem; margin-top: 0.5rem; line-height: 1.45; color: var(--ink-secondary); }
 .row-period { text-align: right; color: var(--ink-secondary); }
-.work-index-next { display: grid; grid-template-columns: 0.45fr 1fr auto; gap: 2rem; align-items: end; margin-top: 8rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 3rem 0; }
+.work-index-next { display: grid; grid-template-columns: 0.45fr 1fr auto; gap: 2rem; align-items: start; margin-top: 8rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 3rem 0; }
 .work-index-next .axis-heading { max-width: 12ch; }
 
 /* Case-study records */
@@ -779,7 +805,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   padding-top: clamp(2.5rem, 7vh, 5rem);
 }
 .systems-hero-copy { position: relative; z-index: 1; }
-.systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: end; margin-top: 1.25rem; }
+/* Every split composition on the site aligns to its first line: the
+   label or the lead sits level with the top of the heading it belongs
+   to. End-alignment was right for a one-line title and wrong for every
+   sentence, which is where it stranded the lead at the bottom of a
+   seven-line block. */
+.systems-title-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr); gap: clamp(2rem, 6vw, 7rem); align-items: start; margin-top: 1.25rem; }
 .systems-hero h1 { --axis: 100; max-width: 7ch; }
 /* Sections whose titles are sentences, not a word: the same hero, one
    display step down so the line composes over the orbit. */
@@ -865,7 +896,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .systems-lead { max-width: 34rem; padding-bottom: 0; }
   .systems-hero { min-height: auto; padding-top: 2rem; }
   .orbit-field { flex: none; min-height: 0; height: clamp(320px, 46svh, 430px); margin-top: 0; margin-bottom: 0.5rem; order: -1; }
-  .about-opening, .career-line-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
+  .about-opening, .corridor-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
   .station-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .station-metrics > div:nth-child(odd) { border-left: 0; padding-left: 0; }
   .career-corridor[data-live] .corridor-station { left: 22px; right: 58px; max-height: calc(98svh - var(--site-header-h)); }
@@ -1049,9 +1080,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem clamp(1rem, 3vw, 2rem);
+  /* The page's own content edge. The portal covers the navigation
+     island, so nothing in this corner needs clearing. */
   padding: 1.6rem max(22px, 6vw) 0;
-  /* Clear of the orb in the same corner. */
-  padding-left: calc(max(22px, 6vw) + 3.4rem);
   color: rgba(232, 237, 245, 0.95);
 }
 .orbit-portal-record { color: rgba(232, 237, 245, 0.62); }
@@ -1093,6 +1124,57 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   outline: 2px solid rgba(232, 237, 245, 0.95);
   outline-offset: 3px;
 }
+/* Shock breakout, drawn by the compositor. Centred on the core's
+   projection, it snaps to full inside the first frames and is gone
+   inside the plateau — the one piece of the burst that survives the
+   scene being rebuilt underneath it. */
+.orbit-portal-breakout {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  z-index: 3;
+  width: 60vmin;
+  height: 60vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(183, 205, 255, 0.85) 28%, rgba(183, 205, 255, 0) 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: opacity, transform;
+  animation: orbit-breakout 700ms linear both;
+}
+/* Starts above zero and holds its peak: if the incoming scene's first
+   render blocks the main thread before the compositor promotes this
+   layer, the frame that does paint is already bright, and a late first
+   paint anywhere in the first two hundred milliseconds still meets the
+   flash at full. */
+@keyframes orbit-breakout {
+  0%    { opacity: 0.6;  transform: translate(-50%, -50%) scale(0.5); }
+  8.6%  { opacity: 1;    transform: translate(-50%, -50%) scale(0.7); }
+  28.6% { opacity: 1;    transform: translate(-50%, -50%) scale(0.9); }
+  45.7% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.95); }
+  68.6% { opacity: 0.14; transform: translate(-50%, -50%) scale(1); }
+  100%  { opacity: 0;    transform: translate(-50%, -50%) scale(1.05); }
+}
+/* The static poster the field shows until its canvas is live: under a
+   live burst a remount would paint the new section's grey planets for a
+   frame beneath the flash. */
+.orbit-portal-field[data-burst="true"] .orbit-poster { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .orbit-portal-breakout { display: none; }
+}
+
+/* Travelling to a real page: the portal dissolves with the remnant
+   still burning inside it, so the second-level cut is a fade and not a
+   cut. Under reduced motion no burst ever exists, so this never runs. */
+.orbit-portal[data-leaving="true"] {
+  animation: orbit-portal-out 220ms var(--ease-settle) both;
+  pointer-events: none;
+}
+@keyframes orbit-portal-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 /* The field fills what the chrome leaves, and drops the full-bleed
    trick it needs when it is a band inside a page. */
 .orbit-portal-field { position: relative; flex: 1 1 auto; min-height: 0; }
@@ -1126,8 +1208,14 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   line-height: 1.55;
   color: var(--ink-secondary);
 }
-@media (max-width: 768px) {
-  .orbit-portal-chrome { padding-left: max(22px, 6vw); padding-top: 4.6rem; }
+/* Below the width where the eyebrow, the note and three actions fit on
+   one line, the chrome is a column, and the actions stay on the left
+   edge: a wrapped row that pushed them right read as buttons floating
+   in the middle of the screen. */
+@media (max-width: 1199px) {
+  .orbit-portal-chrome { flex-direction: column; align-items: flex-start; gap: 0.45rem; }
+  .orbit-portal-note { flex-basis: auto; }
+  .orbit-portal-actions { margin-left: 0; margin-top: 0.45rem; }
 }
 
 /* The operating record's own masthead, below the personal hero: the
@@ -1180,25 +1268,24 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    spacing were inherited from `.axis-display` and are now stated: -0.075em
    is an optical setting for a 170px instance and closes the word spaces at
    76px. */
-.home-page .personal-headline {
+/* The home title is a sentence where the Lab's is a word. It takes a
+   smaller step than the shared hero and a wider measure, and its row
+   gives the bio a wider column: the bio is 176 characters, and a column
+   that wraps it to six lines reads as a sidebar rather than a lead. The
+   size stops growing past 1440 on purpose — the content column does not
+   grow with the viewport, so type that did would only add lines. */
+.home-page .systems-title-row { grid-template-columns: minmax(0, 1.3fr) minmax(24rem, 0.75fr); }
+.home-page .systems-hero h1.hero-title-long.personal-headline {
   --axis: 100;
-  /* 22ch, not 18ch: the shorter previous headline set in four lines at
-     18ch, but this one spills to five and strands "Building" alone on
-     the first. 22ch is the narrowest measure that recovers the four-line
-     set — past it the text stops reflowing, so this stays a measure
-     rather than becoming full-bleed by default. */
-  max-width: 22ch;
-  font-size: clamp(2.5rem, 1.66rem + 3.43vw, 4.75rem);  /* 40 → 76 → 76 */
+  max-width: 24ch;
+  font-size: clamp(1.75rem, 1rem + 2.8vw, 3.5rem); /* 28 → 56 → 56 */
   font-weight: 800;
   line-height: 0.97;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.04em;
   word-spacing: 0.06em;
   text-wrap: balance;
 }
-
-/* 54ch was already inside the comfortable band; narrowing further adds
-   lines while pretending to add air. */
-.home-page .personal-bio { max-width: 50ch; }
+.home-page .personal-bio { max-width: 34rem; }
 
 /* One column, so the headline is measured by its own max-width rather
    than by what a portrait left over. */
@@ -1239,7 +1326,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   display: grid;
   gap: 0;
   max-width: 60rem;
-  padding-top: calc(var(--u) * 9);      /* 73 → 145, below the rule */
+  padding-top: calc(var(--u) * 7);      /* 57 → 113, below the rule */
   padding-bottom: 0;
 }
 .work-index-masthead > h2       { margin-top: var(--air-1); }
@@ -1249,7 +1336,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    /contact and /about. Unscoped, this would strip the baseline nudge that
    holds the Lab's lead against its h1 in an end-aligned grid, and would
    beat the ≤768 `.systems-lead` max-width on three other routes. */
-.work-index-masthead .systems-lead { max-width: 30rem; padding-bottom: 0; }
+.work-index-masthead .systems-lead { max-width: 38rem; padding-bottom: 0; }
 
 
 /* ── 3. THE METRIC BAND ───────────────────────────────────────────────
@@ -1259,12 +1346,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    band copy is an orphan grey paragraph floating in the new air. */
 .work-index-page .work-metric-band {
   margin-top: var(--air-3);
-  padding-block: 0 var(--air-3);
+  padding-block: 0 var(--air-2);
 }
 /* Unlayered, so it beats the `max-w-2xl` utility in the markup. */
 .work-index-page .work-metric-band > p { max-width: 38rem; }
 
-.work-index-page .work-metric-rail { margin-top: var(--air-3); }
+.work-index-page .work-metric-rail { margin-top: var(--air-2); }
 /* padding-block only. The rail's `padding` shorthand is re-set to
    `padding-left: 0` inside @media(≤768); a shorthand here would resurrect
    the inline padding and knock mobile rail cells 2 and 3 out of alignment
@@ -1400,4 +1487,37 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
      line's nowrap spans are safe because a smaller size only narrows
      them. */
   .home-page .resolve-lines .axis-display { font-size: clamp(2rem, 8.4vw, 3.125rem); }
+}
+
+
+/* ── The Lab's section format, shared ────────────────────────────────
+   A mono label held on the left, the heading and its lead carried on the
+   right. The Lab already composed its sections this way at 0.65fr/1.35fr;
+   Home stacked everything in one column and read as a different site.
+   This is that composition named once, so the two pages move together. */
+.section-split {
+  display: grid;
+  grid-template-columns: 0.65fr 1.35fr;
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: start;
+}
+.section-split > .record { margin: 0; padding-top: 0.3rem; }
+.section-split-body { display: grid; gap: 0; min-width: 0; }
+
+/* The home masthead now sits inside the split, so the vertical rhythm
+   that used to run down one column runs down the right-hand one. */
+.work-index-page .work-index-masthead.section-split > .record { margin-top: 0; }
+.work-index-page .section-split-body > h2 { margin-top: 0; }
+.work-index-page .section-split-body > .systems-lead { margin-top: var(--air-2); }
+.work-index-page .work-group-intro.section-split .axis-heading { margin-top: 0; }
+
+@media (max-width: 768px) {
+  /* One column on a phone: a 0.65fr label column strands the mono line
+     against a measure too narrow to read. */
+  .section-split { grid-template-columns: minmax(0, 1fr); gap: var(--air-1); }
+  /* The home row's two columns outrank the shared one-column phone rule,
+     and a 24rem bio column on a 390px screen leaves the title no width
+     at all. */
+  .home-page .systems-title-row { grid-template-columns: minmax(0, 1fr); }
+  .home-page .systems-hero h1.hero-title-long.personal-headline { max-width: none; }
 }

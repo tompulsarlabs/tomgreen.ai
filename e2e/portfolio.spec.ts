@@ -95,11 +95,11 @@ async function inkedCanvasPixels(page: Page, selector: string) {
 test("Home presents the complete Load-Bearing Type journey", async ({ page }) => {
   await gotoReduced(page, "/");
 
-  // The opening statement is the page's epigraph, not its title: the h1
-  // is the introduction underneath it.
+  // The opening statements are the page's epigraph, not its title: the
+  // h1 is the positioning claim underneath them.
   await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organisations, talent engines and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
@@ -476,15 +476,16 @@ test("the home route is the six-row evidence index, under the introduction", asy
   // it as a section heading, which is the hierarchy a reader expects.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organisations, talent engines and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
   await expect(
     page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
   ).toBeVisible();
-  // The positioning line did not leave the page, it moved: it now sits
-  // under the operating record's masthead rather than opening the page.
+  // The two lines swapped rather than one leaving: the positioning
+  // claim opens the page as its h1 — the same string the site is indexed
+  // under — and the founder-mode line sits under the record's masthead.
   await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building organizations, talent systems, and operating models, in founder mode.",
   );
   // No photograph, and no placeholder standing in for one.
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
@@ -820,7 +821,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
   const metrics = page.locator(".case-opening dl");
   await expect(metrics.locator("dd")).toHaveText(["0 → 120", "−32%", "+21%", "1,000+"]);
   await expect(metrics.locator("dt")).toHaveText([
-    "AI organisation in six months",
+    "AI organization in six months",
     "Time to Hire",
     "Offer acceptance",
     "Interviewers trained",
@@ -828,20 +829,20 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
 
   const system = page.getByRole("region", { name: "How the operating system worked" });
   await expect(system.getByRole("heading", {
-    name: "A talent system built around the organisation—not a list of vacancies.",
+    name: "A talent system built around the organization—not a list of vacancies.",
   })).toBeVisible();
   await expect(system.locator("ol > li h3")).toHaveText([
     "Capability map",
     "Market entry",
     "Talent engine",
     "Quality loop",
-    "AI organisation",
+    "AI organization",
   ]);
   await expect(page.getByText(
     "Evidence note · Metrics are drawn from the operating record for this work. The diagram is a confidentiality-safe reconstruction, not an internal Zalando artifact; selected references and supporting context are available privately.",
     { exact: true },
   )).toBeVisible();
-  await expect(page.getByText(/evidence object|typeset|M01|organisation structure reconstructed/i)).toHaveCount(0);
+  await expect(page.getByText(/evidence object|typeset|M01|organization structure reconstructed/i)).toHaveCount(0);
   await expect(page.locator(".zalando-evidence, .month-ruler, .role-crowd")).toHaveCount(0);
 
   // Brand casing is a ruling, not a style: WeR is never WER.
@@ -914,7 +915,7 @@ async function openPortal(page: Page) {
   await page.locator(".sphere-home").click();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
   await expect(page.locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')).toBeVisible({
-    timeout: 20_000,
+    timeout: 45_000,
   });
   // A visible canvas is not a wired scene: the nameplates are positioned
   // from inside useFrame, so a non-zero inline opacity is the first proof
@@ -924,9 +925,50 @@ async function openPortal(page: Page) {
       async () =>
         page.locator('.orbit-portal .orbit-label[data-body]').first()
           .evaluate((element) => Number((element as HTMLElement).style.opacity || 0)),
-      { timeout: 30_000 },
+      { timeout: 45_000 },
     )
     .toBeGreaterThan(0);
+}
+
+/**
+ * Waits for a planet to be a target a person could deliberately press:
+ * drawn inside the field, clear of its edges, with its nameplate
+ * legible. After every mount the system draws itself together from a
+ * scatter, and until a body has flown in there is nothing on screen to
+ * aim at. Returns where the body is drawn, in page pixels.
+ */
+async function seePlanet(page: Page, portal: Locator, body: string) {
+  const plate = portal.locator(`a.orbit-label[data-body="${body}"]`);
+  await expect
+    .poll(
+      async () =>
+        plate.evaluate((element) => {
+          const label = element as HTMLElement;
+          const field = label.closest(".orbit-field")?.getBoundingClientRect();
+          if (!field) return false;
+          const cx = Number(label.dataset.cx);
+          const cy = Number(label.dataset.cy);
+          if (!Number.isFinite(cx) || !Number.isFinite(cy)) return false;
+          const margin = 48;
+          return (
+            cx > margin &&
+            cx < field.width - margin &&
+            cy > margin &&
+            cy < field.height - margin &&
+            Number(label.style.opacity || 0) > 0.4
+          );
+        }),
+      { timeout: 90_000, intervals: [200] },
+    )
+    .toBe(true);
+  const field = await portal.locator(".orbit-field").boundingBox();
+  expect(field).not.toBeNull();
+  return {
+    x: field!.x + Number(await plate.getAttribute("data-cx")),
+    y: field!.y + Number(await plate.getAttribute("data-cy")),
+    field: field!,
+    plate,
+  };
 }
 
 test("no page carries the planetary map any more", async ({ page }) => {
@@ -1006,11 +1048,11 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
 
   // The planet is captured, and what emerges is Work's own bodies —
   // its projects — orbiting the section centre. No navigation.
-  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 30_000 });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 45_000 });
   await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
   await expect(page).toHaveURL("/building");
   await expect(portal.locator('a.orbit-label[data-body="ai-organisation"]')).toBeAttached({
-    timeout: 20_000,
+    timeout: 45_000,
   });
   await expect(portal.locator('a.orbit-label[data-body="quant-search"]')).toBeAttached();
   // Eight projects, and none of them is a section any more.
@@ -1023,6 +1065,217 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
   );
 });
 
+test("one real press on a planet's body captures it, jitter and all", async ({ page }) => {
+  // The defect this guards: a press that started on a planet was lost
+  // when the release landed on its moving nameplate, or when the pointer
+  // wandered a few pixels the way a trackpad click does. A single
+  // press, with that jitter, must capture — every time.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  // The scene publishes where each body is drawn, in field pixels.
+  const { x, y } = await seePlanet(page, portal, "lab");
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  // Six pixels of travel between down and up: a nervous click, not a drag.
+  await page.mouse.move(x + 6, y + 3, { steps: 2 });
+  await page.mouse.up();
+
+  // The activation begins on the release — one transition, this planet.
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("LAB");
+});
+
+test("a press aimed at where the planet was drawn a moment ago still lands", async ({ page }) => {
+  // The defect this guards: the press was resolved against the latest
+  // frame only, while the visitor had aimed at an earlier one. The
+  // pointer's own approach yaws the camera, the orbit turns and, on a
+  // slow machine, several frames pass before the press is handled, so
+  // the planet had moved past its own hit reach and the press fell on
+  // empty space. The press model remembers the frames the visitor saw.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const { field, plate } = await seePlanet(page, portal, "lab");
+  // Take aim from the far corner, the way a pointer arrives: the sweep
+  // across the field is what moves the view.
+  await page.mouse.move(field.x + 20, field.y + 20);
+  const seenX = Number(await plate.getAttribute("data-cx"));
+  const seenY = Number(await plate.getAttribute("data-cy"));
+  // Cross the field to the planet. The view yaws with the pointer and
+  // the next frame draws the planet somewhere else.
+  await page.mouse.move(field.x + seenX, field.y + seenY, { steps: 8 });
+  await expect
+    .poll(
+      async () =>
+        Number(await plate.getAttribute("data-cx")) !== seenX ||
+        Number(await plate.getAttribute("data-cy")) !== seenY,
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+  // Press where the planet was seen, not where it is now.
+  await page.mouse.down();
+  await page.mouse.up();
+
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("LAB");
+});
+
+test("one real press on a nameplate captures its planet", async ({ page }) => {
+  // A nameplate is an anchor floating above the canvas. A press on it
+  // used to depend on the anchor still being under the pointer at
+  // release, which a moving nameplate does not guarantee.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const { plate } = await seePlanet(page, portal, "work");
+  const box = await plate.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "work", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
+});
+
+test("Space on a focused nameplate captures its planet, like Enter", async ({ page }) => {
+  // A nameplate is a link, and links do not activate on Space. A visitor
+  // who reached a planet by keyboard should not have to know that.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const { plate } = await seePlanet(page, portal, "about");
+  await plate.focus();
+  await page.keyboard.press("Space");
+
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("ABOUT");
+});
+
+test("one touch tap on a planet's body captures it", async ({ browser }) => {
+  // A tap is a pointerdown and a pointerup with a little travel between
+  // them, on a canvas whose touch-action lets the page pan vertically.
+  // The press model must read it as a click, not a cancelled pan.
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 1024, height: 768 },
+    reducedMotion: "no-preference",
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto("/building");
+    await waitForFonts(page);
+    await openPortal(page);
+    const portal = page.locator(".orbit-portal");
+    const { x, y } = await seePlanet(page, portal, "contact");
+    await page.touchscreen.tap(x, y);
+    await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "contact", {
+      timeout: 30_000,
+    });
+    await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  } finally {
+    await context.close();
+  }
+});
+
+test("a press still lands after the window is resized", async ({ page }) => {
+  // Positions are read from the scene's own projection every frame, so
+  // a resized field must not leave the press model aiming at the old
+  // layout.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+  await page.setViewportSize({ width: 1100, height: 760 });
+  const portal = page.locator(".orbit-portal");
+  // Let the projection settle at the new size before reading it.
+  await page.waitForTimeout(1500);
+  const { x, y } = await seePlanet(page, portal, "lab");
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+});
+
+test("the same planet works again after stepping back to the map", async ({ page }) => {
+  // A capture is held inside the core for the scene the portal is about
+  // to replace. Stepping back rebuilds the map, and the planet that fell
+  // in must be a control again — and so must every other planet.
+  // Two descents and a rebuilt map: twice the budget of a single press.
+  test.setTimeout(240_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+  const portal = page.locator(".orbit-portal");
+  const field = portal.locator(".orbit-field");
+
+  const press = async (body: string) => {
+    const { x, y } = await seePlanet(page, portal, body);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect(field).toHaveAttribute("data-capturing", body, { timeout: 30_000 });
+    await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  };
+
+  await press("work");
+  await page.keyboard.press("Escape");
+  await expect(portal).toHaveAttribute("data-view", "map");
+  await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached({ timeout: 45_000 });
+  await press("work");
+});
+
+test("the nucleus is a destination, not a control", async ({ page }) => {
+  // It carries a label and it glows on approach, so it must not also
+  // carry the cursor of something clickable: pressing it does nothing,
+  // and an object that looks like a control and has no outcome is the
+  // exact thing the map must never ship.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached({
+    timeout: 45_000,
+  });
+  // The nucleus never becomes one of the activatable nameplates.
+  await expect(portal.locator('a.orbit-label[data-body="talent"]')).toHaveCount(0);
+});
+
 test("the portal steps back one level at a time, then closes", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -1032,7 +1285,7 @@ test("the portal steps back one level at a time, then closes", async ({ page }) 
 
   const portal = page.locator(".orbit-portal");
   await portal.locator('a.orbit-label[data-body="lab"]').dispatchEvent("click");
-  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 30_000 });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 45_000 });
 
   // Escape inside a section returns to the map rather than throwing the
   // whole world away — one step back per press.
@@ -1398,9 +1651,9 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
     violation.impact === "serious" || violation.impact === "critical",
   )).toEqual([]);
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
-  // Exactly one h1, and it names the person rather than the epigraph.
+  // Exactly one h1, and it is the positioning claim, not the epigraph.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Building organisations, talent engines and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
 });

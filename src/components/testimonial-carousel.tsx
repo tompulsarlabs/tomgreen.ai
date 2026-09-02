@@ -165,7 +165,7 @@ export function TestimonialCarousel({ testimonials }: TestimonialCarouselProps) 
                 <span className="voice-identity">
                   <span className="voice-name">{testimonial.author}</span>
                   <span className="voice-role">
-                    {testimonial.role}, {testimonial.organisation}
+                    {testimonial.role}, {testimonial.organization}
                   </span>
                   {testimonial.relationship ? (
                     <span className="voice-relationship">{testimonial.relationship}</span>

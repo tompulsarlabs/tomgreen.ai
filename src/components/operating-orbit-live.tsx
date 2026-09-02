@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { OrbitBody } from "@/lib/orbit-nav";
+import type { Flare } from "@/components/orbit-flare";
+import type { SceneHandoff } from "@/components/operating-orbit-3d";
 
 const OperatingOrbit3D = dynamic(
   () => import("./operating-orbit-3d").then((module) => module.OperatingOrbit3D),
@@ -19,9 +21,15 @@ const OperatingOrbit3D = dynamic(
 export function OperatingOrbitLive({
   bodies,
   onCapture,
+  flare,
+  handoff,
 }: {
   bodies: OrbitBody[];
   onCapture?: (id: string) => void;
+  /** The core burst, owned by the portal so it outlives this scene. */
+  flare?: Flare | null;
+  /** The outgoing scene's camera and reveal, for the one replacing it. */
+  handoff?: MutableRefObject<SceneHandoff | null>;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState<{ field: HTMLElement; narrow: boolean } | null>(null);
@@ -55,6 +63,8 @@ export function OperatingOrbitLive({
           narrow={live.narrow}
           bodies={bodies}
           onCapture={onCapture}
+          flare={flare}
+          handoff={handoff}
         />
       ) : null}
     </div>

@@ -48,7 +48,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
           <Link href="/work" className="record inline-flex min-h-11 items-center hover:underline">
             ← Evidence index
           </Link>
-          <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(16rem,0.42fr)_minmax(0,1.58fr)] lg:items-end">
+          <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(16rem,0.42fr)_minmax(0,1.58fr)] lg:items-start">
             <div>
               <p className="record evidence-mark">
                 Operating record / {String(index + 1).padStart(2, "0")}

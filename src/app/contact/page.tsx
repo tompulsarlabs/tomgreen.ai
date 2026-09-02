@@ -6,7 +6,7 @@ import { site } from "@/lib/content/site";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Contact Tom Green about AI organisations, talent systems, operating models and agent workflows.",
+    "Contact Tom Green about AI organizations, talent systems, operating models and agent workflows.",
 };
 
 function MailIcon(props: SVGProps<SVGSVGElement>) {

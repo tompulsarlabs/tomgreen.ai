@@ -3,7 +3,7 @@ import { ivyOperatingDate, type IvyState } from "@/lib/data/ivy";
 import { ContributionGraph } from "./contribution-graph";
 
 function formatDate(date: string): string {
-  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -96,7 +96,7 @@ export function ProofStrip({
             <p className="record text-muted">Public build record</p>
             {contributions?.total !== null && contributions?.total !== undefined && (
               <p className="record tabular-nums text-muted">
-                {contributions.total.toLocaleString("en-GB")} contributions · past year
+                {contributions.total.toLocaleString("en-US")} contributions · past year
               </p>
             )}
           </div>

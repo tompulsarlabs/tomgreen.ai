@@ -2,14 +2,14 @@ const steps = [
   {
     number: "01",
     verb: "See the constraint",
-    title: "Start with what the organisation must become.",
+    title: "Start with what the organization must become.",
     copy: "The brief is rarely just to hire faster. The real work is to identify the capability, decisions and operating shape the strategy requires.",
     proof: "Zalando / 0 → 120 / six months",
   },
   {
     number: "02",
     verb: "Design the system",
-    title: "Build the organisation around the outcome.",
+    title: "Build the organization around the outcome.",
     copy: "Leadership spine, market entry, decision rights, talent pipelines and operating cadence become one system—not a queue of vacancies.",
     proof: "Audibene / ~70 → 180 / Product Ops 0 → 1",
   },

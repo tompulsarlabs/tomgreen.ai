@@ -1,4 +1,7 @@
 import { OperatingOrbitLive } from "./operating-orbit-live";
+import type { MutableRefObject } from "react";
+import type { Flare } from "@/components/orbit-flare";
+import type { SceneHandoff } from "@/components/operating-orbit-3d";
 import {
   DEFAULT_CAMERA,
   NUCLEUS_ID,
@@ -31,7 +34,10 @@ function shade(hex: string, factor: number): string {
 
 function chunkPath(chunk: StrokeChunk, cx: number, cy: number): string {
   return chunk.points
-    .map((point, index) => `${index ? "L" : "M"}${(cx + point.x).toFixed(1)} ${(cy + point.y).toFixed(1)}`)
+    .map(
+      (point, index) =>
+        `${index ? "L" : "M"}${(cx + point.x).toFixed(1)} ${(cy + point.y).toFixed(1)}`,
+    )
     .join(" ");
 }
 
@@ -51,22 +57,31 @@ const BODY_PX = 38;
 export function OperatingOrbit({
   bodies,
   onCapture,
+  flare,
+  handoff,
 }: {
   bodies: OrbitBody[];
   /** Redirects a captured planet away from travel — see OrbitScene. */
   onCapture?: (id: string) => void;
+  /** The core burst, owned by the portal so it outlives this scene. */
+  flare?: Flare | null;
+  /** The outgoing scene's camera and reveal, for the one replacing it. */
+  handoff?: MutableRefObject<SceneHandoff | null>;
 }) {
-  const elements = bodies.map((_, index) => navOrbitElements(index, bodies.length));
+  const elements = bodies.map((_, index) =>
+    navOrbitElements(index, bodies.length),
+  );
   // Normalise the nav-scene world (a up to ~3.2) into the poster's field
   // scale, where the well lattice reaches 1.05.
-  const maxExtent = Math.max(
-    ...elements.map((el) => el.a * (1 + 0.6 * el.e)),
-  );
+  const maxExtent = Math.max(...elements.map((el) => el.a * (1 + 0.6 * el.e)));
   const norm = 1.05 / maxExtent;
   const scalePx = 300;
 
   const nucleusProjected = project([0, 0, 0], DEFAULT_CAMERA, scalePx);
-  const nucleus = { ...nucleusProjected, radius: NUCLEUS_RADIUS * nucleusProjected.scale };
+  const nucleus = {
+    ...nucleusProjected,
+    radius: NUCLEUS_RADIUS * nucleusProjected.scale,
+  };
 
   const navPoint = (elIndex: number, t: number): Vec3 => {
     const [x, y, z] = navOrbitPoint(elements[elIndex], t);
@@ -76,7 +91,11 @@ export function OperatingOrbit({
   const orbitChunks = elements.flatMap((_, index) =>
     splitByNucleusDepth(
       Array.from({ length: 121 }, (_, sample) =>
-        project(navPoint(index, (sample / 120) * Math.PI * 2), DEFAULT_CAMERA, scalePx),
+        project(
+          navPoint(index, (sample / 120) * Math.PI * 2),
+          DEFAULT_CAMERA,
+          scalePx,
+        ),
       ),
       nucleus.depth,
     ),
@@ -91,7 +110,11 @@ export function OperatingOrbit({
 
   const placed = bodies
     .map((body, index) => {
-      const projected = project(navPoint(index, elements[index].phase), DEFAULT_CAMERA, scalePx);
+      const projected = project(
+        navPoint(index, elements[index].phase),
+        DEFAULT_CAMERA,
+        scalePx,
+      );
       return { body, projected, radius: body.size * BODY_PX * projected.scale };
     })
     .sort((first, second) => second.projected.depth - first.projected.depth);
@@ -113,7 +136,11 @@ export function OperatingOrbit({
   const cx = VIEW.width / 2 - (minX + maxX) / 2;
   const cy = VIEW.height / 2 - (minY + maxY) / 2;
 
-  const strokeChunks = (chunks: StrokeChunk[], front: boolean, kind: "orbit" | "well") => {
+  const strokeChunks = (
+    chunks: StrokeChunk[],
+    front: boolean,
+    kind: "orbit" | "well",
+  ) => {
     const near = kind === "orbit" ? 0.36 : 0.11;
     const far = kind === "orbit" ? 0.14 : 0.04;
     const weight = kind === "orbit" ? 0.62 : 0.42;
@@ -134,7 +161,7 @@ export function OperatingOrbit({
   // before any script runs.
   const planets = (behind: boolean) =>
     placed
-      .filter(({ projected }) => (projected.depth > nucleus.depth) === behind)
+      .filter(({ projected }) => projected.depth > nucleus.depth === behind)
       .map(({ body, projected, radius }) => (
         <a key={body.id} href={targetHref(body.target)} aria-label={body.label}>
           <g opacity={depthAlpha(projected.depth, 1, 0.38).toFixed(3)}>
@@ -170,7 +197,13 @@ export function OperatingOrbit({
           {/* Planetary sphere shading: a lit specular core into each
               body's own mineral colour, darkening at the rim. */}
           {bodies.map((body) => (
-            <radialGradient key={`g-${body.id}`} id={`orb-${body.id}`} cx="0.32" cy="0.26" r="1">
+            <radialGradient
+              key={`g-${body.id}`}
+              id={`orb-${body.id}`}
+              cx="0.32"
+              cy="0.26"
+              r="1"
+            >
               <stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
               <stop offset="0.42" stopColor={body.color} />
               <stop offset="1" stopColor={shade(body.color, 0.5)} />
@@ -232,6 +265,9 @@ export function OperatingOrbit({
           <a
             key={body.id}
             className="orbit-label"
+            // A press with a few pixels of travel on a link starts a native
+            // drag of the link, which cancels the pointer — and the click.
+            draggable={false}
             data-body={body.id}
             href={targetHref(body.target)}
           >
@@ -242,7 +278,12 @@ export function OperatingOrbit({
           {displayLabel(NUCLEUS_LABEL)}
         </span>
       </div>
-      <OperatingOrbitLive bodies={bodies} onCapture={onCapture} />
+      <OperatingOrbitLive
+        bodies={bodies}
+        onCapture={onCapture}
+        flare={flare}
+        handoff={handoff}
+      />
     </nav>
   );
 }

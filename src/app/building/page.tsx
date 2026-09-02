@@ -22,7 +22,9 @@ export const viewport: Viewport = { themeColor: "#ffffff" };
 
 const sceneIds = new Set<string>(sceneNodeIds);
 const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
-const projectsBySlug = new Map(projects.map((project) => [project.slug, project]));
+const projectsBySlug = new Map(
+  projects.map((project) => [project.slug, project]),
+);
 const studiesBySlug = new Map(caseStudies.map((study) => [study.slug, study]));
 
 function projectAxis(status: "running" | "shipped" | "in the lab") {
@@ -64,7 +66,9 @@ function SystemRecord({ node }: { node: GraphNode }) {
             className="system-record-title axis-index text-xl md:text-2xl"
             style={{ "--axis": axis } as CSSProperties}
           >
-            {project?.status === "running" ? <span className="live-node" aria-hidden /> : null}
+            {project?.status === "running" ? (
+              <span className="live-node" aria-hidden />
+            ) : null}
             {node.label}
           </h3>
           {node.meta && (
@@ -77,7 +81,10 @@ function SystemRecord({ node }: { node: GraphNode }) {
           {node.blurb}
         </p>
         {project?.description.slice(0, 1).map((paragraph) => (
-          <p key={paragraph} className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
+          <p
+            key={paragraph}
+            className="mt-3 max-w-xl text-sm leading-relaxed text-muted"
+          >
             {paragraph}
           </p>
         ))}
@@ -95,29 +102,35 @@ function SystemRecord({ node }: { node: GraphNode }) {
 export default function Building() {
   return (
     <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
-      <section className="systems-hero mx-auto w-full max-w-[1360px]" aria-labelledby="systems-title">
+      <section
+        className="systems-hero mx-auto w-full max-w-[1360px]"
+        aria-labelledby="systems-title"
+      >
         <div className="systems-hero-copy">
           <p className="record">Lab</p>
           <div className="systems-title-row">
-            <h1 id="systems-title" className="axis-display">Lab.</h1>
+            <h1 id="systems-title" className="axis-display">
+              Lab.
+            </h1>
             <p className="systems-lead">
-              The products, operating models and agents behind the outcomes, organised by what is running, shipped and still in the lab.
+              The products, operating models and agents behind the outcomes,
+              organised by what is running, shipped and still in the lab.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-end">
-        <p className="record text-muted">Explore</p>
+      <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-start">
+        <p className="record pt-1 text-muted">Explore</p>
         <div>
-          <h2
-            id="systems-index-heading"
-            className="axis-heading max-w-3xl"
-          >
+          <h2 id="systems-index-heading" className="axis-heading max-w-3xl">
             The systems behind the outcomes.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            Where I’ve worked grounds the outcomes in real contexts. Teams and operating models show how I operate. AI and agents make the method inspectable. Writing turns the lessons into something others can use.
+            Where I’ve worked grounds the outcomes in real contexts. Teams and
+            operating models show how I operate. AI and agents make the method
+            inspectable. Writing turns the lessons into something others can
+            use.
           </p>
         </div>
       </section>
@@ -134,7 +147,8 @@ export default function Building() {
           >
             <div className="md:sticky md:top-28 md:self-start">
               <p className="record tabular-nums text-muted">
-                {String(clusterIndex + 1).padStart(2, "0")} / {String(clusterOrder.length).padStart(2, "0")}
+                {String(clusterIndex + 1).padStart(2, "0")} /{" "}
+                {String(clusterOrder.length).padStart(2, "0")}
               </p>
               <h2
                 id={`cluster-${clusterId}`}
@@ -142,9 +156,7 @@ export default function Building() {
               >
                 {cluster.label}
               </h2>
-              <p className="record mt-2 text-muted">
-                {cluster.eyebrow}
-              </p>
+              <p className="record mt-2 text-muted">{cluster.eyebrow}</p>
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-secondary">
                 {cluster.blurb}
               </p>
@@ -158,17 +170,26 @@ export default function Building() {
         );
       })}
 
-      <section id="projects" className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]">
+      <section
+        id="projects"
+        className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]"
+      >
         <p className="record text-muted">Projects</p>
         <div className="grid gap-x-8 md:grid-cols-2">
           {projects
             .filter((project) => !sceneIds.has(project.slug))
             .map((project) => (
-              <article key={project.slug} className="border-t border-hairline py-5">
+              <article
+                key={project.slug}
+                id={project.slug}
+                className="scroll-mt-24 border-t border-hairline py-5"
+              >
                 <p className="record mb-3 text-muted">{project.status}</p>
                 <h3
                   className="axis-index text-lg"
-                  style={{ "--axis": projectAxis(project.status) } as CSSProperties}
+                  style={
+                    { "--axis": projectAxis(project.status) } as CSSProperties
+                  }
                 >
                   {project.name}
                 </h3>

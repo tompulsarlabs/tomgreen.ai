@@ -17,7 +17,7 @@ const groups = [
     id: "flagship",
     label: "01 / Flagship",
     heading: "Two constraints. Two systems in motion.",
-    lead: "One built an AI organisation across four countries. One ran a European business, then rebuilt its People Ops around agents.",
+    lead: "One built an AI organization across four countries. One ran a European business, then rebuilt its People Ops around agents.",
     tiers: ["flagship"],
   },
   {
@@ -41,19 +41,24 @@ export function WorkIndex() {
 
   return (
     <div className="work-index-page">
-      <header className="work-index-masthead">
+      {/* The Lab's section format: a mono label held on the left, the
+          heading and its lead carried on the right. */}
+      <header className="work-index-masthead section-split">
         <p className="record">Evidence / selected operating records</p>
-        <h2 className="axis-display">Weighed by opportunity cost.</h2>
-        <p className="systems-lead">{site.positioning}</p>
+        <div className="section-split-body">
+          <h2 className="axis-display">Weighed by opportunity cost.</h2>
+          <p className="systems-lead">{site.recordLead}</p>
+        </div>
       </header>
 
       <section aria-label="Selected outcomes" className="work-metric-band">
         <p className="max-w-2xl leading-relaxed text-ink-secondary">
-          Inspect the mandate, operating logic, judgment and evidence behind every decision.
+          Inspect the mandate, operating logic, judgment and evidence behind
+          every decision.
         </p>
         <dl className="work-metric-rail">
           {[
-            ["0 → 120", "AI organisation / six months"],
+            ["0 → 120", "AI organization / six months"],
             ["€3.3M", "New business won / 12 months"],
             ["£1M", "Bootstrapped / two years"],
           ].map(([value, label]) => (
@@ -70,30 +75,47 @@ export function WorkIndex() {
           (group.tiers as readonly string[]).includes(study.tier),
         );
         return (
-          <section key={group.id} aria-labelledby={`${group.id}-heading`} className="work-index-group">
-            <div className="work-group-intro">
+          <section
+            key={group.id}
+            aria-labelledby={`${group.id}-heading`}
+            className="work-index-group"
+          >
+            <div className="work-group-intro section-split">
               <p className="record">{group.label}</p>
-              <h2 id={`${group.id}-heading`} className="axis-heading">{group.heading}</h2>
-              {group.lead && <p className="work-group-lead">{group.lead}</p>}
+              <div className="section-split-body">
+                <h2 id={`${group.id}-heading`} className="axis-heading">
+                  {group.heading}
+                </h2>
+                {group.lead && <p className="work-group-lead">{group.lead}</p>}
+              </div>
             </div>
             <div className="work-index-list">
               {members.map((study) => (
-                <WorkIndexRow key={study.slug} study={study} index={rowIndex++} />
+                <WorkIndexRow
+                  key={study.slug}
+                  study={study}
+                  index={rowIndex++}
+                />
               ))}
             </div>
           </section>
         );
       })}
 
-      <aside className="work-index-next">
+      <aside className="work-index-next section-split">
         <p className="record">Next / the operating logic</p>
-        <div>
-          <p className="axis-heading">Want the operating logic, not just the result?</p>
+        <div className="section-split-body">
+          <p className="axis-heading">
+            Want the operating logic, not just the result?
+          </p>
           <p className="work-next-lead">
-            The Lab connects the agent workflows, products, case studies and public build record behind this work.
+            The Lab connects the agent workflows, products, case studies and
+            public build record behind this work.
           </p>
         </div>
-        <Link href="/building" className="action action-light">Explore the Lab →</Link>
+        <Link href="/building" className="action action-light">
+          Explore the Lab →
+        </Link>
       </aside>
     </div>
   );

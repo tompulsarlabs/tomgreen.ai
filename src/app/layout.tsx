@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     description: site.positioning,
     url: "./",
     type: "website",
-    locale: "en_GB",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
@@ -75,7 +75,7 @@ const personJsonLd = {
   sameAs: [site.links.github, site.links.linkedin, site.links.calendly],
   knowsAbout: [
     "Talent acquisition",
-    "AI organisations",
+    "AI organizations",
     "People operations",
     "Agent workflows",
     "Operating model design",
@@ -85,7 +85,7 @@ const personJsonLd = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="en-US"
       // The inline script below adds .js before hydration so scroll reveals
       // can enhance a complete server-rendered document without hiding the
       // no-JS experience.

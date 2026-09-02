@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { careerPeriodLabel } from "@/lib/career-corridor-state";
 import type { CareerStop } from "@/lib/content/about";
 import type { HyperspaceDrive } from "@/components/hyperspace-field";
@@ -18,7 +18,10 @@ import {
 // The star field ships only to visitors who actually travel: dynamic,
 // client-only, and never part of the document fallback.
 const HyperspaceField = dynamic(
-  () => import("@/components/hyperspace-field").then((module) => module.HyperspaceField),
+  () =>
+    import("@/components/hyperspace-field").then(
+      (module) => module.HyperspaceField,
+    ),
   { ssr: false },
 );
 
@@ -35,14 +38,27 @@ const HyperspaceField = dynamic(
 export function CareerCorridor({
   stops,
   systemsIds,
+  heading,
 }: {
   stops: CareerStop[];
   systemsIds: string[];
+  /**
+   * The section's own heading, rendered inside the stage rather than
+   * above it: the stage is a full viewport with the first station at
+   * its centre, so a heading above it left a screen of paper between
+   * the two. Inside, the two share the first screen.
+   */
+  heading?: ReactNode;
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   // Written by the scroll loop, read by the field every frame — the
   // hyperspace runs without a single React render.
-  const driveRef = useRef<HyperspaceDrive>({ intensity: 0, progress: 0, pointerX: 0, pointerY: 0 });
+  const driveRef = useRef<HyperspaceDrive>({
+    intensity: 0,
+    progress: 0,
+    pointerX: 0,
+    pointerY: 0,
+  });
   const [live, setLive] = useState(false);
   const systems = new Set(systemsIds);
 
@@ -61,8 +77,12 @@ export function CareerCorridor({
     const mountField = requestAnimationFrame(() => setLive(true));
     const track = section.querySelector<HTMLElement>(".corridor-track");
     const stage = section.querySelector<HTMLElement>(".corridor-stage");
-    const stations = Array.from(section.querySelectorAll<HTMLElement>(".corridor-station"));
-    const railButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".corridor-rail button"));
+    const stations = Array.from(
+      section.querySelectorAll<HTMLElement>(".corridor-station"),
+    );
+    const railButtons = Array.from(
+      section.querySelectorAll<HTMLButtonElement>(".corridor-rail button"),
+    );
     if (!track || !stage || stations.length === 0) return;
     // 74svh per station: enough travel for the streaks to breathe, short
     // enough that plain scrolling never feels like dead road.
@@ -83,7 +103,11 @@ export function CareerCorridor({
       // back to bare paper on the way out — never a hard rectangle.
       const section = track.parentElement as HTMLElement;
       const sectionBounds = section.getBoundingClientRect();
-      const space = spaceProgress(sectionBounds.top, sectionBounds.bottom, window.innerHeight);
+      const space = spaceProgress(
+        sectionBounds.top,
+        sectionBounds.bottom,
+        window.innerHeight,
+      );
       section.style.setProperty("--space", space.toFixed(4));
     };
 
@@ -93,7 +117,10 @@ export function CareerCorridor({
         station.style.setProperty("--presence", state.presence.toFixed(4));
         station.style.setProperty("--station-scale", state.scale.toFixed(4));
         station.style.setProperty("--station-axis", state.axis.toFixed(2));
-        station.style.setProperty("--station-drift", `${(state.offset * -7).toFixed(3)}vh`);
+        station.style.setProperty(
+          "--station-drift",
+          `${(state.offset * -7).toFixed(3)}vh`,
+        );
         const isActive = index === active;
         // Interactive (and internally scrollable) only once arrived —
         // mid-leg an invisible station must never swallow the travel
@@ -103,7 +130,10 @@ export function CareerCorridor({
         station.inert = !isActive;
       });
       railButtons.forEach((button, index) => {
-        button.setAttribute("aria-current", index === active ? "true" : "false");
+        button.setAttribute(
+          "aria-current",
+          index === active ? "true" : "false",
+        );
       });
     };
 
@@ -114,7 +144,8 @@ export function CareerCorridor({
       // A light spring keeps rail-jumps and fast scrolls inside the
       // width-velocity budget instead of teleporting the stations.
       smoothedProgress += (progress - smoothedProgress) * 0.16;
-      if (Math.abs(progress - smoothedProgress) < 0.0004) smoothedProgress = progress;
+      if (Math.abs(progress - smoothedProgress) < 0.0004)
+        smoothedProgress = progress;
       const active = nearestStation(smoothedProgress, count);
       const intensity = travelIntensity(smoothedProgress, count);
       applyStations(active, intensity);
@@ -123,6 +154,12 @@ export function CareerCorridor({
       driveRef.current.intensity = intensity;
       driveRef.current.progress = smoothedProgress;
       section.dataset.state = intensity > 0.12 ? "travel" : "idle";
+      // The heading belongs to the first stop: gone by the time the
+      // traveller is most of the way to the second.
+      stage.style.setProperty(
+        "--heading-presence",
+        (1 - clamp01((smoothedProgress * (count - 1)) / 0.6)).toFixed(3),
+      );
       const settled = smoothedProgress === progress && intensity < 0.01;
       if (!settled) request();
     };
@@ -158,21 +195,54 @@ export function CareerCorridor({
       if (index < 0) return;
       const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
       const top = track.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: top + stationCentre(index, count) * travel, behavior: "smooth" });
+      window.scrollTo({
+        top: top + stationCentre(index, count) * travel,
+        behavior: "smooth",
+      });
     };
-    section.querySelector(".corridor-rail")?.addEventListener("click", onRailClick);
+    section
+      .querySelector(".corridor-rail")
+      ?.addEventListener("click", onRailClick);
+
+    // A hash names a station — from the planetary map, or a shared link.
+    // The browser's own jump lands on the element's document position,
+    // which is the corridor's start whatever the number says, because
+    // the stations are placed inside a sticky stage. Honour it the way
+    // the rail does: scroll the traveller to that stop.
+    const travelToHash = (behavior: ScrollBehavior) => {
+      const match = /^#station-(\d+)$/.exec(window.location.hash);
+      if (!match) return;
+      const index = Number(match[1]);
+      if (!(index >= 0 && index < count)) return;
+      const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({
+        top: top + stationCentre(index, count) * travel,
+        behavior,
+      });
+      request();
+    };
+    // A frame later than the router's own hash scroll, so this one is
+    // the one that stands.
+    const arrival = requestAnimationFrame(() => travelToHash("instant"));
+    const onHashChange = () => travelToHash("smooth");
+    window.addEventListener("hashchange", onHashChange);
 
     request();
     return () => {
       running = false;
       cancelAnimationFrame(frame);
       cancelAnimationFrame(mountField);
+      cancelAnimationFrame(arrival);
+      window.removeEventListener("hashchange", onHashChange);
       intersection.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", request);
       window.removeEventListener("resize", request);
       section.removeEventListener("pointermove", onPointerMove);
-      section.querySelector(".corridor-rail")?.removeEventListener("click", onRailClick);
+      section
+        .querySelector(".corridor-rail")
+        ?.removeEventListener("click", onRailClick);
       stations.forEach((station) => {
         station.inert = false;
         station.classList.remove("is-stop");
@@ -192,6 +262,7 @@ export function CareerCorridor({
     >
       <div className="corridor-track">
         <div className="corridor-stage">
+          {heading ? <div className="corridor-heading">{heading}</div> : null}
           {live && (
             <div className="corridor-canvas" aria-hidden="true">
               <HyperspaceField drive={driveRef} />
@@ -207,13 +278,15 @@ export function CareerCorridor({
                   className="corridor-station scroll-mt-24"
                 >
                   <p className="record station-index">
-                    {String(index + 1).padStart(2, "0")} / {String(stops.length).padStart(2, "0")}
+                    {String(index + 1).padStart(2, "0")} /{" "}
+                    {String(stops.length).padStart(2, "0")}
                   </p>
                   <p className="record station-period">
                     {careerPeriodLabel(stop.period, stop.current)}
                     {stop.current && (
                       <span className="station-current">
-                        <i className="live-node" aria-hidden="true" /> In production
+                        <i className="live-node" aria-hidden="true" /> In
+                        production
                       </span>
                     )}
                   </p>
@@ -259,7 +332,9 @@ export function CareerCorridor({
             {stops.map((stop, index) => (
               <button key={`${stop.company}-${index}`} type="button">
                 <span aria-hidden className="rail-dot" />
-                <span className="record">{stop.period.split("–")[0].trim()}</span>
+                <span className="record">
+                  {stop.period.split("–")[0].trim()}
+                </span>
                 <span className="sr-only">{stop.company}</span>
               </button>
             ))}
