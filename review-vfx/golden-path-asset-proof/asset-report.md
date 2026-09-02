@@ -222,7 +222,10 @@ without Draco and without textures.
   and the near particulate are rendered as separate layers and
   composited under / over the mid + fragment plate instead of being
   marched in the same render; the mid grid marches at half its atlas
-  resolution with capped steps and 10 samples. Inter-layer shadowing
+  resolution with capped steps and 10 samples, and the event plate itself
+  renders at 60 % scale (864 × 540, upscaled in the composite) except for
+  the four late key stills, which render at full size. The map layer,
+  the paper and the mattes stay full size. Inter-layer shadowing
   between far/near and the mid layer is therefore absent in those frames
   (it was already disabled for cost: the far and near layers never cast
   volume shadows), and the isolated mid layer for those frames is the

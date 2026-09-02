@@ -62,6 +62,7 @@ ISO_SCALE = 0.5                                   # isolated inspection layers r
 LATE_FRAME = C.f_of(1.70)
 LATE_MID_GRID = 0.5
 LATE_SAMPLES = 10
+LATE_EVENT_SCALE = 0.6   # the late event plate is soft gas; the map, paper and mattes stay full size
 ISO_FULL_FRAMES = {C.f_of(1.45), C.f_of(2.50), C.f_of(2.75)}   # except the key stills
 STILL_SAMPLES_FRAMES = {C.f_of(1.18), C.f_of(1.45)}
 LATE_STILL_FRAMES = {C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
@@ -285,7 +286,13 @@ def render_frames(args, report):
             else:
                 spp = max(8, int(args.samples * 0.75)) if not late else 8
             scene.cycles.samples = spp
-            scene.render.resolution_percentage = int(round(args.scale * 100 * (1.0 if (not iso or full_iso) else ISO_SCALE)))
+            layer_scale = 1.0 if (not iso or full_iso) else ISO_SCALE
+            if L == "event" and late and f not in LATE_STILL_FRAMES:
+                layer_scale = LATE_EVENT_SCALE
+            if L == "near":
+                spp = min(spp, 6)
+                scene.cycles.samples = spp
+            scene.render.resolution_percentage = int(round(args.scale * 100 * layer_scale))
             # volumes are absent before detonation: skip the empty layers cheaply
             setup_compositor(scene, L, out_dir)
             t0 = time.time()
@@ -414,6 +421,7 @@ def composite(args, report):
             from scipy.ndimage import zoom
             return zoom(L_, (h / L_.shape[0], w / L_.shape[1], 1), order=1)
 
+        event = fit(event)
         if map_l is not None:
             scene_lin = map_l[..., :3] + (1 - map_l[..., 3:4]) * scene_lin
         if far is not None:

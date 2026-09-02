@@ -488,7 +488,7 @@ def volume_materials(meta, imgs):
     gas, dust, heat = atlas_shader_sample(nt, dm, imgs["mid"])
     detail = _detail(nt)
     g = n.new("ShaderNodeMath"); g.operation = "MULTIPLY"; l.new(gas, g.inputs[0]); l.new(detail, g.inputs[1])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.0; l.new(g.outputs[0], g2.inputs[0])
+    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.2; l.new(g.outputs[0], g2.inputs[0])
     d2 = n.new("ShaderNodeMath"); d2.operation = "MULTIPLY"; d2.inputs[1].default_value = 12.0; l.new(dust, d2.inputs[0])
     dens = n.new("ShaderNodeMath"); dens.operation = "ADD"; l.new(g2.outputs[0], dens.inputs[0]); l.new(d2.outputs[0], dens.inputs[1])
     l.new(dens.outputs[0], pv.inputs["Density"])
@@ -507,7 +507,7 @@ def volume_materials(meta, imgs):
     # emission: hot narrow core dominates (heat^1.8); temperature from the photosphere curve
     powr = n.new("ShaderNodeMath"); powr.operation = "POWER"; powr.inputs[1].default_value = 1.3; l.new(heat, powr.inputs[0])
     strength = n.new("ShaderNodeMath"); strength.operation = "MULTIPLY"; l.new(powr.outputs[0], strength.inputs[0])
-    l.new(_keyed_value(nt, "heat_gain", lambda t: 42.0 * (0.35 + 0.65 * C.light_curve(t - C.DET)) * (1.0 + 2.0 * math.exp(-(t - C.DET) / 0.22))), strength.inputs[1])
+    l.new(_keyed_value(nt, "heat_gain", lambda t: 12.0 * (0.35 + 0.65 * C.light_curve(t - C.DET)) * (1.0 + 2.0 * math.exp(-(t - C.DET) / 0.22))), strength.inputs[1])
     l.new(strength.outputs[0], pv.inputs["Emission Strength"])
     kelvin = n.new("ShaderNodeMapRange")
     kelvin.inputs["From Min"].default_value = 0.0; kelvin.inputs["From Max"].default_value = 1.4; kelvin.inputs["To Min"].default_value = 6500.0
@@ -534,15 +534,17 @@ def volume_materials(meta, imgs):
     m, nt, pv = base("vol_far")
     n, l = nt.nodes, nt.links
     gas, _, heat = atlas_shader_sample(nt, df, imgs["far"])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 0.6; l.new(gas, g2.inputs[0])
+    # thin envelope that only separates from the breakout once the swept-up shell has formed
+    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; l.new(gas, g2.inputs[0])
+    l.new(_keyed_value(nt, "far_gain", lambda t: 0.16 * float(C.smoothstep(1.35, 2.2, t))), g2.inputs[1])
     l.new(g2.outputs[0], pv.inputs["Density"])
     ramp = n.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.40, 0.33, 0.52, 1)
-    ramp.color_ramp.elements[-1].position = 0.6; ramp.color_ramp.elements[-1].color = (0.84, 0.86, 0.92, 1)
+    ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.36, 0.30, 0.48, 1)
+    ramp.color_ramp.elements[-1].position = 0.6; ramp.color_ramp.elements[-1].color = (0.62, 0.66, 0.74, 1)
     l.new(gas, ramp.inputs["Fac"]); l.new(ramp.outputs["Color"], pv.inputs["Color"])
     pv.inputs["Anisotropy"].default_value = 0.45
     strength = n.new("ShaderNodeMath"); strength.operation = "MULTIPLY"; l.new(heat, strength.inputs[0])
-    l.new(_keyed_value(nt, "far_heat_gain", lambda t: 0.6 * (0.3 + 0.7 * C.light_curve(t - C.DET))), strength.inputs[1])
+    l.new(_keyed_value(nt, "far_heat_gain", lambda t: 0.03 * (0.3 + 0.7 * C.light_curve(t - C.DET))), strength.inputs[1])
     l.new(strength.outputs[0], pv.inputs["Emission Strength"])
     bb = n.new("ShaderNodeBlackbody"); bb.inputs["Temperature"].default_value = 6200.0
     l.new(bb.outputs["Color"], pv.inputs["Emission Color"])
@@ -657,7 +659,7 @@ def build_lights(meta, coll, bodies):
             L.energy = 0.0 if t < 0.8 else 6.0 * float(C.smoothstep(0.8, 1.05, t))
         else:
             # after the plateau the camera is inside the gas: the key must not flood the frame
-            L.energy = 480.0 * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 + 1.5 * math.exp(-tau / 0.2)) * (1.0 - 0.75 * float(C.smoothstep(0.55, 1.4, tau)))
+            L.energy = 320.0 * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 + 1.5 * math.exp(-tau / 0.2)) * (1.0 - 0.75 * float(C.smoothstep(0.55, 1.4, tau)))
         L.keyframe_insert("energy", frame=f)
         L.keyframe_insert("color", frame=f)
     # planets' fill: one dim directional light, linked only to the bodies
