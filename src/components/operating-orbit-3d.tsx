@@ -29,6 +29,11 @@ import {
 import { isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
+
+/** A body as one frame drew it: centre, radius, and its nameplate's box. */
+type DrawnSpot = { x: number; y: number; r: number; plate: Rect | null };
+/** One drawn frame, wall-clock stamped, for the press model's memory. */
+type DrawnFrame = { t: number; at: Map<string, DrawnSpot> };
 import {
   navOrbitElements,
   type OrbitBody,
@@ -86,6 +91,21 @@ const CLICK_SLOP_PX = 20;
 const HIT_MIN_PX = 26;
 /** Hit radius as a multiple of the body's drawn radius. */
 const HIT_SCALE = 1.9;
+/**
+ * How far back a press may reach for its planet, in time and in frames.
+ * A visitor aims at the frame they saw. The press is resolved against
+ * whatever frame had been drawn by the time it arrived — a reaction
+ * later on a fast machine, several frames later on a slow one — and in
+ * between, the parallax the pointer's own approach caused, the orbit
+ * and the entry dolly have all moved the planet and its nameplate. So
+ * the press is resolved against every frame drawn inside this memory,
+ * newest first: the planet where it is, else where it was a moment ago.
+ * Long enough for a reaction; short enough that empty space is empty.
+ */
+const HIT_MEMORY_MS = 400;
+const HIT_MEMORY_FRAMES = 6;
+/** A press this close to a nameplate's box, in px, is a press on it. */
+const HIT_PLATE_PX = 8;
 
 const ASSEMBLY_SECONDS = 1.45;
 /** How far out the pieces start, in world units of extra orbit radius. */
@@ -433,12 +453,14 @@ function OrbitScene({
     /** The furthest the pointer has travelled since it went down. */
     pressTravel: 0,
     /**
-     * Where every body is on screen this frame, in field pixels, with
-     * its drawn radius. This is what a press is resolved against: not a
-     * raycast, and not whichever element happens to be under the
-     * pointer, both of which lose the click on a body that has moved.
+     * Where every body and its nameplate were drawn in each recent
+     * frame, in field pixels, newest last. This is what a press is
+     * resolved against: not a raycast, and not whichever element
+     * happens to be under the pointer, both of which lose the click on
+     * a body that has moved — and not only the latest frame, which
+     * loses it on a body that moved since the visitor took aim.
      */
-    screen: new Map<string, { x: number; y: number; r: number }>(),
+    frames: [] as DrawnFrame[],
     angles: new Map<string, number>(),
     dragging: false,
     drift: 0.58,
@@ -648,18 +670,34 @@ function OrbitScene({
       const rect = field.getBoundingClientRect();
       const px = event.clientX - rect.left;
       const py = event.clientY - rect.top;
-      let best: string | null = null;
-      let bestDistance = Infinity;
-      s.screen.forEach((at, id) => {
-        if (!isInteractive(id)) return;
-        const reach = Math.max(HIT_MIN_PX, at.r * HIT_SCALE);
-        const distance = Math.hypot(px - at.x, py - at.y);
-        if (distance <= reach && distance < bestDistance) {
-          best = id;
-          bestDistance = distance;
-        }
-      });
-      return best;
+      // Newest frame first: the planet where it is, else where it was
+      // when the visitor took aim. A frame decides as soon as it holds
+      // a hit, so a planet that has moved on never shadows the one that
+      // is actually under the pointer now.
+      for (let i = s.frames.length - 1; i >= 0; i -= 1) {
+        const frame = s.frames[i];
+        let best: string | null = null;
+        let bestScore = Infinity;
+        frame.at.forEach((spot, id) => {
+          if (!isInteractive(id)) return;
+          const reach = Math.max(HIT_MIN_PX, spot.r * HIT_SCALE);
+          // 0 at the centre, 1 at the edge of the reach; and the same
+          // scale for the nameplate's box, which is part of the planet.
+          let score = Math.hypot(px - spot.x, py - spot.y) / reach;
+          const box = spot.plate;
+          if (box) {
+            const dx = Math.max(box.x - px, 0, px - (box.x + box.width));
+            const dy = Math.max(box.y - py, 0, py - (box.y + box.height));
+            score = Math.min(score, Math.hypot(dx, dy) / HIT_PLATE_PX);
+          }
+          if (score <= 1 && score < bestScore) {
+            best = id;
+            bestScore = score;
+          }
+        });
+        if (best) return best;
+      }
+      return null;
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -1089,13 +1127,8 @@ function OrbitScene({
         const pxScale =
           height / 2 / (Math.tan((40 * Math.PI) / 360) * cameraDistance);
         const bodyPx = body.size * swell * pxScale;
-        // Where the body is on screen, for the press model — and on the
-        // nameplate, so a test can aim a real pointer at the planet.
-        const at = s.screen.get(body.id) ?? { x: 0, y: 0, r: 0 };
-        at.x = x;
-        at.y = y;
-        at.r = bodyPx;
-        s.screen.set(body.id, at);
+        // Where the body is on screen, published on the nameplate so a
+        // test can aim a real pointer at the planet.
         const cx = Math.round(x);
         const cy = Math.round(y);
         if (label.dataset.cx !== String(cx)) label.dataset.cx = String(cx);
@@ -1300,7 +1333,12 @@ function OrbitScene({
       }
 
       const fade = lerpIn(5);
-      for (const { item, label } of drawn) {
+      // What this frame drew, for the press model: each body's centre
+      // and reach, and its nameplate's box unless the nameplate has
+      // withdrawn — a name that is not on screen cannot be pressed.
+      const wall = performance.now();
+      const at = new Map<string, DrawnSpot>();
+      for (const { item, label, box } of drawn) {
         const wanted = withdraw.has(item.id) ? 1 : 0;
         const hide = s.hidden.get(item.id) ?? 0;
         const next = hide + (wanted - hide) * fade;
@@ -1309,6 +1347,22 @@ function OrbitScene({
           (s.baseOpacity.get(item.id) ?? 1) *
           (1 - next)
         ).toFixed(3);
+        at.set(item.id, {
+          x: item.x,
+          y: item.y,
+          r: item.radius,
+          plate: next < 0.5 ? box : null,
+        });
+      }
+      s.frames.push({ t: wall, at });
+      // Keep the last HIT_MEMORY_FRAMES frames however old they are —
+      // a slow machine draws few — and anything newer than the memory.
+      const stale = wall - HIT_MEMORY_MS;
+      while (
+        s.frames.length > HIT_MEMORY_FRAMES &&
+        s.frames[0].t < stale
+      ) {
+        s.frames.shift();
       }
       s.items.length = 0;
     }

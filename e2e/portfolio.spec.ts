@@ -930,6 +930,47 @@ async function openPortal(page: Page) {
     .toBeGreaterThan(0);
 }
 
+/**
+ * Waits for a planet to be a target a person could deliberately press:
+ * drawn inside the field, clear of its edges, with its nameplate
+ * legible. After every mount the system draws itself together from a
+ * scatter, and until a body has flown in there is nothing on screen to
+ * aim at. Returns where the body is drawn, in page pixels.
+ */
+async function seePlanet(page: Page, portal: Locator, body: string) {
+  const plate = portal.locator(`a.orbit-label[data-body="${body}"]`);
+  await expect
+    .poll(
+      async () =>
+        plate.evaluate((element) => {
+          const label = element as HTMLElement;
+          const field = label.closest(".orbit-field")?.getBoundingClientRect();
+          if (!field) return false;
+          const cx = Number(label.dataset.cx);
+          const cy = Number(label.dataset.cy);
+          if (!Number.isFinite(cx) || !Number.isFinite(cy)) return false;
+          const margin = 48;
+          return (
+            cx > margin &&
+            cx < field.width - margin &&
+            cy > margin &&
+            cy < field.height - margin &&
+            Number(label.style.opacity || 0) > 0.4
+          );
+        }),
+      { timeout: 90_000, intervals: [200] },
+    )
+    .toBe(true);
+  const field = await portal.locator(".orbit-field").boundingBox();
+  expect(field).not.toBeNull();
+  return {
+    x: field!.x + Number(await plate.getAttribute("data-cx")),
+    y: field!.y + Number(await plate.getAttribute("data-cy")),
+    field: field!,
+    plate,
+  };
+}
+
 test("no page carries the planetary map any more", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   for (const route of ["/", "/building", "/about", "/contact", "/work/zalando"]) {
@@ -1036,16 +1077,8 @@ test("one real press on a planet's body captures it, jitter and all", async ({ p
   await openPortal(page);
 
   const portal = page.locator(".orbit-portal");
-  const plate = portal.locator('a.orbit-label[data-body="lab"]');
   // The scene publishes where each body is drawn, in field pixels.
-  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
-  const field = await portal.locator(".orbit-field").boundingBox();
-  const cx = Number(await plate.getAttribute("data-cx"));
-  const cy = Number(await plate.getAttribute("data-cy"));
-  expect(field).not.toBeNull();
-
-  const x = field!.x + cx;
-  const y = field!.y + cy;
+  const { x, y } = await seePlanet(page, portal, "lab");
   await page.mouse.move(x, y);
   await page.mouse.down();
   // Six pixels of travel between down and up: a nervous click, not a drag.
@@ -1053,6 +1086,48 @@ test("one real press on a planet's body captures it, jitter and all", async ({ p
   await page.mouse.up();
 
   // The activation begins on the release — one transition, this planet.
+  await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
+    timeout: 30_000,
+  });
+  await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
+  await expect(portal.locator(".orbit-portal-record")).toContainText("LAB");
+});
+
+test("a press aimed at where the planet was drawn a moment ago still lands", async ({ page }) => {
+  // The defect this guards: the press was resolved against the latest
+  // frame only, while the visitor had aimed at an earlier one. The
+  // pointer's own approach yaws the camera, the orbit turns and, on a
+  // slow machine, several frames pass before the press is handled, so
+  // the planet had moved past its own hit reach and the press fell on
+  // empty space. The press model remembers the frames the visitor saw.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/building");
+  await waitForFonts(page);
+  await openPortal(page);
+
+  const portal = page.locator(".orbit-portal");
+  const { field, plate } = await seePlanet(page, portal, "lab");
+  // Take aim from the far corner, the way a pointer arrives: the sweep
+  // across the field is what moves the view.
+  await page.mouse.move(field.x + 20, field.y + 20);
+  const seenX = Number(await plate.getAttribute("data-cx"));
+  const seenY = Number(await plate.getAttribute("data-cy"));
+  // Cross the field to the planet. The view yaws with the pointer and
+  // the next frame draws the planet somewhere else.
+  await page.mouse.move(field.x + seenX, field.y + seenY, { steps: 8 });
+  await expect
+    .poll(
+      async () =>
+        Number(await plate.getAttribute("data-cx")) !== seenX ||
+        Number(await plate.getAttribute("data-cy")) !== seenY,
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+  // Press where the planet was seen, not where it is now.
+  await page.mouse.down();
+  await page.mouse.up();
+
   await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "lab", {
     timeout: 30_000,
   });
@@ -1071,8 +1146,7 @@ test("one real press on a nameplate captures its planet", async ({ page }) => {
   await openPortal(page);
 
   const portal = page.locator(".orbit-portal");
-  const plate = portal.locator('a.orbit-label[data-body="work"]');
-  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+  const { plate } = await seePlanet(page, portal, "work");
   const box = await plate.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -1096,8 +1170,7 @@ test("Space on a focused nameplate captures its planet, like Enter", async ({ pa
   await openPortal(page);
 
   const portal = page.locator(".orbit-portal");
-  const plate = portal.locator('a.orbit-label[data-body="about"]');
-  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
+  const { plate } = await seePlanet(page, portal, "about");
   await plate.focus();
   await page.keyboard.press("Space");
 
@@ -1120,12 +1193,7 @@ test("one touch tap on a planet's body captures it", async ({ browser }) => {
     await waitForFonts(page);
     await openPortal(page);
     const portal = page.locator(".orbit-portal");
-    const plate = portal.locator('a.orbit-label[data-body="contact"]');
-    await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
-    const field = await portal.locator(".orbit-field").boundingBox();
-    expect(field).not.toBeNull();
-    const x = field!.x + Number(await plate.getAttribute("data-cx"));
-    const y = field!.y + Number(await plate.getAttribute("data-cy"));
+    const { x, y } = await seePlanet(page, portal, "contact");
     await page.touchscreen.tap(x, y);
     await expect(portal.locator(".orbit-field")).toHaveAttribute("data-capturing", "contact", {
       timeout: 30_000,
@@ -1147,14 +1215,9 @@ test("a press still lands after the window is resized", async ({ page }) => {
   await openPortal(page);
   await page.setViewportSize({ width: 1100, height: 760 });
   const portal = page.locator(".orbit-portal");
-  const plate = portal.locator('a.orbit-label[data-body="lab"]');
-  await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
   // Let the projection settle at the new size before reading it.
   await page.waitForTimeout(1500);
-  const field = await portal.locator(".orbit-field").boundingBox();
-  expect(field).not.toBeNull();
-  const x = field!.x + Number(await plate.getAttribute("data-cx"));
-  const y = field!.y + Number(await plate.getAttribute("data-cy"));
+  const { x, y } = await seePlanet(page, portal, "lab");
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.up();
@@ -1168,6 +1231,8 @@ test("the same planet works again after stepping back to the map", async ({ page
   // A capture is held inside the core for the scene the portal is about
   // to replace. Stepping back rebuilds the map, and the planet that fell
   // in must be a control again — and so must every other planet.
+  // Two descents and a rebuilt map: twice the budget of a single press.
+  test.setTimeout(240_000);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/building");
@@ -1177,12 +1242,7 @@ test("the same planet works again after stepping back to the map", async ({ page
   const field = portal.locator(".orbit-field");
 
   const press = async (body: string) => {
-    const plate = portal.locator(`a.orbit-label[data-body="${body}"]`);
-    await expect(plate).toHaveAttribute("data-cx", /\d+/, { timeout: 45_000 });
-    const box = await field.boundingBox();
-    expect(box).not.toBeNull();
-    const x = box!.x + Number(await plate.getAttribute("data-cx"));
-    const y = box!.y + Number(await plate.getAttribute("data-cy"));
+    const { x, y } = await seePlanet(page, portal, body);
     await page.mouse.move(x, y);
     await page.mouse.down();
     await page.mouse.up();
