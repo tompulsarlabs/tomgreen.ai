@@ -74,6 +74,19 @@ The near layer's domain is parented to the camera (1.1 units ahead, the
 same frame the solver uses), matching the camera-facing near quad of the
 intended web integration.
 
+Render plan (`render_review.py`): the `map` layer (membrane, core, bodies,
+labels) and the `event` layer (volumes, fragments, motes) are rendered at
+full resolution and composited in linear light over the nebula plate.
+Up to 2.2 s the event layer contains all three volume layers so dust
+shadows the gas and the fragments. From 2.2 s the camera is inside the
+overlapping volumes and Cycles would march the whole stack at the finest
+step, so the far envelope (behind everything) and the near particulate
+(in front of everything) are rendered as their own layers and composited
+under / over the event, the mid grid marches at half its atlas resolution
+with capped steps, and samples drop to 10 (OpenImageDenoise after). The
+isolated inspection layers render at 720 × 450 for the MP4s and at full
+resolution for the key stills.
+
 ## Determinism
 
 All randomness is seeded (`common.SEEDS`). The solver is pure numpy /

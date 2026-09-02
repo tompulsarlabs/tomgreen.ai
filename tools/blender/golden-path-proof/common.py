@@ -156,7 +156,7 @@ def body_rest_position(index, angle, size):
 
 # Orbit parameters chosen so the rest frame reads like storyboard 01
 # (Zalando lower-left of the core, others spread). Deterministic constants.
-BODY_ANGLES = [3.107, 3.412, 5.131, 1.649, 1.379, 0.087]
+BODY_ANGLES = [3.107, 3.412, 5.131, 0.131, 1.379, 0.087]
 
 # ------------------------------------------------ supernova curves port
 BURST_LIFE = 14.0

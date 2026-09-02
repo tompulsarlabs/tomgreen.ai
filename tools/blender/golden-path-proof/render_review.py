@@ -39,7 +39,7 @@ LAYER_RANGES = {            # frames each layer is needed for
     "map": (0, C.f_of(C.PAGE_FULL)),
     "event": (C.f_of(C.VOLUME_IN), C.f_of(C.PAGE_FULL)),
     "far": (C.f_of(C.VOLUME_IN), C.F_END),
-    "mid": (C.f_of(C.VOLUME_IN), C.F_END),
+    "mid": (C.f_of(C.VOLUME_IN), C.f_of(C.PAGE_FULL)),
     "near": (C.f_of(1.60), C.f_of(C.PAGE_FULL)),
     "fragments": (C.f_of(C.VOLUME_IN), C.f_of(C.PAGE_FULL)),
 }
@@ -53,8 +53,18 @@ PASSES = {
 }
 ISO_LAYERS = ("far", "mid", "near", "fragments")
 ISO_SCALE = 0.5                                   # isolated inspection layers render at half size
+# The far envelope (behind everything) and the near particulate (in front of
+# everything) never cast volume shadows, so they are rendered as their own layers
+# and composited under / over the event plate (mid + fragments + motes): when the
+# camera is inside overlapping volumes Cycles would otherwise march the whole
+# stack at the finest step. From 2.2 s the mid layer also marches on a coarser
+# grid with capped steps and fewer samples.
+LATE_FRAME = C.f_of(1.70)
+LATE_MID_GRID = 0.5
+LATE_SAMPLES = 10
 ISO_FULL_FRAMES = {C.f_of(1.45), C.f_of(2.50), C.f_of(2.75)}   # except the key stills
-STILL_SAMPLES_FRAMES = {C.f_of(1.18), C.f_of(1.45), C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
+STILL_SAMPLES_FRAMES = {C.f_of(1.18), C.f_of(1.45)}
+LATE_STILL_FRAMES = {C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
 STILLS = [  # (file, frame, description)
     ("first-breakout.png", C.f_of(1.18), "first breakout, t 1.18 s"),
     ("hero-peak.png", C.f_of(1.45), "peak hero frame, t 1.45 s"),
@@ -224,6 +234,11 @@ def render_frames(args, report):
     scene = bpy.context.scene
     scene.render.resolution_percentage = int(round(args.scale * 100))
     imgs = {L: bpy.data.images[f"atlas_{L}"] for L in ("mid", "far", "near")}
+    with open(os.path.join(VOL_DIR, "meta.json")) as fh:
+        meta = json.load(fh)
+    mid_res = meta["domains"]["mid"]["res"]
+    mid_vc = [n for n in bpy.data.node_groups["vol_mid_sampler"].nodes if n.type == "VOLUME_CUBE"][0]
+    ev_vl = scene.view_layers["event"]
     layers = args.layers.split(",")
     if layers == ["all"]:
         layers = ["map", "event", "far", "mid", "near", "fragments"]
@@ -240,6 +255,12 @@ def render_frames(args, report):
                 img.filepath = p
                 img.reload()
         scene.frame_set(f)
+        late = f >= LATE_FRAME
+        ev_vl.layer_collection.children["far"].exclude = True
+        ev_vl.layer_collection.children["near"].exclude = True
+        for axis, base_res in zip(("Resolution X", "Resolution Y", "Resolution Z"), mid_res):
+            mid_vc.inputs[axis].default_value = int(round(base_res * (LATE_MID_GRID if late else 1.0)))
+        scene.cycles.volume_max_steps = 64 if late else 128
         for L in layers:
             lo, hi = LAYER_RANGES[L]
             if not (lo <= f <= hi):
@@ -256,11 +277,13 @@ def render_frames(args, report):
             if L == "map":
                 spp = 16
             elif L == "event":
-                spp = args.still_samples if f in STILL_SAMPLES_FRAMES else args.samples
+                spp = args.still_samples if f in STILL_SAMPLES_FRAMES else (LATE_SAMPLES if late else args.samples)
+                if f in LATE_STILL_FRAMES:
+                    spp = max(spp, 24)
             elif f > C.f_of(C.PAGE_FULL):
                 spp = max(6, args.samples // 3)          # residual only: low alpha over paper
             else:
-                spp = max(8, int(args.samples * 0.75))
+                spp = max(8, int(args.samples * 0.75)) if not late else 8
             scene.cycles.samples = spp
             scene.render.resolution_percentage = int(round(args.scale * 100 * (1.0 if (not iso or full_iso) else ISO_SCALE)))
             # volumes are absent before detonation: skip the empty layers cheaply
@@ -273,6 +296,9 @@ def render_frames(args, report):
             tmp = os.path.join(out_dir, f"tmp_{f:04d}.png")
             if os.path.exists(tmp):
                 os.remove(tmp)
+            stale = os.path.join(out_dir, f"Image_{f:04d}_dn.npy")
+            if os.path.exists(stale):
+                os.remove(stale)
         with open(os.path.join(C.CACHE_DIR, "report-render.json"), "w") as fh:
             json.dump(report, fh, indent=1)
 
@@ -287,7 +313,7 @@ def load_layer(L, f, denoise=True, full=False):
     im = read_exr(p)
     if denoise:
         cache = p.replace(".exr", "_dn.npy")
-        if os.path.exists(cache):
+        if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(p):
             return np.load(cache)
         rgb = oidn(im)
         out = np.concatenate([rgb, im[..., 3:4]], axis=-1).astype(np.float32)
@@ -306,7 +332,7 @@ def page_matte(lum, t, geometry, noise):
     n_slow, n_fast = noise
     lum_n = lum / max(np.percentile(lum, 99.6), 1e-6)
     lum_n = np.clip(lum_n, 0, 1.4)
-    score = (lum_n + 4.4 * (p - 0.55 * D) + 0.32 * (n_slow - 0.5) + 0.14 * (n_fast - 0.5)
+    score = (1.25 * lum_n + 4.4 * (p - 0.55 * D) + 0.32 * (n_slow - 0.5) + 0.14 * (n_fast - 0.5)
              + 1.6 * col * float(C.smoothstep(0.35, 0.78, p)))
     return C.smoothstep(0.92, 1.12, score).astype(np.float32)
 
@@ -352,10 +378,11 @@ def composite(args, report):
         nebula = nebula_plate(res)
         np.save(neb_path, nebula)
     paper = np.asarray(Image.open(C.ZALANDO_SCREENSHOT).convert("RGB").resize(res, Image.LANCZOS)).astype(np.float32) / 255.0
-    # aperture origin: the core's screen point at the start of the reveal; pressure runs up-right
-    origin = C.project(C.PAGE_IN, C.CORE)[0][:2]
+    # aperture origin: the luminance centroid of the event itself (the hottest interior),
+    # tracked with a slow EMA so it moves smoothly; pressure runs up-right from it
     dir_uv = np.array([math.cos(math.radians(-38)), math.sin(math.radians(-38))])
-    geometry = matte_geometry(res, origin, dir_uv)
+    origin = None
+    geometry = None
     margin = margin_mask(res)
     mseed = C.SEEDS["page_matte"]
     n_slow0 = fbm2(mseed, (h, w), 4, 4)
@@ -379,17 +406,47 @@ def composite(args, report):
         frags = load_layer("fragments", f, full=f in ISO_FULL_FRAMES)
         scene_lin = base.copy()
         alpha = np.zeros((h, w), np.float32)
+        late = f >= LATE_FRAME
+
+        def fit(L_):
+            if L_ is None or L_.shape[:2] == (h, w):
+                return L_
+            from scipy.ndimage import zoom
+            return zoom(L_, (h / L_.shape[0], w / L_.shape[1], 1), order=1)
+
         if map_l is not None:
             scene_lin = map_l[..., :3] + (1 - map_l[..., 3:4]) * scene_lin
+        if far is not None:
+            ff = fit(far)
+            scene_lin = ff[..., :3] + (1 - ff[..., 3:4]) * scene_lin
+            alpha = ff[..., 3]
         if event is not None:
             scene_lin = event[..., :3] + (1 - event[..., 3:4]) * scene_lin
-            alpha = event[..., 3]
+            alpha = event[..., 3] + alpha * (1 - event[..., 3])
+        if near is not None:
+            nn = fit(near)
+            scene_lin = nn[..., :3] + (1 - nn[..., 3:4]) * scene_lin
+            alpha = nn[..., 3] + alpha * (1 - nn[..., 3])
         beauty = event
         lum = luminance(scene_lin)
+        # the reveal reads the breakout's own light, never the map (core highlight, planets)
+        ev_lum = luminance(event[..., :3]) if event is not None else np.zeros((h, w), np.float32)
+        if far is not None:
+            ev_lum = ev_lum + luminance(fit(far)[..., :3]) * (1 - (event[..., 3] if event is not None else 0))
         # --------------------------------------------- page emergence
         M = None
-        if t >= C.PAGE_IN:
-            lum_b = gaussian_filter(lum, 5.0 * scale)
+        if t >= C.PAGE_IN - 0.2 and ev_lum.sum() > 0:
+            yy, xx = np.mgrid[0:h, 0:w]
+            wgt = np.clip(ev_lum, 0, None) ** 2
+            cen = np.array([(xx * wgt).sum() / max(wgt.sum(), 1e-6) / w, (yy * wgt).sum() / max(wgt.sum(), 1e-6) / h])
+            # the aperture opens between the hottest interior and the core's screen point:
+            # that is where the masthead sits, so ink glyphs are the first content inside it
+            core_uv = C.project(t, C.CORE)[0][:2]
+            target = 0.45 * cen + 0.55 * core_uv
+            origin = target if origin is None else origin * 0.8 + target * 0.2
+            geometry = matte_geometry(res, origin, dir_uv)
+        if t >= C.PAGE_IN and geometry is not None:
+            lum_b = gaussian_filter(ev_lum, 5.0 * scale)
             n_slow = np.roll(n_slow0, int(-(t - C.PAGE_IN) * 40 * scale), axis=1)
             n_fast = np.roll(n_fast0, int((t - C.PAGE_IN) * 25 * scale), axis=0)
             M = page_matte(lum_b, t, geometry, (n_slow, n_fast))

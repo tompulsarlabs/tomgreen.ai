@@ -300,12 +300,12 @@ def build_gold_stream(coll):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     em = nt.nodes.new("ShaderNodeEmission")
     em.inputs["Color"].default_value = (*C.srgb_to_linear(C.hex_to_rgb(C.ZALANDO_GOLD)), 1.0)
-    em.inputs["Strength"].default_value = 6.0
+    em.inputs["Strength"].default_value = 3.0
     nt.links.new(em.outputs[0], out.inputs["Surface"])
     rng = np.random.default_rng(C.SEEDS["trajectories"] + 11)
     parcels = []
     for i in range(36):
-        bpy.ops.mesh.primitive_ico_sphere_add(radius=0.006 + 0.008 * rng.random(), subdivisions=1)
+        bpy.ops.mesh.primitive_ico_sphere_add(radius=0.004 + 0.006 * rng.random(), subdivisions=1)
         ob = bpy.context.object
         ob.name = f"gold_parcel_{i:02d}"
         link(ob, coll)
@@ -326,7 +326,7 @@ def build_gold_stream(coll):
                 p = p + 0.4 * (t - t_shed) * np.cross([0, 0, 1.0], arm)
                 inside = np.linalg.norm(p - C.CORE) < C.CORE_RADIUS * 0.9
                 ob.location = p
-                ob.scale = (0.001,) * 3 if (inside or t > 1.30) else (1.0,) * 3
+                ob.scale = (0.001,) * 3 if (inside or t > 1.12) else (1.0,) * 3
             ob.keyframe_insert("location", frame=f)
             ob.keyframe_insert("scale", frame=f)
         parcels.append(ob)
@@ -377,9 +377,11 @@ def _slice_nodes(n, l, position_socket, dom):
     return sep, s0.outputs[0], s1.outputs[0], fr.outputs[0]
 
 
-def atlas_sampler_group(name, dom, channels):
+def atlas_sampler_group(name, dom, channels, grid_scale=1.0):
     """Geometry Nodes: rebuild a real density grid (sum of `channels`) from the
-    tiled atlas so Cycles gets bounds, empty-space skipping and step control."""
+    tiled atlas so Cycles gets bounds, empty-space skipping and step control.
+    `grid_scale` < 1 builds a coarser grid than the atlas (bigger ray-march
+    steps); the shader still samples the full-resolution atlas per step."""
     ng = bpy.data.node_groups.new(name, "GeometryNodeTree")
     ng.interface.new_socket("Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
     ng.interface.new_socket("Image", in_out="INPUT", socket_type="NodeSocketImage")
@@ -403,7 +405,7 @@ def atlas_sampler_group(name, dom, channels):
         else:
             add = n.new("ShaderNodeMath"); add.operation = "ADD"; l.new(prev, add.inputs[0]); l.new(sc.outputs[ch], add.inputs[1])
             prev = add.outputs[0]
-    nx, ny, nz = dom["res"]
+    nx, ny, nz = (max(8, int(round(v * grid_scale))) for v in dom["res"])
     vc = n.new("GeometryNodeVolumeCube")
     vc.inputs["Min"].default_value = (-1, -1, -1); vc.inputs["Max"].default_value = (1, 1, 1)
     vc.inputs["Resolution X"].default_value = nx; vc.inputs["Resolution Y"].default_value = ny; vc.inputs["Resolution Z"].default_value = nz
@@ -486,15 +488,15 @@ def volume_materials(meta, imgs):
     gas, dust, heat = atlas_shader_sample(nt, dm, imgs["mid"])
     detail = _detail(nt)
     g = n.new("ShaderNodeMath"); g.operation = "MULTIPLY"; l.new(gas, g.inputs[0]); l.new(detail, g.inputs[1])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.6; l.new(g.outputs[0], g2.inputs[0])
-    d2 = n.new("ShaderNodeMath"); d2.operation = "MULTIPLY"; d2.inputs[1].default_value = 9.0; l.new(dust, d2.inputs[0])
+    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.0; l.new(g.outputs[0], g2.inputs[0])
+    d2 = n.new("ShaderNodeMath"); d2.operation = "MULTIPLY"; d2.inputs[1].default_value = 12.0; l.new(dust, d2.inputs[0])
     dens = n.new("ShaderNodeMath"); dens.operation = "ADD"; l.new(g2.outputs[0], dens.inputs[0]); l.new(d2.outputs[0], dens.inputs[1])
     l.new(dens.outputs[0], pv.inputs["Density"])
     # albedo: weighted mix of gas colour (by gas density) and near-black dust
     ramp = n.new("ShaderNodeValToRGB")
     ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.50, 0.42, 0.62, 1)
-    e = ramp.color_ramp.elements.new(0.25); e.color = (0.66, 0.80, 0.86, 1)
-    ramp.color_ramp.elements[-1].position = 0.7; ramp.color_ramp.elements[-1].color = (0.90, 0.92, 0.96, 1)
+    e = ramp.color_ramp.elements.new(0.25); e.color = (0.60, 0.78, 0.90, 1)
+    ramp.color_ramp.elements[-1].position = 0.7; ramp.color_ramp.elements[-1].color = (0.88, 0.92, 0.98, 1)
     l.new(gas, ramp.inputs["Fac"])
     w = n.new("ShaderNodeMath"); w.operation = "DIVIDE"; l.new(d2.outputs[0], w.inputs[0])
     eps = n.new("ShaderNodeMath"); eps.operation = "ADD"; eps.inputs[1].default_value = 1e-4; l.new(dens.outputs[0], eps.inputs[0]); l.new(eps.outputs[0], w.inputs[1])
@@ -532,7 +534,7 @@ def volume_materials(meta, imgs):
     m, nt, pv = base("vol_far")
     n, l = nt.nodes, nt.links
     gas, _, heat = atlas_shader_sample(nt, df, imgs["far"])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 0.85; l.new(gas, g2.inputs[0])
+    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 0.6; l.new(gas, g2.inputs[0])
     l.new(g2.outputs[0], pv.inputs["Density"])
     ramp = n.new("ShaderNodeValToRGB")
     ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.40, 0.33, 0.52, 1)
@@ -554,16 +556,16 @@ def volume_materials(meta, imgs):
     dust, _, _ = atlas_shader_sample(nt, dn, imgs["near"])
     detail = _detail(nt, 2.0)
     g = n.new("ShaderNodeMath"); g.operation = "MULTIPLY"; l.new(dust, g.inputs[0]); l.new(detail, g.inputs[1])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 9.0; l.new(g.outputs[0], g2.inputs[0])
+    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.0; l.new(g.outputs[0], g2.inputs[0])
     l.new(g2.outputs[0], pv.inputs["Density"])
     pv.inputs["Color"].default_value = (0.06, 0.06, 0.07, 1)
     pv.inputs["Anisotropy"].default_value = 0.4
-    _set_step_rate(m, 1.5)
+    _set_step_rate(m, 3.0)
     mats["near"] = m
     return mats
 
 
-def volume_object(name, coll, dom, image, channels, material, matrix):
+def volume_object(name, coll, dom, image, channels, material, matrix, grid_scale=1.0):
     me = bpy.data.meshes.new(name)
     me.from_pydata([(-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1), (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)], [],
                    [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)])
@@ -571,7 +573,7 @@ def volume_object(name, coll, dom, image, channels, material, matrix):
     link(ob, coll)
     ob.matrix_world = matrix
     mod = ob.modifiers.new("atlas", "NODES")
-    ng = atlas_sampler_group(f"{name}_sampler", dom, channels)
+    ng = atlas_sampler_group(f"{name}_sampler", dom, channels, grid_scale)
     mod.node_group = ng
     mod[ng.interface.items_tree["Image"].identifier] = image
     mod[ng.interface.items_tree["Material"].identifier] = material
@@ -605,7 +607,7 @@ def build_volumes(meta, colls, cam):
     objs = {}
     objs["mid"] = volume_object("vol_mid", colls["mid"], dm, imgs["mid"], (0, 1), mats["mid"], domain_matrix(dm))
     objs["far"] = volume_object("vol_far", colls["far"], df, imgs["far"], (0,), mats["far"], domain_matrix(df))
-    near = volume_object("vol_near", colls["near"], dn, imgs["near"], (0,), mats["near"], Matrix.Identity(4))
+    near = volume_object("vol_near", colls["near"], dn, imgs["near"], (0,), mats["near"], Matrix.Identity(4), grid_scale=0.5)
     # camera-attached: parent to the camera with the local offset used by the solver
     near.parent = cam
     m = Matrix.Identity(4)
@@ -654,7 +656,8 @@ def build_lights(meta, coll, bodies):
             L.color = tuple(float(x) for x in C.srgb_to_linear(C.blackbody(9000)))
             L.energy = 0.0 if t < 0.8 else 6.0 * float(C.smoothstep(0.8, 1.05, t))
         else:
-            L.energy = 700.0 * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 + 1.5 * math.exp(-tau / 0.2))
+            # after the plateau the camera is inside the gas: the key must not flood the frame
+            L.energy = 480.0 * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 + 1.5 * math.exp(-tau / 0.2)) * (1.0 - 0.75 * float(C.smoothstep(0.55, 1.4, tau)))
         L.keyframe_insert("energy", frame=f)
         L.keyframe_insert("color", frame=f)
     # planets' fill: one dim directional light, linked only to the bodies
@@ -714,13 +717,13 @@ def build_motes(coll, cam):
     proto.hide_render = True
     proto.hide_viewport = True
     n = motes.shape[1]
-    for i in range(n):
+    for i in range(0, n, 5):   # 64 of the 320 solver motes: fine particulate, not pebbles
         ob = bpy.data.objects.new(f"mote_{i:03d}", proto.data)
         link(ob, coll)
         for k, f in enumerate(frames):
             x, y, z, r = motes[k, i]
             ob.location = (x, y, z)
-            ob.scale = (max(r, 1e-4),) * 3
+            ob.scale = (max(r * 0.45, 1e-4),) * 3
             ob.keyframe_insert("location", frame=int(f))
             ob.keyframe_insert("scale", frame=int(f))
         ob.scale = (1e-4,) * 3
@@ -790,6 +793,7 @@ def setup_render(scene, colls):
 
 
 def main():
+    bpy.context.preferences.filepaths.save_version = 0   # no .blend1 backups in the review folder
     C.ensure_dirs()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene

@@ -63,12 +63,12 @@ def make_material(name, base, rough=0.5, metallic=0.0, spec=0.5, transmission=0.
     if bump:
         # procedural mineral grain on the fracture faces (render only; not exported)
         n1 = nt.nodes.new("ShaderNodeTexNoise")
-        n1.inputs["Scale"].default_value = 38.0
-        n1.inputs["Detail"].default_value = 6.0
-        n1.inputs["Roughness"].default_value = 0.62
+        n1.inputs["Scale"].default_value = 90.0
+        n1.inputs["Detail"].default_value = 5.0
+        n1.inputs["Roughness"].default_value = 0.55
         bp = nt.nodes.new("ShaderNodeBump")
-        bp.inputs["Strength"].default_value = bump
-        bp.inputs["Distance"].default_value = 0.01
+        bp.inputs["Strength"].default_value = bump * 0.5
+        bp.inputs["Distance"].default_value = 0.004
         nt.links.new(n1.outputs["Fac"], bp.inputs["Height"])
         nt.links.new(bp.outputs["Normal"], p.inputs["Normal"])
         cr = nt.nodes.new("ShaderNodeValToRGB")
@@ -296,14 +296,17 @@ def hero_trajectories(rng, objects):
     bb = C.breakout_basis()
     b, e1, e2, q, f_cam = bb["b"], bb["e1"], bb["e2"], bb["q"], bb["f"]
     by_class = {k: [o for o in objects if o["size_class"] == k] for k in ("L", "M", "S")}
-    heroes = by_class["L"][:4] + by_class["M"][:5] + by_class["S"][:3]
+    # the near crosser: the graphite shell piece closest to 0.6 u across
+    crosser = min([o for o in by_class["L"] if o["kind"].startswith("graphite")] or by_class["L"], key=lambda o: abs(float(o["extent"]) - 0.62))
+    large = [crosser] + [o for o in by_class["L"] if o is not crosser][:3]
+    heroes = large + by_class["M"][:5] + by_class["S"][:3]
     specs = []
     # (angle from axis deg, azimuth deg, speed, launch t, drag, spin rad/s, depth bias toward camera)
     table = [
-        (14, 40, 2.3, 1.14, 0.55, 1.6, 0.10),   # L01 big back-lit shell, mid depth
-        (26, 200, 1.7, 1.18, 0.5, 1.1, -0.25),  # L02 far, slow
-        (9, 300, 3.2, 1.12, 0.6, 2.4, 0.35),    # L03 the near crosser (re-aimed below)
-        (33, 120, 1.9, 1.22, 0.5, 0.9, -0.1),   # L04
+        (9, 300, 3.2, 1.12, 0.6, 2.4, 0.35),    # the near crosser (re-aimed below)
+        (14, 40, 2.3, 1.14, 0.55, 1.6, 0.10),   # big back-lit shell, mid depth
+        (26, 200, 1.7, 1.18, 0.5, 1.1, -0.25),  # far, slow
+        (33, 120, 1.9, 1.22, 0.5, 0.9, -0.1),
         (18, 80, 2.7, 1.13, 0.6, 2.8, 0.2),
         (40, 250, 2.1, 1.16, 0.55, 3.4, 0.0),
         (22, 330, 2.9, 1.15, 0.6, 2.0, 0.45),
@@ -348,25 +351,32 @@ def hero_trajectories(rng, objects):
             sample.append([float(x) for x in pos])
         out.append(dict(name=ob.name, kind=ob["kind"], size_class=ob["size_class"], extent=float(ob["extent"]),
                         launch=t_launch, speed=speed, drag=drag, spin=spin, direction=[float(x) for x in d], positions=sample))
-    # The near crosser: a straight pass 0.32..0.6 units from the camera, lower-left -> centre-left, 1.75..2.10 s.
-    crosser = heroes[2]
+    # The near crosser is a baked, camera-relative element (as in the intended
+    # integration): it enters from outside the lower-left corner at ~1.7 s, slides
+    # toward centre-left by 2.10 s, then falls away left and down before the
+    # camera's peak velocity so it never crosses the lens or the hero region.
+    from scipy.interpolate import PchipInterpolator
+    crosser = heroes[0]
     crosser.animation_data_clear()
-    st_a, st_b = C.camera_state(1.75), C.camera_state(2.10)
-    p_a = st_a["p"] + st_a["f"] * 0.62 - st_a["r"] * 0.62 - st_a["u"] * 0.40
-    p_b = st_b["p"] + st_b["f"] * 0.34 - st_b["r"] * 0.05 - st_b["u"] * 0.02
-    vel = (p_b - p_a) / (2.10 - 1.75)
+    knots_t = [0.0, 1.50, 1.62, 1.75, 2.10, 2.35, 2.60, 2.85, 4.80]
+    kx = [-3.2, -3.2, -2.3, -1.65, -0.78, -0.95, -1.7, -2.9, -2.9]
+    ky = [-2.2, -2.2, -1.55, -0.95, -0.38, -0.55, -1.15, -2.0, -2.0]
+    kz = [2.6, 2.6, 2.45, 2.3, 1.9, 1.55, 1.25, 1.0, 1.0]
+    px_, py_, pz_ = (PchipInterpolator(knots_t, k) for k in (kx, ky, kz))
     axis = np.array([0.3, 0.9, 0.2])
     axis /= np.linalg.norm(axis)
     base_q = crosser.rotation_quaternion.copy()
     sample = []
     for fr in frames:
         t = C.t_of(int(fr))
-        pos = p_a + vel * (t - 1.75)
+        st = C.camera_state(t)
+        pos = st["p"] + st["r"] * float(px_(t)) + st["u"] * float(py_(t)) + st["f"] * float(pz_(t))
         crosser.location = pos
         crosser.rotation_quaternion = Matrix.Rotation(1.9 * (t - 1.75), 4, Vector(axis)).to_quaternion() @ base_q
         crosser.keyframe_insert("location", frame=int(fr))
         crosser.keyframe_insert("rotation_quaternion", frame=int(fr))
         sample.append([float(x) for x in pos])
+    vel = (np.array(sample[C.f_of(2.10)]) - np.array(sample[C.f_of(1.75)])) / 0.35
     for o in out:
         if o["name"] == crosser.name:
             o.update(role="near_crosser", positions=sample, launch=None, speed=float(np.linalg.norm(vel)))
@@ -485,6 +495,7 @@ def render_contact_sheet(objects, out_path):
 
 # --------------------------------------------------------------------- main
 def main():
+    bpy.context.preferences.filepaths.save_version = 0   # no .blend1 backups in the review folder
     t0 = time.time()
     C.ensure_dirs()
     os.makedirs(FRAG_DIR, exist_ok=True)
@@ -532,8 +543,10 @@ def main():
         json.dump(dict(heroes=traj, report=report, library=[dict(name=o.name, kind=o["kind"], size_class=o["size_class"], extent=o["extent"], mass=o["mass"]) for o in objects],
                        glb_bytes=os.path.getsize(glb), hero_triangles=hero_tris, library_triangles=tri_total, counts=counts), fh, indent=1)
 
-    sheet = render_contact_sheet(objects, os.path.join(C.REVIEW_DIR, "fragment-contact-sheet.jpg"))
-    print("contact sheet", sheet, "total %.1fs" % (time.time() - t0))
+    if "--no-sheet" not in sys.argv:
+        sheet = render_contact_sheet(objects, os.path.join(C.REVIEW_DIR, "fragment-contact-sheet.jpg"))
+        print("contact sheet", sheet)
+    print("total %.1fs" % (time.time() - t0))
 
 
 if __name__ == "__main__":
