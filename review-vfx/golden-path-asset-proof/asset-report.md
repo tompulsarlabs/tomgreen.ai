@@ -46,7 +46,13 @@ Scripts: `tools/blender/golden-path-proof/` (see its README).
 
 ## 2. Environment and reproducibility
 
-{{ENVIRONMENT}}
+| Blender | 4.2.23 LTS (bpy module) |
+|---|---|
+| Renderer | Cycles, CPU, 4 threads |
+| CPU | Intel(R) Xeon(R) Processor @ 2.10GHz |
+| GPU | none (CPU-only container) |
+| Platform | Linux-6.18.44-fc-v24-x86_64-with-glibc2.39 |
+| ffmpeg | ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers |
 
 Seeds (all in `tools/blender/golden-path-proof/common.py`):
 
@@ -176,15 +182,97 @@ one 0.72 u graphite shell is the near crosser (camera-relative, lower-left
 corner, 1.6–2.6 s, never closer than 0.79 u to the lens). None enters the
 copy-safe column after 3.2 s.
 
-{{FRAGMENTS}}
+Library: 27 fragments ({'L': 6, 'M': 10, 'S': 11}), 16194 triangles before hero selection. GLB: 364 KB, 9082 triangles, 12 animated hero nodes, no textures.
+
+| Hero | Class | Material | Extent (u) | Nearest camera approach | In copy column after 3.2 s |
+|---|---|---|---|---|---|
+| frag_L06 | L | graphite | 0.72 | 1.90 u at 2.37 s | no |
+| frag_L01 | L | graphite | 0.87 | 2.59 u at 2.83 s | no |
+| frag_L02 | L | graphite | 0.81 | 3.46 u at 3.03 s | no |
+| frag_L03 | L | gold | 0.82 | 3.59 u at 2.97 s | no |
+| frag_M01 | M | graphite | 0.32 | 2.99 u at 2.77 s | no |
+| frag_M02 | M | pale | 0.15 | 2.92 u at 2.93 s | no |
+| frag_M03 | M | pale | 0.12 | 1.76 u at 2.60 s | no |
+| frag_M04 | M | pale | 0.30 | 3.99 u at 2.83 s | no |
+| frag_M05 | M | graphite | 0.27 | 2.20 u at 2.50 s | no |
+| frag_S01 | S | graphite | 0.16 | 2.11 u at 2.80 s | no |
+| frag_S02 | S | graphite | 0.16 | 3.13 u at 2.50 s | no |
+| frag_S03 | S | graphite | 0.12 | 4.46 u at 2.83 s | no |
 
 ## 7. Measured
 
-{{TIMINGS}}
+### Render time
 
-{{METRICS}}
+| Layer | Frames | Total | Mean / frame | Max / frame |
+|---|---|---|---|---|
+| map | 103 | 11.7 min | 6.8 s | 12.5 s |
+| event | 70 | 78.8 min | 67.5 s | 420.5 s |
+| far | 112 | 23.3 min | 12.5 s | 67.9 s |
+| mid | 70 | 28.7 min | 24.6 s | 111.0 s |
+| fragments | 70 | 0.5 min | 0.4 s | 1.9 s |
+| near | 55 | 11.9 min | 13.0 s | 69.0 s |
+| **all** | | **2.58 h** | | |
 
-{{SIZES}}
+Recorded Cycles render time only (4 CPU threads); denoising, compositing and encoding added about 45 minutes, and the session's wall clock was longer because the look was retuned once against the full-resolution grids and the container restarted twice mid-run (the pipeline resumes from existing frames).
+
+Volume solve: 112 frames in 9.9 min (mean 5.2 s/frame); grids: mid 128×128×176, far 88×88×112, near 144×96×144
+
+### Frame metrics
+
+| Frame | t | Clipped white | Luminance range (stops, 0.5–99.5 pct) | Page matte coverage |
+|---|---|---|---|---|
+| 24 | 0.80 s | 0.00 % | 6.21 |  |
+| 33 | 1.10 s | 0.00 % | 7.86 |  |
+| 36 | 1.20 s | 0.00 % | 8.7 |  |
+| 38 | 1.27 s | 0.00 % | 9.23 |  |
+| 44 | 1.47 s | 0.00 % | 10.17 |  |
+| 50 | 1.67 s | 0.00 % | 10.92 |  |
+| 62 | 2.07 s | 0.00 % | 11.94 |  |
+| 75 | 2.50 s | 0.00 % | 10.75 | 0.2 % |
+| 83 | 2.77 s | 0.00 % | 9.78 | 3.8 % |
+| 90 | 3.00 s | 0.00 % | 8.66 | 63.3 % |
+| 99 | 3.30 s | 0.00 % | 8.32 | 99.3 % |
+| 102 | 3.40 s | 0.00 % | 8.13 | 100.0 % |
+| 108 | 3.60 s | 0.00 % | 3.62 | 100.0 % |
+| 114 | 3.80 s | 0.00 % | 3.65 | 100.0 % |
+| 144 | 4.80 s | 0.00 % | 3.67 | 100.0 % |
+
+Peak clipped-white fraction over the sequence: 0.00 % at frame 0.
+
+### Sizes
+
+| File | Size |
+|---|---|
+| asset-report.md | 14.0 KB |
+| beauty-matte.mp4 | 173.3 KB |
+| blend/fragments.blend | 567.1 KB |
+| blend/golden-path-proof.blend | 2.2 MB |
+| contact-sheet.jpg | 261.4 KB |
+| emission-pass.mp4 | 49.0 KB |
+| first-breakout.png | 421.5 KB |
+| fragment-contact-sheet.jpg | 351.0 KB |
+| fragment-passage.png | 537.4 KB |
+| fragments-isolated.mp4 | 28.3 KB |
+| fragments.glb | 364.1 KB |
+| golden-path-proof-full.mp4 | 1.4 MB |
+| golden-path-proof-half-speed.mp4 | 1.2 MB |
+| golden-path-proof.mp4 | 915.5 KB |
+| hero-peak.png | 464.6 KB |
+| nearly-landed.png | 136.7 KB |
+| page-emergence-matte.mp4 | 39.9 KB |
+| page-emergence.png | 545.8 KB |
+| readable-landing.png | 146.8 KB |
+| residual-test.mp4 | 197.4 KB |
+| volume-beauty.mp4 | 44.7 KB |
+| volume-depth-far.mp4 | 29.2 KB |
+| volume-depth-mid.mp4 | 30.4 KB |
+| volume-depth-near.mp4 | 4.3 KB |
+| volume-direct-light-pass.mp4 | 68.8 KB |
+| volume-matte.mp4 | 54.4 KB |
+| volumetric-depth.png | 553.1 KB |
+| isolated/ (33 stills) | 2.1 MB |
+
+Raw render output (EXR half, ZIP): 761.8 MB. Solver atlases (EXR half, ZIP): 517.8 MB.
 
 Estimated web-delivery size (not produced in this sprint): the event plate
 as a 1920 × 2160 stacked colour + luma-matte H.264 at the direction's

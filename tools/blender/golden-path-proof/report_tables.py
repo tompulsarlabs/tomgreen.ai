@@ -30,6 +30,9 @@ def human(n):
 
 def main():
     rep = load("report-deliver.json") or load("report-composite.json") or load("report-render.json")
+    comp = load("report-composite.json")
+    if comp.get("frame_stats") and not rep.get("frame_stats"):
+        rep["frame_stats"] = comp["frame_stats"]
     meta = load(os.path.join("volume", "meta.json"))
     traj = load(os.path.join("fragments", "trajectories.json"))
     print("## Environment\n")

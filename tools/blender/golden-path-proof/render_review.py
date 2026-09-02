@@ -319,11 +319,14 @@ def load_layer(L, f, denoise=True, full=False):
         return None
     im = read_exr(p)
     if denoise:
-        cache = p.replace(".exr", "_dn.npy")
+        cache = p.replace(".exr", "_dn2.npy")
         if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(p):
             return np.load(cache)
         rgb = oidn(im)
-        out = np.concatenate([rgb, im[..., 3:4]], axis=-1).astype(np.float32)
+        # alpha is denoised too (thin volumes at low sample counts leave a speckled matte)
+        a = oidn(np.repeat(im[..., 3:4], 3, axis=-1))[..., :1]
+        a = np.clip(a, 0, 1)
+        out = np.concatenate([rgb, a], axis=-1).astype(np.float32)
         np.save(cache, out)
         return out
     return im
@@ -332,14 +335,12 @@ def load_layer(L, f, denoise=True, full=False):
 def page_matte(lum, t, geometry, noise):
     """The authored reveal matte. Score = luminance structure + directional
     pressure from the aperture origin + ragged noise + copy-column guarantee."""
-    p = float(C.clamp01((t - C.PAGE_IN) / (C.PAGE_FULL - C.PAGE_IN)))
-    p = p * p * (3 - 2 * p)
-    p = p * 1.12
+    p = float(np.clip((t - 2.50) * 0.90, 0.0, 1.3))
     D, col = geometry
     n_slow, n_fast = noise
     lum_n = lum / max(np.percentile(lum, 99.6), 1e-6)
     lum_n = np.clip(lum_n, 0, 1.4)
-    score = (1.25 * lum_n + 4.4 * (p - 0.55 * D) + 0.32 * (n_slow - 0.5) + 0.14 * (n_fast - 0.5)
+    score = (1.25 * lum_n * (1.0 - 0.6 * D) + 4.4 * (p - 0.55 * D) + 0.32 * (n_slow - 0.5) + 0.14 * (n_fast - 0.5)
              + 1.6 * col * float(C.smoothstep(0.35, 0.78, p)))
     return C.smoothstep(0.92, 1.12, score).astype(np.float32)
 
@@ -479,8 +480,10 @@ def composite(args, report):
                         from scipy.ndimage import zoom
                         a = zoom(a, (h / a.shape[0], w / a.shape[1]), order=1)
                     a_res = a_res + (1 - a_res) * a
-            rho = float(C.knots(t, [(3.25, 0.0), (3.40, 0.32), (3.60, 0.12), (4.20, 0.08), (4.80, 0.06)]))
-            a_res = gaussian_filter(a_res, 2.0 * scale) * margin * rho
+            rho = float(C.knots(t, [(3.25, 0.0), (3.40, 0.30), (3.60, 0.12), (4.20, 0.08), (4.80, 0.06)]))
+            # the thin remnant is graded to the direction's alpha budget: its brightest 1% maps to rho
+            a_res = gaussian_filter(a_res, 3.0 * scale)
+            a_res = np.clip(a_res / max(float(np.percentile(a_res, 99.0)), 1e-4), 0, 1) * margin * rho
             cool = float(C.knots(t, [(3.4, 4200), (4.2, 3600), (4.8, 3300)]))
             tint = srgb_encode(C.srgb_to_linear(C.blackbody(cool)))
             mult = 1 - a_res[..., None] * (1 - tint[None, None] * 0.55)
@@ -534,7 +537,8 @@ def composite(args, report):
 
 
 # ------------------------------------------------------------ encoding
-def encode(src_pattern_dir, out, f_start, f_end, fps=C.FPS, crf=18, half=False):
+def encode(src_pattern_dir, out, f_start, f_end, fps=C.FPS, crf=18, half=False, hold=0.0):
+    """Concat-encode PNG frames; `hold` freezes the last frame for that many seconds."""
     frames = [os.path.join(src_pattern_dir, f"f{f:04d}.png") for f in range(f_start, f_end + 1)]
     frames = [p for p in frames if os.path.exists(p)]
     if not frames:
@@ -543,6 +547,8 @@ def encode(src_pattern_dir, out, f_start, f_end, fps=C.FPS, crf=18, half=False):
     with open(lst, "w") as fh:
         for p in frames:
             fh.write(f"file '{p}'\nduration {2.0 / fps if half else 1.0 / fps:.6f}\n")
+        if hold > 0:
+            fh.write(f"file '{frames[-1]}'\nduration {hold:.6f}\n")
         fh.write(f"file '{frames[-1]}'\n")
     cmd = [FFMPEG, "-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
            "-vf", f"fps={fps},scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
@@ -562,7 +568,8 @@ def deliver(args, report):
     outputs["golden-path-proof.mp4"] = encode(final, os.path.join(R, "golden-path-proof.mp4"), fi, fo)
     outputs["golden-path-proof-half-speed.mp4"] = encode(final, os.path.join(R, "golden-path-proof-half-speed.mp4"), fi, fo, half=True)
     outputs["golden-path-proof-full.mp4"] = encode(final, os.path.join(R, "golden-path-proof-full.mp4"), 0, C.F_END)
-    outputs["residual-test.mp4"] = encode(final, os.path.join(R, "residual-test.mp4"), C.f_of(3.20), C.F_END)
+    # residual test: 3.10 s -> 4.80 s at normal speed, then the final frame held so the clip runs 2.5 s
+    outputs["residual-test.mp4"] = encode(final, os.path.join(R, "residual-test.mp4"), C.f_of(3.10), C.F_END, hold=0.8)
     v0, v1 = C.f_of(C.VOLUME_IN), C.f_of(C.PAGE_FULL)
     for name, folder in (("volume-beauty", "volume"), ("volume-matte", "volume-matte"), ("volume-depth-far", "far"),
                          ("volume-depth-mid", "mid"), ("volume-depth-near", "near"), ("fragments-isolated", "fragments"),
@@ -593,7 +600,7 @@ def deliver(args, report):
             font = ImageFont.load_default(size=14)
         except TypeError:
             font = ImageFont.load_default()
-        d.text((12, 9), "Golden path asset proof  ·  chronological  ·  1440×900 @ 30 fps  ·  detonation at t = 1.10 s", fill=(210, 214, 220), font=font)
+        d.text((12, 9), "Golden path asset proof  -  chronological  -  1440x900 @ 30 fps  -  detonation at t = 1.10 s", fill=(210, 214, 220), font=font)
         for i, (f, p) in enumerate(tiles):
             im = Image.open(p).convert("RGB").resize((tw, th), Image.LANCZOS)
             x, y = (i % cols) * tw, 34 + (i // cols) * (th + 22)
