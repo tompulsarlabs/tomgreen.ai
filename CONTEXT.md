@@ -69,9 +69,9 @@ _Avoid_: Systems (the route's former name, still used in older docs and in
 several CSS class names), Building, Projects
 
 **Voices**:
-The references route. It, its nav entry and its planet all exist only once
-there is real, attributed, sign-off'd testimony; an empty Voices can never
-ship.
+The references route. Its nav entry and its planet appear only once there is
+real, attributed, sign-off'd testimony; the route itself is always served,
+empty or not.
 _Avoid_: testimonials, references (the page is Voices; the quotes inside are
 references)
 
@@ -123,10 +123,10 @@ core. The one place the whole system is visible at once.
 _Avoid_: the solar-system map, the orbit nav, the nav map, the system diagram
 
 **A section's system**:
-The portal's second level: one section's own bodies orbiting its centre —
-Work's projects, the Lab's builds, About's chapters, Contact's channels.
-Reached by capturing a planet on the map. Every body is derived from content
-already published elsewhere; nothing is authored twice.
+The portal's second level: one section's own bodies orbiting its centre — the
+operating record's case studies, the Lab's projects, About's stations,
+Contact's channels. Reached by capturing a planet on the map. Every body is
+derived from content already published elsewhere; nothing is authored twice.
 _Avoid_: the sub-map, the detail view, the sub-page
 
 **Planet** / **Body**:
@@ -335,7 +335,10 @@ _Avoid_: the snapshot test, the regression test, the baseline check
   name; consider keeping handoff for the first only.
 - **"Chapter 2" is a client's name, not an ordinal.** It reads as a section
   number in prose about the site's own structure.
-- **The site's own copy says "Work"** on the planetary map and in the
-  operating record's eyebrow, while the route it points at is Home. Confirm
-  whether Work survives as the name of a body of evidence now that it is not
-  a page.
+- **"Work" survives as a planet name** on the planetary map, pointing at Home,
+  while nothing else on the site is called Work any more — the operating
+  record's own eyebrow reads "Evidence / selected operating records". Confirm
+  whether Work is still the name of that body of evidence.
+- **Voices' own source comment overstates the gate**, claiming the route
+  appears only once there is testimony. The route always serves; only the nav
+  entry and the planet are gated. Worth correcting at the source too.
