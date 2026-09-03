@@ -1,6 +1,42 @@
 [
- ["gas-density-internal-shadow", "hero-peak-v2.png", [760, 90, 480, 360]],
- ["graphite-exterior", "volumetric-depth-v2.png", [0, 540, 480, 360]],
- ["fracture-face-interior", "hero-peak-v2.png", [540, 200, 320, 240]],
- ["paper-boundary", "page-emergence-v2.png", [860, 420, 480, 360]]
+ [
+  "gas-density-internal-shadow",
+  "hero-peak-v2.png",
+  [
+   760,
+   90,
+   480,
+   360
+  ]
+ ],
+ [
+  "graphite-exterior",
+  "volumetric-depth-v2.png",
+  [
+   0,
+   540,
+   480,
+   360
+  ]
+ ],
+ [
+  "fracture-face-interior",
+  "hero-peak-v2.png",
+  [
+   540,
+   200,
+   320,
+   240
+  ]
+ ],
+ [
+  "paper-boundary",
+  "page-emergence-v2.png",
+  [
+   800,
+   280,
+   480,
+   360
+  ]
+ ]
 ]
