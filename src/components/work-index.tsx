@@ -9,28 +9,27 @@ import { site } from "@/lib/content/site";
  * This was /work's page body. It moved into a component when the home
  * route absorbed it, so there is exactly one implementation: /work now
  * redirects here rather than rendering a second copy that could drift.
- * The copy inside is the owner's and is reproduced unchanged.
  */
 
 const groups = [
   {
     id: "flagship",
     label: "01 / Flagship",
-    heading: "Two constraints. Two systems in motion.",
+    heading: "These two are the biggest things I have built.",
     lead: "One built an AI organization across four countries. One ran a European business, then rebuilt its People Ops around agents.",
     tiers: ["flagship"],
   },
   {
     id: "range",
     label: "02 / Operating range",
-    heading: "Build it. Then operate inside it.",
-    lead: null,
+    heading: "I built the function, then went and ran the work.",
+    lead: "At Audibene I hired the technology leadership, then built Product Operations from zero. At Wave I built the company itself.",
     tiers: ["supporting"],
   },
   {
     id: "arc",
-    label: "03 / Wider arc",
-    heading: "Current work. Calibrated foundations.",
+    label: "03 / Now, and where it started",
+    heading: "What I am building this year, and the search years that set my bar.",
     lead: null,
     tiers: ["current", "foundation"],
   },
@@ -46,15 +45,14 @@ export function WorkIndex() {
       <header className="work-index-masthead section-split">
         <p className="record">Evidence / selected operating records</p>
         <div className="section-split-body">
-          <h2 className="axis-display">Weighed by opportunity cost.</h2>
+          <h2 className="axis-display">Every claim here has a case study under it.</h2>
           <p className="systems-lead">{site.recordLead}</p>
         </div>
       </header>
 
       <section aria-label="Selected outcomes" className="work-metric-band">
         <p className="max-w-2xl leading-relaxed text-ink-secondary">
-          Inspect the mandate, operating logic, judgment and evidence behind
-          every decision.
+          Open any record for the full account of the work behind the number.
         </p>
         <dl className="work-metric-rail">
           {[
@@ -103,14 +101,14 @@ export function WorkIndex() {
       })}
 
       <aside className="work-index-next section-split">
-        <p className="record">Next / the operating logic</p>
+        <p className="record">Next / the Lab</p>
         <div className="section-split-body">
           <p className="axis-heading">
-            Want the operating logic, not just the result?
+            The Lab shows how these systems actually work.
           </p>
           <p className="work-next-lead">
-            The Lab connects the agent workflows, products, case studies and
-            public build record behind this work.
+            It holds the agent workflows, the products and the public build
+            record behind everything above.
           </p>
         </div>
         <Link href="/building" className="action action-light">

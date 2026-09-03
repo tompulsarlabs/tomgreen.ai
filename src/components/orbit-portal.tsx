@@ -230,12 +230,12 @@ export function OrbitPortal() {
         <p className="record orbit-portal-record">
           {world
             ? `${displayLabel(world.label)} / system`
-            : "The system / all of it"}
+            : "Site map / every section"}
         </p>
         <p className="orbit-portal-note">
           {world
             ? world.note
-            : "Every section, in orbit around talent. Choose one."}
+            : "Every section of the site, in orbit. Pick one."}
         </p>
         <div className="orbit-portal-actions">
           {world ? (

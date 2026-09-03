@@ -26,6 +26,14 @@ export type CaseStudy = {
   /** One-line framing used on index cards. */
   summary: string;
   context: string;
+  /**
+   * The headings over the context and the narrative. Both are authored per
+   * study rather than shared, because a heading repeated across six pages
+   * says nothing about any of them: these name the actual situation and
+   * the actual work.
+   */
+  contextHeading: string;
+  workHeading: string;
   /** What Tom actually did/built — the narrative core. */
   body: string[];
   metrics: Metric[];
@@ -48,6 +56,10 @@ export const caseStudies: CaseStudy[] = [
       "Built a pan-European AI organization from zero to 120 people across four countries, led a 22-person talent team across Europe and China, and moved every headline hiring metric.",
     context:
       "Europe's leading fashion platform was making its big bet on AI. It needed an entire cross-functional AI organization — research, ML engineering, product — built from nothing, at speed, across markets it hadn't hired in before.",
+    contextHeading:
+      "Zalando was betting the company on AI and had no AI organization.",
+    workHeading:
+      "I hired the leadership spine first, then 120 people in six months.",
     body: [
       "I led talent acquisition globally across AI and machine learning, Research, Technology, Commercial, Product, Design and corporate functions — a team of 22 across Europe and China.",
       "The AI build-out went from zero to 120 people in six months across Germany, Ireland, Switzerland and Finland. Under the organization’s internal reporting definition, 42% were diversity hires. The work included market entry, executive search for the leadership team, and standing up a Technology and AI hub in Shenzhen.",
@@ -61,11 +73,11 @@ export const caseStudies: CaseStudy[] = [
       { value: "1,000+", label: "Interviewers trained" },
     ],
     demonstrates:
-      "Scale and speed at the executive level: building an entire AI organization, not filling roles.",
+      "A 120-person AI organization across four countries in six months, with Time to Hire falling 32% while it was being built.",
     tier: "flagship",
     system: {
       eyebrow: "Reconstructed operating model",
-      title: "A talent system built around the organization—not a list of vacancies.",
+      title: "One system ran the whole build, across four countries.",
       description:
         "The build linked capability planning, market entry, leadership search, talent pipelines and interviewer quality into one operating loop across four countries.",
       steps: [
@@ -129,6 +141,10 @@ export const caseStudies: CaseStudy[] = [
       "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
       "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how agents could change People Ops.",
+    contextHeading:
+      "Chapter 2 needed someone to run Europe and win the work.",
+    workHeading:
+      "I won the business first, then rebuilt the operation delivering it.",
     body: [
       "I led recruiting programs across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
       "I rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
@@ -141,7 +157,7 @@ export const caseStudies: CaseStudy[] = [
       { value: "3 roles", label: "Shared-service reliance removed" },
     ],
     demonstrates:
-      "Commercial leadership and operating design in the same role: grow the business, then redesign the work behind it.",
+      "I owned the European P&L, won €3.3M in twelve months, and rebuilt EU People Ops in the same job.",
     tier: "flagship",
     system: {
       eyebrow: "Reconstructed service workflow",
@@ -208,6 +224,10 @@ export const caseStudies: CaseStudy[] = [
       "Scaled the technology organization from about 70 to 180 people before IPO, then moved into the organization to build Product Operations from zero.",
     context:
       "An EQT Ventures-backed HealthTech had two consecutive mandates: scale the technology organization toward IPO, then make the product portfolio itself run better.",
+    contextHeading:
+      "Audibene was heading for an IPO with about 70 people in technology.",
+    workHeading:
+      "I doubled the talent function, then moved inside and built Product Ops.",
     body: [
       "Leading three talent-acquisition teams across the US, Germany and India, I doubled the function and grew the technology organization from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
       "Then the crossover: I moved into the organization to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
@@ -219,7 +239,7 @@ export const caseStudies: CaseStudy[] = [
       { value: "~20%", label: "Faster release cycles" },
     ],
     demonstrates:
-      "The range: trusted first to build the leadership team, then to operate inside the product org itself.",
+      "Audibene trusted me to hire its technology leadership, then to run Product Operations inside the organization I had helped build.",
     tier: "supporting",
   },
   {
@@ -232,6 +252,8 @@ export const caseStudies: CaseStudy[] = [
       "Co-founded a talent strategy firm and bootstrapped it to £1M revenue in two years, hiring for scaleups, quant funds and enterprise.",
     context:
       "Before building talent systems inside companies, I built the company: a talent strategy firm with no outside capital.",
+    contextHeading: "I left search to start my own firm, with no outside capital.",
+    workHeading: "I took Wave to £1M in revenue on no outside money.",
     body: [
       "Wave hired product, engineering, AI/ML research and executives for scaleups and quant funds — Monzo, Two Sigma, Quadrature Capital — and enterprises including Aviva and Santander.",
       "Bootstrapped to £1M revenue in two years. Founder economics teach you what hiring actually costs and what a talent operating model is worth — lessons I've carried into every in-house system since.",
@@ -240,7 +262,8 @@ export const caseStudies: CaseStudy[] = [
       { value: "£1M", label: "Revenue in 2 years" },
       { value: "£0", label: "Outside capital" },
     ],
-    demonstrates: "Founder credibility: built and ran the business, not just the function.",
+    demonstrates:
+      "I built a company to £1M in revenue with no outside capital, so I know what hiring actually costs a business.",
     tier: "supporting",
   },
   {
@@ -253,13 +276,16 @@ export const caseStudies: CaseStudy[] = [
       "Advising a €4M pre-seed behavioral-AI company — Mastercard live — on its talent system, and hiring the founding team.",
     context:
       "Behavioral AI for financial institutions, backed with a €4M pre-seed and already live with Mastercard. At this stage, every hire is architecture.",
+    contextHeading:
+      "WeR had €4M, Mastercard live, and a founding team still to hire.",
+    workHeading: "I am hiring WeR's founding team, starting from the first hire.",
     body: [
       "I'm building the talent system — the operating model a company of this ambition will scale on — and hiring the founding team alongside the executives.",
       "This chapter is being written now; the impact log grows as it ships.",
     ],
     metrics: [{ value: "€4M", label: "Pre-seed, Mastercard live" }],
     demonstrates:
-      "The current chapter: talent systems for AI companies, built from the first hire.",
+      "I am designing WeR's talent system now, while it is still cheap to get right.",
     tier: "current",
   },
   {
@@ -272,12 +298,15 @@ export const caseStudies: CaseStudy[] = [
       "Executive and technical search for quant funds and tier-1 VC-backed startups — Palantir, DeepMind, CrowdStrike among them.",
     context:
       "A search firm focused on quant, research, and tier-1 VC-backed tech — the rooms where hiring standards are least forgiving.",
+    contextHeading: "The hiring bar here was the highest I had worked to.",
+    workHeading: "I hired for Palantir, DeepMind and CrowdStrike.",
     body: [
       "Hired product, GTM, AI/ML research and tech across the portfolio: Palantir, DeepMind, CrowdStrike, Rappi and Hudl on the venture side; Travelex in private equity.",
       "The years that calibrated what a top-decile candidate actually looks like — a bar carried into every in-house system since.",
     ],
     metrics: [],
-    demonstrates: "Where the hiring bar was set.",
+    demonstrates:
+      "Palantir, DeepMind and CrowdStrike set the bar I have hired against ever since.",
     tier: "foundation",
   },
 ];

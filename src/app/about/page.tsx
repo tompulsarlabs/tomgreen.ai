@@ -9,7 +9,7 @@ import { testimonials } from "@/lib/content/testimonials";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Fifteen years building teams — travel the career stop by stop, then jump into the case studies and systems behind it.",
+    "Fifteen years building teams, stop by stop, with the case studies and systems behind each one.",
 };
 
 export default function About() {
@@ -20,7 +20,7 @@ export default function About() {
           <p className="record">About / operating record</p>
           <div className="systems-title-row">
             <h1 className="axis-display hero-title-long">
-              A career at the intersection.
+              I started in 2011 as a tech recruiter at Hays.
             </h1>
             <div className="systems-lead about-intro">
               {aboutIntro.map((paragraph) => (
@@ -39,12 +39,11 @@ export default function About() {
             <>
               <p className="record">2011 → now</p>
               <h2 id="career-heading" className="axis-heading">
-                The work, in sequence.
+                Every job I have had, in order.
               </h2>
               <p>
-                Search, company building, global talent leadership, product
-                operations and agentic operating design. One continuous record,
-                from the first search to current systems work.
+                It runs from tech recruitment in 2011 to the agent systems I
+                build now. Open any stop to see what happened there.
               </p>
             </>
           }
@@ -58,7 +57,7 @@ export default function About() {
         <div>
           <p className="record">References / contact</p>
           <h2 id="references-heading" className="axis-heading">
-            Seen up close.
+            The people I worked for will take your call.
           </h2>
         </div>
         <div className="about-reference-body">
@@ -69,7 +68,10 @@ export default function About() {
           )}
 
           <div className="about-contact">
-            <p>Want to build, hire elite talent, or just network?</p>
+            <p>
+              If you are building something, or trying to hire someone hard to
+              hire, email me.
+            </p>
             <a
               href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
               className="action action-dark"
