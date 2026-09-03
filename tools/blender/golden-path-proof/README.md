@@ -35,7 +35,8 @@ pip install "bpy==4.2.23" numpy scipy pillow imageio-ffmpeg oidn
 | `build_volume.py` | Asset A. Seeded particle advection driven by the site's blast law and curl-noise shear; splats far / mid / near grids and writes tiled EXR atlases | `cache/volume/{far,mid,near}/atlas_####.exr`, `cache/volume/meta.json`, `near_motes.npz` |
 | `build_fragments.py` | Asset B. Seeded clustered Voronoi fracture of a hollow shell (bmesh bisection + boolean hollowing), art-directed warp, bevel, pivots, mass, materials; 12 hero trajectories; GLB; contact sheet | `review-vfx/golden-path-asset-proof/blend/fragments.blend`, `fragments.glb`, `fragment-contact-sheet.jpg`, `cache/fragments/trajectories.json` |
 | `build_scene.py` | Assembles the canonical scene: map context, camera, Geometry-Nodes volume grids rebuilt from the atlases, single-medium shaders (gas + dust + heat), key light riding the hot core, hero fragments, view layers | `review-vfx/golden-path-asset-proof/blend/golden-path-proof.blend` |
-| `render_review.py` | Renders every view layer per frame, denoises, composites (nebula plate, exposure, filmic curve, authored page-emergence matte, page-margin residual), encodes MP4s, writes stills, contact sheet, report data | `cache/render/…`, `cache/frames/…`, `review-vfx/golden-path-asset-proof/*` |
+| `render_review.py` | Renders every view layer per frame, denoises, composites (nebula plate, exposure, filmic curve, authored two-stage page-emergence matte, page-margin residual), encodes MP4s, writes stills, contact sheet, report data. `--stills` renders the v2 approval frames at full size (single plate while the camera is outside the volumes) | `cache/render/…`, `cache/frames/…`, `review-vfx/golden-path-asset-proof/*` |
+| `make_v2_review.py` | V1 / V2 side-by-side sheet and the 100% crops listed in `crops-v2.json` | `contact-sheet-v1-v2.jpg`, `crops-v2/` |
 | `regenerate.sh` | Runs the whole chain from a clean checkout | everything above |
 
 ## Regenerate from clean
@@ -54,7 +55,15 @@ python3 build_scene.py               # ~1 min
 python3 render_review.py             # render + denoise + composite + encode
 python3 render_review.py --frames 44 44 --layers map,event --scale 0.5   # a quick look at one frame
 python3 render_review.py --composite-only                               # re-composite from cached renders
+python3 render_review.py --stills                                        # v2 approval stills f044 / f075 / f082 (cache/render_v2)
+python3 render_review.py --stills --list 44 --border 0.40 0.06 0.82 0.56 --tune gas_gain=5,key=0.8   # look-dev: one region, overrides
+python3 make_v2_review.py                                                # V1/V2 sheet + 100% crops
 ```
+
+v2 look-dev notes: the named Value nodes (`gas_gain`, `dust_gain`, `heat_gain_scale`, `glow_gain`, `albedo`,
+`far_gain_scale`, `far_glow`, `far_albedo`, `near_gain`) and the lights (`key`, `key2`, `fill`, `sun`) can be
+overridden per render with `--tune`; the values that ship live in `build_scene.py`. `CHANGES-v2.md` in the
+review folder lists what the v2 iteration changed.
 
 Set `GP_CACHE=/some/dir` to move the (large, uncommitted) cache elsewhere.
 

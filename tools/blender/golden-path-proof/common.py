@@ -306,10 +306,13 @@ def camera_state(t):
     r, u, f = _basis_from_forward(f, math.radians(cam_roll_deg(t)))
     slide = float(smoothstep(1.75, 2.50, t))
     p = p_nom + LATERAL[0] * slide * r + LATERAL[1] * slide * u
-    # Focus: the core through the hold, pulling to 3.0 ahead during passage.
+    # Focus: the core through the hold; during the passage it follows the near crosser (2.1 ahead,
+    # v2: the foreground fragment establishes scale sharply), then pulls to 3.0 as the crosser leaves.
     focus_core = float(np.linalg.norm(CORE - p))
     k = float(smoothstep(1.75, 2.30, t))
-    focus = focus_core * (1 - k) + 3.0 * k
+    focus = focus_core * (1 - k) + 2.1 * k
+    k2 = float(smoothstep(2.55, 2.75, t))
+    focus = focus * (1 - k2) + 3.0 * k2
     if t > 2.85:
         focus = min(focus, max(1.2, focus_core))
     return dict(p=p, r=r, u=u, f=f, d=d, focus=focus)

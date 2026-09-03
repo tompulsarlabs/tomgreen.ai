@@ -70,7 +70,7 @@ LATE_STILL_FRAMES = {C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
 # v2 approval stills: full 1440x900, the event plate at 100% (no upscale), all volumes in one
 # plate so the far envelope is shadowed by the breakout, more samples, finer steps, volume bounces.
 V2_STILLS = [("hero-peak-v2.png", C.f_of(1.45)), ("volumetric-depth-v2.png", C.f_of(2.50)), ("page-emergence-v2.png", C.f_of(2.75))]
-P_KNOTS = [(2.47, 0.0), (2.6, 0.207), (2.73, 0.38), (2.87, 0.471), (3.0, 0.544), (3.2, 0.639), (3.33, 0.825), (C.PAGE_FULL, 1.3)]   # v2 reveal pressure
+P_KNOTS = [(2.47, 0.0), (2.6, 0.155), (2.73, 0.284), (2.87, 0.471), (3.0, 0.544), (3.2, 0.639), (3.33, 0.825), (C.PAGE_FULL, 1.3)]   # v2 reveal pressure
 TYPO_COVERAGE = (0.88, 0.985)   # typography fades in only once this share of the paper has resolved
 STILL_ISO_FRAMES = {C.f_of(2.75)}   # stills mode: gas-only layers (the reveal reads them) rendered for the emergence frame
 SPLIT_FROM = C.f_of(2.20)            # stills mode: once the camera is inside the volumes, far / near composite as layers again
@@ -385,6 +385,7 @@ def render_frames(args, report):
 
 # ------------------------------------------------------------ composite
 DENOISE_MIX = 0.0   # share of the (lightly blurred) raw render mixed back over the denoise (v2 stills: 0.3)
+NEAR_MIX = 1.0      # weight of the near particulate layer in the composite (v2: 0.45, restrained foreground dust)
 
 
 def load_layer(L, f, denoise=True, full=False):
@@ -521,7 +522,7 @@ def composite(args, report):
             scene_lin = event[..., :3] + (1 - event[..., 3:4]) * scene_lin
             alpha = event[..., 3] + alpha * (1 - event[..., 3])
         if near is not None and not single_plate(args, f):
-            nn = fit(near)
+            nn = fit(near) * NEAR_MIX          # restrained foreground particulate (premultiplied, so one factor)
             scene_lin = nn[..., :3] + (1 - nn[..., 3:4]) * scene_lin
             alpha = nn[..., 3] + alpha * (1 - nn[..., 3])
         beauty = event
@@ -557,6 +558,7 @@ def composite(args, report):
             n_slow = np.roll(n_slow0, int(-(t - C.PAGE_IN) * 40 * scale), axis=1)
             n_fast = np.roll(n_fast0, int((t - C.PAGE_IN) * 25 * scale), axis=0)
             M = page_matte(lum_b, t, geometry, (n_slow, n_fast))
+            M = M * np.float32(C.smoothstep(C.PAGE_IN, C.PAGE_IN + 0.10, t))   # nothing resolves at 2.50 s itself
             cov = float(M.mean())
             # stage 1: the hottest gas overexposes to neutral white; white light bleeds into the gas
             edge = np.clip(gaussian_filter(M, 14.0 * scale) - M, 0, 1)
@@ -736,7 +738,7 @@ def deliver_stills(args, report):
 
 
 def main():
-    global RENDER_DIR, FRAMES_DIR, DENOISE_MIX
+    global RENDER_DIR, FRAMES_DIR, DENOISE_MIX, NEAR_MIX
     ap = argparse.ArgumentParser()
     ap.add_argument("--frames", type=int, nargs=2, default=None)
     ap.add_argument("--list", default=None, help="explicit frame list, e.g. 44,75,82")
@@ -754,6 +756,7 @@ def main():
     ap.add_argument("--volume-bounces", type=int, default=1)
     ap.add_argument("--step-rate", type=float, default=1.0)
     ap.add_argument("--denoise-mix", type=float, default=None)
+    ap.add_argument("--near-mix", type=float, default=None, help="weight of the near particulate layer (sequence 1.0, stills 0.45)")
     ap.add_argument("--tune", default="", help="look-dev overrides: gas_gain=8,heat_gain_scale=1.5,key=1.2,fill=0.8")
     ap.add_argument("--cache-tag", default="v2", help="cache subfolder tag for --stills renders")
     ap.add_argument("--border", type=float, nargs=4, default=None, metavar=("U0", "V0", "U1", "V1"),
@@ -767,11 +770,14 @@ def main():
         if args.still_samples is None:
             args.still_samples = 256
         DENOISE_MIX = 0.3 if args.denoise_mix is None else args.denoise_mix
+        NEAR_MIX = 0.45 if args.near_mix is None else args.near_mix
     else:
         if args.still_samples is None:
             args.still_samples = 48
         if args.denoise_mix is not None:
             DENOISE_MIX = args.denoise_mix
+        if args.near_mix is not None:
+            NEAR_MIX = args.near_mix
     report = {}
     rp = os.path.join(C.CACHE_DIR, "report-render.json" if not args.stills else f"report-render-{args.cache_tag}.json")
     if os.path.exists(rp):

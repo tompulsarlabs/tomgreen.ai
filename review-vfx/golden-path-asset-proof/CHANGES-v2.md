@@ -16,7 +16,7 @@ content. No new effect types were added.
 | `volumetric-depth-v2.png` | f075, t = 2.50 s, 1440x900 |
 | `page-emergence-v2.png` | f082, t = 2.75 s, 1440x900 |
 | `contact-sheet-v1-v2.jpg` | each frame, V1 left / V2 right |
-| `crops-v2/*.png` | 100% crops: gas density + internal shadow, graphite exterior, fracture-face interior, paper boundary |
+| `crops-v2/*.png` | 100% crops: gas density + internal shadow (hero), graphite exterior (the crosser, passage), fracture-face interior (the upper-left large piece, hero), paper boundary (emergence) |
 | `fragments.glb` | hero fragments re-exported with baked texture maps (see 2) |
 | `fragment-texture-sheet.jpg` | the baked maps at a glance |
 | `blend/*.blend` | rebuilt scene and fragment library |
@@ -87,7 +87,9 @@ Lights:
   the camera rather than crossing the frame as a line; camera slide 1.75-2.50 s raised to (0.62, 0.30).
 - During the event the map steps back 55% (lattice, planets' sun, nebula), and the nebula's magenta is pulled
   toward indigo (R x0.68, G x0.82). The planets stay visible but dim.
-- f/4 instead of f/2.8 so near elements keep readable form.
+- f/4 instead of f/2.8 so near elements keep readable form; during the passage the focus follows the near
+  crosser (2.1 u ahead from 2.30 s) and pulls to 3.0 u as it leaves (2.55-2.75 s). The camera position,
+  rotation, distance, roll and slide timeline are untouched.
 
 ## 4. Camera passage / depth zones
 
@@ -105,21 +107,40 @@ Lights:
 - The matte is the light's own edge: a fine luminance structure (sigma 5 and 1.5 px) read from the gas-only
   layers (never a fragment highlight or the core's specular), an anisotropic domain-warped pressure field
   (elongated along the breakout, warped by noise: never a circle), ragged noise, and the copy-column
-  guarantee. Coverage: 5% at 2.60 s, 23% at 2.73 s, 48% at 2.87 s, 72% at 3.00 s, 90% at 3.20 s, 100% by 3.33 s
-  (fitted offline on the v1 plates; confirmed on the v2 emergence frame).
+  guarantee. Coverage schedule: ~4% at 2.60 s, 31% at 2.73 s (measured on the v2 emergence frame; the
+  2.60-2.73 s knots were refitted on its gas layers), then 48% at 2.87 s, 72% at 3.00 s, 90% at 3.20 s and
+  100% by 3.33 s (those knots fitted offline on the v1 plates and to be confirmed when the sequence is
+  rendered). Nothing resolves at 2.50 s itself (the matte is gated open over 2.50-2.60 s).
 
 ## 6. Render quality for the approval stills
 
-- Full 1440x900; the event plate at 100% (no 60% plate, no upscale); all three volumes in one plate so the
-  plume shadows the far envelope; volume max steps 1024, step rate 2.0; 20 samples adaptive (threshold 0.02)
-  on the event plate, 48 on the map plate; OIDN denoise with 25% of a lightly blurred raw mixed back so the
-  fine gas structure is not smeared; motion blur 0.5 as in the sequence.
-- Render times are listed in the PR description.
+- Full 1440x900; the event plate at 100% (no 60% plate, no upscale); volume max steps 1024, step rate 2.0;
+  adaptive sampling (threshold 0.02); OIDN denoise with 25% of a lightly blurred raw mixed back so the fine gas
+  structure is not smeared; motion blur 0.5 as in the sequence; no coarse late grid.
+- Hero frame (camera outside the volumes): all three volumes in one plate so the plume shadows the far halo;
+  20 samples on the event plate, 48 on the map plate.
+- Passage and emergence frames (camera inside the volumes): one plate with all three volumes costs ~16 min
+  per sample here, so the far halo and the near particulate are rendered as their own full-size layers and
+  composited under / over the plume plate (16 samples plate, 8 per layer); the plume plate still shadows
+  itself and the fragments. The near particulate layer is weighted 0.45 in the stills (restrained
+  foreground dust).
+- Render times (Cycles CPU, 4 cores): hero-peak-v2 event plate 27.2 min; volumetric-depth-v2 plume plate
+  60.5 min (with the focus pull) + far 8.3 min + near 3.8 min; page-emergence-v2 plume plate 67.9 min
+  + gas-only mid layer 29.0 min + far 7.9 min + near 2.9 min. Composite and denoise are seconds per frame.
 
 ## 7. Colour
 
 - Near-black, neutral white (the origin), cold blue, restrained cyan, deep muted indigo; the key never
   below 9000 K; gold limited to the crack neighbourhood before 1.6 s and one fracture face.
+
+## Known limits of these three frames
+
+- The near crosser at 2.50 s presents its graphite exterior to the lens (its fracture faces are the thin
+  shell rims); it reads as a dark foreground shell rather than an open fracture face.
+- The planets sit where the site's orbit layout puts them; two of them fall in front of the plume at the
+  hero frame and are only dimmed, not moved.
+- 16-20 samples per plate: fine gas structure is real but soft after denoising; the sequence render can use
+  more once the look is approved.
 
 ## Not done here (by request)
 
