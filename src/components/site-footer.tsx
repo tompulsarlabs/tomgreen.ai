@@ -10,7 +10,7 @@ export function SiteFooter() {
           {site.location}
         </p>
         {/* Quiet, on every page — and a fact rather than a slogan. */}
-        <p className="hidden text-center md:block">This site is open source</p>
+        <p className="hidden text-center md:block">The code for this site is public</p>
         <p className="text-right">© {new Date().getFullYear()}</p>
       </div>
     </footer>
