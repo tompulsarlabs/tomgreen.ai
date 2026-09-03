@@ -36,7 +36,9 @@ NEAR_GAIN = 6.0     # near particulate density
 GLOW_GAIN = 3.5     # faint cold self-glow of the dense gas (ionised ejecta), per sqrt unit of solver gas
 ALBEDO = 0.55       # scattering albedo scale of the gas: the medium absorbs as much as it scatters (optically dense)
 KEY_ENERGY = 350.0  # crack key, W
-FILL_ENERGY = 360.0 # cold area fill on fragments / core / motes, W
+FILL_ENERGY = 1400.0 # cold area fill on fragments / core / motes, W (v3: x3.9; solids only)
+FRAG_KEY_ENERGY = 1600.0 # v3: cold fragment key from the camera's upper right, fragments only (form on the dark shards)
+RIM_ENERGY = 60.0   # v3: near rim light at the camera's lower left, reaches near elements only (1/r^2)
 
 
 # ------------------------------------------------------------- utilities
@@ -548,7 +550,7 @@ def volume_materials(meta, imgs):
     # extinction: the hot origin is ionised and dust-free, so its own light gets out
     gas_c = _math(n, l, "POWER", gas, const=0.5)     # solver gas: median 0.06, axis ~3.8 -> compress
     dust_c = _math(n, l, "POWER", dust, const=0.6)
-    g_time = _keyed_value(nt, "gas_gain_t", lambda t: 1.0 - 0.55 * float(C.smoothstep(1.7, 2.6, t)))   # the expanding cloud thins
+    g_time = _keyed_value(nt, "gas_gain_t", lambda t: 1.0 - 0.64 * float(C.smoothstep(1.7, 2.6, t)))   # the expanding cloud thins (v3: less fog in the passage)
     g_gain = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", _maprange(n, l, hot, 0.0, 1.0, 1.0, 0.30), _value(n, "gas_gain", GAS_GAIN)), g_time)
     g2 = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", gas_c, detail), g_gain)
     d_gain = _math(n, l, "MULTIPLY", _maprange(n, l, hot, 0.0, 1.0, 1.0, 0.0), _value(n, "dust_gain", DUST_GAIN))
@@ -772,7 +774,33 @@ def build_lights(meta, coll, bodies, cam):
     pos = Vector((-2.6, 2.0, 0.5))
     aim = Vector((0.0, 0.0, -4.5))
     fill.matrix_basis = Matrix.Translation(pos) @ (aim - pos).to_track_quat("-Z", "Y").to_matrix().to_4x4()
-    return key, sun, fill
+    # v3: a small cold rim light riding at the camera's lower left; by 1/r^2 it only matters for the
+    # near crosser and motes (1-2 u away), not for the mid fragments (4-6 u) or the plume
+    R_ = bpy.data.lights.new("near_rim", "POINT")
+    R_.energy = RIM_ENERGY
+    R_.shadow_soft_size = 0.25
+    R_.color = tuple(float(x) for x in C.srgb_to_linear(C.blackbody(12000)))
+    rim = bpy.data.objects.new("near_rim", R_)
+    link(rim, coll)
+    rim.parent = cam
+    rim.matrix_parent_inverse = Matrix.Identity(4)
+    rim.matrix_basis = Matrix.Translation(Vector((-1.4, -0.9, 0.2)))
+    # v3: a second cold area light from the camera's upper right, fragments only, so the shards'
+    # camera-facing faces carry a left/right gradient (volume and orientation) instead of flat black
+    K2 = bpy.data.lights.new("frag_key", "AREA")
+    K2.shape = "DISK"
+    K2.size = 2.5
+    K2.energy = FRAG_KEY_ENERGY
+    K2.color = tuple(float(x) for x in C.srgb_to_linear(C.blackbody(11000)))
+    K2.use_shadow = True
+    fkey = bpy.data.objects.new("frag_key", K2)
+    link(fkey, coll)
+    fkey.parent = cam
+    fkey.matrix_parent_inverse = Matrix.Identity(4)
+    pos2 = Vector((2.4, 1.6, 0.3))
+    aim2 = Vector((0.0, 0.0, -5.0))
+    fkey.matrix_basis = Matrix.Translation(pos2) @ (aim2 - pos2).to_track_quat("-Z", "Y").to_matrix().to_4x4()
+    return key, sun, fill, rim, fkey
 
 
 # -------------------------------------------------------------- camera
@@ -906,7 +934,7 @@ def main():
     bodies = build_bodies(colls["map"], cam)
     build_gold_stream(colls["map"])
     vols, imgs = build_volumes(meta, colls, cam)
-    key, sun, fill = build_lights(meta, colls["lights"], bodies, cam)
+    key, sun, fill, rim, fkey = build_lights(meta, colls["lights"], bodies, cam)
     build_motes(colls["motes"], cam)
     # hero fragments from the library file
     frag_blend = os.path.join(C.BLEND_DIR, "fragments.blend")
@@ -921,6 +949,11 @@ def main():
     for ob in list(colls["fragments"].objects) + list(colls["motes"].objects) + [bpy.data.objects["core"]]:
         fc.objects.link(ob)
     fill.light_linking.receiver_collection = fc
+    rim.light_linking.receiver_collection = fc
+    fc2 = bpy.data.collections.new("frag_key_receivers")
+    for ob in list(colls["fragments"].objects):
+        fc2.objects.link(ob)
+    fkey.light_linking.receiver_collection = fc2
     # the whole event: fragments and volumes do not receive the planets' sun (light linking above)
     setup_render(scene, colls)
     scene.frame_set(C.f_of(1.45))

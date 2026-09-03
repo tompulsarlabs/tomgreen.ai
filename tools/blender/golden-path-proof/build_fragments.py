@@ -135,10 +135,10 @@ def mat_graphite(name, base, dark=False):
     col = _mix_rgb(nt, _map(nt, pits, 0.30, 0.42, 1.0, 0.0), col, base * 0.30)
     col = _mix_rgb(nt, speck, col, (0.20, 0.23, 0.28))
     nt.links.new(col, p.inputs["Base Color"])
-    rough = _map(nt, mottle, 0.3, 0.7, 0.62 if not dark else 0.55, 0.30)
-    rough = _mix_f(nt, speck, rough, 0.22)
+    rough = _map(nt, mottle, 0.3, 0.7, 0.55 if not dark else 0.48, 0.24)   # v3: glossier so cold rims read
+    rough = _mix_f(nt, speck, rough, 0.20)
     nt.links.new(rough, p.inputs["Roughness"])
-    p.inputs["Specular IOR Level"].default_value = 0.55
+    p.inputs["Specular IOR Level"].default_value = 0.80
     p.inputs["Anisotropic"].default_value = 0.25
     n = _bump(nt, mottle, 0.45, 0.012)
     n = _bump(nt, pits, 0.35, 0.006, n)
@@ -206,11 +206,11 @@ def mat_gold(name):
 def materials():
     lin = C.srgb_to_linear
     return dict(
-        graphite=mat_graphite("frag_graphite", lin([0.075, 0.078, 0.086])),
-        graphite_dark=mat_graphite("frag_graphite_dark", lin([0.048, 0.050, 0.056]), dark=True),
+        graphite=mat_graphite("frag_graphite", lin([0.17, 0.175, 0.19])),            # v3: near-black (sRGB 0.17) with readable texture
+        graphite_dark=mat_graphite("frag_graphite_dark", lin([0.11, 0.115, 0.125]), dark=True),
         smoked_glass=mat_glass("frag_smoked_glass"),
-        pale=mat_fracture("frag_pale_mineral", lin([0.44, 0.45, 0.47])),
-        cleave=mat_fracture("frag_cleavage", lin([0.17, 0.18, 0.20]), gloss=True),
+        pale=mat_fracture("frag_pale_mineral", lin([0.50, 0.51, 0.53])),
+        cleave=mat_fracture("frag_cleavage", lin([0.21, 0.22, 0.25]), gloss=True),
         gold=mat_gold("frag_gold_remnant"),
     )
 

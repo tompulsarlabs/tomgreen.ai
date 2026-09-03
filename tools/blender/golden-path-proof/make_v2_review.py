@@ -1,7 +1,7 @@
 """
 make_v2_review.py -- the v2 iteration review package (no sequence, no encode).
 
-  * contact-sheet-v1-v2.jpg   each approval frame, V1 beside V2
+  * contact-sheet-<left>-<right>.jpg   each approval frame, e.g. V1 beside V2, or V2 beside V3
   * crops-v2/*.png            100% crops from the V2 stills (gas density and
                               internal shadow, a graphite exterior, a fracture-face
                               interior, the irregular paper boundary)
@@ -19,11 +19,15 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common as C  # noqa: E402
 
-PAIRS = [  # (label, v1 file, v2 file, frame)
-    ("hero peak  t = 1.45 s  f044", "hero-peak.png", "hero-peak-v2.png", 44),
-    ("volumetric depth  t = 2.50 s  f075", "volumetric-depth.png", "volumetric-depth-v2.png", 75),
-    ("page emergence  t = 2.75 s  f082", "page-emergence.png", "page-emergence-v2.png", 82),
+BASES = [  # (label, base name, frame)
+    ("hero peak  t = 1.45 s  f044", "hero-peak", 44),
+    ("volumetric depth  t = 2.50 s  f075", "volumetric-depth", 75),
+    ("page emergence  t = 2.75 s  f082", "page-emergence", 82),
 ]
+
+
+def still_name(base, ver):
+    return f"{base}.png" if ver == "v1" else f"{base}-{ver}.png"
 # (output name, source still, (left, top, width, height) at 100%)
 CROPS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "crops-v2.json")))
 
@@ -35,21 +39,22 @@ def font(size):
         return ImageFont.load_default()
 
 
-def sheet(R):
+def sheet(R, left="v1", right="v2"):
     tw, th = 720, 450
-    rows = len(PAIRS)
+    rows = len(BASES)
     im = Image.new("RGB", (2 * tw + 3 * 16, rows * (th + 40) + 56), (10, 10, 12))
     d = ImageDraw.Draw(im)
-    d.text((16, 14), "Golden path asset proof  -  V1 (left) vs V2 (right)  -  1440x900 stills, shown at 50%", fill=(210, 214, 220), font=font(16))
-    for r, (label, v1, v2, fr) in enumerate(PAIRS):
+    d.text((16, 14), f"Golden path asset proof  -  {left.upper()} (left) vs {right.upper()} (right)  -  1440x900 stills, shown at 50%", fill=(210, 214, 220), font=font(16))
+    for r, (label, base, fr) in enumerate(BASES):
         y = 56 + r * (th + 40)
-        for c, fn in enumerate((v1, v2)):
+        for c, ver in enumerate((left, right)):
+            fn = still_name(base, ver)
             x = 16 + c * (tw + 16)
             p = os.path.join(R, fn)
             if os.path.exists(p):
                 im.paste(Image.open(p).convert("RGB").resize((tw, th), Image.LANCZOS), (x, y))
-            d.text((x, y + th + 8), f"{'V1' if c == 0 else 'V2'}  {label}  ({fn})", fill=(180, 186, 195), font=font(14))
-    out = os.path.join(R, "contact-sheet-v1-v2.jpg")
+            d.text((x, y + th + 8), f"{ver.upper()}  {label}  ({fn})", fill=(180, 186, 195), font=font(14))
+    out = os.path.join(R, f"contact-sheet-{left}-{right}.jpg")
     im.save(out, quality=90)
     return out
 
@@ -74,7 +79,14 @@ def crops(R):
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--left", default="v1")
+    ap.add_argument("--right", default="v2")
+    ap.add_argument("--no-crops", action="store_true")
+    a = ap.parse_args()
     R = C.REVIEW_DIR
-    print(sheet(R))
-    for o in crops(R):
-        print(o)
+    print(sheet(R, a.left, a.right))
+    if not a.no_crops:
+        for o in crops(R):
+            print(o)

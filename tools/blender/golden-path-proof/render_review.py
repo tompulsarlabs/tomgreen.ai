@@ -69,9 +69,12 @@ STILL_SAMPLES_FRAMES = {C.f_of(1.18), C.f_of(1.45)}
 LATE_STILL_FRAMES = {C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
 # v2 approval stills: full 1440x900, the event plate at 100% (no upscale), all volumes in one
 # plate so the far envelope is shadowed by the breakout, more samples, finer steps, volume bounces.
-V2_STILLS = [("hero-peak-v2.png", C.f_of(1.45)), ("volumetric-depth-v2.png", C.f_of(2.50)), ("page-emergence-v2.png", C.f_of(2.75))]
-P_KNOTS = [(2.47, 0.0), (2.6, 0.155), (2.73, 0.284), (2.87, 0.471), (3.0, 0.544), (3.2, 0.639), (3.33, 0.825), (C.PAGE_FULL, 1.3)]   # v2 reveal pressure
-TYPO_COVERAGE = (0.88, 0.985)   # typography fades in only once this share of the paper has resolved
+V2_STILLS = [("hero-peak", C.f_of(1.45)), ("volumetric-depth", C.f_of(2.50)), ("page-emergence", C.f_of(2.75))]   # + "-<suffix>.png"
+P_KNOTS = [(2.47, 0.0), (2.6, 0.151), (2.73, 0.277), (2.87, 0.471), (3.0, 0.544), (3.2, 0.639), (3.33, 0.825), (C.PAGE_FULL, 1.3)]   # v3 reveal pressure (2.60-2.73 s fitted on the v2 emergence layers; later knots pending the sequence)
+TYPO_COVERAGE = (0.90, 0.99)    # typography fades in only once this share of the frame reads as white paper (v3)
+WHITE_LUM = 0.92                # display luminance above which a pixel "reads as white paper"
+EXPOSURE_RISE = 6.0             # v3: how far the exposure climbs where the medium resolves (x7 at the front's interior)
+FAR_SOFT = 6.0                  # v3: far layer softened by this sigma (px at full size) when composited as its own layer
 STILL_ISO_FRAMES = {C.f_of(2.75)}   # stills mode: gas-only layers (the reveal reads them) rendered for the emergence frame
 SPLIT_FROM = C.f_of(2.20)            # stills mode: once the camera is inside the volumes, far / near composite as layers again
                                      # (one plate with the camera inside all three volumes costs ~16 min per sample)
@@ -256,8 +259,8 @@ def apply_tune(tune):
             if m.use_nodes and m.node_tree.nodes.get(name) is not None:
                 m.node_tree.nodes[name].outputs[0].default_value = val
                 hit = True
-        if name in ("key", "key2", "fill", "sun"):
-            L = bpy.data.lights[{"key": "crack_key", "key2": "axis_key", "fill": "cold_fill", "sun": "system_sun"}[name]]
+        if name in ("key", "key2", "fill", "sun", "rim", "fkey"):
+            L = bpy.data.lights[{"key": "crack_key", "key2": "axis_key", "fill": "cold_fill", "sun": "system_sun", "rim": "near_rim", "fkey": "frag_key"}[name]]
             if L.animation_data and L.animation_data.action:
                 for fc in L.animation_data.action.fcurves:
                     if fc.data_path == "energy":
@@ -414,6 +417,21 @@ def load_layer(L, f, denoise=True, full=False):
     return im
 
 
+def whiteout_field(lum, t, geometry, noise):
+    """v3 reveal: not a matte but an exposure field. The score is the same physical mix (the
+    breakout's own luminance, anisotropic pressure from the origin, ragged noise) but it is
+    mapped through a wide band, so the transition is a gradient across a large part of the
+    frame, never a contour; the field feeds an exposure rise, then a contrast / chroma collapse
+    into flat white."""
+    p = float(C.knots(t, P_KNOTS))
+    D, _col = geometry
+    n_slow, n_fast = noise
+    lum_n = lum / max(np.percentile(lum, 99.6), 1e-6)
+    lum_n = np.clip(lum_n, 0, 1.4)
+    score = 1.6 * lum_n * (1.0 - 0.4 * D) + 3.6 * (p - 0.6 * D) + 0.5 * (n_slow - 0.5) + 0.25 * (n_fast - 0.5)
+    return C.smoothstep(-0.55, 0.65, score).astype(np.float32)
+
+
 def page_matte(lum, t, geometry, noise):
     """The authored reveal matte (v2). Score = the breakout's own luminance
     structure (the boundary is the light's edge, never a drawn shape) +
@@ -439,10 +457,11 @@ def matte_geometry(res, origin_uv, dir_uv, warp=None):
         dv = dv + 0.26 * warp[1]
     along = du * dir_uv[0] + dv * dir_uv[1]
     perp = np.abs(du * dir_uv[1] - dv * dir_uv[0])
-    # pressure: an elongated metric along the breakout direction (never a circle), cheaper with
-    # the breakout, dearer against it
-    dist = np.hypot(along * 0.7, perp * 1.5)
-    D = dist * (1.0 - 0.6 * np.clip(along / (np.hypot(along, perp) + 1e-6), -1, 1))
+    # pressure: an elongated metric (never a circle). v3: the paper takes the plane from the
+    # breakout origin outward and the plume's trailing region (up-right, along the breakout) and the
+    # far periphery resolve last, so the metric is dearer along the breakout direction
+    dist = np.hypot(along * 1.35, perp * 0.9)
+    D = dist * (1.0 + 0.5 * np.clip(along / (np.hypot(along, perp) + 1e-6), -1, 1))
     D = D / D.max()
     # copy column: left 6% -> 60% width, 18% -> 80% height, soft edge
     cx = C.smoothstep(0.02, 0.08, u) * (1 - C.smoothstep(0.58, 0.66, u))
@@ -516,6 +535,8 @@ def composite(args, report):
             scene_lin = map_l[..., :3] + (1 - map_l[..., 3:4]) * scene_lin
         if far is not None and not single_plate(args, f):      # single plate: the far envelope is inside it
             ff = fit(far)
+            if FAR_SOFT > 0:   # v3: the far zone is large, soft and low-contrast (depth cue against the mid filaments)
+                ff = np.stack([gaussian_filter(ff[..., c], FAR_SOFT * scale) for c in range(4)], axis=-1) * np.array([0.85, 0.85, 0.85, 1.0], np.float32)
             scene_lin = ff[..., :3] + (1 - ff[..., 3:4]) * scene_lin
             alpha = ff[..., 3]
         if event is not None:
@@ -553,28 +574,28 @@ def composite(args, report):
             origin = target if origin is None else origin * 0.8 + target * 0.2
             geometry = matte_geometry(res, origin, dir_uv, warp)
         if t >= C.PAGE_IN and geometry is not None:
-            # fine luminance structure: the boundary follows the light's own edge
+            # v3: HOT GAS -> EXPOSURE RISES -> LOCAL CONTRAST COLLAPSES -> DEPTH GONE -> FLAT WHITE PAPER.
+            # One smooth field W drives the whole plane; there is no matte and no contour.
             lum_b = 0.6 * gaussian_filter(ev_lum, 5.0 * scale) + 0.4 * gaussian_filter(ev_lum, 1.5 * scale)
             n_slow = np.roll(n_slow0, int(-(t - C.PAGE_IN) * 40 * scale), axis=1)
             n_fast = np.roll(n_fast0, int((t - C.PAGE_IN) * 25 * scale), axis=0)
-            M = page_matte(lum_b, t, geometry, (n_slow, n_fast))
-            M = M * np.float32(C.smoothstep(C.PAGE_IN, C.PAGE_IN + 0.10, t))   # nothing resolves at 2.50 s itself
-            cov = float(M.mean())
-            # stage 1: the hottest gas overexposes to neutral white; white light bleeds into the gas
-            edge = np.clip(gaussian_filter(M, 14.0 * scale) - M, 0, 1)
-            scene_lin = scene_lin + (edge * 2.2)[..., None] * (0.3 + lum_b[..., None])
-            # loss of depth: the remaining field flattens, dust dissolves, before the paper takes over
-            beta = float(C.knots(t, [(C.PAGE_IN, 0.0), (2.70, 0.10), (3.0, 0.45), (3.2, 0.7), (C.PAGE_FULL, 0.95)]))
-            # stage 2: typography, complete and crisp, only once most of the paper has resolved
-            typo = float(C.smoothstep(TYPO_COVERAGE[0], TYPO_COVERAGE[1], cov))
+            W = whiteout_field(lum_b, t, geometry, (n_slow, n_fast))
+            W = W * np.float32(C.smoothstep(C.PAGE_IN, C.PAGE_IN + 0.10, t))   # nothing resolves at 2.50 s itself
+            # stage A: exposure climbs where the medium resolves; the hottest gas whites out first
+            scene_lin = scene_lin * (1.0 + EXPOSURE_RISE * (W ** 1.5)[..., None])
+            M = C.smoothstep(0.25, 0.95, W).astype(np.float32)   # the interior of the gradient is paper
         tm = filmic(scene_lin)
         disp = srgb_encode(tm)
         if M is not None:
+            # stage B: chroma and local contrast collapse, then the flat white takes over the interior
             gray = luminance(disp)[..., None]
-            flat = gray * 0.55 + 0.45
-            field = disp * (1 - beta) + flat * beta
-            page = np.ones_like(paper) * (1 - typo) + paper * typo
-            disp = M[..., None] * page + (1 - M[..., None]) * field
+            flat = disp * (1 - W[..., None]) + gray * W[..., None]
+            disp = flat * (1 - M[..., None]) + 1.0 * M[..., None]
+            cov = float(np.mean(luminance(disp) > WHITE_LUM))       # share of the frame that reads as white paper
+            # stage C: typography, the complete page at once, only when the paper plane is ~90% resolved
+            typo = float(C.smoothstep(TYPO_COVERAGE[0], TYPO_COVERAGE[1], cov))
+            if typo > 0:
+                disp = disp * (1 - typo * M[..., None]) + paper * (typo * M[..., None])
         # --------------------------------------------- residual over paper
         if t >= 3.25 and (far is not None or mid is not None):
             a_res = np.zeros((h, w), np.float32)
@@ -728,7 +749,8 @@ def deliver_stills(args, report):
     """The v2 approval stills only (no sequence, no encode)."""
     R = C.REVIEW_DIR
     final = os.path.join(FRAMES_DIR, "final")
-    for fn, fr in V2_STILLS:
+    for base, fr in V2_STILLS:
+        fn = f"{base}-{args.suffix}.png"
         src = os.path.join(final, f"f{fr:04d}.png")
         if os.path.exists(src):
             shutil.copyfile(src, os.path.join(R, fn))
@@ -759,14 +781,19 @@ def main():
     ap.add_argument("--near-mix", type=float, default=None, help="weight of the near particulate layer (sequence 1.0, stills 0.45)")
     ap.add_argument("--tune", default="", help="look-dev overrides: gas_gain=8,heat_gain_scale=1.5,key=1.2,fill=0.8")
     ap.add_argument("--cache-tag", default="v2", help="cache subfolder tag for --stills renders")
+    ap.add_argument("--suffix", default=None, help="still file suffix (defaults to the cache tag)")
     ap.add_argument("--border", type=float, nargs=4, default=None, metavar=("U0", "V0", "U1", "V1"),
                     help="look-dev: render only this screen region (fractions, v down)")
     args = ap.parse_args()
+    if args.suffix is None:
+        args.suffix = args.cache_tag
     if args.stills:
         RENDER_DIR = os.path.join(C.CACHE_DIR, f"render_{args.cache_tag}")
         FRAMES_DIR = os.path.join(C.CACHE_DIR, f"frames_{args.cache_tag}")
         if args.list is None and args.frames is None:
             args.list = ",".join(str(fr) for _, fr in V2_STILLS)
+        if args.cache_tag == "v3" and args.still_samples is None:
+            pass
         if args.still_samples is None:
             args.still_samples = 256
         DENOISE_MIX = 0.3 if args.denoise_mix is None else args.denoise_mix
