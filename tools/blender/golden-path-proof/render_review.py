@@ -80,7 +80,19 @@ SPLIT_FROM = C.f_of(2.20)            # stills mode: once the camera is inside th
                                      # (one plate with the camera inside all three volumes costs ~16 min per sample)
 
 
+# v3 sequence (--seq3): the approved V3 treatment at full event resolution for every frame, with the
+# render economies that keep 145 frames inside a CPU day: one plate while the camera is outside the
+# volumes, split layers inside (far / near as their own half-size layers: the far layer is softened by
+# 6 px in the composite anyway and the near particulate is a 45 % veil), a 0.6 mid grid inside (larger
+# ray steps; the shader still samples the full atlas), 10 / 8 samples with OIDN and a fixed seed.
+SEQ3 = dict(event_spp_out=8, event_spp_in=8, aux_spp=4, aux_scale=0.5, residual_spp=4, residual_scale=0.5,
+            in_grid=0.6, in_max_steps=256, out_max_steps=512, map_spp=16, step_rate=2.0, bounces=0,
+            split_always=True)   # far / near as layers on every frame (one plate costs ~2x with the halo inside)
+
+
 def single_plate(args, f):
+    if getattr(args, "seq3", False):
+        return (not SEQ3["split_always"]) and f < SPLIT_FROM
     return args.stills and f < SPLIT_FROM
 STILLS = [  # (file, frame, description)
     ("first-breakout.png", C.f_of(1.18), "first breakout, t 1.18 s"),
@@ -297,9 +309,9 @@ def render_frames(args, report):
     layers = args.layers.split(",")
     if layers == ["all"]:
         layers = ["map", "event", "far", "mid", "near", "fragments"]
-    if args.stills:
-        scene.cycles.volume_bounces = args.volume_bounces
-        scene.cycles.volume_step_rate = args.step_rate
+    if args.stills or args.seq3:
+        scene.cycles.volume_bounces = args.volume_bounces if args.stills else SEQ3["bounces"]
+        scene.cycles.volume_step_rate = args.step_rate if args.stills else SEQ3["step_rate"]
         scene.cycles.adaptive_threshold = 0.02
         scene.cycles.max_bounces = 6
     if args.border:
@@ -320,19 +332,31 @@ def render_frames(args, report):
                 img.filepath = p
                 img.reload()
         scene.frame_set(f)
-        late = f >= LATE_FRAME and not args.stills
+        late = f >= LATE_FRAME and not (args.stills or args.seq3)
+        inside = args.seq3 and f >= SPLIT_FROM
         # sequence mode: far / near composite under / over the event plate; stills: one plate with all
         # volumes while the camera is outside them (the plume shadows the far halo), layers again inside
         ev_vl.layer_collection.children["far"].exclude = not single_plate(args, f)
         ev_vl.layer_collection.children["near"].exclude = not single_plate(args, f)
+        grid = LATE_MID_GRID if late else (SEQ3["in_grid"] if inside else 1.0)
         for axis, base_res in zip(("Resolution X", "Resolution Y", "Resolution Z"), mid_res):
-            mid_vc.inputs[axis].default_value = int(round(base_res * (LATE_MID_GRID if late else 1.0)))
-        scene.cycles.volume_max_steps = 64 if late else (1024 if args.stills else 128)
+            mid_vc.inputs[axis].default_value = int(round(base_res * grid))
+        if args.seq3:
+            scene.cycles.volume_max_steps = SEQ3["in_max_steps"] if inside else SEQ3["out_max_steps"]
+        else:
+            scene.cycles.volume_max_steps = 64 if late else (1024 if args.stills else 128)
         layers_f = layers
         if args.stills and args.layers == "all":
             layers_f = ["map", "event"] + (["mid", "far"] if f in STILL_ISO_FRAMES else [])
             if not single_plate(args, f):
                 layers_f += [L for L in ("far", "near") if L not in layers_f]
+        elif args.seq3 and args.layers == "all":
+            if f > C.f_of(C.PAGE_FULL):
+                layers_f = ["far"]                                  # residual atmosphere over the paper
+            elif single_plate(args, f):
+                layers_f = ["map", "event"]                         # one plate, all volumes
+            else:
+                layers_f = ["map", "event", "far", "near"]          # plume plate + half-size far / near layers
         for L in layers_f:
             lo, hi = LAYER_RANGES[L]
             if not (lo <= f <= hi):
@@ -346,28 +370,39 @@ def render_frames(args, report):
                 continue
             for vl in scene.view_layers:
                 vl.use = vl.name == L
-            if L == "map":
-                spp = 16 if not args.stills else 48
-            elif L == "event":
-                if args.stills:
-                    spp = args.still_samples
+            if args.seq3:
+                if L == "map":
+                    spp, layer_scale = SEQ3["map_spp"], 1.0
+                elif L == "event":
+                    spp, layer_scale = (SEQ3["event_spp_in"] if inside else SEQ3["event_spp_out"]), 1.0
+                elif f > C.f_of(C.PAGE_FULL):
+                    spp, layer_scale = SEQ3["residual_spp"], SEQ3["residual_scale"]
                 else:
-                    spp = args.still_samples if f in STILL_SAMPLES_FRAMES else (LATE_SAMPLES if late else args.samples)
-                    if f in LATE_STILL_FRAMES:
-                        spp = max(spp, 24)
-            elif f > C.f_of(C.PAGE_FULL):
-                spp = max(6, args.samples // 3)          # residual only: low alpha over paper
-            elif args.stills:
-                spp = max(8, args.still_samples // 2)    # far / near / mid layers of a still
-            else:
-                spp = max(8, int(args.samples * 0.75)) if not late else 8
-            scene.cycles.samples = spp
-            layer_scale = 1.0 if (not iso or full_iso) else ISO_SCALE
-            if L == "event" and late and f not in LATE_STILL_FRAMES:
-                layer_scale = LATE_EVENT_SCALE
-            if L == "near" and not args.stills:
-                spp = min(spp, 6)
+                    spp, layer_scale = SEQ3["aux_spp"], SEQ3["aux_scale"]
                 scene.cycles.samples = spp
+            else:
+                if L == "map":
+                    spp = 16 if not args.stills else 48
+                elif L == "event":
+                    if args.stills:
+                        spp = args.still_samples
+                    else:
+                        spp = args.still_samples if f in STILL_SAMPLES_FRAMES else (LATE_SAMPLES if late else args.samples)
+                        if f in LATE_STILL_FRAMES:
+                            spp = max(spp, 24)
+                elif f > C.f_of(C.PAGE_FULL):
+                    spp = max(6, args.samples // 3)          # residual only: low alpha over paper
+                elif args.stills:
+                    spp = max(8, args.still_samples // 2)    # far / near / mid layers of a still
+                else:
+                    spp = max(8, int(args.samples * 0.75)) if not late else 8
+                scene.cycles.samples = spp
+                layer_scale = 1.0 if (not iso or full_iso) else ISO_SCALE
+                if L == "event" and late and f not in LATE_STILL_FRAMES:
+                    layer_scale = LATE_EVENT_SCALE
+                if L == "near" and not args.stills:
+                    spp = min(spp, 6)
+                    scene.cycles.samples = spp
             scene.render.resolution_percentage = int(round(args.scale * 100 * layer_scale))
             # volumes are absent before detonation: skip the empty layers cheaply
             setup_compositor(scene, L, out_dir)
@@ -382,13 +417,47 @@ def render_frames(args, report):
             stale = os.path.join(out_dir, f"Image_{f:04d}_dn.npy")
             if os.path.exists(stale):
                 os.remove(stale)
-        with open(os.path.join(C.CACHE_DIR, "report-render.json" if not args.stills else f"report-render-{args.cache_tag}.json"), "w") as fh:
+        with open(os.path.join(C.CACHE_DIR, "report-render.json" if not (args.stills or args.seq3) else f"report-render-{args.cache_tag}.json"), "w") as fh:
             json.dump(report, fh, indent=1)
 
 
 # ------------------------------------------------------------ composite
 DENOISE_MIX = 0.0   # share of the (lightly blurred) raw render mixed back over the denoise (v2 stills: 0.3)
 NEAR_MIX = 1.0      # weight of the near particulate layer in the composite (v2: 0.45, restrained foreground dust)
+
+
+def load_layer_smooth(L, f, weights=(0.25, 0.5, 0.25), full=False):
+    """v3 sequence: the far / near layers are slow, fragment-free veils; a 3-frame temporal blend
+    removes their frame-to-frame denoise texture without smearing anything sharp."""
+    acc, wsum = None, 0.0
+    for k, w in zip((f - 1, f, f + 1), weights):
+        lo, hi = LAYER_RANGES[L]
+        if not (lo <= k <= hi):
+            continue
+        a = load_layer(L, k, full=full)
+        if a is None:
+            continue
+        acc = a * w if acc is None else acc + a * w
+        wsum += w
+    return None if acc is None else (acc / wsum).astype(np.float32)
+
+
+def event_gas_luminance(f):
+    """Luminance of the volumes only (Emit + VolumeDir passes of the event plate), so the reveal
+    field never reads a fragment highlight."""
+    out = None
+    for p in ("Emit", "VolumeDir"):
+        path = os.path.join(RENDER_DIR, "event", f"{p}_{f:04d}.exr")
+        if not os.path.exists(path):
+            return None
+        cache = path.replace(".exr", "_dn.npy")
+        if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(path):
+            a = np.load(cache)
+        else:
+            a = oidn(read_exr(path)).astype(np.float32)
+            np.save(cache, a)
+        out = a if out is None else out + a
+    return luminance(out)
 
 
 def load_layer(L, f, denoise=True, full=False):
@@ -504,6 +573,7 @@ def composite(args, report):
     n_fast0 = fbm2(mseed + 50, (h, w), 18, 3)
     warp = ((fbm2(mseed + 7, (h, w), 3, 4) - 0.5) * 2.0, (fbm2(mseed + 8, (h, w), 3, 4) - 0.5) * 2.0)
     stats = report.setdefault("frame_stats", {})
+    typo_state = 0.0       # typography never fades back once it has appeared
     for f in frame_list(args):
         t = C.t_of(f)
         out_path = os.path.join(FRAMES_DIR, "final", f"f{f:04d}.png")
@@ -517,10 +587,16 @@ def composite(args, report):
         base = base.astype(np.float32)
         map_l = load_layer("map", f)
         event = load_layer("event", f)
-        far = load_layer("far", f, full=f in ISO_FULL_FRAMES or args.stills)
-        mid = load_layer("mid", f, full=f in ISO_FULL_FRAMES or args.stills)
-        near = load_layer("near", f, full=f in ISO_FULL_FRAMES or args.stills)
-        frags = load_layer("fragments", f, full=f in ISO_FULL_FRAMES or args.stills)
+        if args.seq3:
+            far = load_layer_smooth("far", f)
+            mid = None
+            near = load_layer_smooth("near", f)
+            frags = None
+        else:
+            far = load_layer("far", f, full=f in ISO_FULL_FRAMES or args.stills)
+            mid = load_layer("mid", f, full=f in ISO_FULL_FRAMES or args.stills)
+            near = load_layer("near", f, full=f in ISO_FULL_FRAMES or args.stills)
+            frags = load_layer("fragments", f, full=f in ISO_FULL_FRAMES or args.stills)
         scene_lin = base.copy()
         alpha = np.zeros((h, w), np.float32)
 
@@ -550,7 +626,12 @@ def composite(args, report):
         lum = luminance(scene_lin)
         # the reveal reads the breakout's own light: the gas layers when they exist (never a
         # fragment highlight, never the map's core highlight or planets), else the event plate
-        if mid is not None and mid.shape[:2] == (h, w):
+        gas_lum = event_gas_luminance(f) if (args.seq3 and event is not None) else None
+        if gas_lum is not None:
+            ev_lum = gas_lum
+            if far is not None and not single_plate(args, f):
+                ev_lum = ev_lum + luminance(fit(far)[..., :3]) * (1 - event[..., 3])
+        elif mid is not None and mid.shape[:2] == (h, w):
             ev_lum = luminance(mid[..., :3])
             if far is not None and far.shape[:2] == (h, w):
                 ev_lum = ev_lum + luminance(far[..., :3]) * (1 - mid[..., 3])
@@ -592,11 +673,21 @@ def composite(args, report):
             flat = disp * (1 - W[..., None]) + gray * W[..., None]
             disp = flat * (1 - M[..., None]) + 1.0 * M[..., None]
             cov = float(np.mean(luminance(disp) > WHITE_LUM))       # share of the frame that reads as white paper
-            # stage C: typography, the complete page at once, only when the paper plane is ~90% resolved
+            # stage C: typography, the complete page at once, only when the paper plane is ~90% resolved;
+            # monotonic over the sequence, and complete by the time the paper covers the frame
             typo = float(C.smoothstep(TYPO_COVERAGE[0], TYPO_COVERAGE[1], cov))
+            if t >= C.PAGE_FULL:
+                typo = 1.0
+            typo = max(typo, typo_state)
+            typo_state = typo
             if typo > 0:
                 disp = disp * (1 - typo * M[..., None]) + paper * (typo * M[..., None])
         # --------------------------------------------- residual over paper
+        if M is None and t >= C.PAGE_FULL and args.seq3:
+            # the paper has covered the frame: complete page, typography in place
+            disp = paper.copy()
+            M = np.ones((h, w), np.float32)
+            typo_state = 1.0
         if t >= 3.25 and (far is not None or mid is not None):
             a_res = np.zeros((h, w), np.float32)
             for L_ in (far, mid):
@@ -745,6 +836,42 @@ def deliver(args, report):
     print(json.dumps({k: v for k, v in sizes.items() if not k.startswith("isolated")}, indent=1))
 
 
+SEQ3_SHEET = [0, 8, 15, 23, 30, 33, 36, 40, 44, 50, 56, 62, 68, 75, 82, 88, 96, 104, 120, 144]   # 20 chronological frames
+
+
+def deliver_seq3(args, report):
+    """The v3 motion proof: full-speed and half-speed MP4s of the complete 4.8 s, a 20-frame sheet."""
+    from PIL import Image, ImageDraw, ImageFont
+    R = C.REVIEW_DIR
+    final = os.path.join(FRAMES_DIR, "final")
+    outputs = {}
+    outputs["golden-path-proof-v3-full.mp4"] = encode(final, os.path.join(R, "golden-path-proof-v3-full.mp4"), 0, C.F_END, crf=16)
+    outputs["golden-path-proof-v3-half-speed.mp4"] = encode(final, os.path.join(R, "golden-path-proof-v3-half-speed.mp4"), 0, C.F_END, crf=16, half=True)
+    tiles = [(f, os.path.join(final, f"f{f:04d}.png")) for f in SEQ3_SHEET if os.path.exists(os.path.join(final, f"f{f:04d}.png"))]
+    if tiles:
+        cols, tw, th = 5, 384, 240
+        rows = int(math.ceil(len(tiles) / cols))
+        sheet = Image.new("RGB", (cols * tw, rows * (th + 22) + 34), (10, 10, 12))
+        d = ImageDraw.Draw(sheet)
+        try:
+            font = ImageFont.load_default(size=14)
+        except TypeError:
+            font = ImageFont.load_default()
+        d.text((12, 9), "Golden path asset proof  -  V3 motion  -  20 chronological frames of 145  -  1440x900 @ 30 fps  -  detonation at t = 1.10 s", fill=(210, 214, 220), font=font)
+        for i, (f, p) in enumerate(tiles):
+            im = Image.open(p).convert("RGB").resize((tw, th), Image.LANCZOS)
+            x, y = (i % cols) * tw, 34 + (i // cols) * (th + 22)
+            sheet.paste(im, (x, y))
+            d.text((x + 8, y + th + 4), f"f{f:03d}   t = {C.t_of(f):.2f} s", fill=(180, 186, 195), font=font)
+        sheet.save(os.path.join(R, "contact-sheet-v3-motion.jpg"), quality=90)
+    sizes = {k: os.path.getsize(v) for k, v in outputs.items() if v}
+    sizes["contact-sheet-v3-motion.jpg"] = os.path.getsize(os.path.join(R, "contact-sheet-v3-motion.jpg"))
+    report["deliverable_sizes_v3"] = sizes
+    with open(os.path.join(C.CACHE_DIR, f"report-deliver-{args.cache_tag}.json"), "w") as fh:
+        json.dump(report, fh, indent=1)
+    print(json.dumps(sizes, indent=1))
+
+
 def deliver_stills(args, report):
     """The v2 approval stills only (no sequence, no encode)."""
     R = C.REVIEW_DIR
@@ -782,11 +909,19 @@ def main():
     ap.add_argument("--tune", default="", help="look-dev overrides: gas_gain=8,heat_gain_scale=1.5,key=1.2,fill=0.8")
     ap.add_argument("--cache-tag", default="v2", help="cache subfolder tag for --stills renders")
     ap.add_argument("--suffix", default=None, help="still file suffix (defaults to the cache tag)")
+    ap.add_argument("--seq3", action="store_true", help="v3 sequence: full-res event plate every frame, SEQ3 economies, v3 composite")
     ap.add_argument("--border", type=float, nargs=4, default=None, metavar=("U0", "V0", "U1", "V1"),
                     help="look-dev: render only this screen region (fractions, v down)")
     args = ap.parse_args()
     if args.suffix is None:
         args.suffix = args.cache_tag
+    if args.seq3:
+        if args.cache_tag == "v2":
+            args.cache_tag = "seq3"
+        RENDER_DIR = os.path.join(C.CACHE_DIR, f"render_{args.cache_tag}")
+        FRAMES_DIR = os.path.join(C.CACHE_DIR, f"frames_{args.cache_tag}")
+        DENOISE_MIX = 0.15 if args.denoise_mix is None else args.denoise_mix
+        NEAR_MIX = 0.45 if args.near_mix is None else args.near_mix
     if args.stills:
         RENDER_DIR = os.path.join(C.CACHE_DIR, f"render_{args.cache_tag}")
         FRAMES_DIR = os.path.join(C.CACHE_DIR, f"frames_{args.cache_tag}")
@@ -806,7 +941,7 @@ def main():
         if args.near_mix is not None:
             NEAR_MIX = args.near_mix
     report = {}
-    rp = os.path.join(C.CACHE_DIR, "report-render.json" if not args.stills else f"report-render-{args.cache_tag}.json")
+    rp = os.path.join(C.CACHE_DIR, "report-render.json" if not (args.stills or args.seq3) else f"report-render-{args.cache_tag}.json")
     if os.path.exists(rp):
         with open(rp) as fh:
             report = json.load(fh)
@@ -817,6 +952,8 @@ def main():
     if not (args.render_only or args.composite_only):
         if args.stills:
             deliver_stills(args, report)
+        elif args.seq3:
+            deliver_seq3(args, report)
         else:
             deliver(args, report)
 
