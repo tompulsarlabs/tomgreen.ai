@@ -13,6 +13,7 @@ are encoded with ffmpeg (H.264, yuv420p, faststart).
   python3 render_review.py                # everything
   python3 render_review.py --frames 44 44 --layers beauty --scale 0.5
   python3 render_review.py --composite-only
+  python3 render_review.py --stills       # v2 approval stills (f44, f75, f82) at full size
 """
 import argparse
 import glob
@@ -66,6 +67,18 @@ LATE_EVENT_SCALE = 0.6   # the late event plate is soft gas; the map, paper and 
 ISO_FULL_FRAMES = {C.f_of(1.45), C.f_of(2.50), C.f_of(2.75)}   # except the key stills
 STILL_SAMPLES_FRAMES = {C.f_of(1.18), C.f_of(1.45)}
 LATE_STILL_FRAMES = {C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
+# v2 approval stills: full 1440x900, the event plate at 100% (no upscale), all volumes in one
+# plate so the far envelope is shadowed by the breakout, more samples, finer steps, volume bounces.
+V2_STILLS = [("hero-peak-v2.png", C.f_of(1.45)), ("volumetric-depth-v2.png", C.f_of(2.50)), ("page-emergence-v2.png", C.f_of(2.75))]
+P_KNOTS = [(2.47, 0.0), (2.6, 0.207), (2.73, 0.38), (2.87, 0.471), (3.0, 0.544), (3.2, 0.639), (3.33, 0.825), (C.PAGE_FULL, 1.3)]   # v2 reveal pressure
+TYPO_COVERAGE = (0.88, 0.985)   # typography fades in only once this share of the paper has resolved
+STILL_ISO_FRAMES = {C.f_of(2.75)}   # stills mode: gas-only layers (the reveal reads them) rendered for the emergence frame
+SPLIT_FROM = C.f_of(2.20)            # stills mode: once the camera is inside the volumes, far / near composite as layers again
+                                     # (one plate with the camera inside all three volumes costs ~16 min per sample)
+
+
+def single_plate(args, f):
+    return args.stills and f < SPLIT_FROM
 STILLS = [  # (file, frame, description)
     ("first-breakout.png", C.f_of(1.18), "first breakout, t 1.18 s"),
     ("hero-peak.png", C.f_of(1.45), "peak hero frame, t 1.45 s"),
@@ -229,11 +242,49 @@ def setup_compositor(scene, layer, out_dir):
     scene.render.image_settings.file_format = "PNG"
 
 
+def apply_tune(tune):
+    """Look-dev overrides (--tune name=value,...) on the named Value nodes and lights;
+    never saved. Final values belong in build_scene.py."""
+    import bpy
+    if not tune:
+        return
+    for item in tune.split(","):
+        name, val = item.split("=")
+        val = float(val)
+        hit = False
+        for m in bpy.data.materials:
+            if m.use_nodes and m.node_tree.nodes.get(name) is not None:
+                m.node_tree.nodes[name].outputs[0].default_value = val
+                hit = True
+        if name in ("key", "key2", "fill", "sun"):
+            L = bpy.data.lights[{"key": "crack_key", "key2": "axis_key", "fill": "cold_fill", "sun": "system_sun"}[name]]
+            if L.animation_data and L.animation_data.action:
+                for fc in L.animation_data.action.fcurves:
+                    if fc.data_path == "energy":
+                        for kp in fc.keyframe_points:
+                            kp.co.y *= val
+                            kp.handle_left.y *= val
+                            kp.handle_right.y *= val
+            else:
+                L.energy *= val
+            hit = True
+        print(f"tune {name} = {val}" + ("" if hit else "  (no such node / light)"), flush=True)
+
+
+def frame_list(args):
+    if args.list:
+        return [int(x) for x in args.list.split(",")]
+    f0 = args.frames[0] if args.frames else 0
+    f1 = args.frames[1] if args.frames else C.F_END
+    return list(range(f0, f1 + 1))
+
+
 def render_frames(args, report):
     import bpy
     bpy.ops.wm.open_mainfile(filepath=BLEND)
     scene = bpy.context.scene
     scene.render.resolution_percentage = int(round(args.scale * 100))
+    apply_tune(args.tune)
     imgs = {L: bpy.data.images[f"atlas_{L}"] for L in ("mid", "far", "near")}
     with open(os.path.join(VOL_DIR, "meta.json")) as fh:
         meta = json.load(fh)
@@ -243,10 +294,20 @@ def render_frames(args, report):
     layers = args.layers.split(",")
     if layers == ["all"]:
         layers = ["map", "event", "far", "mid", "near", "fragments"]
-    f0 = args.frames[0] if args.frames else 0
-    f1 = args.frames[1] if args.frames else C.F_END
+    if args.stills:
+        scene.cycles.volume_bounces = args.volume_bounces
+        scene.cycles.volume_step_rate = args.step_rate
+        scene.cycles.adaptive_threshold = 0.02
+        scene.cycles.max_bounces = 6
+    if args.border:
+        # look-dev: render only a region at full size (the frame outside it stays transparent)
+        x0, y0, x1, y1 = args.border
+        scene.render.use_border = True
+        scene.render.use_crop_to_border = False
+        scene.render.border_min_x, scene.render.border_max_x = x0, x1
+        scene.render.border_min_y, scene.render.border_max_y = 1.0 - y1, 1.0 - y0
     timings = report.setdefault("render_timings", {})
-    for f in range(f0, f1 + 1):
+    for f in frame_list(args):
         t = C.t_of(f)
         # drive the atlases (frames before detonation use the first solved frame; the volumes are empty then)
         fa = min(max(f, LAYER_RANGES["far"][0]), C.F_END)
@@ -256,18 +317,25 @@ def render_frames(args, report):
                 img.filepath = p
                 img.reload()
         scene.frame_set(f)
-        late = f >= LATE_FRAME
-        ev_vl.layer_collection.children["far"].exclude = True
-        ev_vl.layer_collection.children["near"].exclude = True
+        late = f >= LATE_FRAME and not args.stills
+        # sequence mode: far / near composite under / over the event plate; stills: one plate with all
+        # volumes while the camera is outside them (the plume shadows the far halo), layers again inside
+        ev_vl.layer_collection.children["far"].exclude = not single_plate(args, f)
+        ev_vl.layer_collection.children["near"].exclude = not single_plate(args, f)
         for axis, base_res in zip(("Resolution X", "Resolution Y", "Resolution Z"), mid_res):
             mid_vc.inputs[axis].default_value = int(round(base_res * (LATE_MID_GRID if late else 1.0)))
-        scene.cycles.volume_max_steps = 64 if late else 128
-        for L in layers:
+        scene.cycles.volume_max_steps = 64 if late else (1024 if args.stills else 128)
+        layers_f = layers
+        if args.stills and args.layers == "all":
+            layers_f = ["map", "event"] + (["mid", "far"] if f in STILL_ISO_FRAMES else [])
+            if not single_plate(args, f):
+                layers_f += [L for L in ("far", "near") if L not in layers_f]
+        for L in layers_f:
             lo, hi = LAYER_RANGES[L]
             if not (lo <= f <= hi):
                 continue
             iso = L in ISO_LAYERS
-            full_iso = iso and f in ISO_FULL_FRAMES and args.iso_full
+            full_iso = iso and (args.stills or (f in ISO_FULL_FRAMES and args.iso_full))
             out_dir = os.path.join(RENDER_DIR, L + ("_full" if full_iso else ""))
             os.makedirs(out_dir, exist_ok=True)
             done = os.path.join(out_dir, f"Image_{f:04d}.exr")
@@ -276,20 +344,25 @@ def render_frames(args, report):
             for vl in scene.view_layers:
                 vl.use = vl.name == L
             if L == "map":
-                spp = 16
+                spp = 16 if not args.stills else 48
             elif L == "event":
-                spp = args.still_samples if f in STILL_SAMPLES_FRAMES else (LATE_SAMPLES if late else args.samples)
-                if f in LATE_STILL_FRAMES:
-                    spp = max(spp, 24)
+                if args.stills:
+                    spp = args.still_samples
+                else:
+                    spp = args.still_samples if f in STILL_SAMPLES_FRAMES else (LATE_SAMPLES if late else args.samples)
+                    if f in LATE_STILL_FRAMES:
+                        spp = max(spp, 24)
             elif f > C.f_of(C.PAGE_FULL):
                 spp = max(6, args.samples // 3)          # residual only: low alpha over paper
+            elif args.stills:
+                spp = max(8, args.still_samples // 2)    # far / near / mid layers of a still
             else:
                 spp = max(8, int(args.samples * 0.75)) if not late else 8
             scene.cycles.samples = spp
             layer_scale = 1.0 if (not iso or full_iso) else ISO_SCALE
             if L == "event" and late and f not in LATE_STILL_FRAMES:
                 layer_scale = LATE_EVENT_SCALE
-            if L == "near":
+            if L == "near" and not args.stills:
                 spp = min(spp, 6)
                 scene.cycles.samples = spp
             scene.render.resolution_percentage = int(round(args.scale * 100 * layer_scale))
@@ -306,11 +379,14 @@ def render_frames(args, report):
             stale = os.path.join(out_dir, f"Image_{f:04d}_dn.npy")
             if os.path.exists(stale):
                 os.remove(stale)
-        with open(os.path.join(C.CACHE_DIR, "report-render.json"), "w") as fh:
+        with open(os.path.join(C.CACHE_DIR, "report-render.json" if not args.stills else f"report-render-{args.cache_tag}.json"), "w") as fh:
             json.dump(report, fh, indent=1)
 
 
 # ------------------------------------------------------------ composite
+DENOISE_MIX = 0.0   # share of the (lightly blurred) raw render mixed back over the denoise (v2 stills: 0.3)
+
+
 def load_layer(L, f, denoise=True, full=False):
     p = os.path.join(RENDER_DIR, L + ("_full" if full else ""), f"Image_{f:04d}.exr")
     if full and not os.path.exists(p):
@@ -319,10 +395,15 @@ def load_layer(L, f, denoise=True, full=False):
         return None
     im = read_exr(p)
     if denoise:
-        cache = p.replace(".exr", "_dn2.npy")
+        cache = p.replace(".exr", "_dn2.npy" if DENOISE_MIX == 0 else f"_dn3_{DENOISE_MIX:.2f}.npy")
         if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(p):
             return np.load(cache)
         rgb = oidn(im)
+        if DENOISE_MIX > 0:
+            # keep the fine gas structure the denoiser smears: mix a lightly blurred raw back in
+            from scipy.ndimage import gaussian_filter
+            raw = np.stack([gaussian_filter(im[..., c], 0.7) for c in range(3)], axis=-1)
+            rgb = rgb * (1 - DENOISE_MIX) + raw * DENOISE_MIX
         # alpha is denoised too (thin volumes at low sample counts leave a speckled matte)
         a = oidn(np.repeat(im[..., 3:4], 3, axis=-1))[..., :1]
         a = np.clip(a, 0, 1)
@@ -333,28 +414,34 @@ def load_layer(L, f, denoise=True, full=False):
 
 
 def page_matte(lum, t, geometry, noise):
-    """The authored reveal matte. Score = luminance structure + directional
-    pressure from the aperture origin + ragged noise + copy-column guarantee."""
-    p = float(np.clip((t - 2.50) * 0.90, 0.0, 1.3))
+    """The authored reveal matte (v2). Score = the breakout's own luminance
+    structure (the boundary is the light's edge, never a drawn shape) +
+    anisotropic, domain-warped pressure from the origin (never a circle) +
+    ragged noise + the copy-column guarantee."""
+    p = float(C.knots(t, P_KNOTS))
     D, col = geometry
     n_slow, n_fast = noise
     lum_n = lum / max(np.percentile(lum, 99.6), 1e-6)
     lum_n = np.clip(lum_n, 0, 1.4)
-    score = (1.25 * lum_n * (1.0 - 0.6 * D) + 4.4 * (p - 0.55 * D) + 0.32 * (n_slow - 0.5) + 0.14 * (n_fast - 0.5)
+    score = (2.2 * lum_n * (1.0 - 0.5 * D) + 3.6 * (p - 0.6 * D) + 0.36 * (n_slow - 0.5) + 0.18 * (n_fast - 0.5)
              + 1.6 * col * float(C.smoothstep(0.35, 0.78, p)))
     return C.smoothstep(0.92, 1.12, score).astype(np.float32)
 
 
-def matte_geometry(res, origin_uv, dir_uv):
+def matte_geometry(res, origin_uv, dir_uv, warp=None):
     w, h = res
     yy, xx = np.mgrid[0:h, 0:w]
     u, v = (xx + 0.5) / w, (yy + 0.5) / h
     du, dv = (u - origin_uv[0]) * (w / h), (v - origin_uv[1])
+    if warp is not None:   # v2: domain-warped distance so the pressure front is irregular
+        du = du + 0.26 * warp[0]
+        dv = dv + 0.26 * warp[1]
     along = du * dir_uv[0] + dv * dir_uv[1]
     perp = np.abs(du * dir_uv[1] - dv * dir_uv[0])
-    dist = np.hypot(du, dv)
-    # pressure: distance, cheaper along the breakout direction, dearer against it
-    D = dist * (1.0 - 0.45 * np.clip(along / (dist + 1e-6), -1, 1))
+    # pressure: an elongated metric along the breakout direction (never a circle), cheaper with
+    # the breakout, dearer against it
+    dist = np.hypot(along * 0.7, perp * 1.5)
+    D = dist * (1.0 - 0.6 * np.clip(along / (np.hypot(along, perp) + 1e-6), -1, 1))
     D = D / D.max()
     # copy column: left 6% -> 60% width, 18% -> 80% height, soft edge
     cx = C.smoothstep(0.02, 0.08, u) * (1 - C.smoothstep(0.58, 0.66, u))
@@ -395,26 +482,27 @@ def composite(args, report):
     mseed = C.SEEDS["page_matte"]
     n_slow0 = fbm2(mseed, (h, w), 4, 4)
     n_fast0 = fbm2(mseed + 50, (h, w), 18, 3)
-    f0 = args.frames[0] if args.frames else 0
-    f1 = args.frames[1] if args.frames else C.F_END
+    warp = ((fbm2(mseed + 7, (h, w), 3, 4) - 0.5) * 2.0, (fbm2(mseed + 8, (h, w), 3, 4) - 0.5) * 2.0)
     stats = report.setdefault("frame_stats", {})
-    warm = C.srgb_to_linear(C.blackbody(3800))
-    for f in range(f0, f1 + 1):
+    for f in frame_list(args):
         t = C.t_of(f)
         out_path = os.path.join(FRAMES_DIR, "final", f"f{f:04d}.png")
         ev = C.map_exposure_ev(t)
+        dim = C.event_dim(t)
+        k_ev = (1.0 - dim) / 0.55                      # 0 before the event, 1 once it is the subject
         ground_lin = C.srgb_to_linear(C.GROUND)[None, None]
         base = (ground_lin + (nebula - ground_lin) * C.nebula_opacity(t)) * (2 ** ev)
+        # v2: the map steps back ~55% during the event and its magenta cools toward indigo
+        base = base * dim * (1.0 - k_ev * np.array([0.32, 0.18, 0.0], np.float32))[None, None]
         base = base.astype(np.float32)
         map_l = load_layer("map", f)
         event = load_layer("event", f)
-        far = load_layer("far", f, full=f in ISO_FULL_FRAMES)
-        mid = load_layer("mid", f, full=f in ISO_FULL_FRAMES)
-        near = load_layer("near", f, full=f in ISO_FULL_FRAMES)
-        frags = load_layer("fragments", f, full=f in ISO_FULL_FRAMES)
+        far = load_layer("far", f, full=f in ISO_FULL_FRAMES or args.stills)
+        mid = load_layer("mid", f, full=f in ISO_FULL_FRAMES or args.stills)
+        near = load_layer("near", f, full=f in ISO_FULL_FRAMES or args.stills)
+        frags = load_layer("fragments", f, full=f in ISO_FULL_FRAMES or args.stills)
         scene_lin = base.copy()
         alpha = np.zeros((h, w), np.float32)
-        late = f >= LATE_FRAME
 
         def fit(L_):
             if L_ is None or L_.shape[:2] == (h, w):
@@ -425,51 +513,66 @@ def composite(args, report):
         event = fit(event)
         if map_l is not None:
             scene_lin = map_l[..., :3] + (1 - map_l[..., 3:4]) * scene_lin
-        if far is not None:
+        if far is not None and not single_plate(args, f):      # single plate: the far envelope is inside it
             ff = fit(far)
             scene_lin = ff[..., :3] + (1 - ff[..., 3:4]) * scene_lin
             alpha = ff[..., 3]
         if event is not None:
             scene_lin = event[..., :3] + (1 - event[..., 3:4]) * scene_lin
             alpha = event[..., 3] + alpha * (1 - event[..., 3])
-        if near is not None:
+        if near is not None and not single_plate(args, f):
             nn = fit(near)
             scene_lin = nn[..., :3] + (1 - nn[..., 3:4]) * scene_lin
             alpha = nn[..., 3] + alpha * (1 - nn[..., 3])
         beauty = event
         lum = luminance(scene_lin)
-        # the reveal reads the breakout's own light, never the map (core highlight, planets)
-        ev_lum = luminance(event[..., :3]) if event is not None else np.zeros((h, w), np.float32)
-        if far is not None:
-            ev_lum = ev_lum + luminance(fit(far)[..., :3]) * (1 - (event[..., 3] if event is not None else 0))
-        # --------------------------------------------- page emergence
+        # the reveal reads the breakout's own light: the gas layers when they exist (never a
+        # fragment highlight, never the map's core highlight or planets), else the event plate
+        if mid is not None and mid.shape[:2] == (h, w):
+            ev_lum = luminance(mid[..., :3])
+            if far is not None and far.shape[:2] == (h, w):
+                ev_lum = ev_lum + luminance(far[..., :3]) * (1 - mid[..., 3])
+        else:
+            ev_lum = luminance(event[..., :3]) if event is not None else np.zeros((h, w), np.float32)
+            if far is not None and not single_plate(args, f):
+                ev_lum = ev_lum + luminance(fit(far)[..., :3]) * (1 - (event[..., 3] if event is not None else 0))
+        # --------------------------------------------- page emergence (v2, two stages)
         M = None
+        cov = 0.0
+        typo = 0.0
+        beta = 0.0
         if t >= C.PAGE_IN - 0.2 and ev_lum.sum() > 0:
             yy, xx = np.mgrid[0:h, 0:w]
             wgt = np.clip(ev_lum, 0, None) ** 2
             cen = np.array([(xx * wgt).sum() / max(wgt.sum(), 1e-6) / w, (yy * wgt).sum() / max(wgt.sum(), 1e-6) / h])
-            # the aperture opens between the hottest interior and the core's screen point:
-            # that is where the masthead sits, so ink glyphs are the first content inside it
+            # the paper resolves first where the gas is hottest, pulled toward the core's screen
+            # point (the masthead region) so the primary content region clears first
             core_uv = C.project(t, C.CORE)[0][:2]
-            target = 0.45 * cen + 0.55 * core_uv
+            target = 0.6 * cen + 0.4 * core_uv
             origin = target if origin is None else origin * 0.8 + target * 0.2
-            geometry = matte_geometry(res, origin, dir_uv)
+            geometry = matte_geometry(res, origin, dir_uv, warp)
         if t >= C.PAGE_IN and geometry is not None:
-            lum_b = gaussian_filter(ev_lum, 5.0 * scale)
+            # fine luminance structure: the boundary follows the light's own edge
+            lum_b = 0.6 * gaussian_filter(ev_lum, 5.0 * scale) + 0.4 * gaussian_filter(ev_lum, 1.5 * scale)
             n_slow = np.roll(n_slow0, int(-(t - C.PAGE_IN) * 40 * scale), axis=1)
             n_fast = np.roll(n_fast0, int((t - C.PAGE_IN) * 25 * scale), axis=0)
             M = page_matte(lum_b, t, geometry, (n_slow, n_fast))
-            # light bleeds from the paper into the gas at the edge: the paper is the source
-            edge = np.clip(gaussian_filter(M, 16.0 * scale) - M, 0, 1)
-            rim_col = C.srgb_to_linear(C.blackbody(5200))
-            scene_lin = scene_lin + (edge * 1.6)[..., None] * rim_col[None, None] * (0.25 + lum_b[..., None])
-            # the remaining dark field dissolves as the paper takes over (<= 40% after 2.85)
-            beta = float(C.knots(t, [(C.PAGE_IN, 0.0), (2.85, 0.0), (3.20, 0.55), (C.PAGE_FULL, 0.9)]))
+            cov = float(M.mean())
+            # stage 1: the hottest gas overexposes to neutral white; white light bleeds into the gas
+            edge = np.clip(gaussian_filter(M, 14.0 * scale) - M, 0, 1)
+            scene_lin = scene_lin + (edge * 2.2)[..., None] * (0.3 + lum_b[..., None])
+            # loss of depth: the remaining field flattens, dust dissolves, before the paper takes over
+            beta = float(C.knots(t, [(C.PAGE_IN, 0.0), (2.70, 0.10), (3.0, 0.45), (3.2, 0.7), (C.PAGE_FULL, 0.95)]))
+            # stage 2: typography, complete and crisp, only once most of the paper has resolved
+            typo = float(C.smoothstep(TYPO_COVERAGE[0], TYPO_COVERAGE[1], cov))
         tm = filmic(scene_lin)
         disp = srgb_encode(tm)
         if M is not None:
-            field = disp * (1 - beta) + paper * beta
-            disp = M[..., None] * paper + (1 - M[..., None]) * field
+            gray = luminance(disp)[..., None]
+            flat = gray * 0.55 + 0.45
+            field = disp * (1 - beta) + flat * beta
+            page = np.ones_like(paper) * (1 - typo) + paper * typo
+            disp = M[..., None] * page + (1 - M[..., None]) * field
         # --------------------------------------------- residual over paper
         if t >= 3.25 and (far is not None or mid is not None):
             a_res = np.zeros((h, w), np.float32)
@@ -515,6 +618,7 @@ def composite(args, report):
             save_png(os.path.join(FRAMES_DIR, "volume-matte", f"f{f:04d}.png"), np.repeat(np.clip(vol_a, 0, 1)[..., None], 3, -1))
         if beauty is not None:
             save_png(os.path.join(FRAMES_DIR, "matte", f"f{f:04d}.png"), np.repeat(np.clip(alpha, 0, 1)[..., None], 3, -1))
+            save_png(os.path.join(FRAMES_DIR, "event", f"f{f:04d}.png"), srgb_encode(filmic(beauty[..., :3])))
             emit_p = os.path.join(RENDER_DIR, "event", f"Emit_{f:04d}.exr")
             vd_p = os.path.join(RENDER_DIR, "event", f"VolumeDir_{f:04d}.exr")
             if os.path.exists(emit_p):
@@ -529,9 +633,10 @@ def composite(args, report):
         p_lo, p_hi = np.percentile(lum[lum > 1e-5], [0.5, 99.5]) if np.any(lum > 1e-5) else (1e-5, 1e-5)
         stats[str(f)] = dict(t=round(t, 3), clipped_white_fraction=round(clipped, 4),
                              stops=round(float(math.log2(max(p_hi, 1e-6) / max(p_lo, 1e-6))), 2),
-                             matte_coverage=(round(float(M.mean()), 4) if M is not None else None),
+                             matte_coverage=(round(cov, 4) if M is not None else None),
+                             typography=(round(typo, 3) if M is not None else None),
                              mean_display=round(float(disp.mean()), 4))
-        print(f"composited f{f:04d} t={t:.3f} clipped={clipped*100:.2f}% stops={stats[str(f)]['stops']} matte={stats[str(f)]['matte_coverage']}", flush=True)
+        print(f"composited f{f:04d} t={t:.3f} clipped={clipped*100:.2f}% stops={stats[str(f)]['stops']} matte={stats[str(f)]['matte_coverage']} typo={stats[str(f)]['typography']}", flush=True)
     with open(os.path.join(C.CACHE_DIR, "report-composite.json"), "w") as fh:
         json.dump(report, fh, indent=1)
 
@@ -617,21 +722,58 @@ def deliver(args, report):
     print(json.dumps({k: v for k, v in sizes.items() if not k.startswith("isolated")}, indent=1))
 
 
+def deliver_stills(args, report):
+    """The v2 approval stills only (no sequence, no encode)."""
+    R = C.REVIEW_DIR
+    final = os.path.join(FRAMES_DIR, "final")
+    for fn, fr in V2_STILLS:
+        src = os.path.join(final, f"f{fr:04d}.png")
+        if os.path.exists(src):
+            shutil.copyfile(src, os.path.join(R, fn))
+            print("still", fn, os.path.getsize(os.path.join(R, fn)), "bytes")
+    with open(os.path.join(C.CACHE_DIR, "report-stills.json"), "w") as fh:
+        json.dump(report, fh, indent=1)
+
+
 def main():
+    global RENDER_DIR, FRAMES_DIR, DENOISE_MIX
     ap = argparse.ArgumentParser()
     ap.add_argument("--frames", type=int, nargs=2, default=None)
+    ap.add_argument("--list", default=None, help="explicit frame list, e.g. 44,75,82")
     ap.add_argument("--layers", default="all")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--samples", type=int, default=16)
-    ap.add_argument("--still-samples", type=int, default=48)
+    ap.add_argument("--still-samples", type=int, default=None, help="event samples for the key stills (48; 256 in --stills mode)")
     ap.add_argument("--iso-full", action="store_true", default=True)
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--composite-only", action="store_true")
     ap.add_argument("--render-only", action="store_true")
     ap.add_argument("--deliver-only", action="store_true")
+    # v2 approval stills
+    ap.add_argument("--stills", action="store_true", help="full-res single-plate approval stills into cache/render_v2 + frames_v2")
+    ap.add_argument("--volume-bounces", type=int, default=1)
+    ap.add_argument("--step-rate", type=float, default=1.0)
+    ap.add_argument("--denoise-mix", type=float, default=None)
+    ap.add_argument("--tune", default="", help="look-dev overrides: gas_gain=8,heat_gain_scale=1.5,key=1.2,fill=0.8")
+    ap.add_argument("--cache-tag", default="v2", help="cache subfolder tag for --stills renders")
+    ap.add_argument("--border", type=float, nargs=4, default=None, metavar=("U0", "V0", "U1", "V1"),
+                    help="look-dev: render only this screen region (fractions, v down)")
     args = ap.parse_args()
+    if args.stills:
+        RENDER_DIR = os.path.join(C.CACHE_DIR, f"render_{args.cache_tag}")
+        FRAMES_DIR = os.path.join(C.CACHE_DIR, f"frames_{args.cache_tag}")
+        if args.list is None and args.frames is None:
+            args.list = ",".join(str(fr) for _, fr in V2_STILLS)
+        if args.still_samples is None:
+            args.still_samples = 256
+        DENOISE_MIX = 0.3 if args.denoise_mix is None else args.denoise_mix
+    else:
+        if args.still_samples is None:
+            args.still_samples = 48
+        if args.denoise_mix is not None:
+            DENOISE_MIX = args.denoise_mix
     report = {}
-    rp = os.path.join(C.CACHE_DIR, "report-render.json")
+    rp = os.path.join(C.CACHE_DIR, "report-render.json" if not args.stills else f"report-render-{args.cache_tag}.json")
     if os.path.exists(rp):
         with open(rp) as fh:
             report = json.load(fh)
@@ -640,7 +782,10 @@ def main():
     if not (args.render_only or args.deliver_only):
         composite(args, report)
     if not (args.render_only or args.composite_only):
-        deliver(args, report)
+        if args.stills:
+            deliver_stills(args, report)
+        else:
+            deliver(args, report)
 
 
 if __name__ == "__main__":

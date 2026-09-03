@@ -215,10 +215,10 @@ def build(args):
     zhat = np.array([0.0, 0.0, 1.0])
     scale = args.scale
 
-    mid = Domain("mid", q + 1.15 * b, np.stack([e1, e2, b], axis=1), (1.35, 1.35, 1.85),
-                 (int(128 * scale), int(128 * scale), int(176 * scale)))
-    far = Domain("far", q + 1.35 * b, np.stack([e1, e2, b], axis=1), (2.7, 2.7, 3.4),
-                 (int(88 * scale), int(88 * scale), int(112 * scale)))
+    mid = Domain("mid", q + 1.35 * b, np.stack([e1, e2, b], axis=1), (1.55, 1.55, 2.2),
+                 (int(136 * scale), int(136 * scale), int(192 * scale)))
+    far = Domain("far", q + 1.6 * b, np.stack([e1, e2, b], axis=1), (3.2, 3.2, 4.0),
+                 (int(96 * scale), int(96 * scale), int(120 * scale)))
     near_half = np.array([1.0, 0.7, 1.1])
     near_res = (int(144 * scale), int(96 * scale), int(144 * scale))
 
@@ -228,12 +228,14 @@ def build(args):
 
     turb_a = CurlField(rng_mid, 40, 1.7)    # large curls
     turb_b = CurlField(rng_mid, 40, 0.62)   # fine shear
+    turb_c = CurlField(rng_mid, 48, 0.28)   # v2: thin filaments
+    clumps = ScalarNoise(rng_mid, 32, 0.6)  # v2: interior dust clumping / cavities
     turb_far = CurlField(rng_far, 40, 3.1)
     turb_near = CurlField(rng_near, 32, 0.9)
-    lobes = ScalarNoise(rng_mid, 32, 1.0)   # angular structure of the front
+    lobes = ScalarNoise(rng_mid, 32, 0.55)  # angular structure of the front (v2: finer, more ragged)
 
-    gas = Particles(int(1_600_000 * args.particles))
-    dust = Particles(int(520_000 * args.particles))
+    gas = Particles(int(2_600_000 * args.particles))
+    dust = Particles(int(1_000_000 * args.particles))
     fgas = Particles(int(820_000 * args.particles))
     ngas = Particles(int(300_000 * args.particles))
 
@@ -261,11 +263,35 @@ def build(args):
     N_EMIT = 22
     emit_frames = list(range(F_START, F_START + N_EMIT))
     profile = np.exp(-np.arange(N_EMIT) / 9.0)
+    # v2: the ejecta leaves as distinct strands (thin filaments with gaps between them), not a
+    # filled cone. Divergence-free turbulence only bends what is emitted, so the emission itself
+    # must carry the structure. A few dominant strands, ~30% of them dusty (dark lanes).
+    K_STRANDS = 38
+    st_ang = np.concatenate([np.radians(22) * np.sqrt(rng_mid.random(8)),
+                             np.radians(22) + np.radians(36) * np.sqrt(rng_mid.random(K_STRANDS - 8))])
+    st_az = rng_mid.random(K_STRANDS) * 2 * np.pi
+    st_axis = (np.outer(np.sin(st_ang) * np.cos(st_az), e1) + np.outer(np.sin(st_ang) * np.sin(st_az), e2)
+               + np.outer(np.cos(st_ang), b)).astype(np.float64)
+    st_spread = np.radians(0.6 + 1.6 * rng_mid.random(K_STRANDS))
+    st_speed = 0.72 + 0.56 * rng_mid.random(K_STRANDS)
+    st_weight = 0.4 + 1.6 * rng_mid.random(K_STRANDS) ** 2
+    st_weight /= st_weight.sum()
+    st_dusty = rng_mid.random(K_STRANDS) < 0.30
+    st_turb = (0.55 + 0.7 * rng_mid.random(K_STRANDS)).astype(np.float32)
+    st_p1 = np.cross(st_axis, e1[None, :])
+    st_p1 /= np.linalg.norm(st_p1, axis=1)[:, None]
+    st_p2 = np.cross(st_axis, st_p1)
     profile /= profile.sum()
     far_frames = list(range(F_START, F_START + 28))
     far_profile = np.exp(-np.arange(28) / 9.0)
     far_profile /= far_profile.sum()
 
+    # v2: a fixed cavity field so the gas is never a uniform fog (irregular density, dark pockets)
+    cav_noise = fbm_grid(np.random.default_rng(C.SEEDS["volume_mid"] + 77), 48, 4)
+    from scipy.ndimage import zoom as _zoom
+    cav = _zoom(cav_noise, [r / 48 for r in mid.res], order=1)[:mid.res[0], :mid.res[1], :mid.res[2]]
+    cav = np.clip((cav - 0.40) / 0.34, 0, 1) ** 1.2
+    cav = (0.22 + 0.78 * cav).astype(np.float32)
     meta = dict(domains=dict(mid=mid.meta(), far=far.meta(), near=dict(half=near_half.tolist(), res=list(near_res),
                                                                      tiles=[Domain("n", 0, np.eye(3), near_half, near_res).tiles_x,
                                                                             Domain("n", 0, np.eye(3), near_half, near_res).tiles_y])),
@@ -291,30 +317,51 @@ def build(args):
             # slit on the core surface, elongated along e1
             src = (q + np.outer(rng_mid.normal(0, 0.075, n), e1) + np.outer(rng_mid.normal(0, 0.022, n), e2)
                    + np.outer(rng_mid.random(n) * 0.05, b))
-            n_core = int(n * 0.70)
-            d_core, ang_core = cone_dirs(rng_mid, n_core, frame, 0.0, math.radians(15), 0.6)
-            d_env, ang_env = cone_dirs(rng_mid, n - n_core, frame, math.radians(15), math.radians(42), 1.2)
-            dirs = np.concatenate([d_core, d_env])
-            angs = np.concatenate([ang_core, ang_env])
-            lobe = lobes.sample(dirs * 0.9 + 3.3)
-            keep = lobe > (0.30 + 0.16 * (angs / math.radians(42)))   # incomplete, irregular front
-            dirs, angs, src, lobe = dirs[keep], angs[keep], src[keep], lobe[keep]
-            s0 = 4.3 * (1.0 - 0.62 * k / (N_EMIT - 1))
-            speed = s0 * (0.72 + 0.62 * lobe) * (1.0 - 0.6 * (angs / math.radians(42)) ** 2)
-            speed *= 0.86 + 0.28 * rng_mid.random(len(speed))
+            s0 = 5.6 * (1.0 - 0.62 * k / (N_EMIT - 1))
+            # strands: direction = strand axis + a small in-plane perturbation
+            n_str = int(n * 0.86)
+            which = rng_mid.choice(K_STRANDS, size=n_str, p=st_weight)
+            g1 = rng_mid.normal(0, 1, n_str) * st_spread[which]
+            g2 = rng_mid.normal(0, 1, n_str) * st_spread[which]
+            d_str = st_axis[which] + st_p1[which] * g1[:, None] + st_p2[which] * g2[:, None]
+            d_str /= np.linalg.norm(d_str, axis=1)[:, None]
+            a_str = np.arccos(np.clip(d_str @ b, -1, 1))
+            sp_str = s0 * st_speed[which] * (0.92 + 0.16 * rng_mid.random(n_str)) * (1.0 - 0.6 * (a_str / math.radians(50)) ** 2)
+            dusty = st_dusty[which]                      # dusty strands are pure dark lanes
+            # diffuse component: a gated, incomplete cone between the strands; on the first emit
+            # frame it is a thin, slightly faster cap: the leading pressure structure ahead of the strands
+            n_dif = n - n_str
+            d_dif, a_dif = cone_dirs(rng_mid, n_dif, frame, 0.0, math.radians(48), 1.0 if k else 0.8)
+            lobe = lobes.sample(d_dif * 0.9 + 3.3)
+            keep = lobe > ((0.44 + 0.20 * (a_dif / math.radians(50))) if k else (0.30 + 0.12 * (a_dif / math.radians(50))))
+            d_dif, a_dif, lobe = d_dif[keep], a_dif[keep], lobe[keep]
+            if k == 0:
+                sp_dif = s0 * 1.08 * (1.0 - 0.45 * (a_dif / math.radians(50)) ** 2) * (0.97 + 0.08 * rng_mid.random(len(lobe)))
+            else:
+                sp_dif = s0 * (0.62 + 0.6 * lobe) * (1.0 - 0.6 * (a_dif / math.radians(50)) ** 2) * (0.86 + 0.28 * rng_mid.random(len(lobe)))
+            dirs = np.concatenate([d_str, d_dif])
+            angs = np.concatenate([a_str, a_dif])
+            speed = np.concatenate([sp_str, sp_dif])
+            src = src[:len(dirs)]
+            dusty = np.concatenate([dusty, np.zeros(len(d_dif), bool)])
             vel = dirs * speed[:, None]
             # swirl inherited from the incoming planet (about world z through the core)
             arm = src - C.CORE
             vel += 0.12 * np.cross(np.tile(zhat, (len(src), 1)), arm)
             src = src + vel * (rng_mid.random(len(src)) * dt)[:, None]   # sub-frame birth
-            heat0 = np.exp(-(angs / math.radians(14)) ** 2) * (1.0 - 0.3 * k / (N_EMIT - 1)) * (0.7 + 0.3 * lobe)
-            gas.add(src, vel, t, heat0.astype(np.float32), np.full(len(src), 1.0, np.float32), 1.25, 1.0)
+            heat0 = np.exp(-(angs / math.radians(10)) ** 2) * (1.0 - 0.5 * k / (N_EMIT - 1))
+            turbf = np.concatenate([st_turb[which], (0.35 + 0.5 * rng_mid.random(len(d_dif))).astype(np.float32)])
+            gas.add(src[~dusty], vel[~dusty], t, heat0[~dusty].astype(np.float32), np.full(int((~dusty).sum()), 1.0, np.float32), 1.15, turbf[~dusty])
+            # dark lanes: the dusty strands carry absorbing matter instead of gas
+            n_cl = int(dusty.sum())
+            if n_cl > 0:
+                dust.add(src[dusty], vel[dusty] * 0.90, t, np.zeros(n_cl, np.float32), np.full(n_cl, 0.9, np.float32), 1.25, turbf[dusty] * 0.9)
 
         if F_START <= f < F_START + 20:
             k = f - F_START
             # clumped dust streams on the camera side
             for sd in stream_dirs:
-                n = int(dust.cap * 0.024 * math.exp(-k / 7.0))
+                n = int(dust.cap * 0.014 * math.exp(-k / 7.0))
                 if n <= 0:
                     continue
                 jitter = rng_mid.normal(0, 0.06, (n, 3))
@@ -352,13 +399,13 @@ def build(args):
             gate = lobe > 0.42                                   # incomplete shell: sheets and gaps
             dirs, angs, src, lobe = dirs[gate], angs[gate], src[gate], lobe[gate]
             n = len(dirs)
-            speed = (1.75 + 0.9 * lobe) * (1.0 - 0.45 * (angs / math.radians(72)) ** 2) * (1.0 - 0.35 * k / 27.0)
+            speed = (3.6 + 1.5 * lobe) * (1.0 - 0.45 * (angs / math.radians(72)) ** 2) * (1.0 - 0.35 * k / 27.0)   # v2: broad swept-up envelope
             speed *= 0.92 + 0.16 * rng_far.random(n)
             vel = dirs * speed[:, None]
             arm = src - C.CORE
             vel += 0.10 * np.cross(np.tile(zhat, (n, 1)), arm)
             src = src + vel * (rng_far.random(n) * dt)[:, None]
-            heat0 = 0.28 * np.exp(-(angs / math.radians(45)) ** 2) * (1.0 - 0.5 * k / 27.0)
+            heat0 = 0.2 * np.exp(-(angs / math.radians(45)) ** 2) * (1.0 - 0.5 * k / 27.0)
             fgas.add(src, vel, t, heat0.astype(np.float32), (0.35 + 0.65 * lobe).astype(np.float32), 0.9, 2.2)
 
         if f == F_START:
@@ -377,9 +424,9 @@ def build(args):
             mote_r = 0.004 + 0.016 * rng_near.random(320) ** 2
 
         # ------------------------------------------------ dynamics
-        amp = 0.42 * math.exp(-tau / 1.6) + 0.18
+        amp = 0.62 * math.exp(-tau / 1.6) + 0.22
         drift = 0.35 * tau
-        for P, fields, big in ((gas, (turb_a, turb_b), 1.0), (dust, (turb_a, turb_b), 1.0),
+        for P, fields, big in ((gas, (turb_a, turb_b, turb_c), 1.0), (dust, (turb_a, turb_b, turb_c), 1.0),
                                (fgas, (turb_far,), 1.0), (ngas, (turb_near,), 1.0)):
             s = P.live()
             if P.n == 0:
@@ -388,7 +435,7 @@ def build(args):
             vel *= np.exp(-P.drag[s] * dt)[:, None]
             tv = np.zeros_like(pos)
             for i, fld in enumerate(fields):
-                tv += fld.sample(pos - q, offset=drift * (0.5 if i else 1.0)) * (0.65 if i else 1.0)
+                tv += fld.sample(pos - q, offset=drift * (0.5 if i else 1.0)) * (1.0, 0.6, 0.2)[min(i, 2)]
             pos += (vel + tv * amp * P.turb[s][:, None]) * dt
         # dissipation: controlled decay into the page reveal
         if t > 2.35:
@@ -399,19 +446,19 @@ def build(args):
         # ------------------------------------------------ splat
         s = gas.live()
         age = t - gas.birth[s]
-        core_len = 0.30 + 0.55 * min(tau, 2.0)          # the hot core lengthens slowly along the axis
+        core_len = 0.22 + 0.30 * min(tau, 2.0)          # v2: compact white-hot origin that lengthens slowly
         dq = gas.pos[s] - q
         along = dq @ b
         perp = np.linalg.norm(dq - np.outer(along, b), axis=1)
-        core_mask = np.exp(-(np.maximum(along, 0) / core_len) ** 2) * np.exp(-(perp / (0.10 + 0.16 * min(tau, 2.0))) ** 2)
+        core_mask = np.exp(-(np.maximum(along, 0) / core_len) ** 2) * np.exp(-(perp / (0.08 + 0.10 * min(tau, 2.0))) ** 2)
         heat = gas.heat0[s] * (0.25 * np.exp(-age / 0.62) + 0.75 * core_mask) * (1.0 - 0.6 * float(C.smoothstep(2.3, 3.4, t)))
         g_gas = splat(mid, gas.pos[s], gas.w[s])
         g_heat = splat(mid, gas.pos[s], gas.w[s] * heat)
         g_dust = splat(mid, dust.pos[dust.live()], dust.w[dust.live()])
         norm_mid = (1.0 / (gas.cap / (mid.res[0] * mid.res[1] * mid.res[2]))) * 0.020 / scale**3
-        g_gas = knee(gaussian_filter(g_gas * norm_mid, 0.9 * scale), 5.0)
-        g_heat = knee(gaussian_filter(g_heat * norm_mid, 1.1 * scale), 3.0)
-        g_dust = knee(gaussian_filter(g_dust * norm_mid * 1.2, 0.8 * scale), 4.0)
+        g_gas = knee(gaussian_filter(g_gas * norm_mid, 0.45 * scale) * cav, 16.0)
+        g_heat = knee(gaussian_filter(g_heat * norm_mid, 0.8 * scale), 3.0)
+        g_dust = knee(gaussian_filter(g_dust * norm_mid * 1.2, 0.45 * scale), 16.0)
         save_exr(os.path.join(VOL_DIR, "mid", f"atlas_{f:04d}.exr"), atlas_from_grids(mid, [g_gas, g_dust, g_heat]))
 
         s = fgas.live()

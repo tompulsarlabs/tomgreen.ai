@@ -27,6 +27,17 @@ VOL_DIR = os.path.join(C.CACHE_DIR, "volume")
 LATTICE_PNG = os.path.join(C.CACHE_DIR, "lattice.png")
 LATTICE_RES = 4096
 
+# v2 look constants (Value nodes / light energies carry these names so render_review --tune can preview overrides)
+GAS_GAIN = 4.5      # scattering density per sqrt unit of solver gas (the solver fan is thin, its axis dense)
+DUST_GAIN = 14.0    # extinction density per dust^0.6 (near-black lanes, not holes)
+HEAT_GAIN = 200.0   # emission per unit length at heat 1 (compact white-hot origin)
+FAR_GAIN = 0.25     # far envelope density (a dim cold halo behind the plume)
+NEAR_GAIN = 6.0     # near particulate density
+GLOW_GAIN = 3.5     # faint cold self-glow of the dense gas (ionised ejecta), per sqrt unit of solver gas
+ALBEDO = 0.55       # scattering albedo scale of the gas: the medium absorbs as much as it scatters (optically dense)
+KEY_ENERGY = 350.0  # crack key, W
+FILL_ENERGY = 360.0 # cold area fill on fragments / core / motes, W
+
 
 # ------------------------------------------------------------- utilities
 def link(ob, coll):
@@ -159,7 +170,7 @@ def build_membrane(coll):
     # lattice dims with the exposure script (0.34 base alpha, ×0.7 in anticipation, then -1.4 EV)
     for t in np.arange(0, C.T_END + 0.01, 0.05):
         ev = C.map_exposure_ev(t)
-        v = 0.11 * (2 ** ev) * (0.7 if t >= 0.25 else 1.0)
+        v = 0.11 * (2 ** ev) * (0.7 if t >= 0.25 else 1.0) * C.event_dim(t)   # v2: the map steps back during the event
         strength.outputs[0].default_value = v
         strength.outputs[0].keyframe_insert("default_value", frame=C.f_of(t))
     return ob
@@ -465,11 +476,57 @@ def _set_step_rate(mat, rate):
             return
 
 
+def _math(n, l, op, a, b=None, const=None, name=None):
+    m = n.new("ShaderNodeMath")
+    m.operation = op
+    if name:
+        m.name = m.label = name
+    l.new(a, m.inputs[0])
+    if b is not None:
+        l.new(b, m.inputs[1])
+    elif const is not None:
+        m.inputs[1].default_value = const
+    return m.outputs[0]
+
+
+def _maprange(n, l, v, a, b, c, d, smooth=False):
+    m = n.new("ShaderNodeMapRange")
+    if smooth:
+        m.interpolation_type = "SMOOTHSTEP"
+    m.inputs["From Min"].default_value = a
+    m.inputs["From Max"].default_value = b
+    m.inputs["To Min"].default_value = c
+    m.inputs["To Max"].default_value = d
+    l.new(v, m.inputs["Value"])
+    return m.outputs["Result"]
+
+
+def _value(n, name, v):
+    node = n.new("ShaderNodeValue")
+    node.name = node.label = name
+    node.outputs[0].default_value = v
+    return node.outputs[0]
+
+
+def _ramp(n, l, fac, stops):
+    ramp = n.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = stops[0][0]
+    ramp.color_ramp.elements[0].color = (*stops[0][1], 1)
+    ramp.color_ramp.elements[-1].position = stops[-1][0]
+    ramp.color_ramp.elements[-1].color = (*stops[-1][1], 1)
+    for pos, col in stops[1:-1]:
+        e = ramp.color_ramp.elements.new(pos)
+        e.color = (*col, 1)
+    l.new(fac, ramp.inputs["Fac"])
+    return ramp.outputs["Color"]
+
+
 def volume_materials(meta, imgs):
-    """One material per depth layer. Gas: pale neutral white scatter, restrained
-    cyan, muted violet where thin. Dust: near-black extinction mixed into the
-    same medium. Heat: blackbody emission along the site's photosphere curve
-    (6500 K floor, never orange) with limited Zalando gold at the source."""
+    """One material per depth layer (v2). Mid: a dense, optically thick medium in
+    which emission (a compact white-hot origin that is ionised and dust-free),
+    scattering (indigo -> cold blue -> cyan-white -> white with density) and
+    extinction (near-black dust, dark cavities) are three different things.
+    Far: cold, thin, illuminated envelope, no emission. Near: dark particulate."""
     mats = {}
     gold = C.srgb_to_linear(C.hex_to_rgb(C.ZALANDO_GOLD))
 
@@ -487,68 +544,76 @@ def volume_materials(meta, imgs):
     n, l = nt.nodes, nt.links
     gas, dust, heat = atlas_shader_sample(nt, dm, imgs["mid"])
     detail = _detail(nt)
-    g = n.new("ShaderNodeMath"); g.operation = "MULTIPLY"; l.new(gas, g.inputs[0]); l.new(detail, g.inputs[1])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.2; l.new(g.outputs[0], g2.inputs[0])
-    d2 = n.new("ShaderNodeMath"); d2.operation = "MULTIPLY"; d2.inputs[1].default_value = 12.0; l.new(dust, d2.inputs[0])
-    dens = n.new("ShaderNodeMath"); dens.operation = "ADD"; l.new(g2.outputs[0], dens.inputs[0]); l.new(d2.outputs[0], dens.inputs[1])
-    l.new(dens.outputs[0], pv.inputs["Density"])
-    # albedo: weighted mix of gas colour (by gas density) and near-black dust
-    ramp = n.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.50, 0.42, 0.62, 1)
-    e = ramp.color_ramp.elements.new(0.25); e.color = (0.60, 0.78, 0.90, 1)
-    ramp.color_ramp.elements[-1].position = 0.7; ramp.color_ramp.elements[-1].color = (0.88, 0.92, 0.98, 1)
-    l.new(gas, ramp.inputs["Fac"])
-    w = n.new("ShaderNodeMath"); w.operation = "DIVIDE"; l.new(d2.outputs[0], w.inputs[0])
-    eps = n.new("ShaderNodeMath"); eps.operation = "ADD"; eps.inputs[1].default_value = 1e-4; l.new(dens.outputs[0], eps.inputs[0]); l.new(eps.outputs[0], w.inputs[1])
-    cmix = n.new("ShaderNodeMix"); cmix.data_type = "RGBA"; cmix.inputs[7].default_value = (0.045, 0.045, 0.05, 1)
-    l.new(w.outputs[0], cmix.inputs["Factor"]); l.new(ramp.outputs["Color"], cmix.inputs[6])
-    l.new(cmix.outputs[2], pv.inputs["Color"])
-    pv.inputs["Anisotropy"].default_value = 0.5
-    # emission: hot narrow core dominates (heat^1.8); temperature from the photosphere curve
-    powr = n.new("ShaderNodeMath"); powr.operation = "POWER"; powr.inputs[1].default_value = 1.3; l.new(heat, powr.inputs[0])
-    strength = n.new("ShaderNodeMath"); strength.operation = "MULTIPLY"; l.new(powr.outputs[0], strength.inputs[0])
-    l.new(_keyed_value(nt, "heat_gain", lambda t: 12.0 * (0.35 + 0.65 * C.light_curve(t - C.DET)) * (1.0 + 2.0 * math.exp(-(t - C.DET) / 0.22))), strength.inputs[1])
-    l.new(strength.outputs[0], pv.inputs["Emission Strength"])
-    kelvin = n.new("ShaderNodeMapRange")
-    kelvin.inputs["From Min"].default_value = 0.0; kelvin.inputs["From Max"].default_value = 1.4; kelvin.inputs["To Min"].default_value = 6500.0
-    l.new(_keyed_value(nt, "kelvin_hi", lambda t: C.photosphere_kelvin(max(t - C.DET, 0)) * 1.15), kelvin.inputs["To Max"])
-    l.new(heat, kelvin.inputs["Value"])
-    bb = n.new("ShaderNodeBlackbody"); l.new(kelvin.outputs["Result"], bb.inputs["Temperature"])
+    hot = _maprange(n, l, heat, 0.10, 0.60, 0.0, 1.0, smooth=True)
+    # extinction: the hot origin is ionised and dust-free, so its own light gets out
+    gas_c = _math(n, l, "POWER", gas, const=0.5)     # solver gas: median 0.06, axis ~3.8 -> compress
+    dust_c = _math(n, l, "POWER", dust, const=0.6)
+    g_time = _keyed_value(nt, "gas_gain_t", lambda t: 1.0 - 0.55 * float(C.smoothstep(1.7, 2.6, t)))   # the expanding cloud thins
+    g_gain = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", _maprange(n, l, hot, 0.0, 1.0, 1.0, 0.30), _value(n, "gas_gain", GAS_GAIN)), g_time)
+    g2 = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", gas_c, detail), g_gain)
+    d_gain = _math(n, l, "MULTIPLY", _maprange(n, l, hot, 0.0, 1.0, 1.0, 0.0), _value(n, "dust_gain", DUST_GAIN))
+    d2 = _math(n, l, "MULTIPLY", dust_c, d_gain)
+    dens = _math(n, l, "ADD", g2, d2)
+    l.new(dens, pv.inputs["Density"])
+    # scattering albedo by gas density: deep indigo where thin, cold blue, restrained cyan, white where dense
+    ramp = _ramp(n, l, _maprange(n, l, gas_c, 0.0, 1.6, 0.0, 1.0),
+                 [(0.0, (0.20, 0.19, 0.40)), (0.15, (0.36, 0.52, 0.82)), (0.40, (0.64, 0.82, 0.94)), (0.85, (0.90, 0.94, 1.0))])
+    w = _math(n, l, "DIVIDE", d2, _math(n, l, "ADD", dens, const=1e-4))
+    cmix = n.new("ShaderNodeMix"); cmix.data_type = "RGBA"; cmix.inputs[7].default_value = (0.012, 0.012, 0.016, 1)
+    l.new(w, cmix.inputs["Factor"]); l.new(ramp, cmix.inputs[6])
+    alb = n.new("ShaderNodeMix"); alb.data_type = "RGBA"; alb.inputs[6].default_value = (0, 0, 0, 1)
+    l.new(_value(n, "albedo", ALBEDO), alb.inputs["Factor"]); l.new(cmix.outputs[2], alb.inputs[7])
+    l.new(alb.outputs[2], pv.inputs["Color"])
+    pv.inputs["Anisotropy"].default_value = 0.62
+    # emission = compact white-hot origin (heat^1.6, neutral white where hottest, blue where cooler)
+    #          + a faint cold glow of the dense ionised gas itself (so filaments and dark lanes read
+    #            by extinction, not only by what the key light reaches)
+    powr = _math(n, l, "POWER", heat, const=1.6)
+    gain = _keyed_value(nt, "heat_gain", lambda t: HEAT_GAIN * (0.35 + 0.65 * C.light_curve(t - C.DET)) * (1.0 + 2.5 * math.exp(-max(t - C.DET, 0) / 0.2)))
+    e_core = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", powr, gain), _value(n, "heat_gain_scale", 1.0))
+    glow_t = _keyed_value(nt, "glow_t", lambda t: 0.25 + 0.75 * C.light_curve(max(t - C.DET, 0)))
+    e_glow = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", gas_c, _value(n, "glow_gain", GLOW_GAIN)), glow_t)
+    e_glow = _math(n, l, "MULTIPLY", e_glow, _maprange(n, l, w, 0.0, 1.0, 1.0, 0.0))   # dust does not glow
+    strength = _math(n, l, "ADD", e_core, e_glow)
+    l.new(strength, pv.inputs["Emission Strength"])
+    fac_core = _math(n, l, "DIVIDE", e_core, _math(n, l, "ADD", strength, const=1e-4))
+    bb = n.new("ShaderNodeBlackbody")
+    l.new(_maprange(n, l, heat, 0.0, 1.0, 12000.0, 6500.0), bb.inputs["Temperature"])
     tc = n.new("ShaderNodeTexCoord")
     ln = n.new("ShaderNodeVectorMath"); ln.operation = "DISTANCE"
     q_local = tuple(float(x) for x in ((np.array(meta["breakout"]["q"]) - np.array(dm["center"])) @ np.array(dm["basis"]) / np.array(dm["half"])))
     ln.inputs[1].default_value = q_local; l.new(tc.outputs["Object"], ln.inputs[0])
-    gmask = n.new("ShaderNodeMapRange")
-    gmask.inputs["From Min"].default_value = 0.10; gmask.inputs["From Max"].default_value = 0.30; gmask.inputs["To Min"].default_value = 1.0; gmask.inputs["To Max"].default_value = 0.0
-    l.new(ln.outputs["Value"], gmask.inputs["Value"])
-    gfade = n.new("ShaderNodeMath"); gfade.operation = "MULTIPLY"; l.new(gmask.outputs["Result"], gfade.inputs[0])
-    l.new(_keyed_value(nt, "gold_mix", lambda t: 0.35 * (1 - float(C.smoothstep(1.25, 1.7, t)))), gfade.inputs[1])
+    gmask = _maprange(n, l, ln.outputs["Value"], 0.08, 0.22, 1.0, 0.0)
+    gfade = _math(n, l, "MULTIPLY", gmask, _keyed_value(nt, "gold_mix", lambda t: 0.18 * (1 - float(C.smoothstep(1.25, 1.6, t)))))
     mixc = n.new("ShaderNodeMix"); mixc.data_type = "RGBA"; mixc.inputs[7].default_value = (*gold, 1.0)
-    l.new(bb.outputs["Color"], mixc.inputs[6]); l.new(gfade.outputs[0], mixc.inputs["Factor"])
-    l.new(mixc.outputs[2], pv.inputs["Emission Color"])
+    l.new(bb.outputs["Color"], mixc.inputs[6]); l.new(gfade, mixc.inputs["Factor"])
+    ecol = n.new("ShaderNodeMix"); ecol.data_type = "RGBA"; ecol.inputs[6].default_value = (0.42, 0.60, 1.0, 1)   # cold glow
+    l.new(fac_core, ecol.inputs["Factor"]); l.new(mixc.outputs[2], ecol.inputs[7])
+    l.new(ecol.outputs[2], pv.inputs["Emission Color"])
     _set_step_rate(m, 2.0)
     mats["mid"] = m
 
-    # ---- far: thin cool envelope with a dim warm-white glow
+    # ---- far: cold, thin, illuminated envelope (no emission), visible from ~1.15 s
     df = meta["domains"]["far"]
     m, nt, pv = base("vol_far")
     n, l = nt.nodes, nt.links
-    gas, _, heat = atlas_shader_sample(nt, df, imgs["far"])
-    # thin envelope that only separates from the breakout once the swept-up shell has formed
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; l.new(gas, g2.inputs[0])
-    l.new(_keyed_value(nt, "far_gain", lambda t: 0.16 * float(C.smoothstep(1.35, 2.2, t))), g2.inputs[1])
-    l.new(g2.outputs[0], pv.inputs["Density"])
-    ramp = n.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.36, 0.30, 0.48, 1)
-    ramp.color_ramp.elements[-1].position = 0.6; ramp.color_ramp.elements[-1].color = (0.62, 0.66, 0.74, 1)
-    l.new(gas, ramp.inputs["Fac"]); l.new(ramp.outputs["Color"], pv.inputs["Color"])
-    pv.inputs["Anisotropy"].default_value = 0.45
-    strength = n.new("ShaderNodeMath"); strength.operation = "MULTIPLY"; l.new(heat, strength.inputs[0])
-    l.new(_keyed_value(nt, "far_heat_gain", lambda t: 0.03 * (0.3 + 0.7 * C.light_curve(t - C.DET))), strength.inputs[1])
-    l.new(strength.outputs[0], pv.inputs["Emission Strength"])
-    bb = n.new("ShaderNodeBlackbody"); bb.inputs["Temperature"].default_value = 6200.0
-    l.new(bb.outputs["Color"], pv.inputs["Emission Color"])
-    _set_step_rate(m, 4.0)
+    gas, _, _ = atlas_shader_sample(nt, df, imgs["far"])
+    detail = _detail(nt, 2.0)
+    gas_c = _math(n, l, "POWER", gas, const=0.5)
+    g = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", gas_c, detail), _keyed_value(nt, "far_gain", lambda t: FAR_GAIN * float(C.smoothstep(1.12, 1.6, t)) * (1.0 - 0.72 * float(C.smoothstep(1.6, 2.4, t)))))
+    g2 = _math(n, l, "MULTIPLY", g, _value(n, "far_gain_scale", 1.0))
+    l.new(g2, pv.inputs["Density"])
+    ramp = _ramp(n, l, _maprange(n, l, gas_c, 0.0, 1.4, 0.0, 1.0),
+                 [(0.0, (0.22, 0.20, 0.40)), (0.5, (0.40, 0.56, 0.84)), (1.0, (0.62, 0.78, 0.92))])
+    alb = n.new("ShaderNodeMix"); alb.data_type = "RGBA"; alb.inputs[6].default_value = (0, 0, 0, 1)
+    l.new(_value(n, "far_albedo", 0.45), alb.inputs["Factor"]); l.new(ramp, alb.inputs[7])
+    l.new(alb.outputs[2], pv.inputs["Color"])
+    pv.inputs["Anisotropy"].default_value = 0.5
+    fglow = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", gas_c, _value(n, "far_glow", 0.06)),
+                  _keyed_value(nt, "far_glow_t", lambda t: (0.25 + 0.75 * C.light_curve(max(t - C.DET, 0))) * float(C.smoothstep(1.12, 1.6, t))))
+    l.new(fglow, pv.inputs["Emission Strength"])
+    pv.inputs["Emission Color"].default_value = (0.36, 0.52, 1.0, 1)
+    _set_step_rate(m, 3.0)
     mats["far"] = m
 
     # ---- near: camera-attached dark particulate
@@ -557,12 +622,12 @@ def volume_materials(meta, imgs):
     n, l = nt.nodes, nt.links
     dust, _, _ = atlas_shader_sample(nt, dn, imgs["near"])
     detail = _detail(nt, 2.0)
-    g = n.new("ShaderNodeMath"); g.operation = "MULTIPLY"; l.new(dust, g.inputs[0]); l.new(detail, g.inputs[1])
-    g2 = n.new("ShaderNodeMath"); g2.operation = "MULTIPLY"; g2.inputs[1].default_value = 2.0; l.new(g.outputs[0], g2.inputs[0])
-    l.new(g2.outputs[0], pv.inputs["Density"])
-    pv.inputs["Color"].default_value = (0.06, 0.06, 0.07, 1)
+    g2 = _math(n, l, "MULTIPLY", _math(n, l, "MULTIPLY", dust, detail), _value(n, "near_gain", NEAR_GAIN))
+    l.new(g2, pv.inputs["Density"])
+    pv.inputs["Color"].default_value = (0.025, 0.025, 0.03, 1)
     pv.inputs["Anisotropy"].default_value = 0.4
-    _set_step_rate(m, 3.0)
+    pv.inputs["Emission Strength"].default_value = 0.0
+    _set_step_rate(m, 2.0)
     mats["near"] = m
     return mats
 
@@ -630,7 +695,7 @@ def build_volumes(meta, colls, cam):
 
 
 # --------------------------------------------------------------- lights
-def build_lights(meta, coll, bodies):
+def build_lights(meta, coll, bodies, cam):
     # key: the crack interior, riding the heat centroid, blackbody along the photosphere curve
     L = bpy.data.lights.new("crack_key", "POINT")
     L.shadow_soft_size = 0.11
@@ -650,7 +715,8 @@ def build_lights(meta, coll, bodies):
             pos = q + b * 0.02
         key.location = pos
         key.keyframe_insert("location", frame=f)
-        k = C.photosphere_kelvin(max(tau, 0.0))
+        # v2 palette: the key never drops below 9000 K (neutral white to cold blue, never warm)
+        k = max(C.photosphere_kelvin(max(tau, 0.0)), 9000.0)
         col = C.blackbody(k)
         L.color = tuple(float(x) for x in C.srgb_to_linear(col))
         if tau < 0:
@@ -659,9 +725,25 @@ def build_lights(meta, coll, bodies):
             L.energy = 0.0 if t < 0.8 else 6.0 * float(C.smoothstep(0.8, 1.05, t))
         else:
             # after the plateau the camera is inside the gas: the key must not flood the frame
-            L.energy = 320.0 * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 + 1.5 * math.exp(-tau / 0.2)) * (1.0 - 0.75 * float(C.smoothstep(0.55, 1.4, tau)))
+            L.energy = KEY_ENERGY * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 + 1.5 * math.exp(-tau / 0.2)) * (1.0 - 0.70 * float(C.smoothstep(0.55, 1.4, tau)))
         L.keyframe_insert("energy", frame=f)
         L.keyframe_insert("color", frame=f)
+    # v2: a second, weaker key further along the hot axis so the plume is lit along its
+    # length from inside (dust lanes silhouette against lit gas, light escapes through cavities)
+    L2 = bpy.data.lights.new("axis_key", "POINT")
+    L2.shadow_soft_size = 0.16
+    L2.use_shadow = True
+    key2 = bpy.data.objects.new("axis_key", L2)
+    link(key2, coll)
+    for f in range(0, C.F_END + 1):
+        t = C.t_of(f)
+        tau = max(t - C.DET, 0.0)
+        key2.location = q + b * (0.30 + 0.30 * min(tau, 2.0))
+        key2.keyframe_insert("location", frame=f)
+        L2.color = L.color
+        L2.energy = 0.0 if t < C.DET else 0.15 * KEY_ENERGY * (0.25 + 0.75 * C.light_curve(tau)) * (1.0 - 0.70 * float(C.smoothstep(0.55, 1.4, tau)))
+        L2.keyframe_insert("energy", frame=f)
+        L2.keyframe_insert("color", frame=f)
     # planets' fill: one dim directional light, linked only to the bodies
     S = bpy.data.lights.new("system_sun", "SUN")
     S.angle = math.radians(4)
@@ -669,13 +751,28 @@ def build_lights(meta, coll, bodies):
     link(sun, coll)
     sun.rotation_euler = (math.radians(52), math.radians(-18), math.radians(-35))
     for f in range(0, C.F_END + 1):
-        S.energy = 1.4 * (2 ** C.map_exposure_ev(C.t_of(f)))
+        S.energy = 1.4 * (2 ** C.map_exposure_ev(C.t_of(f))) * C.event_dim(C.t_of(f))
         S.keyframe_insert("energy", frame=f)
     lc = bpy.data.collections.new("sun_receivers")
     for b_ in bodies:
         lc.objects.link(b_)
     sun.light_linking.receiver_collection = lc
-    return key, sun
+    # v2: a large, dim, cold fill (11000 K) from the camera's upper left so fragment faces and
+    # the core read as solids; linked to solids only so the gas keeps its own internal shadow
+    F = bpy.data.lights.new("cold_fill", "AREA")
+    F.shape = "DISK"
+    F.size = 4.0
+    F.energy = FILL_ENERGY
+    F.color = tuple(float(x) for x in C.srgb_to_linear(C.blackbody(11000)))
+    F.use_shadow = True
+    fill = bpy.data.objects.new("cold_fill", F)
+    link(fill, coll)
+    fill.parent = cam
+    fill.matrix_parent_inverse = Matrix.Identity(4)
+    pos = Vector((-2.6, 2.0, 0.5))
+    aim = Vector((0.0, 0.0, -4.5))
+    fill.matrix_basis = Matrix.Translation(pos) @ (aim - pos).to_track_quat("-Z", "Y").to_matrix().to_4x4()
+    return key, sun, fill
 
 
 # -------------------------------------------------------------- camera
@@ -766,7 +863,7 @@ def setup_render(scene, colls):
     world = bpy.data.worlds.new("deep_field")
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
-    bg.inputs[0].default_value = (0.004, 0.005, 0.010, 1.0)
+    bg.inputs[0].default_value = (0.003, 0.003, 0.008, 1.0)
     bg.inputs[1].default_value = 1.0
     scene.world = world
     # view layers: beauty + one per element for the isolated passes
@@ -809,7 +906,7 @@ def main():
     bodies = build_bodies(colls["map"], cam)
     build_gold_stream(colls["map"])
     vols, imgs = build_volumes(meta, colls, cam)
-    build_lights(meta, colls["lights"], bodies)
+    key, sun, fill = build_lights(meta, colls["lights"], bodies, cam)
     build_motes(colls["motes"], cam)
     # hero fragments from the library file
     frag_blend = os.path.join(C.BLEND_DIR, "fragments.blend")
@@ -819,6 +916,11 @@ def main():
     for ob in list(hero.objects):
         link(ob, colls["fragments"])
     bpy.data.collections.remove(hero)
+    # the cold fill reaches the solids only (fragments, core, motes); the gas is lit by the key alone
+    fc = bpy.data.collections.new("fill_receivers")
+    for ob in list(colls["fragments"].objects) + list(colls["motes"].objects) + [bpy.data.objects["core"]]:
+        fc.objects.link(ob)
+    fill.light_linking.receiver_collection = fc
     # the whole event: fragments and volumes do not receive the planets' sun (light linking above)
     setup_render(scene, colls)
     scene.frame_set(C.f_of(1.45))

@@ -47,3 +47,6 @@ server-3100.log
 /tools/blender/golden-path-proof/cache/
 /tools/blender/golden-path-proof/__pycache__/
 /tools/blender/golden-path-proof/cache_solve.log
+*.blend1
+/tools/blender/golden-path-proof/cache_*/
+/tools/blender/golden-path-proof/cache_*.log

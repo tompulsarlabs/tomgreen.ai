@@ -245,9 +245,9 @@ D_KNOTS = [(0.00, 7.62), (0.25, 7.52), (0.45, 7.15), (0.80, 6.50), (1.10, 5.90),
            (1.75, 5.40), (2.30, 3.50), (2.85, 2.35), (3.20, 2.10), (3.60, 2.00), (4.80, 2.00)]
 ROLL_KNOTS = [(0.0, 0.0), (1.30, 0.0), (1.75, -0.5), (2.10, -1.5), (2.30, -2.5), (2.50, -2.5),
               (2.85, -1.0), (3.20, 0.0), (4.80, 0.0)]
-LATERAL = (0.45, 0.20)               # camera-space slide, right / up, 1.75 -> 2.50
-AIM_SCREEN = (0.04, 0.04)            # core sits 4% left and 4% below centre
-FSTOP = 2.8
+LATERAL = (0.62, 0.30)               # camera-space slide, right / up, 1.75 -> 2.50 (v2: core lower-left, not dominant)
+AIM_SCREEN = (0.08, 0.07)            # v2: core sits 8% left and 7% below centre; the breakout owns the centre-right
+FSTOP = 4.0                          # v2: near elements keep readable form
 
 _pchip_cache = {}
 
@@ -346,7 +346,7 @@ def breakout_basis():
     right-handed frame (e1, e2, b) around the breakout axis."""
     st = camera_state(1.20)
     ang = math.radians(38.0)
-    b = math.cos(ang) * st["r"] + math.sin(ang) * st["u"] - 0.24 * st["f"]
+    b = math.cos(ang) * st["r"] + math.sin(ang) * st["u"] - 0.45 * st["f"]   # v2: more toward the viewer
     b /= np.linalg.norm(b)
     e1 = np.cross(b, np.array([0.0, 0.0, 1.0]))
     e1 /= np.linalg.norm(e1)
@@ -392,6 +392,11 @@ def zalando_state(t):
 def map_exposure_ev(t):
     """Exposure of the map context (nebula, lattice, planets) relative to rest."""
     return knots(t, [(0.0, 0.0), (0.25, -0.3), (0.45, -0.7), (0.80, -0.9), (1.05, -1.4), (1.10, -1.4), (4.8, -1.4)])
+
+
+def event_dim(t):
+    """v2: the map (planets, lattice, nebula) steps back by ~55% while the event is the subject."""
+    return 1.0 - 0.55 * float(smoothstep(1.10, 1.35, t))
 
 
 def nebula_opacity(t):
