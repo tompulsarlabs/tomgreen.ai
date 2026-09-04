@@ -167,6 +167,39 @@ which is not safe across Safari, iOS, Chrome and Firefox. Matte detail lives in
 luma, which 4:2:0 keeps at full resolution, so the split costs it nothing and
 Safari needs no separate path.
 
+## What looking at it found
+
+Photographing the shot found six defects that every gate had passed. They are
+recorded here because they are the argument for the review clock existing at
+all — none of them is visible to a type checker, a linter, or a test that
+asserts where the visitor lands.
+
+1. **The plate never bound.** The decoders were bound in a mount-once effect,
+   but `getGoldenAssets()` returns a *replaced* object: the portal asks for the
+   media in its own effect, which React runs after the child's, and the
+   decoders are handed back after every shot and rebuilt by the next prefetch.
+   The cinematic ran with an empty plate.
+2. **The quads were world-space.** They sat at a fixed world position while the
+   camera travelled 7.62 units to 2.00 and rolled, so the baked event drifted
+   into the corner of the frame instead of erupting from the core.
+3. **The erase revealed the portal, not the page.** The canvas dissolved
+   correctly onto a portal painting its own `#05070d`, and the shot ended on
+   near-black.
+4. **Then the page showed too early, at the top.** With that ground gone, the
+   band above the canvas — the portal's chrome row — was the page from the
+   first frame, moon and all.
+5. **The approved camera was never applied.** `camDistance`, `camRollDeg` and
+   `camSlide` were computed every frame and consumed by nothing; what looked
+   like camera travel in an earlier sheet was the site's own capture dolly.
+   Nor was the map's dimming, which the matte's arithmetic depends on.
+6. **The typography arrived half a second late**, folded into the portal's
+   teardown at 3.60 s rather than the approved 3.03 s, so the paper landed on a
+   blank page that then filled in.
+
+A seventh was found by the browser rather than the eye, and is recorded under
+Fallbacks: it has no H.264 decoder, so the press was silently taking the
+procedural transition.
+
 ## How the review frames were made
 
 The shot is 4.8 seconds of wall clock, and that is exactly what makes it
