@@ -41,7 +41,20 @@ colour P = A - (1 - M) * B          so that   P + (1 - M) * B == A
 
 Absorption is floored at a lit background, so the plate can occlude the bright
 planets it passes in front of without the near-black field blowing the matte
-open. Worst recomposition error across all 70 frames: **1/255**.
+open. The derivation itself is exact to **1/255** at full float precision.
+
+What actually ships is that derivation encoded, so the number that matters is
+the one measured back through the delivered master at its own resolution,
+upscaled exactly as the shader samples it:
+
+| tier | H.264 mean · p99.9 · max | VP9 mean · p99.9 · max |
+|---|---|---|
+| high 1440×900 | 1.217 · 12 · 60 | 1.225 · 11 · 58 |
+| medium 1024×640 | 1.406 · 17 · 95 | 1.370 · 15 · 76 |
+| low 720×448 | 1.655 · 24 · 126 | 1.589 · 21 · 111 |
+
+Per 255. The maxima are isolated pixels on the plume's hardest edges; 99 % of
+every frame is within 6–10.
 
 Because the matte is the event's own coverage, the live map is genuinely
 visible through it rather than replaced:
@@ -91,8 +104,18 @@ no shape of its own: it cannot become a circle, an iris or an aperture, and it
 reaches the viewport edges because the canvas does.
 
 The field is the render's own whiteout `W`, baked at full resolution and
-reproducing to **0.46/255**; the paper matte is derived from it in the shader
-exactly as the composite derives it (`smoothstep(0.25, 0.95, W)`).
+reproducing to a mean of **0.136/255** (worst pixel 14/255); the paper matte is
+derived from it in the shader exactly as the composite derives it
+(`smoothstep(0.25, 0.95, W)`).
+
+Three things had to be true for the erase to reach the page, and only the
+first was true when this was written. The canvas is created with `alpha: true`
+and no composer, so it *can* go transparent. The deep field writes alpha 1
+across the whole frame, so it is opaque until the erase quad takes it apart.
+And nothing between the canvas and the document may paint a ground of its own
+— which both the portal and the orbit field did, in near-black. Erasing onto
+those ended the shot on `#05070d` instead of on the page. Both are transparent
+while the shot is armed.
 
 ## Typography is the real page
 
@@ -108,6 +131,8 @@ does not apply at all.
 
 | condition | what happens |
 |---|---|
+| No H.264 decoder (unbranded Chromium, Firefox without a system decoder) | VP9 is fetched instead, chosen by `canPlayType` before anything is requested. Observed, not assumed: the browser this was reviewed in has no H.264 at all. |
+| Neither codec decodable | Nothing is fetched, the shot never arms, the procedural transition runs. |
 | Plate not yet decoded at the press | The shot does not arm. The site's existing procedural transition runs, unchanged. Both paths share the same first 0.75 s of spiral, so the click responds in the same frame. |
 | `prefers-reduced-motion` | The tier resolves to none; the shot never arms; the masthead hold does not apply. |
 | `navigator.connection.saveData` | Tier resolves to none. No media is fetched at all. |
@@ -119,16 +144,42 @@ does not apply at all.
 
 Fetched only after the map has opened — never on initial page load.
 
-| tier | what a visitor downloads | kB |
-|---|---|---:|
-| high | plate 1440×1800 + paper field | 2434 |
-| medium | plate 1024×1280 + paper field | 1210 |
-| low | plate 720×896 + paper field | 696 |
+One master per visitor, never both. Stacked height is the encoded frame;
+displayed height is half of it.
 
-Colour and matte travel stacked in one H.264 stream rather than as alpha video,
+| tier | resolves for | H.264 kB | VP9 kB |
+|---|---|---:|---:|
+| high | desktop | 2411 | 1174 |
+| medium | laptop, ≤ 4 cores, min side < 760 | 1187 | 636 |
+| low | coarse pointer, min side < 480 | 674 | 398 |
+| none | reduced motion, save-data, no decoder | 0 | 0 |
+
+Colour and matte travel stacked in one stream rather than as alpha video,
 which is not safe across Safari, iOS, Chrome and Firefox. Matte detail lives in
 luma, which 4:2:0 keeps at full resolution, so the split costs it nothing and
 Safari needs no separate path.
+
+## How the review frames were made
+
+The shot is 4.8 seconds of wall clock, and that is exactly what makes it
+unphotographable here: this container rasterises WebGL on the CPU, where a
+single screenshot costs more than the whole shot. A recording of it is a
+recording of about five frames.
+
+So the clock is held instead. A build made with `NEXT_PUBLIC_GOLDEN_REVIEW=1`
+exposes `window.__goldenHold(t)`, and `e2e/golden-path-sheet.mjs` walks the
+real interaction, presses the planet once, and steps the shot beat by beat,
+photographing each. Everything in those frames is the real thing — the real
+shaders, the real plate, the real live map behind it, the real page underneath
+— and only the clock is stepped rather than run. It is how a shot is reviewed
+anywhere: frame by frame, against the approved frame.
+
+The hook exists in no shipped bundle. It is guarded on a value Next replaces
+with a literal at build time, so it folds to `if (false)` and is removed;
+`tools/golden-path-web/assert_no_review_hook.sh` greps the built chunks and
+fails the build rather than trusting that argument. `next.config.mjs` pins the
+flag to `"0"` for exactly this reason — left to the ambient environment it
+compiles to a live `process.env` lookup and the block survives minification.
 
 ## Known limitations
 
@@ -138,10 +189,14 @@ Safari needs no separate path.
   driven, so it still completes in 4.8 s, but with a fraction of the frames a
   GPU would draw. Frame rate, jank and the 60/40 fps targets must be judged on
   real hardware; nothing in this report claims them.
-- **Only Chromium was tested.** Safari macOS, Safari iOS, Firefox, Chrome
-  Windows and Chrome Android are not available in this environment and are
-  untested. The stacked-matte format was chosen specifically so that Safari and
-  iOS need no separate code path, but that is a design argument, not a test
+- **Only Chromium was tested, and only its open-source build.** Safari macOS,
+  Safari iOS, Firefox, Chrome Windows and Chrome Android are not available in
+  this environment and are untested. One consequence is worth stating plainly:
+  every frame in this review was rendered from the **VP9** master, because the
+  browser here has no H.264 at all. The H.264 masters are byte-for-byte the
+  same derivation and measure equivalently (table above), but they have not
+  been seen decoded. The stacked-matte format was chosen so that Safari and iOS
+  need no separate code path — that remains a design argument, not a test
   result.
 - **The live map is the site's own, not the render's.** The approved render
   drew six bodies; the Work system has eight. Where the plate's matte is open

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ROUTE_AT, STILL_AT } from "@/lib/golden-path";
+import { ROUTE_AT, STILL_AT, TYPO_IN } from "@/lib/golden-path";
 import {
   getGoldenAssets,
   goldenAssetsReady,
@@ -17,6 +17,7 @@ import {
   goldenIsRunning,
   goldenShotTime,
   markGoldenPushed,
+  markGoldenTypography,
   subscribeGoldenPath,
 } from "@/lib/golden-path-store";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -146,6 +147,11 @@ export function OrbitPortal() {
         router.push(state.href);
         return;
       }
+      // The masthead arrives on the render's own beat, not on the portal's:
+      // the approved shot brings the typography in at 3.03 s and has it
+      // whole by 3.30, while the portal has another 300 ms of paper left to
+      // draw over it.
+      if (t >= TYPO_IN) markGoldenTypography();
       if (t >= STILL_AT) {
         finishGoldenPath();
         releaseGoldenAssets();

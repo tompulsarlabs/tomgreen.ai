@@ -199,25 +199,40 @@ export function GoldenPathLayer() {
   const paperSeeded = useRef(false);
 
   /**
-   * Scratch for the per-frame camera attachment. Allocating a Vector3 in the
-   * frame loop is a garbage collection the shot would eventually pay for.
-   */
-  const forward = useRef(new THREE.Vector3());
-
-  /**
-   * Hang both quads on the camera, facing it, at a fixed distance.
+   * Both quads hang on the camera, facing it, exactly filling its frustum at
+   * a fixed distance — so the offset from the camera is a constant, computed
+   * once here.
    *
    * They cannot simply sit in the scene: the plate is a screen-space image,
    * and the camera travels 7.6 to 2.0 units and rolls through the shot, so a
-   * world-space quad slides out of frame — the baked event ends up beside
-   * the core it is supposed to be erupting from. Attached to the camera it
-   * is exactly what the render photographed: the frame itself.
+   * world-space quad slides out of frame and the baked event ends up beside
+   * the core it is supposed to be erupting from.
+   *
+   * Nor can the offset be applied in this component's frame loop. R3F runs a
+   * child's useFrame before its parent's, and the parent is what solves the
+   * camera, so a quad placed here would be registered to the camera of the
+   * PREVIOUS frame — during the dive that is a one-percent scale error
+   * against the live core, which is a visible breathing at the seam. So the
+   * placement happens in onBeforeRender instead, which three calls with the
+   * rendering camera and, crucially, before it derives modelViewMatrix from
+   * matrixWorld. There is no ordering left to get wrong.
    */
-  const followCamera = (mesh: THREE.Mesh, camera: THREE.PerspectiveCamera) => {
-    forward.current.set(0, 0, -1).applyQuaternion(camera.quaternion);
-    mesh.position.copy(camera.position).addScaledVector(forward.current, PLATE_DISTANCE);
-    mesh.quaternion.copy(camera.quaternion);
-  };
+  const offset = useMemo(() => {
+    const halfHeight = PLATE_DISTANCE * Math.tan(FOV_Y / 2);
+    return new THREE.Matrix4().compose(
+      new THREE.Vector3(0, 0, -PLATE_DISTANCE),
+      new THREE.Quaternion(),
+      new THREE.Vector3(halfHeight * PLATE_ASPECT * 2, halfHeight * 2, 1),
+    );
+  }, []);
+
+  const placeOnCamera = useMemo(
+    () =>
+      function place(this: THREE.Object3D, _r: unknown, _s: unknown, camera: THREE.Camera) {
+        this.matrixWorld.multiplyMatrices(camera.matrixWorld, offset);
+      },
+    [offset],
+  );
 
   /**
    * Frames still to spend warming the two programs.
@@ -314,13 +329,6 @@ export function GoldenPathLayer() {
     // this early either.
     if (warmFrames.current > 0) {
       warmFrames.current -= 1;
-      // Sized to the frustum like the real thing, so the warm draw
-      // rasterises the same fragment count the shot will.
-      const halfHeight = PLATE_DISTANCE * Math.tan(FOV_Y / 2);
-      plateMesh.scale.set(halfHeight * PLATE_ASPECT * 2, halfHeight * 2, 1);
-      eraseMesh.scale.copy(plateMesh.scale);
-      followCamera(plateMesh, camera);
-      followCamera(eraseMesh, camera);
       plateMesh.visible = true;
       eraseMesh.visible = true;
       return;
@@ -348,12 +356,6 @@ export function GoldenPathLayer() {
       camera.updateProjectionMatrix();
     }
 
-    const halfH = PLATE_DISTANCE * Math.tan(FOV_Y / 2);
-    plateMesh.scale.set(halfH * PLATE_ASPECT * 2, halfH * 2, 1);
-    eraseMesh.scale.copy(plateMesh.scale);
-    followCamera(plateMesh, camera);
-    followCamera(eraseMesh, camera);
-
     drive(plate, t - PLATE_T0, plateSeeded);
     drive(paper, t - PAPER_T0, paperSeeded);
 
@@ -374,7 +376,13 @@ export function GoldenPathLayer() {
 
   return (
     <group>
-      <mesh ref={plateRef} renderOrder={40} frustumCulled={false}>
+      <mesh
+        ref={plateRef}
+        renderOrder={40}
+        frustumCulled={false}
+        matrixAutoUpdate={false}
+        onBeforeRender={placeOnCamera}
+      >
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
           ref={plateMat}
@@ -390,7 +398,13 @@ export function GoldenPathLayer() {
           toneMapped={false}
         />
       </mesh>
-      <mesh ref={eraseRef} renderOrder={200} frustumCulled={false}>
+      <mesh
+        ref={eraseRef}
+        renderOrder={200}
+        frustumCulled={false}
+        matrixAutoUpdate={false}
+        onBeforeRender={placeOnCamera}
+      >
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
           ref={eraseMat}

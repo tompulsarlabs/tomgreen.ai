@@ -147,11 +147,32 @@ function markLanding() {
   el.dataset.goldenPhase = "landing";
 }
 
+/**
+ * Release the masthead, as one complete composition.
+ *
+ * Separate from settle() because the two happen at different instants and
+ * for different reasons: the approved shot brings the typography in at
+ * 3.03 s, while the portal only closes at 3.60 s. Folding them together
+ * published the whole masthead half a second late - after the paper had
+ * already arrived, so the page appeared blank and then filled in. Idempotent,
+ * because settle() calls it again on the way out and so does every recovery.
+ */
+function releaseTypography() {
+  const el = root();
+  if (!el) return;
+  el.classList.remove("golden-landing");
+  el.classList.add("golden-typography");
+}
+
+export function markGoldenTypography() {
+  if (state.phase !== "landing" && state.phase !== "running") return;
+  releaseTypography();
+}
+
 function settle() {
   const el = root();
   if (el) {
-    el.classList.remove("golden-landing");
-    el.classList.add("golden-typography");
+    releaseTypography();
     el.dataset.goldenPhase = "done";
   }
   if (watchdog !== null) {

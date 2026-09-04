@@ -25,6 +25,8 @@ import { CAPTURE_START as GOLDEN_CAPTURE_START, clampUnit } from "@/lib/golden-p
 import {
   getGoldenState,
   goldenIsBody,
+  goldenIsRunning,
+  goldenMotionNow,
   goldenShotTime,
   subscribeGoldenPath,
 } from "@/lib/golden-path-store";
@@ -37,6 +39,9 @@ import {
 import { isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
+
+/** The scene's exposure at rest. The golden path scales it and hands it back. */
+const BASE_EXPOSURE = 1.05;
 
 /** A body as one frame drew it: centre, radius, and its nameplate's box. */
 type DrawnSpot = { x: number; y: number; r: number; plate: Rect | null };
@@ -995,6 +1000,39 @@ function OrbitScene({
     );
     camera.lookAt(0, -0.42, 0);
 
+    /* THE APPROVED CAMERA.
+     *
+     * Distance, roll and slide are the render's own, sampled per frame from
+     * the tables in golden-path.ts; azimuth and polar stay the visitor's,
+     * because the breakout is screen-space authored and snapping the angle
+     * at the press would be a jump. The dive is the whole shot: 7.62 units
+     * out to 2.00 at the core, rolling to -2.5 degrees and sliding laterally
+     * through the passage.
+     *
+     * And the map dims as it did in the render - which is not a mood, it is
+     * arithmetic. The plate is difference-matted against the map the render
+     * drew, so P + (1 - M) * B reproduces the approved frame only where the
+     * live map IS that B. At the detonation the matte leaves 98% of the
+     * frame to the live map; a map at full brightness there is not the
+     * approved image at all. Exposure falls 1.4 EV as the planet spirals in,
+     * then the map takes a further 0.45x as the event breaks out.
+     */
+    if (goldenIsRunning()) {
+      const g = goldenMotionNow();
+      camera.position.set(
+        g.camDistance * Math.sin(polar) * Math.sin(azimuth),
+        g.camDistance * Math.cos(polar),
+        g.camDistance * Math.sin(polar) * Math.cos(azimuth),
+      );
+      camera.lookAt(0, -0.42, 0);
+      camera.translateX(g.camSlide[0]);
+      camera.translateY(g.camSlide[1]);
+      camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg));
+      gl.toneMappingExposure = BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim;
+    } else if (gl.toneMappingExposure !== BASE_EXPOSURE) {
+      gl.toneMappingExposure = BASE_EXPOSURE;
+    }
+
     // Membrane uniforms.
     membraneUniforms.uTime.value = now;
     membraneUniforms.uReveal.value = 1 - Math.pow(1 - s.reveal, 3);
@@ -1691,7 +1729,7 @@ export function OperatingOrbit3D({
         antialias: true,
         powerPreference: "high-performance",
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.05,
+        toneMappingExposure: BASE_EXPOSURE,
       }}
       style={{ background: "transparent" }}
       eventPrefix="client"

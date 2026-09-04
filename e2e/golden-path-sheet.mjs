@@ -48,12 +48,17 @@ const browser = await chromium.launch({
 async function reachZalando(page) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto(`${baseURL}/building`, { waitUntil: "load" });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
+  // The first document commit can still be replaced under a loaded machine,
+  // and an evaluate that lands across it dies with its execution context.
+  // Waiting for the review clock through waitForFunction rather than
+  // evaluate rides that out: waitForFunction re-attaches to the new context
+  // instead of throwing.
+  await page.waitForFunction(() => typeof window.__goldenHold === "function", undefined, {
+    timeout: 120_000,
   });
-  if (!(await page.evaluate(() => typeof window.__goldenHold === "function"))) {
-    throw new Error("no review clock: rebuild with NEXT_PUBLIC_GOLDEN_REVIEW=1");
-  }
+  await page.waitForFunction(() => document.fonts.status === "loaded", undefined, {
+    timeout: 120_000,
+  });
   await page.locator(".sphere-home").click();
   await page.locator('.orbit-portal[role="dialog"]').waitFor({ state: "visible" });
   await page
