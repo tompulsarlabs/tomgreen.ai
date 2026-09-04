@@ -73,11 +73,48 @@ export function getGoldenState(): Readonly<GoldenState> {
  * The clock. Seconds on the shot, clamped to it, so a consumer can never be
  * handed a time the render never drew.
  */
+/**
+ * A held time, for visual review only.
+ *
+ * The shot is 4.8 s of wall clock, which is exactly what makes it
+ * unphotographable on a machine that rasterises WebGL on the CPU: a single
+ * screenshot there costs more than the whole shot. Holding the clock lets a
+ * reviewer see the real shaders, the real plate, the real map and the real
+ * page at an exact beat and lay it beside the approved frame.
+ *
+ * It exists only in a build made with NEXT_PUBLIC_GOLDEN_REVIEW=1. The
+ * comparison is against a literal Next replaces at build time, so in the
+ * shipped bundle this is `if ("undefined" === "1")` and the block is dead
+ * code; tools/golden-path-web/assert_no_review_hook.sh greps the built
+ * chunks to prove it rather than trusting the argument.
+ */
+const REVIEW = process.env.NEXT_PUBLIC_GOLDEN_REVIEW === "1";
+let heldT: number | null = null;
+
 export function goldenShotTime(): number {
+  if (REVIEW && heldT !== null) return heldT;
   if (state.phase === "idle") return 0;
   if (state.phase === "done" || state.phase === "aborted") return T_END;
   const elapsed = (performance.now() - state.originMs) / 1000;
   return Math.min(Math.max(PRESS_T + elapsed, 0), T_END);
+}
+
+/** True only while a review build is holding the clock at a beat. */
+export function goldenIsHeld() {
+  return REVIEW && heldT !== null;
+}
+
+if (REVIEW && typeof window !== "undefined") {
+  (window as unknown as { __goldenHold?: (t: number | null) => void }).__goldenHold = (t) => {
+    heldT = t === null ? null : Math.min(Math.max(t, 0), T_END);
+    // The watchdog would end a held shot at its own pace, and the review
+    // build has no wall clock to answer to.
+    if (heldT !== null && watchdog !== null) {
+      window.clearTimeout(watchdog);
+      watchdog = null;
+    }
+    emit();
+  };
 }
 
 export function goldenIsRunning() {
