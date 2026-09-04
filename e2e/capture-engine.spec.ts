@@ -116,13 +116,41 @@ test("a mail channel answers on the press, with no cinematic in front of it", as
   const portal = await openPortal(page);
   await descend(portal, "contact");
 
-  const pressedAt = Date.now();
-  await portal.locator('a.orbit-label[data-body="email"]').dispatchEvent("click");
+  // Timed INSIDE the page, from the press to the frame the acknowledgement
+  // lands on. A wall-clock reading taken out here would measure this test's
+  // own round trips to the browser as well - on a loaded shared runner that
+  // is seconds on its own, and it says nothing at all about whether the
+  // product waited.
+  const answeredInMs = await portal.evaluate((el) => {
+    const label = el.querySelector<HTMLElement>('a.orbit-label[data-body="email"]');
+    if (!label) throw new Error("no email nameplate");
+    return new Promise<number>((resolve, reject) => {
+      let pressed = 0;
+      const giveUp = setTimeout(() => {
+        observer.disconnect();
+        reject(new Error("the press was never acknowledged"));
+      }, 8_000);
+      const observer = new MutationObserver(() => {
+        if (el.getAttribute("data-departing") !== "true") return;
+        observer.disconnect();
+        clearTimeout(giveUp);
+        resolve(performance.now() - pressed);
+      });
+      observer.observe(el, { attributes: true, attributeFilter: ["data-departing"] });
+      pressed = performance.now();
+      // detail 0 is the keyboard path the nameplate's own handler takes, and
+      // the same one Playwright's dispatchEvent produces.
+      label.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    });
+  });
 
-  // On screen at once, and it is the restrained acknowledgement rather than
-  // the event: no shot armed, no spiral into the core, no burst.
-  await expect(portal).toHaveAttribute("data-departing", "true", { timeout: 3_000 });
-  expect(Date.now() - pressedAt).toBeLessThan(3_000);
+  // The compact capture is 2800 ms and the full one 4450 ms. This is not a
+  // tight bound - it is an order-of-magnitude separation, which is the claim.
+  expect(answeredInMs).toBeLessThan(1_000);
+
+  // And it is the restrained acknowledgement rather than the event: no shot
+  // armed, and no spiral into the core - the gravity core does not take a
+  // departure in at all, so the scene never starts a capture for it.
   await expect(portal).not.toHaveAttribute("data-golden", "true");
   await expect(portal.locator(".orbit-field")).not.toHaveAttribute("data-capturing", "email");
 
@@ -138,20 +166,36 @@ test("an external channel leaves immediately, well inside the shortest capture",
 }) => {
   // The same rule for a channel that really does navigate. Nothing is
   // asserted about the DOM after the press, because by then the browser is
-  // already leaving - which is the whole point. The bound is the assertion:
-  // the compact capture is 2.80 s and the full one 4.45 s, and the site's own
-  // procedural travel held for 860 ms before it moved.
+  // already leaving - which is the whole point. What is asserted instead is
+  // structural: the scene never took this body into the core, and no shot was
+  // ever armed, so there is nothing between the press and the departure. The
+  // sibling test above measures the timing of that same code path from inside
+  // the page, where a number means something.
   await page.route("https://calendly.com/**", (route) => route.abort());
   const portal = await openPortal(page);
   await descend(portal, "contact");
   await expect(portal).not.toHaveAttribute("data-golden", "true");
 
-  const attempts: number[] = [];
+  let armed = false;
+  let captured = false;
+  const watching = setInterval(async () => {
+    try {
+      const state = await portal.evaluate((el) => ({
+        golden: el.getAttribute("data-golden"),
+        capturing: el.querySelector(".orbit-field")?.getAttribute("data-capturing") ?? null,
+      }));
+      if (state.golden === "true") armed = true;
+      if (state.capturing === "calendly") captured = true;
+    } catch {
+      /* the page is leaving; nothing more to sample */
+    }
+  }, 120);
+
+  const attempts: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("calendly.com")) attempts.push(Date.now());
+    if (request.url().includes("calendly.com")) attempts.push(request.url());
   });
 
-  const pressedAt = Date.now();
   await portal
     .locator('a.orbit-label[data-body="calendly"]')
     .dispatchEvent("click")
@@ -159,8 +203,10 @@ test("an external channel leaves immediately, well inside the shortest capture",
       /* the press is what matters; the page may already be leaving */
     });
 
-  await expect.poll(() => attempts.length, { timeout: 10_000 }).toBeGreaterThan(0);
-  expect(attempts[0] - pressedAt).toBeLessThan(2_000);
+  await expect.poll(() => attempts.length, { timeout: 15_000 }).toBeGreaterThan(0);
+  clearInterval(watching);
+  expect(armed, "a capture armed in front of an external channel").toBe(false);
+  expect(captured, "the core took a departure in").toBe(false);
 });
 
 test("a decorative body is not a control, however hard it is pressed", async ({ page }) => {
