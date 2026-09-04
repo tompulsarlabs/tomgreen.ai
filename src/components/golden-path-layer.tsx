@@ -32,7 +32,12 @@ import * as THREE from "three";
 import { FOV_Y, PLATE_ASPECT, goldenMotionAt } from "@/lib/golden-path";
 import { PAPER_T0, PLATE_T0, getGoldenAssets } from "@/lib/golden-path-assets";
 import { followDecoder, type Follower } from "@/lib/capture-decoders";
-import { goldenIsHeld, goldenIsRunning, goldenShotTime } from "@/lib/golden-path-store";
+import {
+  goldenIsHeld,
+  goldenIsRunning,
+  goldenShotTime,
+  goldenTakesPaper,
+} from "@/lib/golden-path-store";
 
 /** The plate hangs at a fixed distance in front of the camera it was shot from. */
 const PLATE_DISTANCE = 6;
@@ -379,19 +384,26 @@ export function GoldenPathLayer() {
       if (action === "seek") paperSeeded.current = true;
     }
 
+    // The paper belongs to one of the two endings. A capture that releases a
+    // child system runs the same gas with these three at zero: the exposure
+    // blowout would burn the remnant the system assembles out of, and the
+    // erase quad would dissolve the canvas carrying that system - deleting
+    // the thing the capture exists to deliver, at the moment it lands.
+    const paper = goldenTakesPaper() ? m.paperFloor : 0;
+
     const plateMaterial = plateMat.current;
     const eraseMaterial = eraseMat.current;
     if (plateMaterial) {
       const u = plateMaterial.uniforms;
       u.uOpacity.value = m.plateOpacity;
-      u.uWhiteout.value = m.paperFloor;
+      u.uWhiteout.value = paper;
     }
     if (eraseMaterial) {
       const u = eraseMaterial.uniforms;
-      u.uFloor.value = m.paperFloor;
+      u.uFloor.value = paper;
     }
     plateMesh.visible = m.plateOpacity > 0.001;
-    eraseMesh.visible = m.paperFloor > 0.001;
+    eraseMesh.visible = paper > 0.001;
   });
 
   return (

@@ -23,6 +23,19 @@ export type GoldenPhase = "idle" | "running" | "landing" | "done" | "aborted";
 
 export type GoldenTier = "high" | "medium" | "low" | "none";
 
+/**
+ * How this capture resolves, decided once at the press and never re-derived.
+ *
+ * The event is identical for both up to its resolution phase; this is the only
+ * thing that differs, and it has to be knowable from inside the frame loop.
+ * "paper" collapses depth and hands the frame to the real page. "children"
+ * releases the captured body's own system out of the remnant, which means the
+ * whiteout and the erase quad must stay at zero for the whole shot - an erase
+ * quad that armed here would dissolve the canvas carrying the system the
+ * capture exists to deliver.
+ */
+export type GoldenEnding = "paper" | "children";
+
 export type GoldenState = {
   phase: GoldenPhase;
   /** performance.now() at the accepted press. */
@@ -31,6 +44,7 @@ export type GoldenState = {
   href: string | null;
   fromPath: string | null;
   tier: GoldenTier;
+  ending: GoldenEnding;
   pushed: boolean;
 };
 
@@ -41,6 +55,7 @@ const IDLE: GoldenState = {
   href: null,
   fromPath: null,
   tier: "none",
+  ending: "paper",
   pushed: false,
 };
 
@@ -119,6 +134,17 @@ if (REVIEW && typeof window !== "undefined") {
 
 export function goldenIsRunning() {
   return state.phase === "running" || state.phase === "landing";
+}
+
+/**
+ * True while the running shot ends in paper.
+ *
+ * Read from the frame loop, so it answers for the shot that is actually
+ * running rather than for whatever was armed last: with no shot running the
+ * paper channels must be dead, not merely idle.
+ */
+export function goldenTakesPaper() {
+  return goldenIsRunning() && state.ending === "paper";
 }
 
 /** True for the body the shot is playing for, and no other. */
@@ -206,6 +232,7 @@ export function armGoldenPath(input: {
   href: string;
   fromPath: string;
   tier: GoldenTier;
+  ending?: GoldenEnding;
 }): boolean {
   if (input.tier === "none") return false;
   if (goldenIsRunning()) return false;
@@ -221,6 +248,7 @@ export function armGoldenPath(input: {
     href: input.href,
     fromPath: input.fromPath,
     tier: input.tier,
+    ending: input.ending ?? "paper",
     pushed: false,
   };
   watchdog = window.setTimeout(() => finishGoldenPath(), WATCHDOG_MS);

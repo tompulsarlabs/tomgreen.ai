@@ -108,6 +108,39 @@ describe("every way out", () => {
   });
 });
 
+describe("which ending the shot is playing toward", () => {
+  it("defaults to paper, so the shot that ships today is unchanged", () => {
+    arm();
+    expect(store.getGoldenState().ending).toBe("paper");
+    expect(store.goldenTakesPaper()).toBe(true);
+  });
+
+  it("holds the paper channels dead for a capture that releases a system", () => {
+    // The erase quad multiplies the framebuffer by (1 - paper). Armed during
+    // a child-system ending it would dissolve the canvas carrying the system
+    // the capture exists to deliver, at the moment it lands.
+    store.armGoldenPath({
+      bodyId: "work",
+      href: "/building",
+      fromPath: "/building",
+      tier: "high",
+      ending: "children",
+    });
+    expect(store.getGoldenState().ending).toBe("children");
+    expect(store.goldenTakesPaper()).toBe(false);
+  });
+
+  it("answers for the shot that is running, not the one that was armed last", () => {
+    arm();
+    expect(store.goldenTakesPaper()).toBe(true);
+    store.markGoldenPushed();
+    store.finishGoldenPath();
+    // With nothing running the paper channels must be dead, not merely idle:
+    // the frame loop reads this every frame, including between captures.
+    expect(store.goldenTakesPaper()).toBe(false);
+  });
+});
+
 describe("several captures in one session", () => {
   it("arms again cleanly after a completed shot", () => {
     arm("ai-organisation");
