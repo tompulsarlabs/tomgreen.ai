@@ -1521,3 +1521,47 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .home-page .systems-title-row { grid-template-columns: minmax(0, 1fr); }
   .home-page .systems-hero h1.hero-title-long.personal-headline { max-width: none; }
 }
+
+/* ---------------------------------------------------------------- golden path
+   The Zalando cinematic lands on /work/zalando while its own paper takeover is
+   still playing, and the approved shot reveals the complete masthead as one
+   composition at 3.03 s. These two classes are that reveal.
+
+   Both sit on <html>, which also carries .js, so they are compound selectors
+   and not descendant ones: `.js .golden-landing` would require the class on a
+   child of <html>, would silently never match, and the masthead would be
+   visible from the moment the route pushed.
+
+   The hold is opacity only and lasts about a second. The content is
+   server-rendered and stays in the document and in the accessibility tree
+   throughout, so no-JS visitors, crawlers and the content guard are unaffected;
+   without .js neither rule applies at all. */
+.js.golden-landing [data-golden-masthead] {
+  opacity: 0;
+}
+
+.js.golden-typography [data-golden-masthead] {
+  opacity: 1;
+  transition: opacity 270ms var(--ease-settle, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js.golden-landing [data-golden-masthead],
+  .js.golden-typography [data-golden-masthead] {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* For the length of the shot the overlay is not merely faded but gone:
+   visibility removes the nameplates and the portal chrome from the tab order
+   and from hit-testing, which opacity cannot do — and a focused nameplate
+   carries `!important`, so it would otherwise paint a white label and a white
+   outline over the event. It keeps its box, so the scene's label measurement
+   cache and press bookkeeping go on working unchanged; display: none would
+   zero those boxes and poison the cache. */
+.orbit-portal[data-golden] .orbit-labels,
+.orbit-portal[data-golden] .orbit-portal-chrome {
+  visibility: hidden;
+  pointer-events: none;
+}

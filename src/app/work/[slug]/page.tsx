@@ -44,7 +44,14 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
   return (
     <article className="flex flex-col gap-20 pb-20 md:gap-28">
       <header className="case-opening relative left-1/2 w-screen -translate-x-1/2">
-        <div className="mx-auto max-w-[1360px] px-[max(22px,6vw)] py-12 md:py-20">
+        {/* The golden path arrives on this page while its own cinematic is
+            still the subject, and the approved shot reveals the complete
+            masthead as one composition once the paper has resolved. This is
+            the block it reveals: it is the real, server-rendered content,
+            held at opacity 0 for at most a second and never removed, so the
+            document, the accessibility tree and every reader without the
+            cinematic see exactly what they see today. */}
+        <div className="mx-auto max-w-[1360px] px-[max(22px,6vw)] py-12 md:py-20" data-golden-masthead>
           <Link href="/work" className="record inline-flex min-h-11 items-center hover:underline">
             ← Evidence index
           </Link>
