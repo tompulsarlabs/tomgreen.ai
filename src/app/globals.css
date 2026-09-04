@@ -1536,10 +1536,22 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    server-rendered and stays in the document and in the accessibility tree
    throughout, so no-JS visitors, crawlers and the content guard are unaffected;
    without .js neither rule applies at all. */
+/* The whole page, not only the masthead. The route pushes at 2.30 s and the
+   paper arrives at 2.78, so anything the document carries that is not held is
+   on the paper before the typography is - and on a 1080-tall viewport the
+   section below the masthead is exactly that: body copy sitting on white while
+   the masthead is still blank. The approved order is white paper, then
+   complete typography, so nothing precedes it.
+
+   Both are held and both are released on the same beat. Holding the parent
+   alone would have been enough to hide it, but it would also have made the
+   masthead's own opacity assertion pass for free. */
+.js.golden-landing main,
 .js.golden-landing [data-golden-masthead] {
   opacity: 0;
 }
 
+.js.golden-typography main,
 .js.golden-typography [data-golden-masthead] {
   opacity: 1;
   transition: opacity 270ms var(--ease-settle, cubic-bezier(0.22, 1, 0.36, 1));
