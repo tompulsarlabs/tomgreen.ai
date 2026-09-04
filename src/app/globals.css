@@ -1076,6 +1076,8 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .orbit-portal-chrome {
   position: relative;
   z-index: 2;
+  /* Its own, because the field is behind it now rather than below it. */
+  background: #05070d;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -1175,9 +1177,16 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   to   { opacity: 0; }
 }
 
-/* The field fills what the chrome leaves, and drops the full-bleed
-   trick it needs when it is a band inside a page. */
-.orbit-portal-field { position: relative; flex: 1 1 auto; min-height: 0; }
+/* The field is the whole viewport, always, and the chrome sits on top of it.
+   It used to be a band in a flex column that the shot then took full-bleed,
+   which cost a drawing-buffer resize at each end of the capture. The one at
+   the press was hidden by the compression; the one at the END is not hideable
+   at all - it lands on the beat a parent capture spends settling its released
+   system, and a fixed vertical FOV turns 58 px of returned chrome into the
+   whole scene shrinking 6.4% and stepping up the screen. So the canvas is one
+   size for the life of the portal and the resize does not exist. The chrome
+   carries its own ground for the same reason it always had one. */
+.orbit-portal-field { position: fixed; inset: 0; }
 .orbit-portal-field .orbit-field {
   width: 100%;
   height: 100%;
@@ -1585,21 +1594,40 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   background: transparent;
 }
 
-.orbit-portal[data-golden] .orbit-labels,
 .orbit-portal[data-golden] .orbit-portal-chrome {
   visibility: hidden;
   pointer-events: none;
 }
-
-/* The shot is full-bleed, so the canvas has to be. The portal is a column
-   with its chrome above the field, which leaves a band the canvas never
-   covers - and with the portal's own ground gone that band is the page,
-   showing through the top of the cinematic from the first frame. The field
-   takes the whole viewport while the shot is armed instead. It costs one
-   drawing-buffer resize, at the press, three quarters of a second before the
-   detonation and on the same beat as a spiral the procedural path also
-   draws. */
-.orbit-portal[data-golden] .orbit-portal-field {
-  position: fixed;
-  inset: 0;
+/* Nameplates are held for the event and released by the portal at the body
+   swap, not by the end of the shot. A parent capture spends its last two
+   seconds drawing a system together, and its names are meant to resolve into
+   that assembly - held until `data-golden` dropped, they would instead appear
+   whole, all at once, on the frame the clock ran out. The scene fades them up
+   against its own assembly ease once they are released; this only decides
+   when they may be seen at all. A paper capture never releases them: the
+   portal has closed by then. */
+.orbit-portal[data-golden][data-golden-labels="held"] .orbit-labels {
+  visibility: hidden;
+  pointer-events: none;
 }
+
+/* An external leaf's departure. Not a transition out of the portal - a
+   mailto: leaves the map exactly where it was - but an acknowledgement that
+   the press was taken, on the frame it was taken, while the browser does the
+   thing the visitor actually asked for. The field cools and settles back;
+   nothing waits on it, and nothing waits for it. */
+.orbit-portal[data-departing="true"] .orbit-portal-field {
+  animation: orbit-portal-depart 420ms var(--ease-settle) both;
+}
+@keyframes orbit-portal-depart {
+  0%   { opacity: 1; }
+  22%  { opacity: 0.72; }
+  100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-portal[data-departing="true"] .orbit-portal-field { animation: none; }
+}
+
+/* The shot is full-bleed and so is the field, always - see .orbit-portal-field
+   above. All that is left for the shot to do is take the chrome's ground out
+   of the way with it, which the visibility rule already does. */
