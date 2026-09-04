@@ -54,6 +54,15 @@ in the store rather than in an animation frame, because a hidden tab, a dead
 decoder and a closed portal all stop rAF — and a teardown that lives in the
 loop would strand the page holding its own masthead invisible.
 
+## One layout change, deliberately placed
+
+The shot is full-bleed and the portal is not: its chrome sits above the field
+in a column, so the canvas stops short of the top of the screen. While the shot
+is armed the field takes the whole viewport, which costs one drawing-buffer
+resize. It happens at the press — three quarters of a second before the
+detonation, on the same beat as a spiral the procedural path also draws — and
+nowhere near the takeover.
+
 ## The click
 
 Arming is a synchronous decision made from what is already in hand: if the
