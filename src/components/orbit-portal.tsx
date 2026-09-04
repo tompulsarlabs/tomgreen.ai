@@ -258,7 +258,15 @@ export function OrbitPortal() {
    * diverge on the first click, and Back would descend.
    */
   const stepUp = useCallback(() => {
-    if (currentStep() !== null && viewRef.current.kind === "section") {
+    // Only when the entry the browser is standing on is OUR section entry.
+    // Anything else and going back would pop something that is not the
+    // descent - the map's own entry, or the page underneath it.
+    const step = currentStep();
+    const record = step === null ? undefined : views.current.get(step);
+    if (
+      record?.view.kind === "section" &&
+      record.path === window.location.pathname
+    ) {
       window.history.back();
       return;
     }
@@ -402,14 +410,24 @@ export function OrbitPortal() {
       window.clearTimeout(travelTimer.current);
       window.clearTimeout(leaveTimer.current);
       setLeaving(false);
-      // One step back per press, which is what a nested world owes. A running
-      // shot is the outermost step there is: it owns the screen, so Escape
-      // cancels IT and leaves the visitor where they pressed, rather than
+      // One step back per press, which is what a nested world owes. A shot
+      // that still owns the screen is the outermost step there is, so Escape
+      // cancels IT and leaves the visitor where they pressed rather than
       // stepping up a level out from underneath a cinematic. A shot that has
       // already pushed its route is the exception - there is a real page
       // behind the overlay by then, so the recovery is to settle onto it.
-      if (goldenIsRunning()) {
-        if (getGoldenState().pushed) {
+      //
+      // A parent's capture stops owning the screen at the swap. From there the
+      // visitor is looking at the system they asked for, with the remnant
+      // thinning behind it, and Escape means what it means anywhere else in
+      // the hierarchy: go back up. Stepping up settles the shot on the way.
+      const shot = getGoldenState();
+      const delivered =
+        shot.ending === "children" &&
+        viewRef.current.kind === "section" &&
+        viewRef.current.id === shot.bodyId;
+      if (goldenIsRunning() && !delivered) {
+        if (shot.pushed) {
           finishGoldenPath();
           close("landing");
         } else {
@@ -565,7 +583,13 @@ export function OrbitPortal() {
       );
 
       if (action.type === "children") {
-        setView({ kind: "section", id });
+        // The descent the site has always had, for a press the engine could
+        // not arm - no decoded package, reduced motion, save-data. It is the
+        // same place either way, so it gets the same history entry.
+        const next: View = { kind: "section", id };
+        viewRef.current = next;
+        setView(next);
+        pushPortalStep(next);
         return;
       }
 
@@ -595,7 +619,7 @@ export function OrbitPortal() {
         });
       }, TRAVEL_HOLD_MS + TRAVEL_FADE_MS);
     },
-    [close, router],
+    [close, pushPortalStep, router],
   );
 
   if (!open) return null;

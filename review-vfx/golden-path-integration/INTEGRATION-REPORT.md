@@ -1,4 +1,4 @@
-# Zalando golden path: production integration
+# The planetary capture engine: production integration
 
 Status: **integration gate**. The approved V3 cinematic is wired into the live
 interaction on a branch cut from `main`. PR #13 was never merged; its approved
@@ -7,13 +7,51 @@ production site is unchanged until this is approved.
 
 ## What happens now
 
-A visitor opens the planetary map from the moon, descends into the Work system
-and presses **0 → 120 AI build**. From that press one clock runs for 4.8
-seconds: the planet spirals into the core, the core answers with the approved
-volumetric breakout, the camera travels through it, the light loses its depth,
-white paper becomes the image plane, and the complete Zalando page is simply
-there. The route changed to `/work/zalando` a second and a half earlier,
-underneath an opaque portal, so there is never a cut.
+A visitor opens the planetary map from the moon and presses a planet. Whatever
+they pressed, the same thing happens: the planet spirals into the core, the
+core answers with the approved volumetric breakout, the camera travels through
+it. What happens at the END is decided by what they captured.
+
+**A section** — Work, About, Contact — has its own system, and that system is
+released out of the remnant. The departing planets are gone by 2.75 s, the body
+set changes at the one instant nothing is visible, and the section's own orbits,
+planets and finally its nameplates draw themselves together inside the thinning
+gas. Nothing navigates. The portal is still open, one level deeper.
+
+**A case study** — *0 → 120 AI build*, *Interviewer training*, any of them — has
+a page. Depth collapses, white paper becomes the image plane, and the complete
+page is simply there. The route changed a second and a half earlier, underneath
+an opaque portal, so there is never a cut.
+
+**A contact channel** is neither. A mail client and another origin are not
+places the gravity core can deliver anyone to, so those four bodies are outside
+the engine entirely: the press is acknowledged on the frame it happens and the
+channel opens at once, inside the activation the gesture gave it.
+
+The full event is 4.45 s and it is the right length exactly once — the first
+capture of a session. Every nested capture after it plays the *same* event on a
+compact 2.80 s clock: same assets, same choreography, same beats, with the
+anticipation and the aftermath compressed and the breakout very nearly
+untouched.
+
+## One engine, not one feature
+
+The first version of this integration played the cinematic for a single
+hardcoded planet id. That is not what it is: the blue-white event is a property
+of the gravity core, not of a destination. So the portal no longer knows the
+name of any planet. It asks the model how a node resolves —
+
+```
+children -> the event, then the captured body's own system, released
+route    -> the event, then paper, then the destination
+external -> no event; the press is answered and the channel opens
+(none)   -> not a control
+```
+
+— and adding a project or a section to the map is not a change to the portal.
+There is one implementation, one baked package, one clock and one set of
+tables; the ending is the only branch, and it happens after the event has
+already reached its resolution phase.
 
 ## The architecture, in one paragraph
 
@@ -73,6 +111,159 @@ the matte is open, which is most of the frame:
 | 1.47 s (hero peak) | 0.093 | 81.4 % |
 | 1.83 s | 0.226 | 53.7 % |
 | 2.50 s (passage) | 0.463 | 0.9 % fully open, 65 % less than half covered |
+
+## The parent ending: what the render never drew
+
+Everything up to 2.50 s is the approved event and is not ours to touch. From
+there a case study collapses into paper, and a section does this instead. Each
+of these numbers exists because the alternative was visibly wrong.
+
+| beat | shot time | what happens |
+|---|---:|---|
+| branch | 2.50 s | the departing system begins to go |
+| swap | 2.75 s | it has reached zero; the body set changes |
+| field | 2.75 → 3.60 s | orbit curves, the core and the well resolve |
+| bodies | 2.85 → 4.40 s | the planets condense onto those curves |
+| camera, light | 2.75 → 4.30 s | both come home |
+| gas | 3.40 → 4.80 s | the plate thins behind the arriving system |
+| labels | with the bodies | the nameplates resolve last |
+
+**Nothing moves before the branch.** The obvious schedule fades the outgoing
+system out under the breakout, which looks right and is not: the plate is
+difference-matted against the map the render drew, and at the hero peak the
+matte leaves 81 % of the frame to the live map. Dimming the siblings there
+stops the composite reproducing the approved frame at the one beat the whole
+event exists for — the beat the compact capture deliberately protects at 1.08×.
+
+**The camera has to come back.** The approved camera ends parked 2.00 units
+from the core. A child system's orbits span roughly 1.29 to 3.11 units, so a
+camera left where the shot leaves it stands *inside* the shell it is meant to
+be revealing, with half the system behind it.
+
+**So does the light.** `mapDim` and `mapExposureEv` are monotone: the approved
+shot takes the map to 0.45 × 2^-1.4 = 0.17 of base and never brings it back,
+because the paper takeover means it never has to. Left alone a released system
+would assemble at a sixth of its brightness and then snap 5.9× in a single
+frame when the shot ended.
+
+**And the gas has to thin rather than stop.** The plate's authored opacity
+falls over 0.2 s, which the paper hides. With no paper that is a quarter of the
+frame switching off in six frames of a compact capture. The plate holds its
+last authored frame and fades across the assembly instead.
+
+## Two speeds, one edit
+
+The approved event is the right length exactly once. Played at that length on
+the fourth nested descent of one session it stops being a spectacle and becomes
+a toll — but a second, shorter EDIT would be a second design, two events the
+eye has to learn instead of one. So there is no second edit. There is one
+event, played at two speeds, and the speed is not a scalar:
+
+| segment | full | compact | rate |
+|---|---:|---:|---:|
+| 0.35 → 1.10 compression | 0.75 s | 0.45 s | 1.67× |
+| 1.10 → 1.75 **breakout** | 0.65 s | 0.60 s | **1.08×** |
+| 1.75 → 2.50 passage | 0.75 s | 0.45 s | 1.67× |
+| 2.50 → 3.40 resolution | 0.90 s | 0.65 s | 1.38× |
+| 3.40 → 4.80 remnant | 1.40 s | 0.65 s | 2.15× |
+| | **4.45 s** | **2.80 s** | |
+
+Everything downstream is a function of shot time rather than of wall clock — the
+per-frame tables, the decoders, the release schedule — so warping the one
+mapping from elapsed to shot time is the entire implementation. No asset
+changes, no second set of tables, and no channel that can disagree with another
+about what time it is. Which mode plays is session state held in memory only: a
+visitor who comes back tomorrow, or opens the map in a second tab, is being
+shown the thing for the first time again.
+
+## One canvas for the life of the portal
+
+The portal used to give the scene a key of the current world, so descending
+into a section threw away the component, the canvas, the GL context, every
+compiled program and every uploaded texture, and built them again from nothing.
+The scene never needed that — its own comment has always said that swapping the
+body set swaps the system, and that it draws itself together again rather than
+cutting — and the engine cannot live with it at all: a parent's capture changes
+the body set at 2.75 s of a shot that runs to 4.80, while the baked plate is
+still on screen and the clock is still running.
+
+Removing the key hands the scene the state the remount used to dispose of, so
+adopting a new body set is now one synchronous step at the top of the frame
+loop. What that had to account for, and what an adversarial pass over the design
+found before any of it shipped:
+
+- **A held capture is never cleared.** The press gate refuses a press while any
+  capture is held, and a capture that reached the portal was parked there on an
+  assumption that only held while the scene was about to be thrown away. Left
+  behind, the first descent of a session would lock out every press after it.
+- **Nameplates never wait again.** The gate that makes labels resolve with the
+  assembly was set only on the first mount. A released child system's names
+  would have arrived with its orbit curves instead of last.
+- **The membrane keeps departed bodies.** Its shader shades contact from all ten
+  body slots unconditionally, so a four-body system arriving after an eight-body
+  one left four contact dimples pressed into the lattice where nothing is.
+- **The shared program can be deleted mid-shot.** Every planet compiles to one
+  program, and three deletes a program the moment its use count reaches zero.
+  R3F disposes departed materials on an idle callback that is not ordered
+  against the frame loop, so a swap could delete the program and pay for a full
+  relink on the frame the child system first draws. One sub-millimetre body
+  holds the count above zero for the life of the canvas.
+- **Filament geometry rebuilds on every render.** drei rebuilds a Line's
+  geometry when its points array changes identity and disposes the material in
+  the same cleanup; a literal in the body map meant every re-render of the scene
+  — several inside the event — rebuilt every filament and relinked its program.
+- **The held package needs rewinding.** One decode now serves a whole session
+  rather than being rebuilt between captures, so the decoders arrive at each
+  press wherever the last capture left them. They are rewound at the press,
+  which gives the seek the whole compression to land in instead of putting it on
+  the frame the plate becomes visible.
+
+Fourteen id-keyed stores are pruned by subtraction on every swap, so a set that
+shares bodies with the last one keeps their measured nameplate boxes and settled
+anchors. A unit test walks the real hierarchy sixty times and asserts every one
+of them stays at set size.
+
+## The map is two places, and the browser knows about both
+
+Opening the Easter egg and descending into a section both used to leave history
+untouched, so Back from a captured case study went straight past the whole
+hierarchy to whatever page the visitor had been reading. Every level now has an
+entry, and Back reverses through it:
+
+```
+the page  ->  the map  ->  Work's system  ->  the case study
+```
+
+Restoring is direct: the system comes back landed, with the scene's own entry
+motion, and no capture is replayed. Three details about writing the entry decide
+whether it works at all, and all three are about the patch Next installs over
+`history.pushState`: the existing state is spread so Next's own keys reach the
+new entry and the patch defers to the original; the URL argument is omitted so
+no router restore is dispatched into a React transition on the frame the body
+set changes; and `pushState` is never captured in a local, because a reference
+taken before the patch is installed makes Back **reload the page** and destroy
+the portal, the clock and the decoders at once.
+
+What a step means is kept in a runtime map beside the path it was pushed from,
+because history state is not durable — Next rewrites the current entry's state
+on a hard navigation, and a router push can carry a step number forward onto a
+page that is not the map at all.
+
+Escape cancels the shot rather than stepping out from under it; a running event
+is the outermost step there is. Leaving on purpose unwinds the entries the
+portal owns, so the next Back goes where it would have gone if the Easter egg
+had never been opened.
+
+## The canvas is one size, always
+
+The field used to be a band in a flex column that the shot took full-bleed,
+which cost a drawing-buffer resize at each end of the capture. The one at the
+press was hidden by the compression. The one at the END is not hideable at all:
+it lands on the beat a parent capture spends settling its released system, and
+with a fixed vertical field of view, 58 px of returned chrome — measured, at
+1440×900 — turns into the whole scene shrinking 6.4 % and stepping up the
+screen. The field is now full-bleed for the life of the portal and the chrome
+sits on top of it carrying its own ground, so the resize does not exist.
 
 ## Deliberate deviations from the brief
 
@@ -146,7 +337,8 @@ does not apply at all.
 | `navigator.connection.saveData` | Tier resolves to none. No media is fetched at all. |
 | Decoder stalls mid-shot | The erase takes `max(sampled field, clock floor)`, so the canvas is provably clear by 3.40 s. The takeover degrades from a ragged edge to a plane-wide one — a different texture, never a cut. |
 | Tab hidden, Escape, Close, watchdog | Every exit runs one idempotent settle in the store, synchronously. A shot that had already pushed settles the arrival; one that had not clears everything. |
-| Any other planet, or the sibling Zalando project | Untouched. The procedural transition runs exactly as it does today. |
+| A contact channel | Outside the engine by design. The press is acknowledged at once and the channel opens in the same task, inside the gesture's own activation. |
+| A decorative body | Not a control. Labelled, never pressable, and no capture starts. |
 
 ## Assets
 
@@ -227,6 +419,36 @@ fails the build rather than trusting that argument. `next.config.mjs` pins the
 flag to `"0"` for exactly this reason — left to the ambient environment it
 compiles to a live `process.env` lookup and the block survives minification.
 
+## Gates
+
+| gate | result |
+|---|---|
+| `npm run typecheck` | pass |
+| `npm run lint` | clean |
+| `npm run test` | 203/203 |
+| `npm run build` | pass |
+| `npm run test:e2e` | 75/75 |
+| review clock absent from the bundle | pass |
+
+The commissioned coverage, and where it lives:
+
+| behaviour | where |
+|---|---|
+| a parent uses the shared engine | `capture-engine.spec.ts`, `planet-model.test.ts` |
+| a parent resolves into its child system | `capture-engine.spec.ts` |
+| a leaf resolves into its content | `golden-path.spec.ts` |
+| a decorative body is not interactive | `capture-engine.spec.ts`, `planet-model.test.ts` |
+| the first capture is FULL | `golden-path-store.test.ts` |
+| subsequent captures are COMPACT | `golden-path-store.test.ts`, `capture-timing.test.ts` |
+| one VFX package, reused | `golden-path-assets.test.ts`, `capture-engine.spec.ts` |
+| Back does not replay the capture | `golden-path.spec.ts` |
+| first-click reliability | unchanged; `onPress` still fires after the existing guards |
+| no hardcoded planet id | `planet-model.test.ts` ("names no planet") |
+| content destinations are correct | `golden-path.spec.ts`, `planet-model.test.ts` |
+| child labels and hit targets after assembly | `capture-engine.spec.ts` |
+| the swap is unobservable | `capture-release.test.ts`, continuously at 5 ms |
+| no progressive JS growth over traversal | `body-adoption.test.ts`, sixty descents |
+
 ## Known limitations
 
 - **Motion smoothness is not evidenced here.** This container rasterises WebGL
@@ -252,6 +474,13 @@ compiles to a live `process.env` lookup and the block survives minification.
   azimuth.** The visitor's own viewing angle is kept, because the breakout is
   screen-space authored and snapping the azimuth at the press would be a jump.
   Everything else is the render's own, sampled per frame from its tables.
-- **The sibling project is deliberately excluded.** `interviewer-training`
-  reaches the same page and keeps the procedural transition; the approved
-  landing is the other project's content.
+- **The parent ending has not been photographed.** The held-clock review rig
+  walks a capture that lands on a page; the frames in this review are all of
+  the paper ending. The release schedule is covered by unit tests at 5 ms
+  resolution and by six end-to-end tests, and an offline proof
+  (`parent-ending-remnant.jpg`) shows the remnant is usable with the whiteout
+  held at zero — but the assembly through the thinning gas has been verified by
+  measurement rather than by eye, and should be looked at on real hardware.
+- **The compact clock has been measured, not watched.** Its landmarks, rates
+  and continuity are asserted to 1e-12; whether 2.80 s reads as the same event
+  rather than a rushed one is a judgement that needs a GPU.

@@ -147,6 +147,9 @@ const FILAMENT_POINTS: [number, number, number][] = [
   [0, CORE_Y, 0],
 ];
 
+/** How long the scene takes to come home from an interrupted shot. */
+const RECOVER_SECONDS = 0.45;
+
 const ASSEMBLY_SECONDS = 1.45;
 /** How far out the pieces start, in world units of extra orbit radius. */
 const ASSEMBLY_SCATTER = 5.4;
@@ -540,6 +543,18 @@ function OrbitScene({
     revealTarget: 0,
     /** 0 while the system is still scattered, 1 once assembled. */
     assembly: 0,
+    /**
+     * What the shot had done to the camera and the light when it stopped, and
+     * how much of it is still owed back. A shot can end at any instant -
+     * Escape, the watchdog, a hidden tab - and it leaves both wherever it had
+     * taken them: up to 5.9x of exposure and 5.6 units of camera distance from
+     * where the map lives. Releasing them in one frame is a jump the visitor
+     * reads as a second fault on top of whatever made them interrupt it.
+     */
+    recover: 0,
+    shotPosition: new THREE.Vector3(),
+    shotQuaternion: new THREE.Quaternion(),
+    shotExposure: BASE_EXPOSURE,
     /** The first frame has run; the continuity seed happens only once. */
     seeded: false,
     /** Seeded into a live burst: nameplates wait for assembly instead. */
@@ -1222,6 +1237,21 @@ function OrbitScene({
       const shot = BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim;
       const light = release?.lightReturn ?? 0;
       gl.toneMappingExposure = shot + (BASE_EXPOSURE - shot) * light;
+      // Remembered every frame, so an interruption always has somewhere to
+      // come back FROM. A shot that runs to its own end is already home - the
+      // release schedule lands both channels at base by 4.30 s - so this costs
+      // that case nothing and saves every other one.
+      s.shotPosition.copy(camera.position);
+      s.shotQuaternion.copy(camera.quaternion);
+      s.shotExposure = gl.toneMappingExposure;
+      s.recover = 1;
+    } else if (s.recover > 0) {
+      s.recover = Math.max(0, s.recover - dt / RECOVER_SECONDS);
+      const k = s.recover;
+      camera.position.lerp(s.shotPosition, k);
+      camera.quaternion.slerp(s.shotQuaternion, k);
+      gl.toneMappingExposure =
+        BASE_EXPOSURE + (s.shotExposure - BASE_EXPOSURE) * k;
     } else if (gl.toneMappingExposure !== BASE_EXPOSURE) {
       gl.toneMappingExposure = BASE_EXPOSURE;
     }
