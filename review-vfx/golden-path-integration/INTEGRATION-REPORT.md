@@ -196,7 +196,12 @@ asserts where the visitor lands.
    teardown at 3.60 s rather than the approved 3.03 s, so the paper landed on a
    blank page that then filled in.
 
-A seventh was found by the browser rather than the eye, and is recorded under
+7. **At 1920x1080 the page's next section was on the paper before the
+   masthead.** The same reversal one scale up, invisible at 1440x900 only
+   because it sits below the fold. The page is held with the masthead now, and
+   both are released on the same beat.
+
+An eighth was found by the browser rather than the eye, and is recorded under
 Fallbacks: it has no H.264 decoder, so the press was silently taking the
 procedural transition.
 
