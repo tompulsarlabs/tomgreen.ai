@@ -1546,7 +1546,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .js.golden-landing main,
   .js.golden-landing [data-golden-masthead],
+  .js.golden-typography main,
   .js.golden-typography [data-golden-masthead] {
     opacity: 1;
     transition: none;
