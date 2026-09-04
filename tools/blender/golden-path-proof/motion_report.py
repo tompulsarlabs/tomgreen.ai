@@ -63,7 +63,7 @@ def main():
     lines.append("## Render settings (actual)\n")
     lines.append("- Frames 0-144 (145 frames), 1440 x 900, 30 fps, detonation at 1.10 s; the approved V3 scene, materials, lights, camera and timing unchanged.")
     lines.append("- Cycles CPU (4 cores), fixed seed 7 with animated seed off (the same noise pattern on every frame, so the denoiser sees a stable field), volume bounces 0, step rate 2.0, adaptive threshold 0.02, motion blur 0.5.")
-    lines.append(f"- Event plate (plume + fragments + motes) at 100 % every frame: {s['event_spp_out']} samples while the camera is outside the volumes (to 2.17 s, one plate with the far halo and the near particulate inside it, volume max steps {s['out_max_steps']}), {s['event_spp_in']} samples once the camera is inside (from 2.20 s; far and near as their own layers), mid grid x{s['in_grid']} inside (larger ray steps; the shader still samples the full-resolution atlas), volume max steps {s['in_max_steps']}.")
+    lines.append(f"- Event plate (plume + fragments + motes) at 100 % size on every frame, {s['event_spp_out']} samples; the far halo and the near particulate are rendered as their own layers on every frame (never in the plume plate, unlike the approved hero still); volume max steps {s['out_max_steps']} while the camera is outside the volumes (to 2.17 s) and {s['in_max_steps']} inside (from 2.20 s), plume grid x{s['in_grid']} inside (larger ray steps; the shader still samples the full-resolution atlas).")
     lines.append(f"- Far and near layers (camera inside): {s['aux_spp']} samples at {int(s['aux_scale'] * 100)} % size, composited under / over the plate; the far layer is then softened by 6 px and the near layer weighted 0.45, exactly as in the approved V3 passage still. Residual atmosphere over the paper (3.43 s on): far layer at {int(s['residual_scale'] * 100)} % size, {s['residual_spp']} samples, graded to the alpha budget (0.30 -> 0.06).")
     lines.append(f"- Map plate (membrane, core, bodies, labels): {s['map_spp']} samples.")
     lines.append("- Denoise: OpenImageDenoise on RGB and alpha, 15 % of a lightly blurred raw mixed back (25 % in the stills); far / near layers additionally blended over 3 frames (0.25 / 0.5 / 0.25).")
@@ -76,6 +76,7 @@ def main():
         if L in timings:
             lines.append(f"| {L} | {len(timings[L])} | {per_layer[L] / 3600:.2f} h |")
     lines.append(f"| **total** | | **{total / 3600:.2f} h** |")
+    lines.append("\nWall clock: first pass 18:40 UTC Sep 3 to 03:01 UTC Sep 4 (restarted once after a container reclaim), volume solve extension 6 min, re-render of frames 91-144 03:13 to 05:40 UTC, continuous composite of the 145 frames 5.5 min, encode and sheet under a minute. The table counts only the plates that are in the delivered sequence.")
     if "event" in timings:
         ev = timings["event"]
         outside = [v for k, v in ev.items() if int(k) < R.SPLIT_FROM]

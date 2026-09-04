@@ -773,8 +773,9 @@ def encode(src_pattern_dir, out, f_start, f_end, fps=C.FPS, crf=18, half=False, 
         if hold > 0:
             fh.write(f"file '{frames[-1]}'\nduration {hold:.6f}\n")
         fh.write(f"file '{frames[-1]}'\n")
+    n_out = len(frames) * (2 if half else 1) + int(round(hold * fps))   # exact frame count (the concat tail otherwise adds one)
     cmd = [FFMPEG, "-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
-           "-vf", f"fps={fps},scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
+           "-vf", f"fps={fps},scale=trunc(iw/2)*2:trunc(ih/2)*2", "-frames:v", str(n_out), "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
            "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
     subprocess.run(cmd, check=True)
     os.remove(lst)
