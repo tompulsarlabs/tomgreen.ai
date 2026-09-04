@@ -100,6 +100,23 @@ async function reachZalando(page, name) {
   const zalando = page.locator('.orbit-portal a.orbit-label[data-body="ai-organisation"]');
   await zalando.waitFor({ state: "attached", timeout: 300_000 });
   mark("at the planet");
+  // A cold context sometimes carries one more navigation to the case study
+  // after the walk - the label is a real link, and this browser has never
+  // seen the route. It lands a beat later and takes the execution context
+  // with it, so the walk waits it out and checks it is still standing before
+  // anything is held or pressed. A walk that is not is thrown away, not
+  // photographed.
+  await page.waitForTimeout(3000);
+  const standing = await page
+    .evaluate(() => ({
+      path: window.location.pathname,
+      view: document.querySelector(".orbit-portal")?.getAttribute("data-view") ?? null,
+    }))
+    .catch(() => null);
+  if (!standing || standing.path !== "/building" || standing.view !== "section") {
+    throw new Error(`the walk did not hold: ${JSON.stringify(standing)}`);
+  }
+  mark("standing");
   return zalando;
 }
 
@@ -112,6 +129,9 @@ async function shoot(vp, dir) {
     hasTouch: Boolean(vp.mobile),
   });
   const page = await context.newPage();
+  page.on("framenavigated", (f) => {
+    if (f === page.mainFrame()) process.stdout.write(`  ${vp.name} NAV ${f.url()}\n`);
+  });
   try {
     const zalando = await reachZalando(page, vp.name);
 
@@ -160,14 +180,14 @@ for (const vp of VIEWPORTS) {
   // A fresh context per attempt, never a retry inside the same page: an
   // abandoned walk leaves a navigation in flight, and it lands under the
   // next attempt and destroys its execution context.
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
       await shoot(vp, dir);
       break;
     } catch (error) {
       const why = error instanceof Error ? error.message.split("\n")[0] : String(error);
       console.log(`${vp.name}: attempt ${attempt} did not arrive (${why})`);
-      if (attempt === 3) console.log(`${vp.name}: FAILED`);
+      if (attempt === 5) console.log(`${vp.name}: FAILED`);
     }
   }
 }
