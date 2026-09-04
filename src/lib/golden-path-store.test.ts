@@ -115,7 +115,8 @@ describe("several captures in one session", () => {
     store.finishGoldenPath();
     expect(store.goldenIsRunning()).toBe(false);
 
-    store.resetGoldenPath();
+    // No reset: nothing in the site calls one, so the store has to be able
+    // to arm again from a finished shot on its own.
     arm("interviewer-training", "/work/zalando");
     expect(store.goldenIsRunning()).toBe(true);
     expect(store.goldenIsBody("interviewer-training")).toBe(true);
@@ -123,16 +124,35 @@ describe("several captures in one session", () => {
     expect(store.goldenShotTime()).toBeCloseTo(CAPTURE_START, 3);
   });
 
+  it("holds the masthead on the SECOND capture too", () => {
+    // The hold is two classes on <html>, and the typography one outlives the
+    // shot that set it. A second capture that only ADDS golden-landing leaves
+    // both present - and the typography rule sits later in the stylesheet at
+    // equal specificity, so it wins and the hold silently does nothing. The
+    // page is then fully composed before the paper arrives, which is the exact
+    // failure the hold exists to prevent, on every capture but the first.
+    arm();
+    store.markGoldenPushed();
+    store.finishGoldenPath();
+    expect(document.documentElement.classList.contains("golden-typography")).toBe(true);
+
+    // The second capture of the session, sequenced as the portal sequences
+    // it: arm, then push the route, which is what applies the hold.
+    arm("interviewer-training", "/work/zalando");
+    store.markGoldenPushed();
+    expect(document.documentElement.classList.contains("golden-landing")).toBe(true);
+    expect(document.documentElement.classList.contains("golden-typography")).toBe(false);
+  });
+
   it("carries no page state from one capture into the next", () => {
     arm();
     store.markGoldenPushed();
     store.finishGoldenPath();
-    store.resetGoldenPath();
+    arm("work", "/building");
     // The landing classes are the state most likely to survive a run and
     // hold the next page's masthead invisible.
     expect(document.documentElement.classList.contains("golden-landing")).toBe(false);
     expect(document.documentElement.classList.contains("golden-typography")).toBe(false);
-    arm("work", "/building");
     expect(store.getGoldenState().pushed).toBe(false);
   });
 });

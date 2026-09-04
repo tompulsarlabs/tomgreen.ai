@@ -143,6 +143,12 @@ function root(): HTMLElement | null {
 function markLanding() {
   const el = root();
   if (!el) return;
+  // The two classes are phases of one shot and must never both be set. The
+  // typography rule sits later in the stylesheet at equal specificity, so a
+  // leftover from the previous capture wins over this one's hold and the
+  // masthead is simply never held again - visibly correct on the first
+  // capture of a session and silently broken on every one after it.
+  el.classList.remove("golden-typography");
   el.classList.add("golden-landing");
   el.dataset.goldenPhase = "landing";
 }
@@ -203,6 +209,11 @@ export function armGoldenPath(input: {
 }): boolean {
   if (input.tier === "none") return false;
   if (goldenIsRunning()) return false;
+  // A capture begins on a page carrying nothing from the last one. Arming is
+  // the only moment that is true for certain: the portal closes down several
+  // paths and the visitor may take a second capture without any of them
+  // running.
+  clearAll();
   state = {
     phase: "running",
     originMs: performance.now(),
