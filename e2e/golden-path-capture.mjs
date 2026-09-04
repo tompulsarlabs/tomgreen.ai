@@ -16,11 +16,12 @@ const baseURL = process.env.REVIEW_BASE_URL ?? "http://127.0.0.1:3100";
 const output = process.env.GOLDEN_OUT ?? "review-vfx/golden-path-integration";
 await mkdir(output, { recursive: true });
 
+const ONLY = process.env.GOLDEN_VIEWPORT;
 const VIEWPORTS = [
   { name: "desktop-1440x900", width: 1440, height: 900 },
   { name: "desktop-1920x1080", width: 1920, height: 1080 },
   { name: "mobile-390x844", width: 390, height: 844, mobile: true },
-];
+].filter((v) => !ONLY || v.name === ONLY);
 
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
@@ -28,16 +29,22 @@ const browser = await chromium.launch({
 
 /** Walk to the Work system and press the one planet the shot is authored for. */
 async function reachZalando(page) {
+  // The shot refuses to arm under reduced motion, which is the correct
+  // behaviour and not what this recording is for.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto(`${baseURL}/`, { waitUntil: "load" });
   await page.waitForFunction(() => !document.documentElement.classList.contains("route-entering"));
   await page.locator(".sphere-home").click();
   await page.locator(".orbit-portal").waitFor({ state: "visible" });
   // The map's own planets first: Work, then the project inside it.
-  const work = page.locator('a.orbit-label[data-body="work"]');
-  await work.waitFor({ state: "visible", timeout: 30_000 });
-  await work.click();
-  const zalando = page.locator('a.orbit-label[data-body="ai-organisation"]');
-  await zalando.waitFor({ state: "visible", timeout: 60_000 });
+  // The nameplates orbit, so they are never "stable" in Playwright's sense.
+  // The site's own suite dispatches the click for exactly this reason.
+  const work = page.locator('.orbit-portal a.orbit-label[data-body="work"]');
+  await work.waitFor({ state: "attached", timeout: 90_000 });
+  await work.dispatchEvent("click");
+  await page.locator('.orbit-portal[data-view="section"]').waitFor({ timeout: 180_000 });
+  const zalando = page.locator('.orbit-portal a.orbit-label[data-body="ai-organisation"]');
+  await zalando.waitFor({ state: "attached", timeout: 120_000 });
   return zalando;
 }
 
@@ -53,7 +60,7 @@ for (const vp of VIEWPORTS) {
   try {
     const zalando = await reachZalando(page);
     const pressedAt = Date.now();
-    await zalando.click();
+    await zalando.dispatchEvent("click");
     // The shot is 4.8 s on its own clock; give it that plus a beat to settle.
     await page.waitForTimeout(6500);
     const landed = await page.evaluate(() => ({
