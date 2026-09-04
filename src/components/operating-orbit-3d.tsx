@@ -5,7 +5,7 @@
  * imperative three.js is the design here, keeping React state out of
  * the render loop entirely. */
 
-import { useEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject } from "react";
+import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 import {
   anchorRect,
@@ -23,14 +23,15 @@ import { OrbitFlare, type Flare } from "@/components/orbit-flare";
 import { GoldenPathLayer } from "@/components/golden-path-layer";
 import { CAPTURE_START as GOLDEN_CAPTURE_START, clampUnit } from "@/lib/golden-path";
 import { captureReleaseAt } from "@/lib/capture-release";
+import { coreHandover } from "@/lib/capture-core";
 import {
-  getGoldenState,
   goldenIsBody,
   goldenIsRunning,
   goldenMotionNow,
+  goldenBurstTime,
+  goldenRenderTime,
   goldenShotTime,
   goldenTakesChildren,
-  subscribeGoldenPath,
 } from "@/lib/golden-path-store";
 import {
   BURST_LIFE,
@@ -42,6 +43,9 @@ import { captureEndingFor, isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
+
+/** The core event's share of the screen, read per frame from the shot clock. */
+const goldenCoreHandover = () => coreHandover(goldenShotTime());
 
 /** The scene's exposure at rest. The golden path scales it and hands it back. */
 const BASE_EXPOSURE = 1.05;
@@ -375,16 +379,6 @@ function OrbitScene({
   const { camera, gl, size } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
-  // The shot's phase, read from the module clock rather than React state so
-  // it is the same value the frame loop sees. Server-rendered as idle: the
-  // scene is client-only, and the shot cannot be running before it mounts.
-  const goldenPhase = useSyncExternalStore(
-    subscribeGoldenPath,
-    () => getGoldenState().phase,
-    () => "idle" as const,
-  );
-  const goldenSuppressesFlare = goldenPhase === "running" || goldenPhase === "landing";
-
   const elements = useMemo(
     () => bodies.map((_, index) => navOrbitElements(index, bodies.length)),
     [bodies],
@@ -1082,7 +1076,7 @@ function OrbitScene({
      * whatever fraction of itself it had reached.
      */
     const release = goldenTakesChildren()
-      ? captureReleaseAt(goldenShotTime())
+      ? captureReleaseAt(goldenRenderTime())
       : null;
 
     // Entry: the well deepens, the system condenses, the camera settles.
@@ -1096,7 +1090,14 @@ function OrbitScene({
           // to 1 on the frame the shot armed.
           Math.min(eased, release.outgoing)
       : eased;
-    if (release) s.assembly = release.assembly;
+    // The schedule's assembly describes the ARRIVING system, which does not
+    // exist until the swap. Applied before it, it drives the departing
+    // system's own bodies to zero on the frame the shot arms - so the planet
+    // the visitor just pressed, and every one of its siblings, vanishes at the
+    // press and the whole event becomes a core and some gas. Before the swap
+    // the outgoing system is assembled, because it is: it has been on screen
+    // the entire time the visitor was looking at it.
+    if (release) s.assembly = release.swapped ? release.assembly : 1;
     else if (s.assembly < 1)
       s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
     // Cubic-out: the pieces arrive fast and settle slowly, so the last
@@ -1774,14 +1775,21 @@ function OrbitScene({
       <OrbitNebula narrow={narrow} flare={flare ?? null} />
 
       {/* The burst at the core. Mounted last so it draws over the
-          system it just tore a planet out of. */}
-      {/* The golden path brings its own event, authored and baked. The
-          site's procedural burst stands down for it rather than drawing a
-          second explosion inside the first; every other capture keeps it. */}
+          system it just tore a planet out of.
+
+          The shared capture engine does not stand this down - it CONDUCTS it.
+          The baked V3 material is the release and the aftermath; this is the
+          cause, and without it a capture reads as a planet vanishing into gas.
+          Under the engine it runs on the one shot clock rather than the wall,
+          so it compresses with everything else at the compact speed, and it
+          hands the screen over once the volumetric breakout has taken it.
+          Every other capture on the site keeps it exactly as it was. */}
       <OrbitFlare
-        flare={goldenSuppressesFlare ? null : flare ?? null}
+        flare={flare ?? null}
         origin={[0, CORE_Y, 0]}
         narrow={narrow}
+        clock={flare?.conducted ? goldenBurstTime : null}
+        gain={flare?.conducted ? goldenCoreHandover : null}
       />
       <GoldenPathLayer />
 

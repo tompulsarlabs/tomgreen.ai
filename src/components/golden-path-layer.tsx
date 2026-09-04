@@ -36,6 +36,7 @@ import {
   getGoldenState,
   goldenIsHeld,
   goldenIsRunning,
+  goldenRenderTime,
   goldenShotTime,
   goldenTakesChildren,
   goldenTakesPaper,
@@ -360,7 +361,10 @@ export function GoldenPathLayer() {
       return;
     }
 
-    const t = goldenShotTime();
+    // The approved event's own time, which is not the shot's: the shot pauses
+    // it while the core heats. Every channel here - the tables, the plate, the
+    // paper, the decoders - belongs to the render, so all of them read this.
+    const t = goldenRenderTime();
     const m = goldenMotionAt(t);
 
     // Crop the live frustum exactly as cover-fit crops the plate, so the
@@ -377,7 +381,11 @@ export function GoldenPathLayer() {
     // capture asks the plate to cover 1.40 s of authored gas in 0.65, and no
     // drift correction inside the follower's clamp would ever get there: the
     // rate has to come from the edit, not from the error.
-    const rate = shotRateAt(getGoldenState().mode, t);
+    // The rate, though, is a property of the WALL: how fast the shot is being
+    // played. Render time and shot time advance together once the release has
+    // happened, and before it the decoders are idle because their target is
+    // still negative, so the shot's own rate is the right one to hand them.
+    const rate = shotRateAt(getGoldenState().mode, goldenShotTime());
     if (plateFollower.current) {
       const action = followDecoder(plateFollower.current, t - PLATE_T0, {
         seeded: plateSeeded.current,

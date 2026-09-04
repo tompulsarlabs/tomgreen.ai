@@ -87,6 +87,18 @@ export type Flare = {
    * into an accretion disc in this plane.
    */
   plane: { incl: number; node: number };
+  /**
+   * True when the shared capture engine owns this burst's clock.
+   *
+   * An ordinary capture counts its own seconds off the wall, because the
+   * portal used to replace the whole scene at the instant of detonation and
+   * two scenes can only agree on real time. A capture the engine took is part
+   * of a longer authored event that can be played at two speeds, so its
+   * seconds come from the engine's one clock instead. Carried on the burst
+   * rather than read from the store per frame, so a burst that outlives its
+   * shot can never fall back to a wall clock it was never counting.
+   */
+  conducted?: boolean;
 };
 
 const photosphereVertex = /* glsl */ `
@@ -271,10 +283,32 @@ export function OrbitFlare({
   flare,
   origin,
   narrow,
+  clock,
+  gain,
 }: {
   flare: Flare | null;
   origin: [number, number, number];
   narrow: boolean;
+  /**
+   * The burst's own seconds, supplied from outside.
+   *
+   * An ordinary capture runs on the wall clock, because the portal used to
+   * replace the whole scene at the instant of detonation and two scenes can
+   * only agree on real time. A capture taken by the shared engine runs on the
+   * engine's one shot clock instead, so the core event compresses with
+   * everything else when the same event is played at the compact speed. Same
+   * curves, same channels, same file; only who is counting differs.
+   */
+  clock?: (() => number) | null;
+  /**
+   * How much of the screen this event still owns, 1 -> 0.
+   *
+   * One dominant subject at a time. Under the shared engine the volumetric
+   * release takes the frame after the white heat has peaked, and the core
+   * event hands over rather than burning behind the gas for the rest of the
+   * shot. An ordinary capture never hands over: nothing follows it.
+   */
+  gain?: (() => number) | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const photosphereRef = useRef<THREE.Mesh>(null);
@@ -389,15 +423,24 @@ export function OrbitFlare({
     const group = groupRef.current;
     if (!group) return;
     const lightSource = lightRef.current;
-    const t = flare ? (performance.now() - flare.at) / 1000 : -1;
-    if (!flare || t <= 0 || t >= BURST_LIFE) {
+    // Read per frame, never per render: the scene re-renders only when its
+    // React state changes, and the burst's clock advances every frame.
+    const t = flare
+      ? clock
+        ? clock()
+        : (performance.now() - flare.at) / 1000
+      : -1;
+    const held = gain ? gain() : 1;
+    if (!flare || t <= 0 || t >= BURST_LIFE || held <= 0) {
       group.visible = false;
       if (lightSource) lightSource.intensity = 0;
       return;
     }
     group.visible = true;
 
-    const light = lightCurve(t);
+    // Every channel reads one light curve, so handing the screen over is one
+    // multiplication rather than five schedules that could disagree.
+    const light = lightCurve(t) * held;
     const heat = blackbody(photosphereKelvin(t));
 
     // PHOTOSPHERE. Faces the camera, so it is a light and not a card
@@ -443,7 +486,7 @@ export function OrbitFlare({
     const front = frontRef.current;
     const frontUniforms = frontMaterial.current?.uniforms;
     if (front && frontUniforms) {
-      const alpha = blastAlpha(t) * (narrow ? 1 - smoothstep(1.4, 1.8, t) : 1);
+      const alpha = held * blastAlpha(t) * (narrow ? 1 - smoothstep(1.4, 1.8, t) : 1);
       const tint = blastTint(t);
       frontUniforms.uColor.value.setRGB(tint[0], tint[1], tint[2]);
       frontUniforms.uAlpha.value = alpha;
@@ -477,7 +520,7 @@ export function OrbitFlare({
     const disc = discRef.current;
     const discUniforms = discMaterial.current?.uniforms;
     if (disc && discUniforms) {
-      const alpha = discAlpha(t);
+      const alpha = held * discAlpha(t);
       const glow = blackbody(discKelvin(t));
       discUniforms.uColor.value
         .setRGB(glow[0], glow[1], glow[2])

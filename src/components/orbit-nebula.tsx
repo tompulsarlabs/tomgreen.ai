@@ -5,7 +5,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Flare } from "@/components/orbit-flare";
 import { BURST_LIFE, lightCurve, thermal } from "@/lib/supernova";
-import { goldenIsRunning, goldenMotionNow } from "@/lib/golden-path-store";
+import { goldenBurstTime, goldenIsRunning, goldenMotionNow } from "@/lib/golden-path-store";
 
 /**
  * The deep field behind the planetary map.
@@ -266,7 +266,14 @@ export function OrbitNebula({
     // A field that mounts into a live burst is a remount, not a first
     // open: the fade-up is skipped, so the remnant is not seen through
     // a sky that arrives from black underneath it.
-    const remount = flare && (performance.now() - flare.at) / 1000 < BURST_LIFE;
+    // One clock per burst: a capture the engine took counts its seconds on
+    // the shot clock, so the echo cannot drift away from the light it echoes.
+    const burst = flare
+      ? flare.conducted
+        ? goldenBurstTime()
+        : (performance.now() - flare.at) / 1000
+      : -1;
+    const remount = flare && burst < BURST_LIFE;
     fade.current = remount ? 1 : Math.min(1, fade.current + delta * 0.55);
     // The deep field recedes through the golden path exactly as it does in
     // the render - the plate is difference-matted against that field, so
@@ -278,7 +285,7 @@ export function OrbitNebula({
     // The echo runs on the burst's own wall clock, so the scene that
     // replaces this one at the descent draws the same ring in the same
     // place. It leaves the frame's corners a little after two seconds.
-    const t = flare ? (performance.now() - flare.at) / 1000 : -1;
+    const t = burst;
     // The afterglow follows the light curve for the whole event; the
     // echo is the burst's light crossing the field, faster than any
     // matter in the foreground, and leaves by the third second.

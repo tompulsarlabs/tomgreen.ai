@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ROUTE_AT, STILL_AT, TYPO_IN, T_END } from "@/lib/golden-path";
+import { ROUTE_AT, STILL_AT, TYPO_IN } from "@/lib/golden-path";
 import { SWAP_AT } from "@/lib/capture-release";
+import { SHOT_END } from "@/lib/capture-core";
 import {
   getGoldenAssets,
   goldenAssetsReady,
@@ -17,6 +18,7 @@ import {
   getGoldenState,
   goldenIsBody,
   goldenIsRunning,
+  goldenRenderTime,
   goldenShotTime,
   markGoldenPushed,
   markGoldenTypography,
@@ -345,7 +347,13 @@ export function OrbitPortal() {
         if (state.pushed && state.phase === "done") close("landing");
         return;
       }
-      const t = goldenShotTime();
+      // The landmarks below are the APPROVED RENDER's own, so they are read
+      // against the render's clock rather than the shot's: the shot pauses the
+      // render for three quarters of a second while the core heats, and a
+      // route pushed or a masthead released off the shot clock would land that
+      // much early. Only the terminator is the shot's, because what it ends is
+      // the whole event including its cause.
+      const r = goldenRenderTime();
 
       // A parent releases its own system, inside the same event and inside
       // the portal. Nothing navigates, nothing closes, and the shot has to be
@@ -353,7 +361,7 @@ export function OrbitPortal() {
       // side effect, and without it a parent's clock would run to the
       // watchdog with the map still dimmed and the camera still pinned.
       if (state.ending === "children") {
-        if (t >= SWAP_AT && state.bodyId) {
+        if (r >= SWAP_AT && state.bodyId) {
           // The one instant the body set may change: the departing system has
           // reached zero and the arriving one has not begun. Guarded on a ref
           // written in the same statement rather than on state, because this
@@ -372,11 +380,15 @@ export function OrbitPortal() {
             pushPortalStep(next);
           }
         }
-        if (t >= T_END) finishGoldenPath();
+        if (goldenShotTime() >= SHOT_END) {
+          finishGoldenPath();
+          // The event is over, and the core's part of it with it.
+          setFlare(null);
+        }
         return;
       }
 
-      if (!state.pushed && t >= ROUTE_AT && state.href) {
+      if (!state.pushed && r >= ROUTE_AT && state.href) {
         markGoldenPushed();
         router.push(state.href);
         return;
@@ -385,10 +397,10 @@ export function OrbitPortal() {
       // the approved shot brings the typography in at 3.03 s and has it
       // whole by 3.30, while the portal has another 300 ms of paper left to
       // draw over it.
-      if (t >= TYPO_IN) markGoldenTypography();
+      if (r >= TYPO_IN) markGoldenTypography();
       // Paper owns the frame from here, so there is nothing of the portal
       // left to see. Closing it releases the assets and ends the session.
-      if (t >= STILL_AT) {
+      if (r >= STILL_AT) {
         finishGoldenPath();
         close("landing");
       }
@@ -432,6 +444,7 @@ export function OrbitPortal() {
           close("landing");
         } else {
           abortGoldenPath("escape");
+          setFlare(null);
         }
         return;
       }
@@ -529,13 +542,6 @@ export function OrbitPortal() {
       const action = node?.action;
       if (!action) return;
 
-      // The shot owns the screen from here: it brings its own event, its own
-      // resolution and its own close, all off one clock. The procedural burst
-      // and the 860 ms travel would be a second, shorter transition running
-      // underneath it. This covers both endings - a parent's descent is the
-      // heartbeat's to perform, at the swap, and not this handler's.
-      if (goldenIsBody(id)) return;
-
       // A departure, not a capture. Another origin and a mail client are not
       // places the gravity core can deliver anyone to, so these answer at
       // once: the acknowledgement is on screen this frame and the native
@@ -555,10 +561,18 @@ export function OrbitPortal() {
         return;
       }
 
-      // Detonate first, whatever happens next. The flare is state here
-      // rather than inside the scene because descending replaces the
-      // scene outright — the burst has to belong to the thing that
-      // survives, so the tear-down happens inside its brightest frame.
+      // DETONATE FIRST, whatever happens next, and for every capture the site
+      // takes. This is the cause: the core has the planet, and what follows is
+      // the core's answer to it. The engine does not stand this down and
+      // replace it with baked gas - the baked material is the release and the
+      // aftermath, and playing it instead of this is what turns a capture into
+      // a planet vanishing into fog. The engine only takes over its clock.
+      //
+      // The flare is state here rather than inside the scene because a capture
+      // that travels replaces the scene outright — the burst has to belong to
+      // the thing that survives, so the tear-down happens inside its
+      // brightest frame.
+      const conducted = goldenIsBody(id);
       const at = performance.now();
       // The plane the planet fell from, from the same elements the
       // scene drew its orbit with — so the disc the debris settles into
@@ -570,17 +584,32 @@ export function OrbitPortal() {
         color: node.visual.color,
         at,
         plane: { incl: elements.incl, node: elements.node },
+        conducted,
       });
-      // The burst has a life; its state should not outlive it. Cleared
-      // only if no newer detonation has replaced it.
+      // The burst has a life, and its state should not outlive it - but WHOSE
+      // life depends on who is counting. An ordinary capture's burst is
+      // fourteen seconds of wall clock and is collected on a timer. A
+      // conducted one belongs to the shot: it is over when the shot is, which
+      // is the engine's to decide and not a stopwatch's. Collecting it on the
+      // wall would end it early on a slow machine, and never end it at all on
+      // a clock that has been stopped for review.
       window.clearTimeout(remnantTimer.current);
-      remnantTimer.current = window.setTimeout(
-        () =>
-          setFlare((current) =>
-            current && current.at === at ? null : current,
-          ),
-        BURST_LIFE * 1000 + 500,
-      );
+      if (!conducted) {
+        remnantTimer.current = window.setTimeout(
+          () =>
+            setFlare((current) =>
+              current && current.at === at ? null : current,
+            ),
+          BURST_LIFE * 1000 + 500,
+        );
+      }
+
+      // From here the shot owns the screen: it brings its own resolution and
+      // its own close, all off one clock. A parent's descent is the
+      // heartbeat's to perform, at the swap, and not this handler's; the
+      // procedural travel would be a second, shorter transition running
+      // underneath the event.
+      if (conducted) return;
 
       if (action.type === "children") {
         // The descent the site has always had, for a press the engine could

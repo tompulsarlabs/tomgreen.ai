@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { T_END } from "@/lib/golden-path";
+import { SHOT_END } from "@/lib/capture-core";
 import { CAPTURE_START } from "@/lib/golden-path";
 
 /**
@@ -64,7 +64,7 @@ describe("the shot clock", () => {
   it("holds at the end rather than running past it", () => {
     arm();
     vi.advanceTimersByTime(60_000);
-    expect(store.goldenShotTime()).toBeLessThanOrEqual(T_END);
+    expect(store.goldenShotTime()).toBeLessThanOrEqual(SHOT_END);
   });
 });
 
@@ -103,7 +103,7 @@ describe("every way out", () => {
   it("ends itself if nothing else does", () => {
     arm();
     expect(store.goldenIsRunning()).toBe(true);
-    vi.advanceTimersByTime((T_END - CAPTURE_START + 1.5) * 1000);
+    vi.advanceTimersByTime((SHOT_END - CAPTURE_START + 1.5) * 1000);
     expect(store.goldenIsRunning()).toBe(false);
   });
 });
@@ -244,9 +244,17 @@ describe("which speed the capture plays at", () => {
       mode: "compact",
     });
     // A stalled compact capture must not leave the camera pinned and the map
-    // at a sixth of its brightness for the full capture's duration.
-    vi.advanceTimersByTime(3.8 * 1000);
+    // at a sixth of its brightness for the full capture's duration. The
+    // compact edit runs 3.36 s and the watchdog allows 0.9 s beyond it; the
+    // full one would still have well over a second and a half to go here.
+    vi.advanceTimersByTime(4.3 * 1000);
     expect(store.goldenIsRunning()).toBe(false);
+  });
+
+  it("still gives the full capture its whole length before cutting it off", () => {
+    arm();
+    vi.advanceTimersByTime(4.3 * 1000);
+    expect(store.goldenIsRunning()).toBe(true);
   });
 });
 

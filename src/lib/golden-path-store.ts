@@ -17,7 +17,8 @@
  * holding its own masthead invisible. Every exit — finished, aborted,
  * hidden, watchdog — goes through settle(), which is idempotent.
  */
-import { T_END, goldenMotionAt } from "@/lib/golden-path";
+import { goldenMotionAt } from "@/lib/golden-path";
+import { SHOT_END, burstTimeFor, renderTimeFor } from "@/lib/capture-core";
 import { captureSeconds, shotTimeFor, type CaptureMode } from "@/lib/capture-timing";
 import { rewindGoldenAssets } from "@/lib/golden-path-assets";
 
@@ -142,7 +143,7 @@ let heldT: number | null = null;
 export function goldenShotTime(): number {
   if (REVIEW && heldT !== null) return heldT;
   if (state.phase === "idle") return 0;
-  if (state.phase === "done" || state.phase === "aborted") return T_END;
+  if (state.phase === "done" || state.phase === "aborted") return SHOT_END;
   const elapsed = (performance.now() - state.originMs) / 1000;
   // The mode decides how elapsed seconds map onto the shot: FULL is the
   // identity and COMPACT compresses the anticipation and the aftermath while
@@ -157,7 +158,7 @@ export function goldenIsHeld() {
 
 if (REVIEW && typeof window !== "undefined") {
   (window as unknown as { __goldenHold?: (t: number | null) => void }).__goldenHold = (t) => {
-    heldT = t === null ? null : Math.min(Math.max(t, 0), T_END);
+    heldT = t === null ? null : Math.min(Math.max(t, 0), SHOT_END);
     // The watchdog would end a held shot at its own pace, and the review
     // build has no wall clock to answer to.
     if (heldT !== null && watchdog !== null) {
@@ -363,7 +364,29 @@ export function resetGoldenPath() {
   emit();
 }
 
+/**
+ * The approved render's own time, which is not the shot's.
+ *
+ * The shot pauses the render for three quarters of a second while the core
+ * heats, so every consumer of the approved event - the per-frame tables, the
+ * baked decoders, the release schedule - reads THIS rather than the shot
+ * clock. The render then plays exactly the frames it was approved as, in its
+ * own order, at its own pace.
+ */
+export function goldenRenderTime(): number {
+  return renderTimeFor(goldenShotTime());
+}
+
+/**
+ * The procedural core event's own seconds: zero until the planet reaches the
+ * core, then the site's own production burst curve, with one authored freeze
+ * on its peak frame for the hold.
+ */
+export function goldenBurstTime(): number {
+  return burstTimeFor(goldenShotTime());
+}
+
 /** The state every consumer derives from, evaluated once per frame. */
 export function goldenMotionNow() {
-  return goldenMotionAt(goldenShotTime());
+  return goldenMotionAt(goldenRenderTime());
 }

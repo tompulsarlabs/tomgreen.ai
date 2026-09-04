@@ -6,7 +6,8 @@ import {
   captureReleaseAt,
 } from "@/lib/capture-release";
 import { DET, PAGE_IN, PLATE_IN, PLATE_OUT, T_END, plateOpacity } from "@/lib/golden-path";
-import { shotTimeFor } from "@/lib/capture-timing";
+import { COMPACT_SECONDS, shotTimeFor } from "@/lib/capture-timing";
+import { RELEASE_AT as CORE_RELEASE, renderTimeFor } from "@/lib/capture-core";
 
 describe("nothing moves before the branch", () => {
   it("leaves the approved event completely alone up to the resolution", () => {
@@ -148,25 +149,34 @@ describe("the system arrives in order", () => {
 });
 
 describe("under the compact clock", () => {
-  it("keeps the whole release, in order, in its own 1.30 s", () => {
-    // The release is a function of shot time, so the warp carries it for
-    // free: the same beats in the same order, faster.
-    const elapsedAt = (shot: number) => {
+  it("keeps the whole release, in order, inside the compact capture", () => {
+    // The release is a function of the APPROVED RENDER's time, not the shot's:
+    // the shot pauses the render while the core heats, so an elapsed second
+    // has to be walked through both maps to find the beat it lands on. The
+    // warp then carries the release for free - the same beats in the same
+    // order, faster.
+    const renderAfter = (elapsed: number) =>
+      renderTimeFor(shotTimeFor("compact", elapsed));
+    const elapsedAt = (render: number) => {
       let lo = 0;
-      let hi = 2.8;
-      for (let i = 0; i < 60; i += 1) {
+      let hi = COMPACT_SECONDS;
+      for (let i = 0; i < 80; i += 1) {
         const mid = (lo + hi) / 2;
-        if (shotTimeFor("compact", mid) < shot) lo = mid;
+        if (renderAfter(mid) < render) lo = mid;
         else hi = mid;
       }
       return (lo + hi) / 2;
     };
     const branch = elapsedAt(RELEASE_AT);
     const swap = elapsedAt(SWAP_AT);
-    expect(branch).toBeCloseTo(1.5, 2);
     expect(swap).toBeGreaterThan(branch);
-    expect(swap - branch).toBeGreaterThan(0.12);
+    expect(swap - branch).toBeGreaterThan(0.1);
+    // The branch happens after the core event has resolved, never during it.
+    expect(shotTimeFor("compact", branch)).toBeGreaterThan(CORE_RELEASE);
     // And the whole release still finishes inside the compact capture.
-    expect(captureReleaseAt(shotTimeFor("compact", 2.8)).assembly).toBe(1);
+    expect(
+      captureReleaseAt(renderTimeFor(shotTimeFor("compact", COMPACT_SECONDS)))
+        .assembly,
+    ).toBe(1);
   });
 });
