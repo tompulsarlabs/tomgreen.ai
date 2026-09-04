@@ -1560,6 +1560,17 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    outline over the event. It keeps its box, so the scene's label measurement
    cache and press bookkeeping go on working unchanged; display: none would
    zero those boxes and poison the cache. */
+/* The takeover dissolves the CANVAS to transparent, in the ragged field the
+   render authored, so that what arrives underneath is the real page. Anything
+   with a ground of its own between the two would be what showed instead - and
+   both the portal and the field carry one. They are redundant for this shot
+   either way: the deep field writes alpha 1 across the whole frame, so the
+   canvas is already opaque on its own until the erase quad takes it apart. */
+.orbit-portal[data-golden],
+.orbit-portal[data-golden] .orbit-field {
+  background: transparent;
+}
+
 .orbit-portal[data-golden] .orbit-labels,
 .orbit-portal[data-golden] .orbit-portal-chrome {
   visibility: hidden;

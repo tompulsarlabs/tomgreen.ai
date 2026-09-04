@@ -31,7 +31,7 @@ import * as THREE from "three";
 
 import { FOV_Y, PLATE_ASPECT, goldenMotionAt } from "@/lib/golden-path";
 import { PAPER_T0, PLATE_T0, getGoldenAssets } from "@/lib/golden-path-assets";
-import { goldenIsRunning, goldenShotTime } from "@/lib/golden-path-store";
+import { goldenIsHeld, goldenIsRunning, goldenShotTime } from "@/lib/golden-path-store";
 
 /** The plate hangs at a fixed distance in front of the camera it was shot from. */
 const PLATE_DISTANCE = 6;
@@ -167,6 +167,20 @@ export function GoldenPathLayer() {
   const drive = (video: HTMLVideoElement | null, target: number, seeded: React.MutableRefObject<boolean>) => {
     if (!video) return;
     if (target < 0) return;
+    // A held clock is not a clock the decoders can follow: it does not
+    // advance between beats, so following it means standing exactly on the
+    // frame asked for rather than nudging towards it.
+    if (goldenIsHeld()) {
+      video.pause();
+      if (Math.abs(video.currentTime - target) > 1 / 60) {
+        try {
+          video.currentTime = Math.max(0, target);
+        } catch {
+          /* a decoder that refuses a seek still shows the frame it has */
+        }
+      }
+      return;
+    }
     const err = video.currentTime - target;
     if (!seeded.current || Math.abs(err) > 0.5) {
       try {
@@ -184,34 +198,100 @@ export function GoldenPathLayer() {
   const plateSeeded = useRef(false);
   const paperSeeded = useRef(false);
 
-  useEffect(() => {
-    const { plate, paper } = getGoldenAssets();
-    const plateMaterial = plateMat.current;
-    const eraseMaterial = eraseMat.current;
-    const plateTex = plate ? videoTexture(plate) : null;
-    const paperTex = paper ? videoTexture(paper) : null;
-    if (plateMaterial && plateTex) {
-      const u = plateMaterial.uniforms;
-      u.uPlate.value = plateTex;
+  /**
+   * Scratch for the per-frame camera attachment. Allocating a Vector3 in the
+   * frame loop is a garbage collection the shot would eventually pay for.
+   */
+  const forward = useRef(new THREE.Vector3());
+
+  /**
+   * Hang both quads on the camera, facing it, at a fixed distance.
+   *
+   * They cannot simply sit in the scene: the plate is a screen-space image,
+   * and the camera travels 7.6 to 2.0 units and rolls through the shot, so a
+   * world-space quad slides out of frame — the baked event ends up beside
+   * the core it is supposed to be erupting from. Attached to the camera it
+   * is exactly what the render photographed: the frame itself.
+   */
+  const followCamera = (mesh: THREE.Mesh, camera: THREE.PerspectiveCamera) => {
+    forward.current.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    mesh.position.copy(camera.position).addScaledVector(forward.current, PLATE_DISTANCE);
+    mesh.quaternion.copy(camera.quaternion);
+  };
+
+  /**
+   * Frames still to spend warming the two programs.
+   *
+   * three.js only compiles a material when something visible uses it, so
+   * leaving these quads hidden until their moment would link the plate's
+   * program at 1.10 s and the erase quad's at 2.50 s — inside the
+   * detonation and inside the takeover, the two instants in the shot that
+   * can least afford a stall. So they are drawn for real on the first two
+   * frames after mount, while the map is idle and nothing has been pressed.
+   *
+   * The warm frames are a provable no-op, not a hidden flash. The plate
+   * emits `vec4(colour * a, a)` with `a = matte * uOpacity` and uOpacity is
+   * 0, so with One / OneMinusSrcAlpha the destination is multiplied by 1
+   * and added to 0. The erase quad emits alpha `smoothstep(0.25, 0.95, 0)`
+   * = 0, so with Zero / OneMinusSrcAlpha the destination is again
+   * multiplied by 1. Two frames rather than one because a driver may defer
+   * the link to first use.
+   */
+  const warmFrames = useRef(2);
+
+  /**
+   * The decoders currently bound, and the textures wrapping them.
+   *
+   * Binding cannot be a mount-time effect. This layer mounts with the scene,
+   * inside the portal, and the portal asks for the media in its own effect —
+   * a parent's, which React runs after the child's — so at mount there is
+   * nothing to bind. The decoders are also handed back at the end of every
+   * shot and rebuilt by the next prefetch, which means the pair a texture
+   * wraps is not stable for the life of the component. So the binding
+   * follows the assets: an identity check per frame, a texture built when
+   * the pair changes, and the previous one disposed in the same breath.
+   */
+  const boundPlate = useRef<HTMLVideoElement | null>(null);
+  const boundPaper = useRef<HTMLVideoElement | null>(null);
+  const plateTex = useRef<THREE.VideoTexture | null>(null);
+  const paperTex = useRef<THREE.VideoTexture | null>(null);
+
+  const bindDecoders = (plate: HTMLVideoElement | null, paper: HTMLVideoElement | null) => {
+    if (plate !== boundPlate.current) {
+      plateTex.current?.dispose();
+      plateTex.current = plate ? videoTexture(plate) : null;
+      boundPlate.current = plate;
+      plateSeeded.current = false;
+      const material = plateMat.current;
+      if (material) material.uniforms.uPlate.value = plateTex.current;
     }
-    if (eraseMaterial && paperTex) {
-      const u = eraseMaterial.uniforms;
-      u.uPaper.value = paperTex;
-      u.uHasPaper.value = 1;
-    }
-    return () => {
-      plateTex?.dispose();
-      paperTex?.dispose();
-      if (plateMaterial) plateMaterial.uniforms.uPlate.value = null;
-      if (eraseMaterial) {
-        eraseMaterial.uniforms.uPaper.value = null;
-        eraseMaterial.uniforms.uHasPaper.value = 0;
+    if (paper !== boundPaper.current) {
+      paperTex.current?.dispose();
+      paperTex.current = paper ? videoTexture(paper) : null;
+      boundPaper.current = paper;
+      paperSeeded.current = false;
+      const material = eraseMat.current;
+      if (material) {
+        material.uniforms.uPaper.value = paperTex.current;
+        material.uniforms.uHasPaper.value = paperTex.current ? 1 : 0;
       }
-    };
-  // Mounts the decoders' textures and gives them back on unmount, and does
-  // so exactly once: the materials are created with the mesh and outlive
-  // every frame of the shot.
-  }, []);
+    }
+  };
+
+  // Give the GPU its textures back when the scene goes. The decoders
+  // themselves belong to the asset module, which releases them on every
+  // terminal path of the shot.
+  useEffect(
+    () => () => {
+      plateTex.current?.dispose();
+      paperTex.current?.dispose();
+      plateTex.current = null;
+      paperTex.current = null;
+      boundPlate.current = null;
+      boundPaper.current = null;
+    },
+    [],
+  );
 
   useFrame((frame) => {
     // The camera comes from the frame state rather than a hook selector: it
@@ -222,19 +302,42 @@ export function GoldenPathLayer() {
     const plateMesh = plateRef.current;
     const eraseMesh = eraseRef.current;
     if (!plateMesh || !eraseMesh) return;
+    if (camera.fov !== baseFov.current && !running) {
+      camera.fov = baseFov.current;
+      camera.updateProjectionMatrix();
+    }
+
+    // The warm draws come before any binding, so both samplers are still
+    // the empty texture and both scalar uniforms are still their declared
+    // zero. That is what makes the pair provably invisible rather than
+    // merely dark, and it costs nothing: the media has not been asked for
+    // this early either.
+    if (warmFrames.current > 0) {
+      warmFrames.current -= 1;
+      // Sized to the frustum like the real thing, so the warm draw
+      // rasterises the same fragment count the shot will.
+      const halfHeight = PLATE_DISTANCE * Math.tan(FOV_Y / 2);
+      plateMesh.scale.set(halfHeight * PLATE_ASPECT * 2, halfHeight * 2, 1);
+      eraseMesh.scale.copy(plateMesh.scale);
+      followCamera(plateMesh, camera);
+      followCamera(eraseMesh, camera);
+      plateMesh.visible = true;
+      eraseMesh.visible = true;
+      return;
+    }
+
+    const assets = getGoldenAssets();
+    bindDecoders(assets.plate, assets.paper);
+
     if (!running) {
       plateMesh.visible = false;
       eraseMesh.visible = false;
-      if (camera.fov !== baseFov.current) {
-        camera.fov = baseFov.current;
-        camera.updateProjectionMatrix();
-      }
       return;
     }
 
     const t = goldenShotTime();
     const m = goldenMotionAt(t);
-    const { plate, paper } = getGoldenAssets();
+    const { plate, paper } = assets;
 
     // Crop the live frustum exactly as cover-fit crops the plate, so the
     // baked core and the live core stay the same size at every aspect.
@@ -248,6 +351,8 @@ export function GoldenPathLayer() {
     const halfH = PLATE_DISTANCE * Math.tan(FOV_Y / 2);
     plateMesh.scale.set(halfH * PLATE_ASPECT * 2, halfH * 2, 1);
     eraseMesh.scale.copy(plateMesh.scale);
+    followCamera(plateMesh, camera);
+    followCamera(eraseMesh, camera);
 
     drive(plate, t - PLATE_T0, plateSeeded);
     drive(paper, t - PAPER_T0, paperSeeded);
@@ -269,7 +374,7 @@ export function GoldenPathLayer() {
 
   return (
     <group>
-      <mesh ref={plateRef} position={[0, 0, -PLATE_DISTANCE]} renderOrder={40} frustumCulled={false}>
+      <mesh ref={plateRef} renderOrder={40} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
           ref={plateMat}
@@ -285,7 +390,7 @@ export function GoldenPathLayer() {
           toneMapped={false}
         />
       </mesh>
-      <mesh ref={eraseRef} position={[0, 0, -PLATE_DISTANCE]} renderOrder={200} frustumCulled={false}>
+      <mesh ref={eraseRef} renderOrder={200} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
           ref={eraseMat}

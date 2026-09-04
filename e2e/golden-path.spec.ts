@@ -147,3 +147,27 @@ test("Escape during the shot recovers, and the page is left whole", async ({ pag
     await expect(masthead).toHaveCSS("opacity", "1", { timeout: 30_000 });
   }
 });
+
+test("a second run arms as cleanly as the first", async ({ page }) => {
+  // The decoders are handed back at the end of every shot and rebuilt by the
+  // next prefetch, so the pair the shaders sample is not stable for the life
+  // of the scene. A run that binds them once would play the whole cinematic
+  // with an empty plate the second time round - visibly, and only on the
+  // second visit. Two cycles is what makes that a failure rather than a
+  // surprise in production.
+  for (const cycle of [1, 2]) {
+    const portal = await reachWorkSystem(page);
+    await portal.locator('a.orbit-label[data-body="ai-organisation"]').dispatchEvent("click");
+    await expect(page, `cycle ${cycle} did not land`).toHaveURL("/work/zalando", {
+      timeout: 90_000,
+    });
+    await expect(page.locator("main h1")).toHaveText("ZALANDO", { timeout: 60_000 });
+    await expect(page.locator("[data-golden-masthead]")).toHaveCSS("opacity", "1", {
+      timeout: 60_000,
+    });
+    // And nothing of the run outlives it, on either cycle: a leaked decoder
+    // would be the second run's problem, not the first's.
+    await expect(page.locator("video")).toHaveCount(0);
+    await expect(page.locator(".orbit-portal")).toHaveCount(0, { timeout: 60_000 });
+  }
+});
