@@ -21,11 +21,13 @@ const OperatingOrbit3D = dynamic(
 export function OperatingOrbitLive({
   bodies,
   onCapture,
+  onPress,
   flare,
   handoff,
 }: {
   bodies: OrbitBody[];
   onCapture?: (id: string) => void;
+  onPress?: (id: string) => void;
   /** The core burst, owned by the portal so it outlives this scene. */
   flare?: Flare | null;
   /** The outgoing scene's camera and reveal, for the one replacing it. */
@@ -63,6 +65,7 @@ export function OperatingOrbitLive({
           narrow={live.narrow}
           bodies={bodies}
           onCapture={onCapture}
+      onPress={onPress}
           flare={flare}
           handoff={handoff}
         />

@@ -1,7 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ROUTE_AT, STILL_AT } from "@/lib/golden-path";
+import {
+  getGoldenAssets,
+  goldenAssetsReady,
+  prefetchGoldenPath,
+  releaseGoldenAssets,
+} from "@/lib/golden-path-assets";
+import {
+  abortGoldenPath,
+  armGoldenPath,
+  finishGoldenPath,
+  getGoldenState,
+  goldenIsBody,
+  goldenIsRunning,
+  goldenShotTime,
+  markGoldenPushed,
+  subscribeGoldenPath,
+} from "@/lib/golden-path-store";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { displayLabel, navOrbitElements } from "@/lib/orbit-nav";
 import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
@@ -40,11 +58,21 @@ type View = { kind: "map" } | { kind: "section"; id: string };
  * a cut, and the page arrives as the light begins to cool — still under
  * the second at which a delay registers as waiting.
  */
+/**
+ * The one body the approved cinematic was authored for: Zalando's
+ * "0 -> 120 AI build". Its sibling `interviewer-training` reaches the same
+ * page and deliberately keeps the procedural transition - the shot's
+ * landing is this project's content, and a second planet playing it would
+ * be telling the wrong story with the right pictures.
+ */
+const GOLDEN_BODY = "ai-organisation";
+
 const TRAVEL_HOLD_MS = 640;
 const TRAVEL_FADE_MS = 220;
 
 export function OrbitPortal() {
   const router = useRouter();
+  const goldenFrame = useRef(0);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "map" });
   const [flare, setFlare] = useState<Flare | null>(null);
@@ -58,11 +86,35 @@ export function OrbitPortal() {
   // does not jump. Written by the scene every frame, read once by its
   // replacement, owned here because the two scenes never overlap.
   const handoff = useRef<SceneHandoff | null>(null);
+  // The shot's phase, so the overlay can take itself out of the tab order
+  // and out of hit-testing for the duration rather than merely fading.
+  const goldenPhase = useSyncExternalStore(
+    subscribeGoldenPath,
+    () => getGoldenState().phase,
+    () => "idle" as const,
+  );
 
   // The moon asks; this answers. It is the only opener there is.
-  useEffect(() => onOrbitPortalOpen(() => setOpen(true)), []);
+  useEffect(() => {
+    return onOrbitPortalOpen(() => {
+      setOpen(true);
+      // The map has opened: start paying for the decode now, so the press
+      // that may come in a few seconds does not have to.
+      prefetchGoldenPath();
+    });
+  }, []);
+
 
   const close = useCallback(() => {
+    // A shot that has already pushed has a real page behind this overlay and
+    // must be settled, not abandoned: abandoning it would leave the arrival
+    // holding its own masthead invisible. One that never navigated may be
+    // cleared outright.
+    if (goldenIsRunning()) {
+      if (getGoldenState().pushed) finishGoldenPath();
+      else abortGoldenPath("escape");
+      releaseGoldenAssets();
+    }
     window.clearTimeout(travelTimer.current);
     window.clearTimeout(leaveTimer.current);
     window.clearTimeout(remnantTimer.current);
@@ -74,6 +126,35 @@ export function OrbitPortal() {
     // The moon opened it, so the moon is where focus belongs afterwards.
     document.querySelector<HTMLElement>(".sphere-home")?.focus();
   }, []);
+
+  /**
+   * The shot's heartbeat. It schedules nothing and decides nothing: it reads
+   * the clock and acts on what the clock says, so the sequence cannot drift
+   * and there is no timer to leak. The route is pushed while the portal is
+   * still opaque, which is why there is never a cut, and the portal closes
+   * only once the shot has nothing left to draw.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const tick = () => {
+      goldenFrame.current = window.requestAnimationFrame(tick);
+      if (!goldenIsRunning()) return;
+      const state = getGoldenState();
+      const t = goldenShotTime();
+      if (!state.pushed && t >= ROUTE_AT && state.href) {
+        markGoldenPushed();
+        router.push(state.href);
+        return;
+      }
+      if (t >= STILL_AT) {
+        finishGoldenPath();
+        releaseGoldenAssets();
+        close();
+      }
+    };
+    goldenFrame.current = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(goldenFrame.current);
+  }, [open, router, close]);
 
   // Escape closes a section back to the map first, then the portal —
   // one step back per press, which is what a nested world owes.
@@ -147,11 +228,38 @@ export function OrbitPortal() {
     bodiesRef.current = bodies;
   }, [bodies]);
 
+  /**
+   * A press the scene accepted. The golden path arms here and nowhere else,
+   * and only if it can be drawn this instant: arming is a synchronous
+   * decision from what is already decoded, so a press never waits on media.
+   * Anything unready, any other body, any other view, and this returns
+   * silently and the existing procedural transition runs untouched.
+   */
+  const onPress = useCallback((id: string) => {
+    if (id !== GOLDEN_BODY) return;
+    if (!goldenAssetsReady()) return;
+    const node = planetsById.get(id);
+    const action = node?.action;
+    if (!action || action.type !== "route" || action.external) return;
+    armGoldenPath({
+      bodyId: id,
+      href: action.href,
+      fromPath: window.location.pathname,
+      tier: getGoldenAssets().tier,
+    });
+  }, []);
+
   const onCapture = useCallback(
     (id: string) => {
       const node = planetsById.get(id);
       const action = node?.action;
       if (!action) return;
+
+      // The shot owns the screen from here: it brings its own event, its own
+      // route push and its own close, all off one clock. The procedural
+      // burst and the 860 ms travel would be a second, shorter transition
+      // running underneath it.
+      if (goldenIsBody(id)) return;
 
       // Detonate first, whatever happens next. The flare is state here
       // rather than inside the scene because descending replaces the
@@ -220,6 +328,7 @@ export function OrbitPortal() {
       className="orbit-portal"
       data-view={view.kind}
       data-leaving={leaving ? "true" : undefined}
+      data-golden={goldenPhase === "running" || goldenPhase === "landing" ? "true" : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={world ? `${world.label} — orbit` : "Planetary map"}
@@ -291,6 +400,7 @@ export function OrbitPortal() {
           key={world ? world.id : "map"}
           bodies={bodies}
           onCapture={onCapture}
+          onPress={onPress}
           flare={flare}
           handoff={handoff}
         />
