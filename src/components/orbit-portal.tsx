@@ -402,8 +402,15 @@ export function OrbitPortal() {
           if (target?.closest("a.orbit-label")) event.preventDefault();
         }}
       >
+        {/* No key. A new key here threw the whole chain away on every
+            descent - OperatingOrbit, the Canvas, the GL context, every
+            compiled program and every texture - and rebuilt it from nothing.
+            The scene has always been written to take a new body set in place
+            ("it draws itself together again rather than cutting"); the key was
+            what stopped it ever doing so. Keeping one canvas is also what lets
+            a capture keep its own baked plate across the moment the system
+            changes, which a rebuilt GL context cannot. */}
         <OperatingOrbit
-          key={world ? world.id : "map"}
           bodies={bodies}
           onCapture={onCapture}
           onPress={onPress}

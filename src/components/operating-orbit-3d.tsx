@@ -469,6 +469,8 @@ function OrbitScene({
   const coreRef = useRef<THREE.Mesh>(null);
   const coreMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
   const pathMaterials = useRef<{ opacity: number }[]>([]);
+  /** The body set the scene is currently holding state for. */
+  const heldBodies = useRef<readonly OrbitBody[] | null>(null);
 
   // Interaction state — all refs, never React state inside the loop.
   const state = useRef({
@@ -673,13 +675,10 @@ function OrbitScene({
       watchingFonts = false;
     });
 
-    bodies.forEach((body, index) =>
-      s.angles.set(body.id, elements[index].phase),
-    );
-    // Swapping the body set swaps the system. It draws itself together
-    // again rather than cutting, which is what makes descending into a
-    // section read as one continuous world instead of a page change.
-    s.assembly = 0;
+    // Adopting a body set is the frame loop's job now (adoptBodies). Doing it
+    // here as well would restart the assembly a scheduler task after it had
+    // already begun - the passive effect runs after the commit, and by then
+    // the system is a frame or two into drawing itself together.
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -870,7 +869,98 @@ function OrbitScene({
     [],
   );
 
+  /**
+   * Take on a new body set, in one synchronous step, before anything is drawn.
+   *
+   * The scene was always written to swap systems in place - "it draws itself
+   * together again rather than cutting" - but the portal used to give it a new
+   * key, so in practice every descent got a fresh component and this never
+   * ran. With one canvas for the life of the portal it runs for real, and the
+   * per-body state left behind by the departed system is now this component's
+   * to account for. One consequence is not a matter of degree: a capture is
+   * parked in `held` and the press gate refuses a press while ANY capture is
+   * held, so without this the first descent of a session would lock out every
+   * press that followed it. The rest - stale hit frames, a nameplate anchored
+   * where another planet used to be, orbit paths and membrane slots still
+   * describing bodies that are gone - are bounded or self-correcting, and are
+   * cleared here because a set that is half the previous one is not a state
+   * worth reasoning about later.
+   *
+   * It happens HERE rather than in the effect that used to do it because the
+   * frame loop is not synchronised with a passive effect, which React flushes
+   * in a scheduler task after the commit. Until adoption runs, an arriving
+   * body has no entry in `s.angles` (read as `?? 0`) and `s.assembly` still
+   * holds the departed system's finished value, so any frame drawn in that
+   * gap describes the new set with the old set's state. The remount used to
+   * make that impossible by construction.
+   */
+  const adoptBodies = () => {
+    if (heldBodies.current === bodies) return;
+    const first = heldBodies.current === null;
+    heldBodies.current = bodies;
+
+    const live = new Set(bodies.map((body) => body.id));
+    const s = state.current;
+
+    // Every id-keyed map, pruned against the set that is actually here. By
+    // subtraction rather than by clearing, so a set that shares bodies with
+    // the last one keeps their measured boxes and settled anchors.
+    const keyed: Map<string, unknown>[] = [
+      s.hoverEase,
+      s.angles,
+      s.anchors,
+      s.gaps,
+      s.hidden,
+      s.baseOpacity,
+      s.labelAt,
+      s.pending,
+      s.lockedUntil,
+      s.measured,
+      s.labels,
+      bodyRefs.current,
+      bodyMaterials.current,
+      filamentRefs.current,
+    ];
+    for (const map of keyed) {
+      for (const id of Array.from(map.keys())) if (!live.has(id)) map.delete(id);
+    }
+
+    // Index-keyed things, which have no id to prune by and would otherwise
+    // keep drawing the departed system: the orbit paths, and the membrane's
+    // contact shading, whose shader reads all ten slots unconditionally.
+    pathMaterials.current.length = bodies.length;
+    for (let i = bodies.length; i < 10; i += 1) {
+      membraneUniforms.uBodies.value[i].set(999, 999, 999);
+    }
+
+    bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
+
+    // A capture belongs to the set it was started in. It used to be left
+    // parked in `held`, on an assumption that was true only while the portal
+    // replaced the scene: that this component was about to be thrown away.
+    // Left behind, it refuses every press in the incoming system, because the
+    // press gate refuses any capture at all.
+    s.capture = null;
+    s.pendingPress = null;
+    s.pressOrigin = null;
+    s.pressTravel = 0;
+    // Where things were drawn is how a press is resolved. The memory is
+    // short and newest-first, so a departed body could only win over empty
+    // space for a moment - but it is the departed system's memory, and it
+    // belongs to it.
+    s.frames = [];
+    s.hover = null;
+
+    // The system arrives scattered, and its nameplates wait for it. Without
+    // this the labels are gated on a flag only ever set on the first mount, so
+    // a released child system's labels would arrive with the orbit curves
+    // instead of last.
+    s.assembly = 0;
+    s.labelGate = !first;
+  };
+
   useFrame((rootState, rawDelta) => {
+    adoptBodies();
     const s = state.current;
     const dt = Math.min(rawDelta, 0.05);
     const now = rootState.clock.elapsedTime;
