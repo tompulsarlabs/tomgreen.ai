@@ -22,21 +22,28 @@ import argparse, os, sys
 import numpy as np
 from PIL import Image
 
-sys.path.insert(0, "/home/user/tomgreen.ai/tools/blender/golden-path-proof")
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "blender", "golden-path-proof"))
 import common as C
 import render_review as R
 
-OUT = "/tmp/claude-0/-home-user-tomgreen-ai/f0b1bf39-d3fe-528c-8d63-c1a722d0b151/scratchpad/plate"
+DEFAULT_OUT = os.path.join(HERE, "plate")
 EPS = 1e-4
 LIT_FLOOR = 0.05          # below this the background carries no light to absorb
 
 
 def main():
-    R.RENDER_DIR = os.path.join(C.CACHE_DIR, "render_seq3")
-    R.DENOISE_MIX, R.NEAR_MIX = 0.15, 0.45
     ap = argparse.ArgumentParser()
     ap.add_argument("--frames", type=int, nargs=2, default=[33, 102])
+    ap.add_argument("--cache-tag", default="seq3",
+                    help="which sequence render to derive from (seq3 is the approved V3 event; "
+                         "a GP_NO_FRAGMENTS render lands under its own tag)")
+    ap.add_argument("--out", default=DEFAULT_OUT,
+                    help="working directory holding a_noreveal/, bgmap/ and paper/, and receiving rgb/ and matte/")
     a = ap.parse_args()
+    OUT = a.out
+    R.RENDER_DIR = os.path.join(C.CACHE_DIR, f"render_{a.cache_tag}")
+    R.DENOISE_MIX, R.NEAR_MIX = 0.15, 0.45
     os.makedirs(os.path.join(OUT, "rgb"), exist_ok=True)
     os.makedirs(os.path.join(OUT, "matte"), exist_ok=True)
     worst, rows = 0.0, []

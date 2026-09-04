@@ -13,10 +13,15 @@
 # a system decoder - and a browser that cannot decode the plate does not get the shot at
 # all. VP9 costs those browsers nothing extra: exactly one master is fetched, chosen by
 # canPlayType in golden-path-assets.ts.
+#
+# Usage: encode_plates.sh [SRC] [OUT]
+#   SRC  the working directory derive_plate.py wrote, holding rgb/, matte/ and paper/
+#        (default: tools/golden-path-web/plate, beside this script)
+#   OUT  where the masters land (default: SRC/web). Copy them into public/golden-path/.
 set -e
-S=/tmp/claude-0/-home-user-tomgreen-ai/f0b1bf39-d3fe-528c-8d63-c1a722d0b151/scratchpad
-SRC=$S/plate
-OUT=${1:-$S/plate/web}
+HERE=$(cd "$(dirname "$0")" && pwd)
+SRC=${1:-$HERE/plate}
+OUT=${2:-$SRC/web}
 mkdir -p "$OUT"
 FIRST=$(ls $SRC/rgb | head -1 | sed 's/f0*\([0-9]*\)\.png/\1/')
 PAPER_FIRST=$(ls $SRC/paper | head -1 | sed 's/f0*\([0-9]*\)\.png/\1/')

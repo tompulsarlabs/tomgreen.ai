@@ -10,6 +10,12 @@ from fragments.blend, the near particulate motes, one coherent key
 light riding the hot core, and the view layers render_review.py uses.
 
 Output: review-vfx/golden-path-asset-proof/blend/golden-path-proof.blend
+
+GP_NO_FRAGMENTS=1 builds the same scene without the hero fragments: they are
+never appended, and the event view layer never contains them. Everything else
+- the solved volumes, the camera, the lights, the motes, the map - is bit for
+bit the approved V3 scene. This is the supported way to a fragment-free plate;
+see FRAGMENT-AUDIT.md for why it cannot be done in the compositor instead.
 """
 import json
 import math
@@ -24,6 +30,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common as C  # noqa: E402
 
 VOL_DIR = os.path.join(C.CACHE_DIR, "volume")
+# Build the scene with no hero fragments at all, so the event layer traces the
+# gas that used to be behind them. The look is otherwise untouched.
+FRAGMENT_FREE = os.environ.get("GP_NO_FRAGMENTS", "") not in ("", "0")
 LATTICE_PNG = os.path.join(C.CACHE_DIR, "lattice.png")
 LATTICE_RES = 4096
 
@@ -894,10 +903,20 @@ def setup_render(scene, colls):
     bg.inputs[0].default_value = (0.003, 0.003, 0.008, 1.0)
     bg.inputs[1].default_value = 1.0
     scene.world = world
-    # view layers: beauty + one per element for the isolated passes
+    # view layers: beauty + one per element for the isolated passes.
+    # The event layer is the plume plate: everything the breakout is made of,
+    # in one beauty, because the gas shadows itself and the solids inside it.
+    # That is also why the hero fragments cannot be composited out afterwards -
+    # they occlude the gas behind them, so the passes that exclude them
+    # (Emit, VolumeDir, VolumeInd) carry fragment-shaped holes where the gas
+    # was never traced. FRAGMENT_FREE is the only clean way to a plate without
+    # them: leave them out of the layer and trace the gas that was behind them.
+    event_keep = {"far", "mid", "near", "motes", "lights"}
+    if not FRAGMENT_FREE:
+        event_keep.add("fragments")
     layers = {
         "map": {"map", "lights"},
-        "event": {"far", "mid", "near", "motes", "fragments", "lights"},
+        "event": event_keep,
         "far": {"far", "lights"},
         "mid": {"mid", "lights"},
         "near": {"near", "motes", "lights"},
@@ -937,13 +956,14 @@ def main():
     key, sun, fill, rim, fkey = build_lights(meta, colls["lights"], bodies, cam)
     build_motes(colls["motes"], cam)
     # hero fragments from the library file
-    frag_blend = os.path.join(C.BLEND_DIR, "fragments.blend")
-    with bpy.data.libraries.load(frag_blend, link=False) as (src, dst):
-        dst.collections = [c for c in src.collections if c == "hero_fragments"]
-    hero = dst.collections[0]
-    for ob in list(hero.objects):
-        link(ob, colls["fragments"])
-    bpy.data.collections.remove(hero)
+    if not FRAGMENT_FREE:
+        frag_blend = os.path.join(C.BLEND_DIR, "fragments.blend")
+        with bpy.data.libraries.load(frag_blend, link=False) as (src, dst):
+            dst.collections = [c for c in src.collections if c == "hero_fragments"]
+        hero = dst.collections[0]
+        for ob in list(hero.objects):
+            link(ob, colls["fragments"])
+        bpy.data.collections.remove(hero)
     # the cold fill reaches the solids only (fragments, core, motes); the gas is lit by the key alone
     fc = bpy.data.collections.new("fill_receivers")
     for ob in list(colls["fragments"].objects) + list(colls["motes"].objects) + [bpy.data.objects["core"]]:
