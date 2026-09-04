@@ -121,16 +121,29 @@ test("Escape during the shot recovers, and the page is left whole", async ({ pag
   const portal = await reachWorkSystem(page);
   await portal.locator('a.orbit-label[data-body="ai-organisation"]').dispatchEvent("click");
   await page.keyboard.press("Escape");
+
   // Either the shot had not navigated and we are back where we started, or
-  // it had and the arrival is settled. Both are recoveries; neither leaves
-  // a held masthead or a locked page.
+  // it had and the arrival is settled. Both are recoveries; neither may
+  // leave a held masthead or a locked page. Escape can land either side of
+  // the route push, so the poll tolerates the context being replaced under
+  // it rather than treating a navigation as a failure.
   await expect
     .poll(
-      async () =>
-        page.evaluate(() => document.documentElement.classList.contains("golden-landing")),
-      { timeout: 90_000 },
+      async () => {
+        try {
+          return await page.evaluate(() =>
+            document.documentElement.classList.contains("golden-landing"),
+          );
+        } catch {
+          return true;
+        }
+      },
+      { timeout: 120_000 },
     )
     .toBe(false);
+  await expect(page.locator(".orbit-portal")).toHaveCount(0, { timeout: 60_000 });
   const masthead = page.locator("[data-golden-masthead]");
-  if (await masthead.count()) await expect(masthead).toHaveCSS("opacity", "1");
+  if (await masthead.count()) {
+    await expect(masthead).toHaveCSS("opacity", "1", { timeout: 30_000 });
+  }
 });
