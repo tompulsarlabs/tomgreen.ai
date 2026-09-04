@@ -761,24 +761,40 @@ def composite(args, report):
 
 # ------------------------------------------------------------ encoding
 def encode(src_pattern_dir, out, f_start, f_end, fps=C.FPS, crf=18, half=False, hold=0.0):
-    """Concat-encode PNG frames; `hold` freezes the last frame for that many seconds."""
-    frames = [os.path.join(src_pattern_dir, f"f{f:04d}.png") for f in range(f_start, f_end + 1)]
-    frames = [p for p in frames if os.path.exists(p)]
-    if not frames:
+    """Encode PNG frames one-for-one; `hold` freezes the last frame for that many seconds.
+
+    A contiguous range is fed through the image2 demuxer at a fixed frame rate: one input file is
+    exactly one output frame. The concat demuxer this used to use carries a per-file duration, and
+    its rounding let the fps filter drop a frame and repeat its neighbour (f044 went missing from an
+    earlier master), so it is only the fallback for a range with gaps in it."""
+    nums = [f for f in range(f_start, f_end + 1) if os.path.exists(os.path.join(src_pattern_dir, f"f{f:04d}.png"))]
+    if not nums:
         return None
-    lst = out + ".txt"
-    with open(lst, "w") as fh:
-        for p in frames:
-            fh.write(f"file '{p}'\nduration {2.0 / fps if half else 1.0 / fps:.6f}\n")
-        if hold > 0:
-            fh.write(f"file '{frames[-1]}'\nduration {hold:.6f}\n")
-        fh.write(f"file '{frames[-1]}'\n")
-    n_out = len(frames) * (2 if half else 1) + int(round(hold * fps))   # exact frame count (the concat tail otherwise adds one)
-    cmd = [FFMPEG, "-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
-           "-vf", f"fps={fps},scale=trunc(iw/2)*2:trunc(ih/2)*2", "-frames:v", str(n_out), "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
-           "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
+    contiguous = nums == list(range(nums[0], nums[-1] + 1))
+    vf = ["scale=trunc(iw/2)*2:trunc(ih/2)*2"]
+    if half:
+        vf = [f"setpts=2.0*PTS"] + vf
+    if hold > 0:
+        vf.append(f"tpad=stop_mode=clone:stop_duration={hold:.6f}")
+    n_out = len(nums) * (2 if half else 1) + int(round(hold * fps))
+    if contiguous:
+        src = ["-framerate", str(fps), "-start_number", str(nums[0]), "-i", os.path.join(src_pattern_dir, "f%04d.png")]
+        cleanup = None
+    else:
+        lst = out + ".txt"
+        with open(lst, "w") as fh:
+            for f in nums:
+                fh.write(f"file '{os.path.join(src_pattern_dir, f'f{f:04d}.png')}'\nduration {1.0 / fps:.6f}\n")
+            fh.write(f"file '{os.path.join(src_pattern_dir, f'f{nums[-1]:04d}.png')}'\n")
+        src = ["-f", "concat", "-safe", "0", "-i", lst]
+        vf = [f"fps={fps}"] + vf
+        cleanup = lst
+    cmd = [FFMPEG, "-y", "-hide_banner", "-loglevel", "error"] + src + [
+        "-vf", ",".join(vf), "-r", str(fps), "-frames:v", str(n_out), "-c:v", "libx264", "-preset", "medium",
+        "-crf", str(crf), "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
     subprocess.run(cmd, check=True)
-    os.remove(lst)
+    if cleanup:
+        os.remove(cleanup)
     return out
 
 
@@ -841,7 +857,19 @@ def deliver(args, report):
     print(json.dumps({k: v for k, v in sizes.items() if not k.startswith("isolated")}, indent=1))
 
 
-SEQ3_SHEET = [0, 8, 15, 23, 30, 33, 36, 40, 44, 50, 56, 62, 68, 75, 82, 88, 96, 104, 120, 144]   # 20 chronological frames
+SEQ3_SHEET = [(0, "idle"), (8, "anticipation"), (15, "anticipation"), (23, "capture"), (30, "compression"),
+              (33, "first breakout"), (36, "breakout"), (40, "expansion"), (44, "hero peak"), (50, "early expansion"),
+              (58, "expansion"), (66, "passage"), (72, "near fragment"), (75, "depth transition"),
+              (79, "first paper takeover"), (82, "paper takeover"), (88, "majority paper"),
+              (96, "complete typography"), (112, "landing"), (144, "residual")]   # 20 chronological frames, one per beat
+
+
+def half_speed_from_master(master, out, fps=C.FPS, crf=16):
+    """0.5x playback generated from the finished full-speed master: identical source frames, each held twice."""
+    subprocess.run([FFMPEG, "-y", "-hide_banner", "-loglevel", "error", "-i", master,
+                    "-vf", f"setpts=2.0*PTS,fps={fps}", "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
+                    "-pix_fmt", "yuv420p", "-movflags", "+faststart", out], check=True)
+    return out
 
 
 def deliver_seq3(args, report):
@@ -851,8 +879,9 @@ def deliver_seq3(args, report):
     final = os.path.join(FRAMES_DIR, "final")
     outputs = {}
     outputs["golden-path-proof-v3-full.mp4"] = encode(final, os.path.join(R, "golden-path-proof-v3-full.mp4"), 0, C.F_END, crf=16)
-    outputs["golden-path-proof-v3-half-speed.mp4"] = encode(final, os.path.join(R, "golden-path-proof-v3-half-speed.mp4"), 0, C.F_END, crf=16, half=True)
-    tiles = [(f, os.path.join(final, f"f{f:04d}.png")) for f in SEQ3_SHEET if os.path.exists(os.path.join(final, f"f{f:04d}.png"))]
+    outputs["golden-path-proof-v3-half-speed.mp4"] = half_speed_from_master(
+        outputs["golden-path-proof-v3-full.mp4"], os.path.join(R, "golden-path-proof-v3-half-speed.mp4"), crf=16)
+    tiles = [(f, lbl, os.path.join(final, f"f{f:04d}.png")) for f, lbl in SEQ3_SHEET if os.path.exists(os.path.join(final, f"f{f:04d}.png"))]
     if tiles:
         cols, tw, th = 5, 384, 240
         rows = int(math.ceil(len(tiles) / cols))
@@ -863,11 +892,12 @@ def deliver_seq3(args, report):
         except TypeError:
             font = ImageFont.load_default()
         d.text((12, 9), "Golden path asset proof  -  V3 motion  -  20 chronological frames of 145  -  1440x900 @ 30 fps  -  detonation at t = 1.10 s", fill=(210, 214, 220), font=font)
-        for i, (f, p) in enumerate(tiles):
+        for i, (f, lbl, p) in enumerate(tiles):
             im = Image.open(p).convert("RGB").resize((tw, th), Image.LANCZOS)
             x, y = (i % cols) * tw, 34 + (i // cols) * (th + 22)
             sheet.paste(im, (x, y))
-            d.text((x + 8, y + th + 4), f"f{f:03d}   t = {C.t_of(f):.2f} s", fill=(180, 186, 195), font=font)
+            d.text((x + 8, y + th + 4), f"f{f:03d}   t = {C.t_of(f):.2f} s", fill=(196, 202, 212), font=font)
+            d.text((x + 152, y + th + 4), lbl, fill=(132, 150, 176), font=font)
         sheet.save(os.path.join(R, "contact-sheet-v3-motion.jpg"), quality=90)
     sizes = {k: os.path.getsize(v) for k, v in outputs.items() if v}
     sizes["contact-sheet-v3-motion.jpg"] = os.path.getsize(os.path.join(R, "contact-sheet-v3-motion.jpg"))
