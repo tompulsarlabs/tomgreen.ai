@@ -25,7 +25,7 @@
  * master's. Cropping the live frustum exactly as cover-fit crops the plate
  * keeps both in register instead.
  */
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
@@ -128,11 +128,17 @@ function videoTexture(video: HTMLVideoElement) {
 }
 
 export function GoldenPathLayer() {
-  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const plateRef = useRef<THREE.Mesh>(null);
   const eraseRef = useRef<THREE.Mesh>(null);
-  const baseFov = useRef(camera.fov);
+  // The field of view the scene idles at, captured on the first frame so the
+  // shot can hand it back exactly.
+  const baseFov = useRef(0);
 
+  // Uniform objects are written every frame, so they live in refs: a memo
+  // result is not ours to mutate, and the frame loop must not allocate.
+  // Declared once and handed to the material. The frame loop writes them
+  // through the material's own reference, never through this object, which
+  // is the shape the rest of the scene's shaders use.
   const plateUniforms = useMemo(
     () => ({
       uPlate: { value: null as THREE.Texture | null },
@@ -149,6 +155,8 @@ export function GoldenPathLayer() {
     }),
     [],
   );
+  const plateMat = useRef<THREE.ShaderMaterial>(null);
+  const eraseMat = useRef<THREE.ShaderMaterial>(null);
 
   /**
    * The decoders are followers, never the authority. Each frame the clock
@@ -178,25 +186,38 @@ export function GoldenPathLayer() {
 
   useEffect(() => {
     const { plate, paper } = getGoldenAssets();
-    if (plate) plateUniforms.uPlate.value = videoTexture(plate);
-    if (paper) {
-      eraseUniforms.uPaper.value = videoTexture(paper);
-      eraseUniforms.uHasPaper.value = 1;
+    const plateMaterial = plateMat.current;
+    const eraseMaterial = eraseMat.current;
+    const plateTex = plate ? videoTexture(plate) : null;
+    const paperTex = paper ? videoTexture(paper) : null;
+    if (plateMaterial && plateTex) {
+      const u = plateMaterial.uniforms;
+      u.uPlate.value = plateTex;
     }
-    const plateTex = plateUniforms.uPlate.value;
-    const paperTex = eraseUniforms.uPaper.value;
+    if (eraseMaterial && paperTex) {
+      const u = eraseMaterial.uniforms;
+      u.uPaper.value = paperTex;
+      u.uHasPaper.value = 1;
+    }
     return () => {
       plateTex?.dispose();
       paperTex?.dispose();
-      plateUniforms.uPlate.value = null;
-      eraseUniforms.uPaper.value = null;
-      eraseUniforms.uHasPaper.value = 0;
-      plateSeeded.current = false;
-      paperSeeded.current = false;
+      if (plateMaterial) plateMaterial.uniforms.uPlate.value = null;
+      if (eraseMaterial) {
+        eraseMaterial.uniforms.uPaper.value = null;
+        eraseMaterial.uniforms.uHasPaper.value = 0;
+      }
     };
-  }, [plateUniforms, eraseUniforms]);
+  // Mounts the decoders' textures and gives them back on unmount, and does
+  // so exactly once: the materials are created with the mesh and outlive
+  // every frame of the shot.
+  }, []);
 
-  useFrame(() => {
+  useFrame((frame) => {
+    // The camera comes from the frame state rather than a hook selector: it
+    // is written here, and a hook's return value is not ours to write.
+    const camera = frame.camera as THREE.PerspectiveCamera;
+    if (baseFov.current === 0) baseFov.current = camera.fov;
     const running = goldenIsRunning();
     const plateMesh = plateRef.current;
     const eraseMesh = eraseRef.current;
@@ -231,9 +252,17 @@ export function GoldenPathLayer() {
     drive(plate, t - PLATE_T0, plateSeeded);
     drive(paper, t - PAPER_T0, paperSeeded);
 
-    plateUniforms.uOpacity.value = m.plateOpacity;
-    plateUniforms.uWhiteout.value = m.paperFloor;
-    eraseUniforms.uFloor.value = m.paperFloor;
+    const plateMaterial = plateMat.current;
+    const eraseMaterial = eraseMat.current;
+    if (plateMaterial) {
+      const u = plateMaterial.uniforms;
+      u.uOpacity.value = m.plateOpacity;
+      u.uWhiteout.value = m.paperFloor;
+    }
+    if (eraseMaterial) {
+      const u = eraseMaterial.uniforms;
+      u.uFloor.value = m.paperFloor;
+    }
     plateMesh.visible = m.plateOpacity > 0.001;
     eraseMesh.visible = m.paperFloor > 0.001;
   });
@@ -243,6 +272,7 @@ export function GoldenPathLayer() {
       <mesh ref={plateRef} position={[0, 0, -PLATE_DISTANCE]} renderOrder={40} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
+          ref={plateMat}
           vertexShader={PLATE_VERT}
           fragmentShader={PLATE_FRAG}
           uniforms={plateUniforms}
@@ -258,6 +288,7 @@ export function GoldenPathLayer() {
       <mesh ref={eraseRef} position={[0, 0, -PLATE_DISTANCE]} renderOrder={200} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
+          ref={eraseMat}
           vertexShader={PLATE_VERT}
           fragmentShader={ERASE_FRAG}
           uniforms={eraseUniforms}

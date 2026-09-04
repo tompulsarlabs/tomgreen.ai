@@ -5,7 +5,7 @@
  * imperative three.js is the design here, keeping React state out of
  * the render loop entirely. */
 
-import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject } from "react";
 import * as THREE from "three";
 import {
   anchorRect,
@@ -20,6 +20,14 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
+import { GoldenPathLayer } from "@/components/golden-path-layer";
+import { CAPTURE_START as GOLDEN_CAPTURE_START, clampUnit } from "@/lib/golden-path";
+import {
+  getGoldenState,
+  goldenIsBody,
+  goldenShotTime,
+  subscribeGoldenPath,
+} from "@/lib/golden-path-store";
 import {
   BURST_LIFE,
   lightCurve,
@@ -268,6 +276,14 @@ type SceneProps = {
    */
   onCapture?: (id: string) => void;
   /**
+   * A press the scene has accepted, reported at the moment it is accepted
+   * rather than when the spiral lands. The golden path needs its clock to
+   * start on the visitor's own input, and this is the single funnel every
+   * input path already reaches — sphere, label, touch, Enter and Space —
+   * so hooking it here costs the press model nothing.
+   */
+  onPress?: (id: string) => void;
+  /**
    * The burst at the core, owned by the portal rather than the scene so
    * it survives the remount a descent performs. Both the outgoing scene
    * and the incoming one read the same detonation time.
@@ -317,12 +333,22 @@ function OrbitScene({
   narrow,
   bodies,
   onCapture,
+  onPress,
   flare,
   handoff,
 }: SceneProps) {
   const { camera, gl, size } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
+  // The shot's phase, read from the module clock rather than React state so
+  // it is the same value the frame loop sees. Server-rendered as idle: the
+  // scene is client-only, and the shot cannot be running before it mounts.
+  const goldenPhase = useSyncExternalStore(
+    subscribeGoldenPath,
+    () => getGoldenState().phase,
+    () => "idle" as const,
+  );
+  const goldenSuppressesFlare = goldenPhase === "running" || goldenPhase === "landing";
 
   const elements = useMemo(
     () => bodies.map((_, index) => navOrbitElements(index, bodies.length)),
@@ -515,6 +541,10 @@ function OrbitScene({
       held: false,
       navigated: false,
     };
+    // Reported after the guards, so a press the scene refused never starts
+    // a clock. Nothing above this line changed: the pointer capture, the
+    // drag threshold and the frame memory all still decide what a press is.
+    onPressRef.current?.(id);
   };
   const startCaptureRef = useRef(startCapture);
   // Kept current in an effect, never during render: the scene reads it
@@ -524,6 +554,10 @@ function OrbitScene({
   useEffect(() => {
     onCaptureRef.current = onCapture;
   }, [onCapture]);
+  const onPressRef = useRef(onPress);
+  useEffect(() => {
+    onPressRef.current = onPress;
+  }, [onPress]);
 
   const navigate = (target: OrbitTarget) => {
     switch (target.kind) {
@@ -881,7 +915,14 @@ function OrbitScene({
     if (s.capture) {
       const c = s.capture;
       if (c.active) {
-        c.progress = Math.min(1, c.progress + dt / CAPTURE_SECONDS);
+        // The spiral is normally integrated from dt. Under the golden path
+        // it is read from the shot clock instead, because the plate's
+        // detonation is at a fixed second and a frame rate that sags would
+        // walk the live capture off the baked breakout. Every other planet
+        // keeps the integrator exactly as it was.
+        c.progress = goldenIsBody(c.id)
+          ? clampUnit((goldenShotTime() - GOLDEN_CAPTURE_START) / CAPTURE_SECONDS)
+          : Math.min(1, c.progress + dt / CAPTURE_SECONDS);
         if (c.progress >= 1 && !c.navigated) {
           c.navigated = true;
           const handler = onCaptureRef.current;
@@ -1472,11 +1513,15 @@ function OrbitScene({
 
       {/* The burst at the core. Mounted last so it draws over the
           system it just tore a planet out of. */}
+      {/* The golden path brings its own event, authored and baked. The
+          site's procedural burst stands down for it rather than drawing a
+          second explosion inside the first; every other capture keeps it. */}
       <OrbitFlare
-        flare={flare ?? null}
+        flare={goldenSuppressesFlare ? null : flare ?? null}
         origin={[0, CORE_Y, 0]}
         narrow={narrow}
       />
+      <GoldenPathLayer />
 
       {/* The spacetime membrane: displaced funnel geometry rendered as a
           procedural graphite lattice — sub-pixel AA lines, no boundary. */}
@@ -1633,6 +1678,7 @@ export function OperatingOrbit3D({
   bodies,
   handoff,
   onCapture,
+  onPress,
   flare,
 }: SceneProps) {
   return (
@@ -1661,6 +1707,7 @@ export function OperatingOrbit3D({
         narrow={narrow}
         bodies={bodies}
         onCapture={onCapture}
+        onPress={onPress}
         flare={flare}
         handoff={handoff}
       />
