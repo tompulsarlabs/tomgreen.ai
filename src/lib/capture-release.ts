@@ -1,4 +1,4 @@
-import { PAGE_IN, PLATE_OUT, T_END, clampUnit, smoothstep } from "@/lib/golden-path";
+import { PAGE_IN, PLATE_OUT, T_END, clampUnit, plateOpacity, smoothstep } from "@/lib/golden-path";
 
 /**
  * How a captured parent releases its own system.
@@ -104,4 +104,21 @@ export function captureReleaseAt(t: number): CaptureRelease {
     lightReturn: clampUnit(lightReturn),
     gas: clampUnit(gas),
   };
+}
+
+/**
+ * The plate's opacity under a parent ending.
+ *
+ * The authored window is unchanged up to PLATE_OUT - the plate fades in at
+ * 1.05, and nothing here may light it a moment earlier, which a naive floor
+ * would do for the whole first three seconds of every capture. From PLATE_OUT
+ * the authored curve is falling to nothing over 0.2 s and this holds it open
+ * instead, thinning it across the assembly. Composed here rather than in the
+ * frame loop because the mistake is an ordering mistake, and an ordering
+ * mistake in a frame loop is only visible in pixels.
+ */
+export function captureGasOpacity(t: number): number {
+  const authored = plateOpacity(t);
+  if (t < PLATE_OUT) return authored;
+  return Math.max(authored, captureReleaseAt(t).gas);
 }

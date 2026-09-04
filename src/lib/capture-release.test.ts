@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { RELEASE_AT, SWAP_AT, captureReleaseAt } from "@/lib/capture-release";
-import { DET, PAGE_IN, T_END } from "@/lib/golden-path";
+import {
+  RELEASE_AT,
+  SWAP_AT,
+  captureGasOpacity,
+  captureReleaseAt,
+} from "@/lib/capture-release";
+import { DET, PAGE_IN, PLATE_IN, PLATE_OUT, T_END, plateOpacity } from "@/lib/golden-path";
 import { shotTimeFor } from "@/lib/capture-timing";
 
 describe("nothing moves before the branch", () => {
@@ -99,6 +104,35 @@ describe("the system arrives in order", () => {
     for (let t = SWAP_AT; t <= T_END; t += 0.01) {
       const now = captureReleaseAt(t).lightReturn;
       expect(now).toBeGreaterThanOrEqual(previous - 1e-9);
+      previous = now;
+    }
+  });
+
+  it("never lights the plate before the render does, at either speed", () => {
+    // The floor that holds the gas open would, applied unconditionally, hold
+    // it open from the press: the authored curve is zero until 1.05 s, and a
+    // max() against a thinning term that starts at 1 would put an opaque
+    // plate over the whole compression and the entire breakout.
+    for (let t = 0; t < PLATE_IN - 0.05; t += 0.01) {
+      expect(captureGasOpacity(t), `t=${t.toFixed(2)}`).toBe(0);
+    }
+    // And up to PLATE_OUT it IS the authored curve, exactly.
+    for (let t = 0; t <= PLATE_OUT; t += 0.01) {
+      expect(captureGasOpacity(t)).toBeCloseTo(plateOpacity(t), 12);
+    }
+  });
+
+  it("holds the plate open past its own window and thins it to nothing", () => {
+    expect(captureGasOpacity(PLATE_OUT)).toBe(1);
+    // The authored curve is already dark here; the floor is what is left.
+    expect(plateOpacity(3.7)).toBe(0);
+    expect(captureGasOpacity(3.7)).toBeGreaterThan(0.7);
+    expect(captureGasOpacity(T_END)).toBe(0);
+    // Monotone from the hold to the end, so the remnant only ever recedes.
+    let previous = captureGasOpacity(PLATE_OUT);
+    for (let t = PLATE_OUT; t <= T_END; t += 0.005) {
+      const now = captureGasOpacity(t);
+      expect(now, `t=${t.toFixed(3)}`).toBeLessThanOrEqual(previous + 1e-9);
       previous = now;
     }
   });

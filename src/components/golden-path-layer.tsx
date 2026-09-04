@@ -33,11 +33,15 @@ import { FOV_Y, PLATE_ASPECT, goldenMotionAt } from "@/lib/golden-path";
 import { PAPER_T0, PLATE_T0, getGoldenAssets } from "@/lib/golden-path-assets";
 import { followDecoder, type Follower } from "@/lib/capture-decoders";
 import {
+  getGoldenState,
   goldenIsHeld,
   goldenIsRunning,
   goldenShotTime,
+  goldenTakesChildren,
   goldenTakesPaper,
 } from "@/lib/golden-path-store";
+import { shotRateAt } from "@/lib/capture-timing";
+import { captureGasOpacity } from "@/lib/capture-release";
 
 /** The plate hangs at a fixed distance in front of the camera it was shot from. */
 const PLATE_DISTANCE = 6;
@@ -369,10 +373,16 @@ export function GoldenPathLayer() {
     }
 
     const held = goldenIsHeld();
+    // How fast shot time is running against the wall right now. A compact
+    // capture asks the plate to cover 1.40 s of authored gas in 0.65, and no
+    // drift correction inside the follower's clamp would ever get there: the
+    // rate has to come from the edit, not from the error.
+    const rate = shotRateAt(getGoldenState().mode, t);
     if (plateFollower.current) {
       const action = followDecoder(plateFollower.current, t - PLATE_T0, {
         seeded: plateSeeded.current,
         held,
+        rate,
       });
       if (action === "seek") plateSeeded.current = true;
     }
@@ -380,6 +390,7 @@ export function GoldenPathLayer() {
       const action = followDecoder(paperFollower.current, t - PAPER_T0, {
         seeded: paperSeeded.current,
         held,
+        rate,
       });
       if (action === "seek") paperSeeded.current = true;
     }
@@ -391,18 +402,29 @@ export function GoldenPathLayer() {
     // the thing the capture exists to deliver, at the moment it lands.
     const paper = goldenTakesPaper() ? m.paperFloor : 0;
 
+    // And with no paper to hide it, the gas cannot simply stop. The authored
+    // opacity falls over 0.2 s at PLATE_OUT, which is invisible underneath a
+    // white takeover and is a quarter of the frame switching off in six
+    // frames of a compact capture without one. A parent's capture holds the
+    // plate's last frame open and thins it across the assembly instead, so
+    // the remnant recedes BEHIND the arriving system rather than being cut
+    // out from under it.
+    const plateOpacity = goldenTakesChildren()
+      ? captureGasOpacity(t)
+      : m.plateOpacity;
+
     const plateMaterial = plateMat.current;
     const eraseMaterial = eraseMat.current;
     if (plateMaterial) {
       const u = plateMaterial.uniforms;
-      u.uOpacity.value = m.plateOpacity;
+      u.uOpacity.value = plateOpacity;
       u.uWhiteout.value = paper;
     }
     if (eraseMaterial) {
       const u = eraseMaterial.uniforms;
       u.uFloor.value = paper;
     }
-    plateMesh.visible = m.plateOpacity > 0.001;
+    plateMesh.visible = plateOpacity > 0.001;
     eraseMesh.visible = paper > 0.001;
   });
 

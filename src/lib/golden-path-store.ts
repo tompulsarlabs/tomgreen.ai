@@ -19,6 +19,7 @@
  */
 import { T_END, goldenMotionAt } from "@/lib/golden-path";
 import { captureSeconds, shotTimeFor, type CaptureMode } from "@/lib/capture-timing";
+import { rewindGoldenAssets } from "@/lib/golden-path-assets";
 
 export type GoldenPhase = "idle" | "running" | "landing" | "done" | "aborted";
 
@@ -182,6 +183,18 @@ export function goldenTakesPaper() {
   return goldenIsRunning() && state.ending === "paper";
 }
 
+/**
+ * True while the running shot ends by releasing a child system.
+ *
+ * The complement of goldenTakesPaper for the frame loop's benefit: the scene
+ * hands the last two seconds of the event over to the release schedule only
+ * for this ending, and must not do so for a shot that is about to be replaced
+ * by a page.
+ */
+export function goldenTakesChildren() {
+  return goldenIsRunning() && state.ending === "children";
+}
+
 /** True for the body the shot is playing for, and no other. */
 export function goldenIsBody(id: string) {
   return goldenIsRunning() && state.bodyId === id;
@@ -264,7 +277,13 @@ function clearAll() {
 
 export function armGoldenPath(input: {
   bodyId: string;
-  href: string;
+  /**
+   * Where this capture lands, or null when it lands nowhere. A parent's
+   * capture delivers its own children into the scene it is already in, so
+   * there is no route to push and the heartbeat has nothing to compare
+   * against ROUTE_AT.
+   */
+  href: string | null;
   fromPath: string;
   tier: GoldenTier;
   ending?: GoldenEnding;
@@ -277,6 +296,11 @@ export function armGoldenPath(input: {
   // paths and the visitor may take a second capture without any of them
   // running.
   clearAll();
+  // The package is held for the whole session now, so the decoders arrive at
+  // this press wherever the last capture left them. Rewinding here gives the
+  // seek the whole compression to land in, instead of at the frame the plate
+  // is first drawn.
+  rewindGoldenAssets();
   state = {
     phase: "running",
     originMs: performance.now(),

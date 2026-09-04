@@ -22,12 +22,14 @@ import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
 import { GoldenPathLayer } from "@/components/golden-path-layer";
 import { CAPTURE_START as GOLDEN_CAPTURE_START, clampUnit } from "@/lib/golden-path";
+import { captureReleaseAt } from "@/lib/capture-release";
 import {
   getGoldenState,
   goldenIsBody,
   goldenIsRunning,
   goldenMotionNow,
   goldenShotTime,
+  goldenTakesChildren,
   subscribeGoldenPath,
 } from "@/lib/golden-path-store";
 import {
@@ -36,8 +38,9 @@ import {
   smoothstep as burstStep,
   thermal,
 } from "@/lib/supernova";
-import { isInteractive } from "@/lib/planet-model";
+import { captureEndingFor, isInteractive } from "@/lib/planet-model";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
+import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 
 /** The scene's exposure at rest. The golden path scales it and hands it back. */
@@ -80,6 +83,13 @@ const CORE_RADIUS = 0.34;
 const NARROW_LABELS = 4;
 const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
 
+/**
+ * How many bodies the membrane's contact shading has slots for. The same ten
+ * are written into the shader's own loop bound, which is a GLSL string and
+ * cannot read this: changing one means changing the other.
+ */
+const MAX_CONTACT_BODIES = 10;
+
 /** How long a clicked planet takes to spiral into the core. */
 const CAPTURE_SECONDS = 0.75;
 
@@ -119,6 +129,23 @@ const HIT_MEMORY_MS = 400;
 const HIT_MEMORY_FRAMES = 6;
 /** A press this close to a nameplate's box, in px, is a press on it. */
 const HIT_PLATE_PX = 8;
+
+/**
+ * The capture filament, from the core to the fallen planet.
+ *
+ * One array for every filament in the scene, and a module constant rather
+ * than a literal in the map: drei rebuilds a Line's geometry whenever the
+ * `points` identity changes and disposes the material it still holds in the
+ * same cleanup, so a fresh array literal per render meant every re-render of
+ * the scene threw away and rebuilt N line geometries and relinked N line
+ * programs. The scene re-renders several times inside the event itself. Safe
+ * to share: drei only reads it, and the frame loop writes the real endpoints
+ * through setPoints.
+ */
+const FILAMENT_POINTS: [number, number, number][] = [
+  [0, 0, 0],
+  [0, CORE_Y, 0],
+];
 
 const ASSEMBLY_SECONDS = 1.45;
 /** How far out the pieces start, in world units of extra orbit radius. */
@@ -539,8 +566,23 @@ function OrbitScene({
     // Any capture, not only an active one: a held capture belongs to a
     // scene the portal is about to replace.
     if (s.capture) return;
+    // And one event at a time. A parent's capture keeps the screen for two
+    // seconds after its child system has landed, and this scene's own
+    // capture is cleared at the swap - so without this a press taken during
+    // the assembly would start the procedural transition and travel out from
+    // underneath a remnant that is still burning.
+    if (goldenIsRunning()) return;
     if (!bodyById.has(id)) return;
     if (!isInteractive(id)) return;
+    // A departure is not a capture. The gravity core cannot deliver anyone to
+    // a mail client or another origin, so it does not take these bodies in at
+    // all: no spiral, no filament, no event. The portal answers the press on
+    // the frame it arrives, still inside the activation the gesture gave it,
+    // which is also what lets a mailto: reach a mail client at all.
+    if (captureEndingFor(id).kind === "external") {
+      onCaptureRef.current?.(id);
+      return;
+    }
     s.capture = {
       id,
       progress: 0,
@@ -902,38 +944,47 @@ function OrbitScene({
     const live = new Set(bodies.map((body) => body.id));
     const s = state.current;
 
-    // Every id-keyed map, pruned against the set that is actually here. By
-    // subtraction rather than by clearing, so a set that shares bodies with
-    // the last one keeps their measured boxes and settled anchors.
-    const keyed: Map<string, unknown>[] = [
-      s.hoverEase,
-      s.angles,
-      s.anchors,
-      s.gaps,
-      s.hidden,
-      s.baseOpacity,
-      s.labelAt,
-      s.pending,
-      s.lockedUntil,
-      s.measured,
-      s.labels,
-      bodyRefs.current,
-      bodyMaterials.current,
-      filamentRefs.current,
-    ];
-    for (const map of keyed) {
-      for (const id of Array.from(map.keys())) if (!live.has(id)) map.delete(id);
-    }
+    // Every id-keyed store, pruned against the set that is actually here.
+    pruneToLiveBodies(
+      [
+        s.hoverEase,
+        s.angles,
+        s.anchors,
+        s.gaps,
+        s.hidden,
+        s.baseOpacity,
+        s.labelAt,
+        s.pending,
+        s.lockedUntil,
+        s.measured,
+        s.labels,
+        bodyRefs.current,
+        bodyMaterials.current,
+        filamentRefs.current,
+      ],
+      live,
+    );
 
     // Index-keyed things, which have no id to prune by and would otherwise
     // keep drawing the departed system: the orbit paths, and the membrane's
-    // contact shading, whose shader reads all ten slots unconditionally.
+    // contact shading, whose shader reads all ten slots unconditionally, so
+    // a four-body system arriving after an eight-body one would leave four
+    // contact dimples pressed into the lattice where nothing is.
     pathMaterials.current.length = bodies.length;
-    for (let i = bodies.length; i < 10; i += 1) {
-      membraneUniforms.uBodies.value[i].set(999, 999, 999);
+    for (const slot of idleBodySlots(bodies.length, MAX_CONTACT_BODIES)) {
+      membraneUniforms.uBodies.value[slot].set(999, 999, 999);
     }
 
     bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
+
+    // Where a nameplate was last drawn belongs to the system it was drawn
+    // for. Kept, a system entered a second time would have its names slide
+    // in from wherever they happened to sit when the visitor last left it,
+    // across a scene that is meanwhile assembling from scattered. The
+    // measured boxes stay - a nameplate's width is a property of its text.
+    s.labelAt.clear();
+    s.anchors.clear();
+    s.gaps.clear();
 
     // A capture belongs to the set it was started in. It used to be left
     // parked in `held`, on an assumption that was true only while the portal
@@ -995,9 +1046,43 @@ function OrbitScene({
       }
     }
 
+    /**
+     * THE PARENT ENDING.
+     *
+     * A captured parent does not travel anywhere: it releases its own system
+     * out of the remnant, inside the same event, and the last two seconds of
+     * the shot are that release. While one is running the scene's two entry
+     * channels are READ from the shot clock rather than integrated - for the
+     * same reason the capture spiral is (see c.progress below): the schedule
+     * is choreographed against baked frames, and a sagging frame rate would
+     * walk the assembly off the remnant it is meant to arrive through. Every
+     * other entry into a system - a step back, a first open, a descent with
+     * no capture engine available - keeps the integrator exactly as it was.
+     *
+     * Neither branch writes revealTarget. That latch stays at whatever the
+     * intersection observer set, so the moment the shot ends - or is aborted,
+     * or watchdogged, or the tab is hidden and comes back - the integrator
+     * picks the scene straight back up and pulls it home. A schedule that
+     * wrote the latch would leave an interrupted shot holding a scene at
+     * whatever fraction of itself it had reached.
+     */
+    const release = goldenTakesChildren()
+      ? captureReleaseAt(goldenShotTime())
+      : null;
+
     // Entry: the well deepens, the system condenses, the camera settles.
-    s.reveal += (s.revealTarget - s.reveal) * lerpIn(1.6);
-    if (s.assembly < 1)
+    const eased = s.reveal + (s.revealTarget - s.reveal) * lerpIn(1.6);
+    s.reveal = release
+      ? release.swapped
+        ? release.reveal
+        : // Still the integrator until the dismissal overtakes it. Assigning
+          // the schedule outright would snap a scene that was still easing in
+          // - a press taken in the first second of an open portal - straight
+          // to 1 on the frame the shot armed.
+          Math.min(eased, release.outgoing)
+      : eased;
+    if (release) s.assembly = release.assembly;
+    else if (s.assembly < 1)
       s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
     // Cubic-out: the pieces arrive fast and settle slowly, so the last
     // of the assembly is the part that reads as deliberate.
@@ -1109,16 +1194,34 @@ function OrbitScene({
      */
     if (goldenIsRunning()) {
       const g = goldenMotionNow();
+      /*
+       * ...and then, for a parent, it comes back. The approved shot ends
+       * parked 2.00 units from the core, rolled and slid, with the map at
+       * 0.45 x 2^-1.4 of its own exposure - all of which is right, because
+       * paper is about to take the frame and none of it will be seen again.
+       * A released system has to be seen. Its orbits span roughly 1.29 to
+       * 3.11 units, so a camera left at 2.00 stands INSIDE the shell it is
+       * revealing with half the system behind it, and a map left at a sixth
+       * of its brightness would assemble dark and then snap 5.9x on the frame
+       * the shot ended. Both ease home across the assembly instead, and both
+       * land on the map's own values rather than on remembered ones: the
+       * distance is the same expression the resting camera just used, so
+       * there is nothing to disagree with when the shot lets go.
+       */
+      const back = release?.cameraReturn ?? 0;
+      const camDistance = g.camDistance + (distance - g.camDistance) * back;
       camera.position.set(
-        g.camDistance * Math.sin(polar) * Math.sin(azimuth),
-        g.camDistance * Math.cos(polar),
-        g.camDistance * Math.sin(polar) * Math.cos(azimuth),
+        camDistance * Math.sin(polar) * Math.sin(azimuth),
+        camDistance * Math.cos(polar),
+        camDistance * Math.sin(polar) * Math.cos(azimuth),
       );
       camera.lookAt(0, -0.42, 0);
-      camera.translateX(g.camSlide[0]);
-      camera.translateY(g.camSlide[1]);
-      camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg));
-      gl.toneMappingExposure = BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim;
+      camera.translateX(g.camSlide[0] * (1 - back));
+      camera.translateY(g.camSlide[1] * (1 - back));
+      camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg * (1 - back)));
+      const shot = BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim;
+      const light = release?.lightReturn ?? 0;
+      gl.toneMappingExposure = shot + (BASE_EXPOSURE - shot) * light;
     } else if (gl.toneMappingExposure !== BASE_EXPOSURE) {
       gl.toneMappingExposure = BASE_EXPOSURE;
     }
@@ -1236,7 +1339,8 @@ function OrbitScene({
       if (suction > 0) scratch.v1.lerp(scratch.core, suction);
       group.position.copy(scratch.v1);
       // Feed the membrane's contact shading (first ten bodies).
-      if (index < 10) membraneUniforms.uBodies.value[index].copy(scratch.v1);
+      if (index < MAX_CONTACT_BODIES)
+        membraneUniforms.uBodies.value[index].copy(scratch.v1);
       const pressBump = s.pendingPress?.id === body.id ? 1 : 0;
       const swell =
         (1 + 0.08 * nextEase + 0.06 * pressBump) *
@@ -1721,10 +1825,7 @@ function OrbitScene({
       {bodies.map((body) => (
         <Line
           key={`f-${body.id}`}
-          points={[
-            [0, 0, 0],
-            [0, CORE_Y, 0],
-          ]}
+          points={FILAMENT_POINTS}
           color="#dbe2ee"
           lineWidth={1}
           transparent
@@ -1796,6 +1897,45 @@ function OrbitScene({
           </mesh>
         </group>
       ))}
+
+      {/*
+        One planet's material that never leaves.
+
+        Every planet compiles to the same program - applyPlanetSurface pins
+        customProgramCacheKey to "planet-surface" and puts the seed in a
+        uniform - so the whole map costs one shader. three counts how many
+        materials are using that program and deletes it the moment the count
+        reaches zero. Swapping a body set unmounts every material in it, and
+        R3F disposes them on an idle callback that is not ordered against the
+        frame loop: if idle work runs before the arriving planets have drawn
+        once, the count touches zero, the program is deleted, and the frame
+        the child system first appears on pays for a full relink of a physical
+        shader. That frame is the one beat the parent ending needs to be
+        unobservable.
+
+        So one material holds the count above zero for the life of the canvas.
+        It has to be drawn to hold it - a culled or invisible mesh never
+        acquires the program at all - hence a sub-millimetre sphere at zero
+        opacity with culling off. It is three triangles and no pixels.
+      */}
+      <mesh frustumCulled={false} position={[0, CORE_Y, 0]}>
+        <sphereGeometry args={[0.0005, 3, 2]} />
+        <meshPhysicalMaterial
+          ref={(material) => {
+            if (material) applyPlanetSurface(material, planetSeed("keeper"));
+          }}
+          color="#000000"
+          roughness={0.42}
+          metalness={0.05}
+          clearcoat={0.55}
+          clearcoatRoughness={0.35}
+          envMapIntensity={0.85}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          dispose={null}
+        />
+      </mesh>
     </group>
   );
 }

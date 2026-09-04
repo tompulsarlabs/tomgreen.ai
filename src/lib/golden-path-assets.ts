@@ -169,7 +169,36 @@ if (process.env.NEXT_PUBLIC_GOLDEN_REVIEW === "1" && typeof window !== "undefine
 }
 
 /**
- * Give the decoders back. Called on every terminal path, so a visitor who
+ * Put both decoders back on their first frame, ready for the next capture.
+ *
+ * One package now serves every capture of a session rather than being torn
+ * down and rebuilt between them, which is what the engine needs and what
+ * makes this necessary: a decoder that has finished a shot is parked at the
+ * end of its own media, and the next capture asks it for second zero. The
+ * follower's rule is to seek when it is more than half a second out, so
+ * without this every capture after the first opens with a real keyframe seek
+ * on a 1440x1800 stream - on the frame the plate first becomes visible, which
+ * is 0.05 s before the detonation.
+ *
+ * Called at the press rather than when the plate is first drawn, so the seek
+ * has the whole compression to land in: 0.75 s on the full clock, 0.45 s on
+ * the compact one. And frame zero is the frame the shot wants there anyway.
+ */
+export function rewindGoldenAssets() {
+  for (const v of [assets.plate, assets.paper]) {
+    if (!v) continue;
+    try {
+      v.pause();
+      v.playbackRate = 1;
+      if (v.currentTime !== 0) v.currentTime = 0;
+    } catch {
+      /* a decoder that will not seek is one the shot will re-seek anyway */
+    }
+  }
+}
+
+/**
+ * Give the decoders back. Called when the Easter egg closes, so a visitor who
  * takes the shot ten times in a row is holding one decoder at the end, not
  * ten.
  */

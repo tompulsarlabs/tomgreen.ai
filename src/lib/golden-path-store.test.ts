@@ -128,6 +128,47 @@ describe("which ending the shot is playing toward", () => {
     });
     expect(store.getGoldenState().ending).toBe("children");
     expect(store.goldenTakesPaper()).toBe(false);
+    expect(store.goldenTakesChildren()).toBe(true);
+  });
+
+  it("keeps the two endings exclusive, and both dead between captures", () => {
+    // The scene hands its entry channels to the release schedule on the
+    // strength of goldenTakesChildren, and the layer holds the plate open on
+    // the same answer. Neither may be true for a shot that is not running,
+    // and they may never both be true at once.
+    expect(store.goldenTakesPaper()).toBe(false);
+    expect(store.goldenTakesChildren()).toBe(false);
+    arm();
+    expect(store.goldenTakesPaper()).toBe(true);
+    expect(store.goldenTakesChildren()).toBe(false);
+    store.finishGoldenPath();
+    expect(store.goldenTakesPaper()).toBe(false);
+    expect(store.goldenTakesChildren()).toBe(false);
+    store.armGoldenPath({
+      bodyId: "work",
+      href: null,
+      fromPath: "/building",
+      tier: "high",
+      ending: "children",
+    });
+    expect(store.goldenTakesChildren()).toBe(true);
+    expect(store.goldenTakesPaper()).toBe(false);
+    store.finishGoldenPath();
+    expect(store.goldenTakesChildren()).toBe(false);
+  });
+
+  it("lets a parent capture arm with nowhere to go", () => {
+    // A parent delivers its children into the scene it is already in, so
+    // there is no route, and the heartbeat must find nothing to push.
+    store.armGoldenPath({
+      bodyId: "work",
+      href: null,
+      fromPath: "/building",
+      tier: "high",
+      ending: "children",
+    });
+    expect(store.getGoldenState().href).toBe(null);
+    expect(store.getGoldenState().pushed).toBe(false);
   });
 
   it("answers for the shot that is running, not the one that was armed last", () => {
