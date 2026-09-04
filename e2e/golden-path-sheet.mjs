@@ -45,7 +45,9 @@ const browser = await chromium.launch({
  * walk is retried from a fresh load rather than failing the viewport - a
  * timeout here says nothing about the integration.
  */
-async function reachZalando(page) {
+async function reachZalando(page, name) {
+  const t0 = Date.now();
+  const mark = (what) => console.log(`  ${name} ${what} +${((Date.now() - t0) / 1000).toFixed(1)}s`);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto(`${baseURL}/building`, { waitUntil: "load" });
   // The first document commit can still be replaced under a loaded machine,
@@ -53,27 +55,37 @@ async function reachZalando(page) {
   // Waiting for the review clock through waitForFunction rather than
   // evaluate rides that out: waitForFunction re-attaches to the new context
   // instead of throwing.
+  // polling: an interval, never the default rAF. This page IS the render
+  // loop, rasterised on the CPU, and a predicate evaluated on every frame of
+  // it competes with the thing it is waiting for - the descent that takes 40
+  // seconds unobserved takes seven minutes under a rAF poll.
   await page.waitForFunction(() => typeof window.__goldenHold === "function", undefined, {
     timeout: 120_000,
+    polling: 500,
   });
   await page.waitForFunction(() => document.fonts.status === "loaded", undefined, {
     timeout: 120_000,
+    polling: 500,
   });
+  mark("loaded");
   await page.locator(".sphere-home").click();
   await page.locator('.orbit-portal[role="dialog"]').waitFor({ state: "visible" });
   await page
     .locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')
     .waitFor({ state: "visible", timeout: 300_000 });
+  mark("map live");
   const work = page.locator('.orbit-portal a.orbit-label[data-body="work"]');
   await work.waitFor({ state: "attached", timeout: 300_000 });
   await work.dispatchEvent("click");
   await page.waitForFunction(
     () => document.querySelector(".orbit-portal")?.getAttribute("data-view") === "section",
     undefined,
-    { timeout: 420_000 },
+    { timeout: 300_000, polling: 1000 },
   );
+  mark("section");
   const zalando = page.locator('.orbit-portal a.orbit-label[data-body="ai-organisation"]');
   await zalando.waitFor({ state: "attached", timeout: 300_000 });
+  mark("at the planet");
   return zalando;
 }
 
@@ -87,12 +99,13 @@ async function shoot(vp, dir) {
   });
   const page = await context.newPage();
   try {
-    const zalando = await reachZalando(page);
+    const zalando = await reachZalando(page, vp.name);
 
     // The shot must not arm on an undecoded plate: that correctly takes the
     // procedural transition instead, which is not what this sheet is for.
     await page.waitForFunction(() => window.__goldenDebug?.().ready === true, undefined, {
       timeout: 60_000,
+      polling: 500,
     });
 
     // Hold at the press instant BEFORE pressing, so the clock never

@@ -56,8 +56,16 @@ upscaled exactly as the shader samples it:
 Per 255. The maxima are isolated pixels on the plume's hardest edges; 99 % of
 every frame is within 6–10.
 
-Because the matte is the event's own coverage, the live map is genuinely
-visible through it rather than replaced:
+### The live map has to be the map the matte was cut from
+
+`P + (1 - M) * B == A` is only true where the live map *is* `B`, and `B` is
+not the map at rest: the render darkens it. Measured off the render's own
+background pass, it falls to **0.453** of its detonation brightness by 1.37 s,
+which is exactly the 0.45 the `mapDim` channel carries — on top of the 1.4 EV
+the map loses while the planet spirals in. The scene applies both, and the
+deep field recedes on its own channel beside them. A map at full brightness
+under an event matted against a dimmed one is not the approved image anywhere
+the matte is open, which is most of the frame:
 
 | shot time | matte mean | frame untouched by the plate |
 |---|---:|---:|
@@ -205,6 +213,7 @@ compiles to a live `process.env` lookup and the block survives minification.
 - **The camera follows the approved distance, roll and slide, not its
   azimuth.** The visitor's own viewing angle is kept, because the breakout is
   screen-space authored and snapping the azimuth at the press would be a jump.
+  Everything else is the render's own, sampled per frame from its tables.
 - **The sibling project is deliberately excluded.** `interviewer-training`
   reaches the same page and keeps the procedural transition; the approved
   landing is the other project's content.
