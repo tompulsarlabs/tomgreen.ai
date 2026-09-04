@@ -34,10 +34,10 @@ import * as THREE from "three";
  */
 
 /** Rungs along one trail. The head is the body; the tail is TRAIL_SPAN ago. */
-export const TRAIL_SAMPLES = 26;
+export const TRAIL_SAMPLES = 32;
 
-/** Seconds between stored samples. 120 Hz, so a fast body still curves. */
-export const TRAIL_STEP = 1 / 120;
+/** Seconds between stored samples. 90 Hz, so a fast body still curves. */
+export const TRAIL_STEP = 1 / 90;
 
 /** How much of the past a trail remembers. */
 export const TRAIL_SPAN = (TRAIL_SAMPLES - 1) * TRAIL_STEP;
@@ -74,7 +74,7 @@ export class TrailSamples {
 
   private unshift(x: number, y: number, z: number) {
     // Newest first, so the shader's age is the array index and the head never
-    // has to be chased. TRAIL_SAMPLES is 26, so the copy is 75 floats.
+    // has to be chased. The shift is 93 floats, once per stored sample.
     this.path.copyWithin(3, 0, (TRAIL_SAMPLES - 1) * 3);
     this.path[0] = x;
     this.path[1] = y;
@@ -88,8 +88,15 @@ export class TrailSamples {
    * Stores however many fixed-cadence samples that frame owes, each placed
    * along the frame's own segment at the instant it belongs to, so a long
    * frame lays down a properly spaced run of rungs instead of one far apart.
+   *
+   * `dt` is time on the clock the BODY is moving on, which during a capture
+   * is the shot clock rather than the wall clock. Zero seconds means no
+   * motion to record - the trail keeps what it has, at the speed it had -
+   * which is what a held review clock produces, and what a frame that
+   * arrives before the shot has advanced produces on a real machine.
    */
   advance(x: number, y: number, z: number, dt: number) {
+    if (dt <= 0 && this.count > 0) return;
     if (this.count === 0) {
       this.lastX = x;
       this.lastY = y;
@@ -160,14 +167,19 @@ const trailFragment = /* glsl */ `
   varying vec3 vTint;
   varying float vGain;
   void main() {
-    // Two scales across the ribbon: a narrow additive plasma core, and a
-    // broad, weak scattering halo around it. One term alone reads as a drawn
-    // line; together they read as something luminous in a medium.
+    // Three scales across the ribbon, which is what makes it read as plasma
+    // in a medium rather than as a drawn line: a narrow white-hot centre, the
+    // body's own colour around it, and a broad, weak scattering halo further
+    // out. The halo is the cold blue-white of the gas the whole event is made
+    // of - the same light, further from the source, and the only colour here
+    // that is not the planet's own.
     float d = abs(vAcross);
-    float core = exp(-d * d * 9.0);
-    float halo = exp(-d * d * 1.7) * 0.4;
-    vec3 tint = mix(vTint, vec3(1.0), core * 0.55);
-    gl_FragColor = vec4(tint * (core + halo) * vGain, 1.0);
+    float core = exp(-d * d * 14.0);
+    float body = exp(-d * d * 4.5);
+    float halo = exp(-d * d * 1.4);
+    vec3 tint = vTint * body + vec3(1.0, 0.98, 0.95) * core * 0.85
+              + vec3(0.55, 0.72, 1.0) * halo * 0.3;
+    gl_FragColor = vec4(tint * vGain, 1.0);
   }
 `;
 
@@ -240,6 +252,12 @@ export class TrailField {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
+      // A ribbon that turns to face the camera in the vertex shader has no
+      // fixed facing, so whether its triangles wind clockwise depends on
+      // which way the body happens to be travelling. Single-sided, that is
+      // the difference between a trail and nothing at all - and nothing at
+      // all is what it was, with every buffer correct.
+      side: THREE.DoubleSide,
     });
     this.live = new Array<boolean>(slots).fill(false);
   }

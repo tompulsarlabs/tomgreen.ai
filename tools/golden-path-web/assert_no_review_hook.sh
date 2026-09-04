@@ -15,9 +15,9 @@ if [ ! -d "$DIR" ]; then
   exit 2
 fi
 
-if grep -rlE "__goldenHold|__goldenDebug" "$DIR" >/dev/null 2>&1; then
+if grep -rlE "__goldenHold|__goldenDebug|__goldenShotAt" "$DIR" >/dev/null 2>&1; then
   echo "FAIL: the review clock survived into the bundle:" >&2
-  grep -rlE "__goldenHold|__goldenDebug" "$DIR" >&2
+  grep -rlE "__goldenHold|__goldenDebug|__goldenShotAt" "$DIR" >&2
   exit 1
 fi
 

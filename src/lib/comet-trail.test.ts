@@ -69,13 +69,32 @@ describe("a trail is the last of the path, not the last of the frames", () => {
     // along that frame's own segment. Otherwise a stutter puts a kink in the
     // ribbon that is still there half a second later.
     const samples = new TrailSamples();
-    samples.advance(0, 0, 0, 1 / 60);
-    samples.advance(10, 0, 0, 1 / 60); // owes 2 samples at 120 Hz
-    expect(samples.count).toBe(3);
-    // Evenly spaced along the segment: the midpoint, then the end.
-    expect(samples.path[0]).toBeCloseTo(10, 6);
-    expect(samples.path[3]).toBeCloseTo(5, 6);
-    expect(samples.path[6]).toBeCloseTo(0, 6);
+    samples.advance(0, 0, 0, TRAIL_STEP);
+    // Three and a half steps' worth of time, and ten units of ground.
+    samples.advance(10, 0, 0, 3.5 * TRAIL_STEP);
+    expect(samples.count).toBe(4);
+    // At 1, 2 and 3 steps into a segment three and a half steps long, newest
+    // first - not three rungs piled up at the end of it.
+    expect(samples.path[0]).toBeCloseTo((10 * 3) / 3.5, 5);
+    expect(samples.path[3]).toBeCloseTo((10 * 2) / 3.5, 5);
+    expect(samples.path[6]).toBeCloseTo((10 * 1) / 3.5, 5);
+    expect(samples.path[9]).toBeCloseTo(0, 6);
+  });
+
+  it("records nothing when no time has passed, and keeps what it had", () => {
+    // During a capture the trail is sampled on the SHOT clock, which can
+    // advance by nothing between two drawn frames - on a machine that is
+    // ahead of it, and on a held review clock. Dividing the distance by that
+    // would report an infinite speed and light every trail in the scene.
+    const samples = new TrailSamples();
+    walk(samples, 4, 1 / 90, 1);
+    const before = samples.path.slice();
+    const speed = samples.speed;
+    samples.advance(99, 99, 99, 0);
+    expect(samples.speed).toBe(speed);
+    expect(Array.from(samples.path)).toEqual(Array.from(before));
+    samples.advance(99, 99, 99, -1);
+    expect(samples.speed).toBe(speed);
   });
 
   it("cannot grow past its own length, however long the frame", () => {
@@ -141,6 +160,10 @@ describe("every trail in the scene, in one object", () => {
     expect(field.material).toBeInstanceOf(THREE.ShaderMaterial);
     expect(field.material.blending).toBe(THREE.AdditiveBlending);
     expect(field.material.depthWrite).toBe(false);
+    // A ribbon that turns to face the camera in the vertex shader has no
+    // fixed winding: single-sided, whole trails vanish depending only on
+    // which way their body happened to be going.
+    expect(field.material.side).toBe(THREE.DoubleSide);
     const vertices = 10 * TRAIL_SAMPLES * 2;
     expect(field.geometry.getAttribute("position").count).toBe(vertices);
     expect(field.geometry.getAttribute("aSide").count).toBe(vertices);

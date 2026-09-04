@@ -167,6 +167,23 @@ if (REVIEW && typeof window !== "undefined") {
     }
     emit();
   };
+  // Where a capture of either speed has reached, `elapsed` seconds after the
+  // press. The review sheet needs this to photograph a COMPACT capture at
+  // evenly spaced moments of ITS OWN clock - which is the only way the two
+  // speeds differ, since both play the identical range of shot time. Asked of
+  // the page rather than tabulated in the tool: the segment table is the one
+  // thing a review of the pacing must not be allowed to disagree with.
+  (
+    window as unknown as {
+      __goldenShotAt?: (
+        mode: CaptureMode,
+        elapsed: number,
+      ) => { shot: number; seconds: number };
+    }
+  ).__goldenShotAt = (mode, elapsed) => ({
+    shot: shotTimeFor(mode, elapsed),
+    seconds: captureSeconds(mode),
+  });
 }
 
 export function goldenIsRunning() {

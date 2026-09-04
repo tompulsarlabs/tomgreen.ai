@@ -44,7 +44,7 @@ import {
   thermal,
 } from "@/lib/supernova";
 import { captureEndingFor, isInteractive } from "@/lib/planet-model";
-import { TrailField, TrailSamples } from "@/lib/comet-trail";
+import { TRAIL_SAMPLES, TrailField, TrailSamples } from "@/lib/comet-trail";
 import {
   arrivalPlan,
   arrivalPoint,
@@ -189,6 +189,10 @@ const TRAIL_FULL_SPEED = 3.2;
 const TRAIL_MIN_SPEED = 0.9;
 /** What a trail whitens toward as its body heats. Read only; never mutated. */
 const TRAIL_PLASMA = new THREE.Color(1, 0.96, 0.92);
+/** Floats between one slot's drive values and the next's, in the field. */
+const FIELD_TRAIL_STRIDE = TRAIL_SAMPLES * 2 * 2;
+/** Only a review build carries the trail probe. */
+const GOLDEN_REVIEW = process.env.NEXT_PUBLIC_GOLDEN_REVIEW === "1";
 
 /** Position on a body's ellipse at parameter t, world space (y up). */
 function orbitPoint(
@@ -590,6 +594,8 @@ function OrbitScene({
     lastInteraction: -10,
     reveal: 0,
     revealTarget: 0,
+    /** Last frame's shot time, or null when no shot is running. */
+    shotWas: null as number | null,
     /** Last frame's assembly, and the rate it is running at, in 1/seconds. */
     assemblyWas: 0,
     assemblyRate: 1 / ASSEMBLY_SECONDS,
@@ -1102,6 +1108,31 @@ function OrbitScene({
     const now = rootState.clock.elapsedTime;
     const lerpIn = (rate: number) => Math.min(1, dt * rate);
 
+    /**
+     * ONE CLOCK FOR EVERYTHING THE BODIES DO.
+     *
+     * A capture's spiral and a released system's arrival are both READ from
+     * the shot clock rather than integrated from the frame time, because the
+     * event is choreographed against baked frames at fixed seconds. Their
+     * orbital angles were still integrated from wall time, which is fine
+     * while nothing else is - and wrong the moment something is: on a machine
+     * that sags, the planet's fall is where the shot says and its orbital
+     * motion is where the frame rate says, and the two disagree by however
+     * far behind the renderer is.
+     *
+     * The trails made that visible, because a trail is a record of where the
+     * body has been: sampled on one clock while the body moves on another,
+     * the ribbon separates from the planet it belongs to. So while a shot is
+     * running everything the bodies do runs on the shot's own clock, and a
+     * frame that arrives without the clock having moved draws the same
+     * instant again rather than half of a new one.
+     */
+    const shotNow = goldenIsRunning() ? goldenShotTime() : null;
+    const shotStep =
+      shotNow !== null && s.shotWas !== null ? Math.max(0, shotNow - s.shotWas) : 0;
+    s.shotWas = shotNow;
+    const motionDt = shotNow !== null ? shotStep : dt;
+
     // A scene that mounts into a live burst is a remount, not a first
     // open. It skips the entry choreography — the dolly in, the well
     // deepening, the core and lattice fading up — because the remnant
@@ -1439,7 +1470,7 @@ function OrbitScene({
       const speedBoost = captured ? 1 + 9 * (s.capture?.progress ?? 0) : 1;
       const angle =
         (s.angles.get(body.id) ?? 0) +
-        dt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
+        motionDt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
       s.angles.set(body.id, angle);
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
@@ -1510,22 +1541,22 @@ function OrbitScene({
         path = new TrailSamples();
         s.trailPaths.set(body.id, path);
       }
-      path.advance(scratch.v1.x, scratch.v1.y, scratch.v1.z, dt);
-      const heat =
+      path.advance(scratch.v1.x, scratch.v1.y, scratch.v1.z, motionDt);
+      const glow =
         clampUnit(
           (path.speed - TRAIL_MIN_SPEED) / (TRAIL_FULL_SPEED - TRAIL_MIN_SPEED),
         ) *
         emerged *
         s.reveal;
       const surface = bodyHeat.current.get(body.id);
-      if (surface) surface.value = heat * 0.85;
+      if (surface) surface.value = glow * 0.85;
       if (index < MAX_TRAILS) {
         trails.write(
           index,
           path,
-          scratch.tint.set(body.color).lerp(TRAIL_PLASMA, 0.4 * heat),
-          heat,
-          body.size * TRAIL_WIDTH * (0.55 + 0.45 * heat),
+          scratch.tint.set(body.color).lerp(TRAIL_PLASMA, 0.4 * glow),
+          glow,
+          body.size * TRAIL_WIDTH * (0.55 + 0.45 * glow),
         );
       }
 
@@ -1640,7 +1671,7 @@ function OrbitScene({
         const opacity =
           (base + (1 - base) * nextEase) *
           s.reveal *
-          (s.labelGate ? landed * (1 - 0.85 * heat) : 1) *
+          (s.labelGate ? landed * (1 - 0.85 * glow) : 1) *
           (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
         // Measuring every frame would thrash layout. A nameplate's box
@@ -1670,6 +1701,36 @@ function OrbitScene({
     });
     // One upload for every trail in the scene, once the whole set is written.
     trails.commit();
+    if (GOLDEN_REVIEW) {
+      // What the trails were actually told this frame. The ribbon is written
+      // from four numbers - the clock it is sampled on, the speed that came
+      // out of it, the gain that speed earned and the width - and when
+      // nothing appears on screen it is one of those four, not the shader.
+      (
+        window as unknown as { __goldenDebugTrails?: () => unknown }
+      ).__goldenDebugTrails = () => ({
+        motionDt,
+        assembly: s.assembly,
+        reveal: s.reveal,
+        capture: s.capture && { id: s.capture.id, progress: s.capture.progress, active: s.capture.active },
+        bodies: bodies.map((body, index) => ({
+          id: body.id,
+          at: bodyRefs.current.get(body.id)?.position.toArray().map((n) => Number(n.toFixed(4))),
+          head: Array.from(
+            (s.trailPaths.get(body.id)?.path ?? new Float32Array(3)).slice(0, 3),
+          ).map((n) => Number(n.toFixed(4))),
+          heat: bodyHeat.current.get(body.id)?.value ?? null,
+          speed: s.trailPaths.get(body.id)?.speed ?? null,
+          count: s.trailPaths.get(body.id)?.count ?? 0,
+          gain: (trails.geometry.getAttribute("aDrive").array as Float32Array)[
+            index * FIELD_TRAIL_STRIDE
+          ],
+          width: (trails.geometry.getAttribute("aDrive").array as Float32Array)[
+            index * FIELD_TRAIL_STRIDE + 1
+          ],
+        })),
+      });
+    }
     // Where each nameplate belongs is a layout decision, not a per-frame
     // one: it re-settles at about 7Hz and the labels glide to whatever it
     // chooses, so nothing jitters while the system turns.
@@ -2021,10 +2082,13 @@ function OrbitScene({
           draw call, written into by the frame loop. Never culled, because
           its bounding box is whatever the trails happen to span this frame
           and computing one would cost more than drawing it. */}
-      <mesh frustumCulled={false} renderOrder={3} raycast={() => null}>
-        <primitive object={trails.geometry} attach="geometry" />
-        <primitive object={trails.material} attach="material" />
-      </mesh>
+      <mesh
+        geometry={trails.geometry}
+        material={trails.material}
+        frustumCulled={false}
+        renderOrder={3}
+        raycast={() => null}
+      />
 
       {/* True 3D orbit paths — in front of and behind the well. */}
       {orbitPaths.map((path, index) => (
