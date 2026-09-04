@@ -93,7 +93,7 @@ def main():
         core_uv = C.project(t, C.CORE)[0][:2]
         target = 0.6 * cen + 0.4 * core_uv
         origin = target if origin is None else origin * 0.8 + target * 0.2
-        knot = [k for k in TARGETS if abs(k[0] - t) < 1e-3]
+        knot = [k for k in TARGETS if C.f_of(k[0]) == f]          # match by frame (2.73 s is f082 = 2.7333 s)
         if not knot:
             continue
         goal = knot[0][1]
