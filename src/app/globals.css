@@ -1576,3 +1576,16 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   visibility: hidden;
   pointer-events: none;
 }
+
+/* The shot is full-bleed, so the canvas has to be. The portal is a column
+   with its chrome above the field, which leaves a band the canvas never
+   covers - and with the portal's own ground gone that band is the page,
+   showing through the top of the cinematic from the first frame. The field
+   takes the whole viewport while the shot is armed instead. It costs one
+   drawing-buffer resize, at the press, three quarters of a second before the
+   detonation and on the same beat as a spiral the procedural path also
+   draws. */
+.orbit-portal[data-golden] .orbit-portal-field {
+  position: fixed;
+  inset: 0;
+}

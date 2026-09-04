@@ -76,6 +76,20 @@ async function reachZalando(page, name) {
   mark("map live");
   const work = page.locator('.orbit-portal a.orbit-label[data-body="work"]');
   await work.waitFor({ state: "attached", timeout: 300_000 });
+  // Attached is not ready. The nameplates are placed by the frame loop and
+  // faded up from zero, and a press before that is a press the map is right
+  // to ignore - the site's own first-click guard. The suite waits for the
+  // same thing; without it the click lands on nothing and the descent that
+  // never comes looks like a slow renderer.
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector(".orbit-portal .orbit-label[data-body]");
+      return el instanceof HTMLElement && Number(el.style.opacity || "0") > 0;
+    },
+    undefined,
+    { timeout: 300_000, polling: 500 },
+  );
+  mark("labels up");
   await work.dispatchEvent("click");
   await page.waitForFunction(
     () => document.querySelector(".orbit-portal")?.getAttribute("data-view") === "section",
