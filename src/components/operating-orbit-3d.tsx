@@ -21,7 +21,11 @@ import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
 import { GoldenPathLayer } from "@/components/golden-path-layer";
-import { CAPTURE_START as GOLDEN_CAPTURE_START, clampUnit } from "@/lib/golden-path";
+import {
+  CAPTURE_START as GOLDEN_CAPTURE_START,
+  clampUnit,
+  smoothstep,
+} from "@/lib/golden-path";
 import { captureReleaseAt } from "@/lib/capture-release";
 import { coreHandover } from "@/lib/capture-core";
 import {
@@ -40,6 +44,14 @@ import {
   thermal,
 } from "@/lib/supernova";
 import { captureEndingFor, isInteractive } from "@/lib/planet-model";
+import { TrailField, TrailSamples } from "@/lib/comet-trail";
+import {
+  arrivalPlan,
+  arrivalPoint,
+  orbitNormal,
+  orbitTangent,
+  type ArrivalPlan,
+} from "@/lib/comet-arrival";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
@@ -155,8 +167,28 @@ const FILAMENT_POINTS: [number, number, number][] = [
 const RECOVER_SECONDS = 0.45;
 
 const ASSEMBLY_SECONDS = 1.45;
-/** How far out the pieces start, in world units of extra orbit radius. */
-const ASSEMBLY_SCATTER = 5.4;
+
+/**
+ * Trails.
+ *
+ * One field for the scene, sized to the largest system the shader already
+ * carries, so a released system can have every child trailing at once without
+ * anything being allocated at the moment it happens.
+ */
+const MAX_TRAILS = MAX_CONTACT_BODIES;
+/** Trail half-width at the head, as a multiple of the body's own radius. */
+const TRAIL_WIDTH = 0.62;
+/**
+ * The speed at which a trail is at full strength, in world units per second.
+ * Orbital speed out at the ellipses is around 0.4, so a body has to be going
+ * several times faster than it ever does in orbit before it leaves anything:
+ * the trail marks the two events, and is invisible the rest of the time.
+ */
+const TRAIL_FULL_SPEED = 3.2;
+/** Below this a body is simply in orbit and leaves nothing at all. */
+const TRAIL_MIN_SPEED = 0.9;
+/** What a trail whitens toward as its body heats. Read only; never mutated. */
+const TRAIL_PLASMA = new THREE.Color(1, 0.96, 0.92);
 
 /** Position on a body's ellipse at parameter t, world space (y up). */
 function orbitPoint(
@@ -478,8 +510,31 @@ function OrbitScene({
     [bodies, elements, narrow],
   );
 
+  /**
+   * Every trail in the scene, in one geometry and one program.
+   *
+   * Built once for the life of the canvas rather than per system: the
+   * released children of a captured parent all trail at the same instant,
+   * and that is the worst possible moment to be compiling a shader.
+   */
+  const trails = useMemo(() => new TrailField(MAX_TRAILS), []);
+  useEffect(() => () => trails.dispose(), [trails]);
+
+  /**
+   * How each body of this system leaves the core and reaches its orbit.
+   *
+   * Per set rather than per frame: the plan is the body's ejection, and an
+   * ejection does not change while it is happening.
+   */
+  const arrivals = useMemo<ArrivalPlan[]>(
+    () => bodies.map((_, index) => arrivalPlan(index, bodies.length)),
+    [bodies],
+  );
+
   const bodyRefs = useRef(new Map<string, THREE.Group>());
   const bodyMaterials = useRef(new Map<string, THREE.MeshPhysicalMaterial>());
+  /** Each body's heat uniform, so the frame loop can drive it directly. */
+  const bodyHeat = useRef(new Map<string, { value: number }>());
   const filamentRefs = useRef(
     new Map<
       string,
@@ -535,7 +590,10 @@ function OrbitScene({
     lastInteraction: -10,
     reveal: 0,
     revealTarget: 0,
-    /** 0 while the system is still scattered, 1 once assembled. */
+    /** Last frame's assembly, and the rate it is running at, in 1/seconds. */
+    assemblyWas: 0,
+    assemblyRate: 1 / ASSEMBLY_SECONDS,
+    /** How far the system is through arriving out of the core, 0 to 1. */
     assembly: 0,
     /**
      * What the shot had done to the camera and the light when it stopped, and
@@ -553,6 +611,8 @@ function OrbitScene({
     seeded: false,
     /** Seeded into a live burst: nameplates wait for assembly instead. */
     labelGate: false,
+    /** Each body's own recent path, which is what its trail is drawn from. */
+    trailPaths: new Map<string, TrailSamples>(),
     pointerWorld: new THREE.Vector3(99, 0, 99),
     pointerStrength: 0,
     // Label placement: the chosen anchor per body, where each label is
@@ -914,6 +974,15 @@ function OrbitScene({
       v3: new THREE.Vector3(),
       ndc: new THREE.Vector2(),
       core: new THREE.Vector3(),
+      /** Where a body's orbit would have it, before any event moves it. */
+      settled: new THREE.Vector3(),
+      /** The destination orbit's direction of travel, and its plane normal. */
+      tangent: new THREE.Vector3(),
+      normal: new THREE.Vector3(),
+      /** Scratch for the arrival curve, which allocates nothing of its own. */
+      hermite: { a: new THREE.Vector3(), b: new THREE.Vector3() },
+      /** The trail's colour for this body this frame. */
+      tint: new THREE.Color(),
       /** An orphan used to aim a body at the core. */
       aim: new THREE.Object3D(),
     }),
@@ -969,6 +1038,7 @@ function OrbitScene({
         s.labels,
         bodyRefs.current,
         bodyMaterials.current,
+        bodyHeat.current,
         filamentRefs.current,
       ],
       live,
@@ -994,6 +1064,10 @@ function OrbitScene({
     s.labelAt.clear();
     s.anchors.clear();
     s.gaps.clear();
+    // A trail is where a body has BEEN. Carried across a swap, a body that
+    // appears in both systems would draw a ribbon from where it used to orbit
+    // to where it now does - across the whole frame, through the core.
+    s.trailPaths.clear();
 
     // A capture belongs to the set it was started in. It used to be left
     // parked in `held`, on an assumption that was true only while the portal
@@ -1016,6 +1090,8 @@ function OrbitScene({
     // a released child system's labels would arrive with the orbit curves
     // instead of last.
     s.assembly = 0;
+    s.assemblyWas = 0;
+    s.assemblyRate = 1 / ASSEMBLY_SECONDS;
     s.labelGate = !first;
   };
 
@@ -1100,9 +1176,24 @@ function OrbitScene({
     if (release) s.assembly = release.swapped ? release.assembly : 1;
     else if (s.assembly < 1)
       s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
-    // Cubic-out: the pieces arrive fast and settle slowly, so the last
-    // of the assembly is the part that reads as deliberate.
-    const assembled = 1 - Math.pow(1 - s.assembly, 3);
+    // How fast the arrival is running, in real seconds - which the flight
+    // curves need, because a body has to arrive travelling at orbital speed
+    // and "orbital speed" is a rate. It is not a constant: the integrator
+    // takes ASSEMBLY_SECONDS, the parent ending's schedule takes its own
+    // window, and a compact capture takes that window faster still. Measured
+    // rather than tabulated, so all three are right without any of them
+    // being written down twice, and smoothed because the schedule is read
+    // from a clock that can step.
+    const wasAssembled = s.assemblyWas;
+    s.assemblyWas = s.assembly;
+    const rate = dt > 0 ? (s.assembly - wasAssembled) / dt : 0;
+    if (rate > 1e-4)
+      s.assemblyRate += (rate - s.assemblyRate) * Math.min(1, dt * 6);
+    const arrivalSeconds = THREE.MathUtils.clamp(
+      1 / Math.max(s.assemblyRate, 1e-3),
+      0.3,
+      4,
+    );
 
     // Capture: the clicked planet spirals into the core; at the bottom
     // the site travels. Anchor travel keeps the scene alive, so the
@@ -1330,6 +1421,11 @@ function OrbitScene({
     let hoverTheta = 0;
     let hoverStrength = 0;
 
+    // Trails are written per body below; anything not written this frame
+    // collapses in commit(), so a body that stopped moving stops trailing
+    // without anyone having to remember to turn it off.
+    trails.begin();
+
     bodies.forEach((body, index) => {
       const el = elements[index];
       const hovered = s.hover === body.id;
@@ -1348,27 +1444,100 @@ function OrbitScene({
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
       orbitPoint(el, angle, scratch.v1);
-      // Fragment assembly: each piece starts far out along its own
-      // orbital direction and falls in along it, so nothing crosses the
-      // core and the paths never tangle. Deterministic per index, so the
-      // same system assembles identically every time it is opened.
-      if (assembled < 1) {
-        const out = 1 - assembled;
-        const lift = ((index % 3) - 1) * 0.6;
-        scratch.v1.multiplyScalar(1 + ASSEMBLY_SCATTER * out);
-        scratch.v1.y += ASSEMBLY_SCATTER * out * lift;
-      }
       // Ride above the sheet. The orbits are inclined ellipses about the
       // origin, but the membrane falls away as a funnel, so out where the
       // funnel flattens toward y=0 a low-inclination body sits *in* the
       // mesh and the lattice draws straight across it. Lifting each body
       // clear of the local surface by its own radius keeps it a planet
       // above a sheet rather than a bead threaded onto it.
+      // Applied to the orbital position BEFORE the arrival is computed, so
+      // the arrival's destination is exactly where the body will settle and
+      // there is no correction to make on the frame it lands.
       const groundR = Math.hypot(scratch.v1.x, scratch.v1.z);
       const clearance = body.size * 1.9 + 0.08;
       scratch.v1.y = Math.max(scratch.v1.y, wellDepth(groundR) + clearance);
+
+      /**
+       * THE ARRIVAL. A system does not appear: it comes out of the core.
+       *
+       * Each body has its own flight - its own moment of leaving, its own
+       * ejection direction, its own inclination out of the orbital plane, its
+       * own arrival - and the path between is the cubic through the two
+       * states in comet-arrival.ts. So the system resolves as several bodies
+       * on several trajectories rather than as one gesture, and it lands in
+       * exactly the arrangement it would be in if it had never left, because
+       * the destination is read live off the ellipse it is settling onto.
+       */
+      const plan = arrivals[index];
+      const flight = Math.max(plan.end - plan.start, 1e-3);
+      const arrived =
+        s.assembly >= 1 ? 1 : clampUnit((s.assembly - plan.start) / flight);
+      if (arrived < 1) {
+        scratch.settled.copy(scratch.v1);
+        const orbitRate = orbitTangent(el, angle, scratch.tangent);
+        orbitNormal(el, scratch.normal);
+        arrivalPoint(
+          plan,
+          arrived,
+          scratch.core,
+          scratch.settled,
+          scratch.tangent,
+          scratch.normal,
+          orbitRate * el.speed,
+          arrivalSeconds * flight,
+          scratch.v1,
+          scratch.hermite,
+        );
+      }
+      // Out of the remnant, and settled onto its ellipse. The first is what
+      // the body is drawn by; the second is what its nameplate waits for.
+      const emerged = smoothstep(0, 0.14, arrived);
+      const landed = smoothstep(0.74, 1, arrived);
       if (suction > 0) scratch.v1.lerp(scratch.core, suction);
       group.position.copy(scratch.v1);
+
+      /**
+       * THE TRAIL, and the heat, from one measurement.
+       *
+       * How fast the body is actually moving, taken from the positions just
+       * written rather than from a curve that describes them - so the same
+       * number covers a planet falling into the core and a planet thrown out
+       * of one, and there is no second schedule that could disagree with the
+       * first. In orbit it is far below the floor and both are simply off.
+       */
+      let path = s.trailPaths.get(body.id);
+      if (!path) {
+        path = new TrailSamples();
+        s.trailPaths.set(body.id, path);
+      }
+      path.advance(scratch.v1.x, scratch.v1.y, scratch.v1.z, dt);
+      const heat =
+        clampUnit(
+          (path.speed - TRAIL_MIN_SPEED) / (TRAIL_FULL_SPEED - TRAIL_MIN_SPEED),
+        ) *
+        emerged *
+        s.reveal;
+      const surface = bodyHeat.current.get(body.id);
+      if (surface) surface.value = heat * 0.85;
+      if (index < MAX_TRAILS) {
+        trails.write(
+          index,
+          path,
+          scratch.tint.set(body.color).lerp(TRAIL_PLASMA, 0.4 * heat),
+          heat,
+          body.size * TRAIL_WIDTH * (0.55 + 0.45 * heat),
+        );
+      }
+
+      /**
+       * The orbit resolves WITH its planet, over the last half of that
+       * body's approach. Drawing the finished ellipses first would give away
+       * the arrangement before anything had arrived in it, and would leave
+       * every body flying toward a line already waiting for it.
+       */
+      const pathMaterial = pathMaterials.current[index];
+      if (pathMaterial)
+        pathMaterial.opacity = 0.1 * s.reveal * smoothstep(0.45, 1, arrived);
       // Feed the membrane's contact shading (first ten bodies).
       if (index < MAX_CONTACT_BODIES)
         membraneUniforms.uBodies.value[index].copy(scratch.v1);
@@ -1376,8 +1545,14 @@ function OrbitScene({
       const swell =
         (1 + 0.08 * nextEase + 0.06 * pressBump) *
         (0.35 + 0.65 * s.reveal) *
-        (1 - 0.85 * suction) *
-        (0.3 + 0.7 * assembled);
+        // A captured planet is the subject of the shot until the core has
+        // it. It used to be down to a seventh of itself half way through the
+        // fall - a bright speck, gone long before the compression it is
+        // supposed to be causing. Now it holds most of its size until the
+        // last third and only disappears inside the core itself.
+        (1 - 0.9 * Math.pow(suction, 2.6)) *
+        // It arrives as a planet, not as a piece growing into one.
+        (0.62 + 0.38 * emerged);
       if (captured && suction > 0) {
         // Tidal compression. A body falling toward the core is stretched
         // along the fall and squeezed across it — the tide across its
@@ -1400,7 +1575,7 @@ function OrbitScene({
         group.scale.setScalar(Math.max(swell, 0.001));
       }
       const material = bodyMaterials.current.get(body.id);
-      if (material) material.opacity = s.reveal * assembled;
+      if (material) material.opacity = s.reveal * emerged;
 
       // Filament to the core: surfacing on hover, taut during capture.
       const filament = filamentRefs.current.get(body.id);
@@ -1458,10 +1633,14 @@ function OrbitScene({
         // nameplate down with it.
         const base =
           ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
+        // Last, and per body: a nameplate appears only once ITS planet is
+        // close to its final position and has lost most of its speed, so the
+        // names resolve one after another behind the arrivals rather than
+        // all at once over a system that is still moving.
         const opacity =
           (base + (1 - base) * nextEase) *
           s.reveal *
-          (s.labelGate ? assembled : 1) *
+          (s.labelGate ? landed * (1 - 0.85 * heat) : 1) *
           (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
         // Measuring every frame would thrash layout. A nameplate's box
@@ -1489,6 +1668,8 @@ function OrbitScene({
         });
       }
     });
+    // One upload for every trail in the scene, once the whole set is written.
+    trails.commit();
     // Where each nameplate belongs is a layout decision, not a per-frame
     // one: it re-settles at about 7Hz and the labels glide to whatever it
     // chooses, so nothing jitters while the system turns.
@@ -1690,9 +1871,6 @@ function OrbitScene({
       ).toFixed(3);
     }
 
-    // Orbit paths stay quiet — the membrane carries the depth.
-    for (const material of pathMaterials.current)
-      material.opacity = 0.1 * s.reveal;
 
     // The live capture, on the field: the contract is that an accepted
     // press begins exactly one transition, and this is how a test sees
@@ -1839,6 +2017,15 @@ function OrbitScene({
         </mesh>
       )}
 
+      {/* Every comet trail in the scene: one geometry, one program, one
+          draw call, written into by the frame loop. Never culled, because
+          its bounding box is whatever the trails happen to span this frame
+          and computing one would cost more than drawing it. */}
+      <mesh frustumCulled={false} renderOrder={3} raycast={() => null}>
+        <primitive object={trails.geometry} attach="geometry" />
+        <primitive object={trails.material} attach="material" />
+      </mesh>
+
       {/* True 3D orbit paths — in front of and behind the well. */}
       {orbitPaths.map((path, index) => (
         <Line
@@ -1910,7 +2097,10 @@ function OrbitScene({
                 // Terrain, not a snooker ball. Patched onto the material
                 // the body already has, so its mineral colour, clearcoat
                 // and environment reflection all survive.
-                applyPlanetSurface(material, planetSeed(body.id));
+                const surface = applyPlanetSurface(material, planetSeed(body.id));
+                // The heat the frame loop drives: a body glows because it is
+                // falling into the core or was just thrown out of one.
+                bodyHeat.current.set(body.id, surface.uniforms.uHeat);
               }}
               color={body.color}
               roughness={0.42}

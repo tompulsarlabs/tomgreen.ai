@@ -50,6 +50,7 @@ import * as THREE from "three";
 const PLANET_PARS = /* glsl */ `
   varying vec3 vPlanetObj;
   uniform float uSeed;
+  uniform float uHeat;
 
   float pHash(vec3 p) {
     p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
@@ -106,7 +107,7 @@ const PLANET_PARS = /* glsl */ `
 const RELIEF = 0.22;
 
 export type PlanetSurfaceHandle = {
-  uniforms: { uSeed: { value: number } };
+  uniforms: { uSeed: { value: number }; uHeat: { value: number } };
 };
 
 /**
@@ -126,10 +127,11 @@ export function applyPlanetSurface(
     return existing;
   }
 
-  const uniforms = { uSeed: { value: seed } };
+  const uniforms = { uSeed: { value: seed }, uHeat: { value: 0 } };
 
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uSeed = uniforms.uSeed;
+    shader.uniforms.uHeat = uniforms.uHeat;
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -165,6 +167,24 @@ export function applyPlanetSurface(
         "#include <roughnessmap_fragment>",
         `#include <roughnessmap_fragment>
          roughnessFactor = clamp(roughnessFactor * (0.78 + 0.55 * pH), 0.05, 1.0);`,
+      )
+      // HEAT. A body falling into the core, or thrown back out of one, is
+      // hot - and a hot body glows at its limb first, where the line of
+      // sight grazes the surface and passes through the most of it. So the
+      // heat is added as emission rather than painted over the albedo, and
+      // weighted to the rim: the mineral colour stays readable underneath
+      // at every temperature, and the shape stays a lit sphere rather than
+      // becoming a white disc. Nothing changes at uHeat 0, which is where
+      // every planet sits for all but two seconds of its life.
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+         if (uHeat > 0.0) {
+           vec3 pEye = normalize(vViewPosition);
+           float pRim = pow(1.0 - clamp(dot(normal, pEye), 0.0, 1.0), 2.2);
+           vec3 pHot = mix(diffuseColor.rgb * 2.4, vec3(1.0, 0.96, 0.92), 0.6 * uHeat);
+           totalEmissiveRadiance += pHot * uHeat * (0.28 + 1.6 * pRim);
+         }`,
       )
       // Relief. The tangent frame is three's own construction from the
       // view position; the slope fed into it is the height gradient per
