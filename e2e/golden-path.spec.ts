@@ -82,7 +82,7 @@ test("the real masthead is complete when it appears, and never partial", async (
   const block = page.locator("[data-golden-masthead]");
   await expect(block).toHaveCount(1);
   await expect(block.locator("h1")).toHaveText("ZALANDO");
-  await expect(block).toContainText("An AI organisation from zero to 120 people in six months");
+  await expect(block).toContainText("An AI organization from zero to 120 people in six months");
   await expect(block).toContainText("0 → 120");
 
   // And it settles fully opaque rather than staying held.
