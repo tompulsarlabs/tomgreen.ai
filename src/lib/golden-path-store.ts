@@ -18,6 +18,7 @@
  * hidden, watchdog — goes through settle(), which is idempotent.
  */
 import { T_END, goldenMotionAt } from "@/lib/golden-path";
+import { captureSeconds, shotTimeFor, type CaptureMode } from "@/lib/capture-timing";
 
 export type GoldenPhase = "idle" | "running" | "landing" | "done" | "aborted";
 
@@ -45,6 +46,8 @@ export type GoldenState = {
   fromPath: string | null;
   tier: GoldenTier;
   ending: GoldenEnding;
+  /** Which of the two speeds this capture is playing at. */
+  mode: CaptureMode;
   pushed: boolean;
 };
 
@@ -56,14 +59,43 @@ const IDLE: GoldenState = {
   fromPath: null,
   tier: "none",
   ending: "paper",
+  mode: "full",
   pushed: false,
 };
 
-/** The shot clock reads 0.35 s at the press: the render's own CAPTURE_START. */
-const PRESS_T = 0.35;
+/**
+ * Long enough that a stalled shot always ends, short enough to be a backstop.
+ * Sized to the capture rather than to the longest capture: a constant cut for
+ * FULL would leave a compact shot that lost its heartbeat sitting on a pinned
+ * camera and a map at a sixth of its brightness for two and a half seconds
+ * after it visually finished.
+ */
+function watchdogMs(mode: CaptureMode) {
+  return (captureSeconds(mode) + 0.9) * 1000;
+}
 
-/** Long enough that a stalled shot always ends, short enough to be a backstop. */
-const WATCHDOG_MS = (T_END - PRESS_T + 0.9) * 1000;
+/**
+ * Whether this planetary session has already shown someone the full event.
+ *
+ * The 4.8 seconds are right exactly once. Session-scoped and in memory only:
+ * a visitor who comes back tomorrow, or opens the map in a second tab, is
+ * being shown the thing for the first time again, and persisting a flag would
+ * quietly decide otherwise on their behalf.
+ */
+let seenFullCapture = false;
+
+/** Which speed the next capture should play at. */
+export function nextCaptureMode(): CaptureMode {
+  return seenFullCapture ? "compact" : "full";
+}
+
+/**
+ * The Easter egg closed. The next open is a new session and earns the full
+ * event again.
+ */
+export function endPlanetarySession() {
+  seenFullCapture = false;
+}
 
 let state: GoldenState = IDLE;
 let listeners: Array<() => void> = [];
@@ -111,7 +143,10 @@ export function goldenShotTime(): number {
   if (state.phase === "idle") return 0;
   if (state.phase === "done" || state.phase === "aborted") return T_END;
   const elapsed = (performance.now() - state.originMs) / 1000;
-  return Math.min(Math.max(PRESS_T + elapsed, 0), T_END);
+  // The mode decides how elapsed seconds map onto the shot: FULL is the
+  // identity and COMPACT compresses the anticipation and the aftermath while
+  // very nearly preserving the breakout.
+  return shotTimeFor(state.mode, elapsed);
 }
 
 /** True only while a review build is holding the clock at a beat. */
@@ -233,6 +268,7 @@ export function armGoldenPath(input: {
   fromPath: string;
   tier: GoldenTier;
   ending?: GoldenEnding;
+  mode?: CaptureMode;
 }): boolean {
   if (input.tier === "none") return false;
   if (goldenIsRunning()) return false;
@@ -249,9 +285,11 @@ export function armGoldenPath(input: {
     fromPath: input.fromPath,
     tier: input.tier,
     ending: input.ending ?? "paper",
+    mode: input.mode ?? "full",
     pushed: false,
   };
-  watchdog = window.setTimeout(() => finishGoldenPath(), WATCHDOG_MS);
+  seenFullCapture = true;
+  watchdog = window.setTimeout(() => finishGoldenPath(), watchdogMs(state.mode));
   emit();
   return true;
 }

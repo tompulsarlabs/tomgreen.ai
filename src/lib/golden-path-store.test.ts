@@ -141,6 +141,74 @@ describe("which ending the shot is playing toward", () => {
   });
 });
 
+describe("which speed the capture plays at", () => {
+  it("gives the first capture of a session the full event", () => {
+    expect(store.nextCaptureMode()).toBe("full");
+    arm();
+    expect(store.getGoldenState().mode).toBe("full");
+  });
+
+  it("gives every later capture of the same session the compact one", () => {
+    arm();
+    store.markGoldenPushed();
+    store.finishGoldenPath();
+    expect(store.nextCaptureMode()).toBe("compact");
+
+    store.armGoldenPath({
+      bodyId: "work",
+      href: "/building",
+      fromPath: "/building",
+      tier: "high",
+      mode: store.nextCaptureMode(),
+    });
+    expect(store.getGoldenState().mode).toBe("compact");
+  });
+
+  it("earns the full event again when the Easter egg is closed and reopened", () => {
+    arm();
+    store.finishGoldenPath();
+    expect(store.nextCaptureMode()).toBe("compact");
+    store.endPlanetarySession();
+    expect(store.nextCaptureMode()).toBe("full");
+  });
+
+  it("runs the compact clock faster, over the same shot", () => {
+    store.armGoldenPath({
+      bodyId: "work",
+      href: "/building",
+      fromPath: "/building",
+      tier: "high",
+      mode: "compact",
+    });
+    // Half a second in, a compact capture is already past the detonation that
+    // a full one does not reach until 0.75 s.
+    vi.advanceTimersByTime(500);
+    const compactAt500 = store.goldenShotTime();
+    expect(compactAt500).toBeGreaterThan(1.1);
+
+    store.finishGoldenPath();
+    store.endPlanetarySession();
+    arm();
+    vi.advanceTimersByTime(500);
+    expect(store.goldenShotTime()).toBeLessThan(compactAt500);
+    expect(store.goldenShotTime()).toBeCloseTo(0.85, 2);
+  });
+
+  it("sizes its own watchdog, so a compact shot is not pinned for the full one's length", () => {
+    store.armGoldenPath({
+      bodyId: "work",
+      href: "/building",
+      fromPath: "/building",
+      tier: "high",
+      mode: "compact",
+    });
+    // A stalled compact capture must not leave the camera pinned and the map
+    // at a sixth of its brightness for the full capture's duration.
+    vi.advanceTimersByTime(3.8 * 1000);
+    expect(store.goldenIsRunning()).toBe(false);
+  });
+});
+
 describe("several captures in one session", () => {
   it("arms again cleanly after a completed shot", () => {
     arm("ai-organisation");
