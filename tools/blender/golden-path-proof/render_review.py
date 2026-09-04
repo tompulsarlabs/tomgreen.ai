@@ -574,6 +574,7 @@ def composite(args, report):
     warp = ((fbm2(mseed + 7, (h, w), 3, 4) - 0.5) * 2.0, (fbm2(mseed + 8, (h, w), 3, 4) - 0.5) * 2.0)
     stats = report.setdefault("frame_stats", {})
     typo_state = 0.0       # typography never fades back once it has appeared
+    W_state = None         # v3 motion: the exposure field is a takeover, so per pixel it never recedes
     for f in frame_list(args):
         t = C.t_of(f)
         out_path = os.path.join(FRAMES_DIR, "final", f"f{f:04d}.png")
@@ -662,6 +663,9 @@ def composite(args, report):
             n_fast = np.roll(n_fast0, int((t - C.PAGE_IN) * 25 * scale), axis=0)
             W = whiteout_field(lum_b, t, geometry, (n_slow, n_fast))
             W = W * np.float32(C.smoothstep(C.PAGE_IN, C.PAGE_IN + 0.10, t))   # nothing resolves at 2.50 s itself
+            if args.seq3:
+                W = W if W_state is None else np.maximum(W, W_state)
+                W_state = W
             # stage A: exposure climbs where the medium resolves; the hottest gas whites out first
             scene_lin = scene_lin * (1.0 + EXPOSURE_RISE * (W ** 1.5)[..., None])
             M = C.smoothstep(0.25, 0.95, W).astype(np.float32)   # the interior of the gradient is paper
