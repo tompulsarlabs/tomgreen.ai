@@ -63,7 +63,14 @@ const goldenCoreHandover = () => coreHandover(goldenShotTime());
 const BASE_EXPOSURE = 1.05;
 
 /** A body as one frame drew it: centre, radius, and its nameplate's box. */
-type DrawnSpot = { x: number; y: number; r: number; plate: Rect | null };
+type DrawnSpot = {
+  x: number;
+  y: number;
+  r: number;
+  plate: Rect | null;
+  /** False while the body is still flying to its orbit. See settledIds. */
+  settled: boolean;
+};
 /** One drawn frame, wall-clock stamped, for the press model's memory. */
 type DrawnFrame = { t: number; at: Map<string, DrawnSpot> };
 import {
@@ -615,8 +622,6 @@ function OrbitScene({
     shotExposure: BASE_EXPOSURE,
     /** The first frame has run; the continuity seed happens only once. */
     seeded: false,
-    /** Seeded into a live burst: nameplates wait for assembly instead. */
-    labelGate: false,
     /** Each body's own recent path, which is what its trail is drawn from. */
     trailPaths: new Map<string, TrailSamples>(),
     pointerWorld: new THREE.Vector3(99, 0, 99),
@@ -835,6 +840,9 @@ function OrbitScene({
         let bestScore = Infinity;
         frame.at.forEach((spot, id) => {
           if (!isInteractive(id)) return;
+          // Still on its way to its orbit: a moving body is not a target,
+          // and the middle of the frame belongs to the nucleus.
+          if (!spot.settled) return;
           const reach = Math.max(HIT_MIN_PX, spot.r * HIT_SCALE);
           // 0 at the centre, 1 at the edge of the reach; and the same
           // scale for the nameplate's box, which is part of the planet.
@@ -1022,7 +1030,6 @@ function OrbitScene({
    */
   const adoptBodies = () => {
     if (heldBodies.current === bodies) return;
-    const first = heldBodies.current === null;
     heldBodies.current = bodies;
 
     const live = new Set(bodies.map((body) => body.id));
@@ -1091,14 +1098,16 @@ function OrbitScene({
     s.frames = [];
     s.hover = null;
 
-    // The system arrives scattered, and its nameplates wait for it. Without
-    // this the labels are gated on a flag only ever set on the first mount, so
-    // a released child system's labels would arrive with the orbit curves
-    // instead of last.
+    // The system arrives out of the core, and its nameplates wait for it -
+    // every time, including the first open. There used to be a flag here
+    // exempting the first mount, from when a system arrived by falling in
+    // from outside and there was nothing to wait for. Now there is: a body
+    // still in flight has no business carrying a name, and its NAMEPLATE is
+    // a link with a real hit box, so an ungated one over the middle of the
+    // frame is a control sitting exactly where the nucleus is.
     s.assembly = 0;
     s.assemblyWas = 0;
     s.assemblyRate = 1 / ASSEMBLY_SECONDS;
-    s.labelGate = !first;
   };
 
   useFrame((rootState, rawDelta) => {
@@ -1147,7 +1156,6 @@ function OrbitScene({
       if (live) {
         s.reveal = 1;
         s.revealTarget = 1;
-        s.labelGate = true;
         const h = handoff?.current;
         if (h && wall - h.at < HANDOFF_FRESH_MS) {
           s.drift = h.drift;
@@ -1457,6 +1465,21 @@ function OrbitScene({
     // without anyone having to remember to turn it off.
     trails.begin();
 
+    /**
+     * A BODY IN FLIGHT IS NOT A CONTROL.
+     *
+     * Movement is travel; stillness is information. Its nameplate is already
+     * gated on arriving, and the hit target has to be gated on the same
+     * thing, because a system now comes OUT of the core rather than in from
+     * outside: for the first second of an arrival there are planets crossing
+     * the middle of the frame, which is exactly where the nucleus is - a
+     * destination everything falls toward and deliberately not a control.
+     * Pressing it would otherwise capture whichever body had just flown
+     * through, which is neither what was aimed at nor a thing that can be
+     * aimed at.
+     */
+    const settledIds = new Set<string>();
+
     bodies.forEach((body, index) => {
       const el = elements[index];
       const hovered = s.hover === body.id;
@@ -1671,7 +1694,8 @@ function OrbitScene({
         const opacity =
           (base + (1 - base) * nextEase) *
           s.reveal *
-          (s.labelGate ? landed * (1 - 0.85 * glow) : 1) *
+          landed *
+          (1 - 0.85 * glow) *
           (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
         // Measuring every frame would thrash layout. A nameplate's box
@@ -1688,6 +1712,7 @@ function OrbitScene({
           };
           if (box.width > 0) s.measured.set(body.id, box);
         }
+        if (landed > 0) settledIds.add(body.id);
         s.items.push({
           id: body.id,
           x,
@@ -1889,15 +1914,23 @@ function OrbitScene({
         const hide = s.hidden.get(item.id) ?? 0;
         const next = hide + (wanted - hide) * fade;
         s.hidden.set(item.id, next);
-        label.style.opacity = (
-          (s.baseOpacity.get(item.id) ?? 1) *
-          (1 - next)
-        ).toFixed(3);
+        const shown = (s.baseOpacity.get(item.id) ?? 1) * (1 - next);
+        label.style.opacity = shown.toFixed(3);
+        // A NAMEPLATE NOBODY CAN SEE IS NOT A CONTROL EITHER.
+        //
+        // Opacity does not stop an anchor taking a click, and a nameplate is
+        // an anchor with a real hit box. Its body's is gated on having
+        // arrived; this is the same gate for the DOM half, and it matters
+        // most for exactly the bodies the gate exists for: a planet still
+        // inside the core has its nameplate projected onto the middle of the
+        // frame, invisible, on top of the nucleus.
+        label.style.pointerEvents = shown > 0.02 ? "" : "none";
         at.set(item.id, {
           x: item.x,
           y: item.y,
           r: item.radius,
           plate: next < 0.5 ? box : null,
+          settled: settledIds.has(item.id),
         });
       }
       s.frames.push({ t: wall, at });
