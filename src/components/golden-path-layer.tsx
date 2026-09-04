@@ -31,6 +31,7 @@ import * as THREE from "three";
 
 import { FOV_Y, PLATE_ASPECT, goldenMotionAt } from "@/lib/golden-path";
 import { PAPER_T0, PLATE_T0, getGoldenAssets } from "@/lib/golden-path-assets";
+import { followDecoder, type Follower } from "@/lib/capture-decoders";
 import { goldenIsHeld, goldenIsRunning, goldenShotTime } from "@/lib/golden-path-store";
 
 /** The plate hangs at a fixed distance in front of the camera it was shot from. */
@@ -159,41 +160,42 @@ export function GoldenPathLayer() {
   const eraseMat = useRef<THREE.ShaderMaterial>(null);
 
   /**
-   * The decoders are followers, never the authority. Each frame the clock
-   * says what second the shot is on; a plate that drifts is nudged with
-   * playbackRate and only ever seeked once, at the start. Gas one frame
-   * late is invisible; gas that seeks is a stutter.
+   * The decoders are followers, never the authority: each frame the clock says
+   * what second the shot is on and the decoder closes the gap. The decision
+   * itself lives in capture-decoders.ts, where it can be tested - a mistake in
+   * a frame loop inside a canvas is otherwise only visible in pixels, which is
+   * how a decoder that reseeks every frame past the end of its own media hid
+   * behind a 0.167 s margin.
+   *
+   * The adapter exists so the media element's play() promise is handled once,
+   * at bind time, rather than allocated on every frame of every capture.
    */
-  const drive = (video: HTMLVideoElement | null, target: number, seeded: React.MutableRefObject<boolean>) => {
-    if (!video) return;
-    if (target < 0) return;
-    // A held clock is not a clock the decoders can follow: it does not
-    // advance between beats, so following it means standing exactly on the
-    // frame asked for rather than nudging towards it.
-    if (goldenIsHeld()) {
-      video.pause();
-      if (Math.abs(video.currentTime - target) > 1 / 60) {
-        try {
-          video.currentTime = Math.max(0, target);
-        } catch {
-          /* a decoder that refuses a seek still shows the frame it has */
-        }
-      }
-      return;
-    }
-    const err = video.currentTime - target;
-    if (!seeded.current || Math.abs(err) > 0.5) {
+  const followerFor = (video: HTMLVideoElement): Follower => ({
+    get currentTime() {
+      return video.currentTime;
+    },
+    set currentTime(value: number) {
       try {
-        video.currentTime = Math.max(0, target);
+        video.currentTime = value;
       } catch {
-        /* a decoder that refuses a seek still plays */
+        /* a decoder that refuses a seek still shows the frame it has */
       }
-      seeded.current = true;
-      void video.play().catch(() => undefined);
-      return;
-    }
-    video.playbackRate = Math.abs(err) > 0.066 ? Math.min(1.15, Math.max(0.85, 1 - err * 1.5)) : 1;
-  };
+    },
+    get duration() {
+      return video.duration;
+    },
+    get playbackRate() {
+      return video.playbackRate;
+    },
+    set playbackRate(value: number) {
+      video.playbackRate = value;
+    },
+    get paused() {
+      return video.paused;
+    },
+    play: () => void video.play().catch(() => undefined),
+    pause: () => video.pause(),
+  });
 
   const plateSeeded = useRef(false);
   const paperSeeded = useRef(false);
@@ -270,11 +272,14 @@ export function GoldenPathLayer() {
   const boundPaper = useRef<HTMLVideoElement | null>(null);
   const plateTex = useRef<THREE.VideoTexture | null>(null);
   const paperTex = useRef<THREE.VideoTexture | null>(null);
+  const plateFollower = useRef<Follower | null>(null);
+  const paperFollower = useRef<Follower | null>(null);
 
   const bindDecoders = (plate: HTMLVideoElement | null, paper: HTMLVideoElement | null) => {
     if (plate !== boundPlate.current) {
       plateTex.current?.dispose();
       plateTex.current = plate ? videoTexture(plate) : null;
+      plateFollower.current = plate ? followerFor(plate) : null;
       boundPlate.current = plate;
       plateSeeded.current = false;
       const material = plateMat.current;
@@ -283,6 +288,7 @@ export function GoldenPathLayer() {
     if (paper !== boundPaper.current) {
       paperTex.current?.dispose();
       paperTex.current = paper ? videoTexture(paper) : null;
+      paperFollower.current = paper ? followerFor(paper) : null;
       boundPaper.current = paper;
       paperSeeded.current = false;
       const material = eraseMat.current;
@@ -302,6 +308,8 @@ export function GoldenPathLayer() {
       paperTex.current?.dispose();
       plateTex.current = null;
       paperTex.current = null;
+      plateFollower.current = null;
+      paperFollower.current = null;
       boundPlate.current = null;
       boundPaper.current = null;
     },
@@ -345,7 +353,6 @@ export function GoldenPathLayer() {
 
     const t = goldenShotTime();
     const m = goldenMotionAt(t);
-    const { plate, paper } = assets;
 
     // Crop the live frustum exactly as cover-fit crops the plate, so the
     // baked core and the live core stay the same size at every aspect.
@@ -356,8 +363,21 @@ export function GoldenPathLayer() {
       camera.updateProjectionMatrix();
     }
 
-    drive(plate, t - PLATE_T0, plateSeeded);
-    drive(paper, t - PAPER_T0, paperSeeded);
+    const held = goldenIsHeld();
+    if (plateFollower.current) {
+      const action = followDecoder(plateFollower.current, t - PLATE_T0, {
+        seeded: plateSeeded.current,
+        held,
+      });
+      if (action === "seek") plateSeeded.current = true;
+    }
+    if (paperFollower.current) {
+      const action = followDecoder(paperFollower.current, t - PAPER_T0, {
+        seeded: paperSeeded.current,
+        held,
+      });
+      if (action === "seek") paperSeeded.current = true;
+    }
 
     const plateMaterial = plateMat.current;
     const eraseMaterial = eraseMat.current;
