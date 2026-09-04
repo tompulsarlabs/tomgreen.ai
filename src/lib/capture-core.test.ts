@@ -103,6 +103,14 @@ describe("the render's clock sleeps through the core event", () => {
     expect(renderTimeFor(RELEASE_AT + 0.001)).toBeCloseTo(FREEZE_AT + 0.001, 9);
   });
 
+  it("is 5.58 s long, which two plain node scripts hard-code", () => {
+    // e2e/golden-path-sheet.mjs and the review tooling are plain node with no
+    // path aliases, so they carry this as a literal. This is the assertion
+    // that stops the two drifting apart silently.
+    expect(SHOT_END).toBeCloseTo(5.58, 10);
+    expect(RELEASE_DELAY).toBeCloseTo(0.78, 10);
+  });
+
   it("covers the whole approved render and stops there", () => {
     expect(renderTimeFor(SHOT_END)).toBeCloseTo(RENDER_END, 10);
     expect(renderTimeFor(SHOT_END + 5)).toBe(RENDER_END);

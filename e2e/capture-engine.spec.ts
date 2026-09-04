@@ -144,7 +144,7 @@ test("a mail channel answers on the press, with no cinematic in front of it", as
     });
   });
 
-  // The compact capture is 2800 ms and the full one 4450 ms. This is not a
+  // The compact capture is 3350 ms and the full one 5230 ms. This is not a
   // tight bound - it is an order-of-magnitude separation, which is the claim.
   expect(answeredInMs).toBeLessThan(1_000);
 

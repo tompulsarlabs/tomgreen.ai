@@ -125,7 +125,7 @@ export function getGoldenState(): Readonly<GoldenState> {
 /**
  * A held time, for visual review only.
  *
- * The shot is 4.8 s of wall clock, which is exactly what makes it
+ * The shot is over five seconds of wall clock, which is exactly what makes it
  * unphotographable on a machine that rasterises WebGL on the CPU: a single
  * screenshot there costs more than the whole shot. Holding the clock lets a
  * reviewer see the real shaders, the real plate, the real map and the real

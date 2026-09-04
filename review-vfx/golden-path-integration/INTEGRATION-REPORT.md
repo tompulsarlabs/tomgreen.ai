@@ -8,8 +8,18 @@ production site is unchanged until this is approved.
 ## What happens now
 
 A visitor opens the planetary map from the moon and presses a planet. Whatever
-they pressed, the same thing happens: the planet spirals into the core, the
-core answers with the approved volumetric breakout, the camera travels through
+they pressed, the same physical event happens - one causal chain, in this order
+and no other:
+
+```
+PLANET -> CORE -> COMPRESSION -> WHITE HEAT -> HOLD -> RELEASE -> AFTERMATH
+```
+
+The planet leaves its orbit and spirals in. The core takes it. Energy
+concentrates, a photosphere builds to full neutral white, and there is an
+authored beat where it just holds - something enormous is about to happen and
+nothing has happened yet. Only then does the approved volumetric material
+erupt, as the RELEASE and the aftermath of that event rather than in place of
 it. What happens at the END is decided by what they captured.
 
 **A section** — Work, About, Contact — has its own system, and that system is
@@ -28,9 +38,9 @@ places the gravity core can deliver anyone to, so those four bodies are outside
 the engine entirely: the press is acknowledged on the frame it happens and the
 channel opens at once, inside the activation the gesture gave it.
 
-The full event is 4.45 s and it is the right length exactly once — the first
+The full event is 5.23 s and it is the right length exactly once — the first
 capture of a session. Every nested capture after it plays the *same* event on a
-compact 2.80 s clock: same assets, same choreography, same beats, with the
+compact 3.35 s clock: same assets, same choreography, same beats, with the
 anticipation and the aftermath compressed and the breakout very nearly
 untouched.
 
@@ -112,6 +122,56 @@ the matte is open, which is most of the frame:
 | 1.83 s | 0.226 | 53.7 % |
 | 2.50 s (passage) | 0.463 | 0.9 % fully open, 65 % less than half covered |
 
+## The core is the cause, and the V3 volume is its release
+
+The first version of this integration played the baked material the instant a
+planet reached the core. A real-GPU review rejected it in one sentence: a press
+read as "click, then blue fog". It was right, and the reason was structural
+rather than a matter of grading. The approved V3 material is the release and
+the aftermath of a capture; played as the cause, the planet simply vanishes
+into gas and the thing that consumed it is never seen.
+
+What consumes it already existed, and had since long before this feature: the
+site's own procedural capture in `orbit-flare.tsx`, driven by the curves in
+`supernova.ts`. Both files are byte-identical to `main`. The engine had stood
+all of it down; it now conducts it instead, on the same single clock.
+
+| shot | beat | what is on screen |
+|---:|---|---|
+| 0.35 -> 1.10 | spiral | the production spiral, unshortened |
+| 1.10 | the core takes it | the burst ignites; light 0, 14000 K |
+| 1.10 -> 1.65 | **white heat** | the photosphere builds to full |
+| 1.65 -> 1.83 | **hold**, 180 ms | light 1.000, 8000 K, point light at max |
+| 1.83 | **release** | the approved breakout begins |
+| 1.83 -> | aftermath | gas, fragments, passage, remnant |
+
+**The mechanism is one frozen clock.** The render keeps its own time, untouched,
+and the shot runs ahead of it: identical up to the core, held while the core
+heats, then behind by 0.78 s for the rest. The render plays exactly the frames
+it was approved as, in its own order, at its own pace - the shot simply stops
+asking for them for three quarters of a second. Every consumer of the approved
+event reads `goldenRenderTime()`; only the burst and the terminator read the
+shot clock.
+
+**Where it freezes is not a choice.** At render 1.05 the plate's opacity is
+exactly 0.0000, while the map exposure (-1.40 EV), the map dim (1.000) and the
+nebula (0.550) have all already reached their detonation values and are flat
+from there to 1.10. Freezing anywhere in that window is invisible to every
+approved channel. Freezing at 1.10 itself would hold the plate at 0.80 and put
+the gas on screen through the whole heat. Measured off the real functions.
+
+**Where it peaks is not a choice either.** `lightCurve` reaches 1 at exactly
+0.55 s after ignition, where the envelope is 8000 K - rgb 0.90, 0.92, 1.00, a
+neutral white - with the point light at its maximum of 4.0. Past it the colour
+warms through white toward amber, and the aftermath is deliberately cold, so
+the release happens there and not later.
+
+**And one subject at a time.** Through the compression, the heat and the hold
+the core owns the screen. Across the release the volumetric breakout takes it,
+and the core event hands over rather than burning behind the gas for the rest
+of the shot - gone by the hero frame, which is the beat nothing may sit in
+front of.
+
 ## The parent ending: what the render never drew
 
 Everything up to 2.50 s is the approved event and is not ours to touch. From
@@ -153,20 +213,26 @@ last authored frame and fades across the assembly instead.
 
 ## Two speeds, one edit
 
-The approved event is the right length exactly once. Played at that length on
-the fourth nested descent of one session it stops being a spectacle and becomes
-a toll — but a second, shorter EDIT would be a second design, two events the
+The event is the right length exactly once. Played at that length on the fourth
+nested descent of one session it stops being a spectacle and becomes a toll — but a second, shorter EDIT would be a second design, two events the
 eye has to learn instead of one. So there is no second edit. There is one
 event, played at two speeds, and the speed is not a scalar:
 
 | segment | full | compact | rate |
 |---|---:|---:|---:|
-| 0.35 → 1.10 compression | 0.75 s | 0.45 s | 1.67× |
-| 1.10 → 1.75 **breakout** | 0.65 s | 0.60 s | **1.08×** |
-| 1.75 → 2.50 passage | 0.75 s | 0.45 s | 1.67× |
-| 2.50 → 3.40 resolution | 0.90 s | 0.65 s | 1.38× |
-| 3.40 → 4.80 remnant | 1.40 s | 0.65 s | 2.15× |
-| | **4.45 s** | **2.80 s** | |
+| 0.35 → 1.10 spiral | 0.75 s | 0.45 s | 1.67× |
+| 1.10 → 1.65 **white heat** | 0.55 s | 0.40 s | **1.38×** |
+| 1.65 → 1.83 **hold** | 0.18 s | 0.14 s | **1.29×** |
+| 1.83 → 2.53 **breakout** | 0.70 s | 0.65 s | **1.08×** |
+| 2.53 → 3.28 passage | 0.75 s | 0.45 s | 1.67× |
+| 3.28 → 4.18 resolution | 0.90 s | 0.65 s | 1.38× |
+| 4.18 → 5.58 remnant | 1.40 s | 0.62 s | 2.26× |
+| | **5.23 s** | **3.35 s** | |
+
+The three beats at the centre of the causal chain are now the three least
+compressed in the shot, in that order. The hold is 180 ms full and 140 ms
+compact, so the authored beat survives the compact edit as a beat rather than
+as a frame.
 
 Everything downstream is a function of shot time rather than of wall clock — the
 per-frame tables, the decoders, the release schedule — so warping the one
@@ -425,7 +491,7 @@ compiles to a live `process.env` lookup and the block survives minification.
 |---|---|
 | `npm run typecheck` | pass |
 | `npm run lint` | clean |
-| `npm run test` | 203/203 |
+| `npm run test` | 218/218 |
 | `npm run build` | pass |
 | `npm run test:e2e` | 75/75 |
 | review clock absent from the bundle | pass |
@@ -448,6 +514,10 @@ The commissioned coverage, and where it lives:
 | child labels and hit targets after assembly | `capture-engine.spec.ts` |
 | the swap is unobservable | `capture-release.test.ts`, continuously at 5 ms |
 | no progressive JS growth over traversal | `body-adoption.test.ts`, sixty descents |
+| the causal chain is in order | `capture-core.test.ts` |
+| no baked gas before the release | `capture-core.test.ts`, swept at 5 ms |
+| the peak is full, neutral white | `capture-core.test.ts`, against the production curve |
+| the hold survives both speeds | `capture-core.test.ts` |
 
 ## Known limitations
 

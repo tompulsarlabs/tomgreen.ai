@@ -1,7 +1,7 @@
 /**
  * Photographs the integration at the approved beats.
  *
- * The shot is 4.8 s of wall clock, and this container rasterises WebGL on
+ * The shot is over five seconds of wall clock, and this container rasterises WebGL on
  * the CPU: a single screenshot costs more than the whole shot, so a
  * recording of it here is a recording of five frames. Holding the clock
  * instead gives the real thing at an exact beat - the real shaders, the
@@ -20,10 +20,17 @@ import { mkdir } from "node:fs/promises";
 const baseURL = process.env.REVIEW_BASE_URL ?? "http://127.0.0.1:3100";
 const output = process.env.GOLDEN_OUT ?? "review-vfx/golden-path-integration";
 
-const T_END = 4.8;
+/**
+ * The whole shot on ITS OWN clock, which is the approved render's 4.80 s plus
+ * the 0.78 s the core spends heating before the render is allowed to start.
+ * Kept as a literal rather than imported because this is a plain node script
+ * with no path aliases; capture-core.ts is the source of truth and
+ * src/lib/capture-core.test.ts is what stops the two drifting apart.
+ */
+const SHOT_END = 5.58;
 const COUNT = 20;
 /** The twenty beats, evenly across the shot, as the proof sheet uses. */
-const BEATS = Array.from({ length: COUNT }, (_, i) => (i * T_END) / (COUNT - 1));
+const BEATS = Array.from({ length: COUNT }, (_, i) => (i * SHOT_END) / (COUNT - 1));
 
 const ONLY = process.env.GOLDEN_VIEWPORT;
 const VIEWPORTS = [

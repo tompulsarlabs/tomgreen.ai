@@ -215,7 +215,7 @@ export function OrbitPortal() {
     // not when a capture lands inside it. A landed case study still has the
     // system it came from directly behind it in history, and stepping back
     // into it is the same visit to the same Easter egg. Ending the session
-    // there would hand the next capture the full 4.45 s again, seconds after
+    // there would hand the next capture the full 5.23 s again, seconds after
     // the visitor watched it.
     if (exit === "dismissed") endPlanetarySession();
     window.clearTimeout(travelTimer.current);

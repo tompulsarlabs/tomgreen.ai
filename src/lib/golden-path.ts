@@ -1,8 +1,13 @@
 /**
  * The golden path, as curves.
  *
- * One 4.8-second shot carries a visitor from the Work planetary system into
- * the Zalando case study: the planet is captured, the core answers with a
+ * This is the approved render, on ITS OWN 4.8-second clock, which is no longer
+ * the same clock the shot runs on: the shot pauses this one for three quarters
+ * of a second while the gravity core heats, and hands it back afterwards (see
+ * capture-core.ts). Everything below is therefore a function of RENDER time -
+ * goldenRenderTime(), never goldenShotTime().
+ *
+ * What it describes: the planet is captured, the core answers with a
  * volumetric breakout, the camera travels through it, and the light loses
  * its depth until white paper is the image plane and the real page is
  * simply there. The shot was authored in Blender and approved frame by
