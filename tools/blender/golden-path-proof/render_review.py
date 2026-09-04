@@ -70,7 +70,7 @@ LATE_STILL_FRAMES = {C.f_of(2.05), C.f_of(2.50), C.f_of(2.75), C.f_of(3.30)}
 # v2 approval stills: full 1440x900, the event plate at 100% (no upscale), all volumes in one
 # plate so the far envelope is shadowed by the breakout, more samples, finer steps, volume bounces.
 V2_STILLS = [("hero-peak", C.f_of(1.45)), ("volumetric-depth", C.f_of(2.50)), ("page-emergence", C.f_of(2.75))]   # + "-<suffix>.png"
-P_KNOTS = [(2.47, 0.0), (2.6, 0.151), (2.73, 0.277), (2.87, 0.471), (3.0, 0.544), (3.2, 0.639), (3.33, 0.825), (C.PAGE_FULL, 1.3)]   # v3 reveal pressure (2.60-2.73 s fitted on the v2 emergence layers; later knots pending the sequence)
+P_KNOTS = [(2.47, 0.0), (2.6, 0.0), (2.73, 0.26), (2.87, 0.374), (3.0, 0.437), (3.2, 0.552), (3.33, 0.607), (C.PAGE_FULL, 1.3)]   # v3 reveal pressure (fitted on the v3 sequence frames by fit_reveal.py)
 TYPO_COVERAGE = (0.90, 0.99)    # typography fades in only once this share of the frame reads as white paper (v3)
 WHITE_LUM = 0.92                # display luminance above which a pixel "reads as white paper"
 EXPOSURE_RISE = 6.0             # v3: how far the exposure climbs where the medium resolves (x7 at the front's interior)
