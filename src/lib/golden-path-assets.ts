@@ -24,13 +24,35 @@ export type GoldenAssets = {
   paper: HTMLVideoElement | null;
 };
 
-const PLATE_SRC: Record<Exclude<GoldenTier, "none">, string> = {
-  high: "/golden-path/golden-path-plate-high.mp4",
-  medium: "/golden-path/golden-path-plate-medium.mp4",
-  low: "/golden-path/golden-path-plate-low.mp4",
+const PLATE_BASE: Record<Exclude<GoldenTier, "none">, string> = {
+  high: "/golden-path/golden-path-plate-high",
+  medium: "/golden-path/golden-path-plate-medium",
+  low: "/golden-path/golden-path-plate-low",
 };
 
-const PAPER_SRC = "/golden-path/golden-path-paper.mp4";
+const PAPER_BASE = "/golden-path/golden-path-paper";
+
+/**
+ * Which of the two masters this browser can actually decode.
+ *
+ * A container is not a decoder. H.264 is the primary and the default answer:
+ * Safari and iOS decode nothing else reliably, and it is hardware-decoded
+ * almost everywhere, which is what keeps a 1440x1800 stream affordable on a
+ * phone. But H.264 is licensed, so it is simply absent from unbranded
+ * Chromium builds and from Firefox builds with no system decoder — and a
+ * browser that cannot decode the plate gets no shot at all, silently. VP9 is
+ * carried for exactly those, costs nothing to anyone else (one master is
+ * fetched, never both) and measures equal or better at every tier.
+ *
+ * canPlayType answers "" for cannot, "maybe" or "probably" otherwise; only
+ * "" is a refusal.
+ */
+function encodingFor(base: string) {
+  const probe = document.createElement("video");
+  if (probe.canPlayType('video/mp4; codecs="avc1.4d4028"') !== "") return `${base}.mp4`;
+  if (probe.canPlayType('video/webm; codecs="vp9"') !== "") return `${base}.webm`;
+  return null;
+}
 
 /** The plate's first frame, so the shot's window can be addressed in seconds. */
 export const PLATE_T0 = 33 / 30;
@@ -92,9 +114,17 @@ export function prefetchGoldenPath() {
     started = true;
     return;
   }
+  const plateSrc = encodingFor(PLATE_BASE[tier]);
+  const paperSrc = encodingFor(PAPER_BASE);
   started = true;
-  const plate = makeVideo(PLATE_SRC[tier]);
-  const paper = makeVideo(PAPER_SRC);
+  if (!plateSrc || !paperSrc) {
+    // Neither master is decodable here. Nothing is fetched, the shot never
+    // arms, and the press takes the procedural transition.
+    assets = { tier: "none", plate: null, paper: null };
+    return;
+  }
+  const plate = makeVideo(plateSrc);
+  const paper = makeVideo(paperSrc);
   assets = { tier, plate, paper };
   plate.load();
   paper.load();
@@ -113,6 +143,29 @@ export function goldenAssetsReady(): boolean {
 
 export function getGoldenAssets(): GoldenAssets {
   return assets;
+}
+
+/**
+ * What the decoders are actually doing, for visual review only.
+ *
+ * Whether the shot arms is a single boolean at the press, and when it comes
+ * out false there is nothing on the page that says why: the decoders are
+ * deliberately not in the document. Same guard as the review clock in
+ * golden-path-store.ts, same proof that it does not ship
+ * (tools/golden-path-web/assert_no_review_hook.sh).
+ */
+if (process.env.NEXT_PUBLIC_GOLDEN_REVIEW === "1" && typeof window !== "undefined") {
+  (window as unknown as { __goldenDebug?: () => unknown }).__goldenDebug = () => ({
+    started,
+    tier: assets.tier,
+    ready: goldenAssetsReady(),
+    plate: assets.plate
+      ? { src: assets.plate.currentSrc, readyState: assets.plate.readyState, error: assets.plate.error?.code ?? null }
+      : null,
+    paper: assets.paper
+      ? { src: assets.paper.currentSrc, readyState: assets.paper.readyState, error: assets.paper.error?.code ?? null }
+      : null,
+  });
 }
 
 /**
