@@ -129,7 +129,13 @@ describe("typography is complete or absent, never partial", () => {
   it("shows nothing while the paper plane is unresolved", () => {
     expect(typography(PAGE_IN)).toBe(0);
     expect(typography(3.0)).toBe(0);
-    expect(typography(TYPO_IN - 0.02)).toBe(0);
+    // The render's own frames: nothing at all through f090, and the first
+    // frame that carries any type carries 0.3% of it. Between two frames the
+    // table interpolates, so the value just before the beat is not exactly
+    // zero - but it is the WHOLE masthead at a thousandth of its opacity,
+    // which is the property that matters: never a partial composition.
+    expect(typography(TYPO_IN - 0.02)).toBeLessThan(0.01);
+    expect(typography(TYPO_IN)).toBeLessThan(0.01);
   });
 
   it("is whole by 3.30 s and stays whole", () => {
