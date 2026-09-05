@@ -58,6 +58,8 @@ labels. Display weight never animates.
   smaller screens or with reduced motion. The mobile opening fills the available dynamic
   viewport before the introduction begins. Type and spacing adapt to width and height;
   short landscape screens use three columns. Enlarged text may extend the opening naturally.
+  On desktop the introduction, evidence statement and outcomes form a complete viewport;
+  vertical spacing responds to height so laptop captions fit and the next section starts below it.
   “Building in Founder Mode” sits opposite the executive introduction, then
   “Weighed by opportunity cost.” with the concrete teams/model/agents claim beneath it.
 - Work: six full-row links; hover and focus both resolve `92→100`.
@@ -67,7 +69,9 @@ labels. Display weight never animates.
   “typeset,” role-crowd, sentence-fork or month-ruler treatments.
 - Systems: white route and complete semantic index. Running, shipped and lab status remains plain
   content attached to the relevant record; typography never explains itself.
-- About: public career corridor with a complete semantic CV fallback.
+- About: a centered opening fills the viewport, then softly disperses with scroll into the
+  career corridor. Scrolling back reverses the same dissolve. Reduced motion and no JavaScript
+  keep the opening still and the complete semantic CV available.
 - Contact: direct mailto remains primary.
 
 ## Systems composition

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const alt =
-  "Tom Green — I build the teams, the operating model, and the agents to run it.";
+  "Tom Green — I build teams, operating models, and agents to run them.";
 
 export const size = {
   width: 1200,
@@ -75,9 +75,9 @@ export default function Image() {
             flexDirection: "column",
           }}
         >
-          <span>I build the teams,</span>
-          <span>the operating model,</span>
-          <span>and the agents to run it.</span>
+          <span>I build teams,</span>
+          <span>operating models,</span>
+          <span>and agents to run them.</span>
         </div>
 
         <div

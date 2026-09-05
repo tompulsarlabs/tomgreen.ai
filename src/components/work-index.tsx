@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WorkIndexRow } from "@/components/work-index-row";
+import { PersonalHero } from "@/components/personal-hero";
 import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
@@ -41,30 +42,33 @@ export function WorkIndex() {
 
   return (
     <div className="work-index-page">
-      {/* The Lab's section format: a mono label held on the left, the
-          heading and its lead carried on the right. */}
-      <header className="work-index-masthead section-split">
-        <p className="record">Evidence / selected operating records</p>
-        <div className="section-split-body">
-          <h2 className="axis-display">Weighed by opportunity cost.</h2>
-          <p className="systems-lead">{site.positioning}</p>
-        </div>
-      </header>
+      <div className="home-overview">
+        <PersonalHero />
+        {/* The Lab's section format: a mono label held on the left, the
+            heading and its lead carried on the right. */}
+        <header className="work-index-masthead section-split">
+          <p className="record">Evidence / selected operating records</p>
+          <div className="section-split-body">
+            <h2 className="axis-display">Weighed by opportunity cost.</h2>
+            <p className="systems-lead">{site.positioning}</p>
+          </div>
+        </header>
 
-      <section aria-label="Selected outcomes" className="work-metric-band">
-        <dl className="work-metric-rail">
-          {[
-            ["0 → 120", "AI organization / six months"],
-            ["€3.3M", "New business won / 12 months"],
-            ["£1M", "Bootstrapped / two years"],
-          ].map(([value, label]) => (
-            <div key={label}>
-              <dd className="axis-index">{value}</dd>
-              <dt>{label}</dt>
-            </div>
-          ))}
-        </dl>
-      </section>
+        <section aria-label="Selected outcomes" className="work-metric-band">
+          <dl className="work-metric-rail">
+            {[
+              ["0 → 120", "AI organization / six months"],
+              ["€3.3M", "New business won / 12 months"],
+              ["£1M", "Bootstrapped / two years"],
+            ].map(([value, label]) => (
+              <div key={label}>
+                <dd className="axis-index">{value}</dd>
+                <dt>{label}</dt>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
 
       {groups.map((group) => {
         const members = caseStudies.filter((study) =>

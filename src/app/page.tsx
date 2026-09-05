@@ -1,5 +1,4 @@
 import { HomeResolve } from "@/components/home-resolve";
-import { PersonalHero } from "@/components/personal-hero";
 import { WorkIndex } from "@/components/work-index";
 
 export const revalidate = 3600;
@@ -22,7 +21,6 @@ export default function Home() {
     <div className="home-page">
       {/* The opening plays over the page and then hands it over. */}
       <HomeResolve />
-      <PersonalHero />
       <WorkIndex />
     </div>
   );

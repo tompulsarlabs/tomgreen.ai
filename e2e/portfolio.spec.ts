@@ -483,7 +483,7 @@ test("the home route is the six-row evidence index, under the introduction", asy
   ).toBeVisible();
   // One short opening; the concrete claim introduces the evidence.
   await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "I build teams, operating models, and agents to run them.",
   );
   // No photograph, and no placeholder standing in for one.
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
