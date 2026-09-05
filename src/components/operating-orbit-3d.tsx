@@ -1305,7 +1305,11 @@ function OrbitScene({
     s.parallaxYaw += (s.parallaxYawTarget - s.parallaxYaw) * lerpIn(3);
     s.parallaxPitch += (s.parallaxPitchTarget - s.parallaxPitch) * lerpIn(3);
 
-    const distance = (narrow ? 8.6 : 7.4) + (1 - s.reveal) * 1.1;
+    // Fit the same system to the actual canvas aspect. A fixed phone
+    // distance cropped the outer planets on tall portrait screens.
+    // This also responds immediately to rotation and window resizing.
+    const aspect = size.width / Math.max(size.height, 1);
+    const distance = 7.4 * Math.max(1, 1.45 / aspect) + (1 - s.reveal) * 1.1;
     const azimuth = s.drift + s.offsetAzimuth + s.parallaxYaw;
     const polar = THREE.MathUtils.clamp(
       1.1 + s.offsetPolar + s.parallaxPitch,

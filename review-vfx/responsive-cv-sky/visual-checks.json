@@ -1,0 +1,92 @@
+[
+  {
+    "name": "wide",
+    "route": "/",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "wide",
+    "route": "/building",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "wide",
+    "route": "/work/zalando",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "laptop",
+    "route": "/",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "laptop",
+    "route": "/building",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "laptop",
+    "route": "/work/zalando",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "phone",
+    "route": "/",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "phone",
+    "route": "/building",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "phone",
+    "route": "/work/zalando",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "name": "desktop",
+    "planet": {
+      "view": "section",
+      "credit": "Veil Nebula · ESA/Hubble & NASA, Z. Levay · CC BY 4.0",
+      "errors": [],
+      "failed": [
+        {
+          "url": "http://127.0.0.1:3118/_vercel/insights/script.js",
+          "status": 404
+        },
+        {
+          "url": "http://127.0.0.1:3118/_vercel/speed-insights/script.js",
+          "status": 404
+        }
+      ]
+    }
+  },
+  {
+    "name": "phone",
+    "planet": {
+      "view": "section",
+      "credit": "Veil Nebula · ESA/Hubble & NASA, Z. Levay · CC BY 4.0",
+      "errors": [],
+      "failed": [
+        {
+          "url": "http://127.0.0.1:3118/_vercel/insights/script.js",
+          "status": 404
+        },
+        {
+          "url": "http://127.0.0.1:3118/_vercel/speed-insights/script.js",
+          "status": 404
+        }
+      ]
+    }
+  }
+]

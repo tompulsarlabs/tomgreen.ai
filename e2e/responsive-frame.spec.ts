@@ -28,3 +28,20 @@ test("the shared frame grows for a wide monitor and reflows on phones", async ({
   expect(wide.content).toBeGreaterThan(laptop.content * 1.3);
   expect(wide.content).toBeGreaterThan(wide.viewport * 0.6);
 });
+
+test("the planetary map keeps its destinations inside a portrait phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/building");
+  await page.locator(".sphere-home").click();
+  await expect(page.locator(".orbit-canvas canvas")).toBeVisible();
+  for (const id of ["work", "lab", "about", "contact"]) {
+    const label = page.locator(`.orbit-portal a.orbit-label[data-body="${id}"]`);
+    await expect.poll(async () => {
+      if (!(await label.count())) return false;
+      const box = await label.boundingBox();
+      const opacity = Number(await label.evaluate(el => getComputedStyle(el).opacity));
+      return !!box && opacity > 0.1 && box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844;
+    }, { timeout: 15_000 }).toBe(true);
+  }
+});

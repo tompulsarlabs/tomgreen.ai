@@ -170,7 +170,7 @@ export function CareerCorridor({
       const target = stationCentre(destination, count);
       const delta = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
-      smoothedProgress += (target - smoothedProgress) * (1 - Math.exp(-delta * 4.5));
+      smoothedProgress += (target - smoothedProgress) * (1 - Math.exp(-delta * 2.8));
       if (Math.abs(target - smoothedProgress) < 0.0004)
         smoothedProgress = target;
       const active = nearestStation(smoothedProgress, count);
