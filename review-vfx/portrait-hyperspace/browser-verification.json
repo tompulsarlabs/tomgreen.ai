@@ -1,0 +1,122 @@
+[
+  {
+    "engine": "webkit",
+    "name": "phone",
+    "measurements": {
+      "stageHeight": 746,
+      "innerHeight": 746,
+      "visualHeight": 746,
+      "pixelRatio": 3,
+      "buffer": [
+        687,
+        1305
+      ],
+      "renderer": "Apple GPU"
+    },
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "failedResources": [
+      {
+        "url": "http://127.0.0.1:3118/_vercel/insights/script.js",
+        "status": 404
+      },
+      {
+        "url": "http://127.0.0.1:3118/_vercel/speed-insights/script.js",
+        "status": 404
+      }
+    ],
+    "landed": true
+  },
+  {
+    "engine": "webkit",
+    "name": "desktop",
+    "measurements": {
+      "stageHeight": 720,
+      "innerHeight": 720,
+      "visualHeight": 720,
+      "pixelRatio": 1,
+      "buffer": [
+        1280,
+        720
+      ],
+      "renderer": "Apple GPU"
+    },
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "failedResources": [
+      {
+        "url": "http://127.0.0.1:3118/_vercel/insights/script.js",
+        "status": 404
+      },
+      {
+        "url": "http://127.0.0.1:3118/_vercel/speed-insights/script.js",
+        "status": 404
+      }
+    ],
+    "landed": true
+  },
+  {
+    "engine": "chrome",
+    "name": "phone",
+    "measurements": {
+      "stageHeight": 746,
+      "innerHeight": 746,
+      "visualHeight": 746,
+      "pixelRatio": 3,
+      "buffer": [
+        687,
+        1305
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)"
+    },
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "failedResources": [
+      {
+        "url": "http://127.0.0.1:3118/_vercel/insights/script.js",
+        "status": 404
+      },
+      {
+        "url": "http://127.0.0.1:3118/_vercel/speed-insights/script.js",
+        "status": 404
+      }
+    ],
+    "landed": true
+  },
+  {
+    "engine": "chrome",
+    "name": "desktop",
+    "measurements": {
+      "stageHeight": 720,
+      "innerHeight": 720,
+      "visualHeight": 720,
+      "pixelRatio": 1,
+      "buffer": [
+        1280,
+        720
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)"
+    },
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "failedResources": [
+      {
+        "url": "http://127.0.0.1:3118/_vercel/insights/script.js",
+        "status": 404
+      },
+      {
+        "url": "http://127.0.0.1:3118/_vercel/speed-insights/script.js",
+        "status": 404
+      }
+    ],
+    "landed": true
+  }
+]

@@ -100,7 +100,10 @@ export function CareerCorridor({
         `${heading ? heading.offsetTop + heading.offsetHeight : 0}px`,
       );
     };
-    const headingResize = new ResizeObserver(measureHeading);
+    const headingResize = new ResizeObserver(() => {
+      measureHeading();
+      request();
+    });
     if (heading) headingResize.observe(heading);
     headingResize.observe(stage);
     measureHeading();
@@ -117,7 +120,7 @@ export function CareerCorridor({
 
     const measureProgress = () => {
       const bounds = track.getBoundingClientRect();
-      const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
+      const travel = Math.max(track.offsetHeight - stage.clientHeight, 1);
       progress = clamp01(-bounds.top / travel);
       // The field fades in as the section takes the viewport and hands
       // back to bare paper on the way out — never a hard rectangle.
@@ -126,7 +129,7 @@ export function CareerCorridor({
       const space = spaceProgress(
         sectionBounds.top,
         sectionBounds.bottom,
-        window.innerHeight,
+        stage.clientHeight,
       );
       section.style.setProperty("--space", space.toFixed(4));
     };
@@ -164,9 +167,10 @@ export function CareerCorridor({
       measureProgress();
       destination = directDestination ?? destinationStation(progress, count, destination);
       const elapsed = lastTime ? (now - lastTime) / 1000 : 0;
-      // Reading time counts while the animation loop rests, too. A new
-      // scroll after a long pause should start its flight immediately.
-      const delta = journey.phase === "idle" ? elapsed : Math.min(elapsed, 0.1);
+      // This is a timed sequence, not a physics integration. Discarding
+      // slow-frame time stretches the flight on constrained devices.
+      // Visibility changes reset lastTime, so hidden time never skips a stop.
+      const delta = Math.max(0, elapsed);
       lastTime = now;
       journey = advanceJourney(journey, destination, delta, directDestination !== null);
       const view = journeyView(journey, count);
@@ -219,7 +223,7 @@ export function CareerCorridor({
       const index = railButtons.indexOf(button as HTMLButtonElement);
       if (index < 0) return;
       directDestination = index;
-      const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
+      const travel = Math.max(track.offsetHeight - stage.clientHeight, 1);
       const top = track.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: top + stationCentre(index, count) * travel,
@@ -245,7 +249,7 @@ export function CareerCorridor({
       // A shared link opens at its named entry. Subsequent hash changes
       // travel there, just like an explicit selection on the year rail.
       if (behavior === "instant") journey = parkedJourney(index);
-      const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
+      const travel = Math.max(track.offsetHeight - stage.clientHeight, 1);
       const top = track.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: top + stationCentre(index, count) * travel,

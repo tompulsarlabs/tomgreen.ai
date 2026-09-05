@@ -97,7 +97,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
 
   // The opening statements are the page's epigraph, not its title: the
   // h1 is the short personal introduction underneath them.
-  await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Subtract. Then add.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Building in Founder Mode",
   );
@@ -1438,7 +1438,9 @@ test("the career corridor travels between stations and stops resolved", async ({
   // An arbitrary position between entries must complete its journey,
   // rather than running hyperspace indefinitely until an exact rail stop.
   await setSectionProgress(page, ".corridor-track", 2.65 / legs);
-  await expect(stations.nth(3)).toHaveClass(/is-stop/, { timeout: 12_000 });
+  // Three flights and two reading pauses take 10.7s before frame overhead.
+  // The slow-frame regression checks an individual flight's real duration.
+  await expect(stations.nth(3)).toHaveClass(/is-stop/, { timeout: 18_000 });
   await expect(corridor).toHaveAttribute("data-state", "idle");
   await expect(stations.nth(2)).toHaveAttribute("inert", "");
 
@@ -1524,11 +1526,10 @@ test("the 390px Home sets the production spine without overflow", async ({ page 
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReduced(page, "/");
   await expect(page.locator(".desktop-constraint > span")).toHaveText([
-    "Identify the",
-    "constraint.",
-    "Then subtract.",
+    "Subtract.",
+    "Then add.",
   ]);
-  await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Subtract. Then add.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.locator(".home-actions")).toHaveCount(0);
 });

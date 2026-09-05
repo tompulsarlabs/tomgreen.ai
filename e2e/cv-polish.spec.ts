@@ -1,5 +1,87 @@
 import { expect, test } from "@playwright/test";
 
+test("slow animation frames do not stretch a CV flight", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    let id = 0;
+    const timers = new Map<number, number>();
+    window.requestAnimationFrame = callback => {
+      const key = ++id;
+      timers.set(key, window.setTimeout(() => {
+        timers.delete(key);
+        callback(performance.now());
+      }, 160));
+      return key;
+    };
+    window.cancelAnimationFrame = key => {
+      clearTimeout(timers.get(key));
+      timers.delete(key);
+    };
+  });
+  await page.goto("/about");
+  await expect(page.locator(".career-corridor")).toHaveAttribute("data-live", "true");
+  await expect(page.locator(".corridor-canvas canvas")).toBeVisible();
+  await page.locator(".corridor-track").evaluate(track => scrollTo(0, scrollY + track.getBoundingClientRect().top));
+  await expect(page.locator(".corridor-station").first()).toHaveClass(/is-stop/);
+  const flightSeconds = await page.evaluate(() => new Promise<number>(resolve => {
+    const field = document.querySelector<HTMLElement>(".career-corridor")!;
+    const track = document.querySelector<HTMLElement>(".corridor-track")!;
+    const stage = document.querySelector<HTMLElement>(".corridor-stage")!;
+    let began = 0;
+    const observer = new MutationObserver(() => {
+      if (field.dataset.state === "travel" && !began) began = performance.now();
+      if (field.dataset.state === "arrival" && began) {
+        observer.disconnect();
+        resolve((performance.now() - began) / 1000);
+      }
+    });
+    observer.observe(field, { attributes: true, attributeFilter: ["data-state"] });
+    const leg = (track.offsetHeight - stage.clientHeight) / (track.querySelectorAll(".corridor-station").length - 1);
+    scrollBy(0, leg * 0.72);
+  }));
+  expect(flightSeconds).toBeGreaterThan(2.3);
+  expect(flightSeconds).toBeLessThan(3.5);
+});
+
+test("the CV fills the viewport when mobile browser controls retract", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "Toolbar size emulation uses the Chromium protocol.");
+  const context = await browser.newContext({
+    viewport: { width: 393, height: 746 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto("/about");
+    const corridor = page.locator(".career-corridor");
+    await expect(corridor).toHaveAttribute("data-live", "true");
+    await expect(page.locator(".corridor-canvas canvas")).toBeVisible();
+    // The viewport grows as Safari's controls retract, while 100svh
+    // remains 66px shorter. Apply after navigation to the actual frame.
+    const session = await context.newCDPSession(page);
+    await session.send("Emulation.setSmallViewportHeightDifferenceOverride", { difference: 66 });
+    const uncoveredHeight = () => page.evaluate(() => {
+      const canvas = document.querySelector(".corridor-canvas canvas")!;
+      return window.visualViewport!.height - canvas.getBoundingClientRect().height;
+    });
+    await expect.poll(uncoveredHeight).toBe(0);
+
+    await page.locator(".corridor-track").evaluate(track => {
+      scrollTo(0, scrollY + track.getBoundingClientRect().top);
+    });
+    await page.locator(".corridor-rail button").nth(1).click();
+    await expect(page.locator(".corridor-station").nth(1)).toHaveClass(/is-stop/, { timeout: 12_000 });
+    await expect(corridor).toHaveAttribute("data-state", "idle");
+
+    // A viewport resize also updates the canvas and its portrait budget.
+    await page.setViewportSize({ width: 746, height: 393 });
+    await expect.poll(uncoveredHeight).toBe(0);
+    await expect(corridor).toHaveAttribute("data-state", "idle");
+  } finally {
+    await context.close();
+  }
+});
+
 test("ordinary CV scrolling finishes travel and leaves the entry readable", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
