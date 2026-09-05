@@ -167,9 +167,10 @@ export function CareerCorridor({
       measureProgress();
       destination = directDestination ?? destinationStation(progress, count, destination);
       const elapsed = lastTime ? (now - lastTime) / 1000 : 0;
-      // Reading time counts while the animation loop rests, too. A new
-      // scroll after a long pause should start its flight immediately.
-      const delta = journey.phase === "idle" ? elapsed : Math.min(elapsed, 0.1);
+      // This is a timed sequence, not a physics integration. Discarding
+      // slow-frame time stretches the flight on constrained devices.
+      // Visibility changes reset lastTime, so hidden time never skips a stop.
+      const delta = Math.max(0, elapsed);
       lastTime = now;
       journey = advanceJourney(journey, destination, delta, directDestination !== null);
       const view = journeyView(journey, count);

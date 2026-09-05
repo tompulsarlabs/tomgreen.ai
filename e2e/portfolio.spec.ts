@@ -1438,7 +1438,9 @@ test("the career corridor travels between stations and stops resolved", async ({
   // An arbitrary position between entries must complete its journey,
   // rather than running hyperspace indefinitely until an exact rail stop.
   await setSectionProgress(page, ".corridor-track", 2.65 / legs);
-  await expect(stations.nth(3)).toHaveClass(/is-stop/, { timeout: 12_000 });
+  // Three flights and two reading pauses take 10.7s before frame overhead.
+  // The slow-frame regression checks an individual flight's real duration.
+  await expect(stations.nth(3)).toHaveClass(/is-stop/, { timeout: 18_000 });
   await expect(corridor).toHaveAttribute("data-state", "idle");
   await expect(stations.nth(2)).toHaveAttribute("inert", "");
 

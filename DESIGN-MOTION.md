@@ -42,6 +42,7 @@ labels. Display weight never animates.
   The stage fills the dynamic viewport as mobile browser controls retract; scroll distances
   use that measured stage height. Portrait fields carry 30% fewer trails and points, with
   pixel-aware edge and tail smoothing. The portrait budget stays stable during toolbar resizes.
+  The chapter clock counts elapsed visible time, including slow frames; hidden time is paused.
 - Planet captures join the actual camera distance and framing, then return the camera,
   exposure and photographic sky together. Full and compact shots share the same landmarks;
   the compact clock has continuous speed between them. Gas always covers the viewport.

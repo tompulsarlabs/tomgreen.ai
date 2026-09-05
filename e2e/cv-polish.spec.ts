@@ -1,5 +1,48 @@
 import { expect, test } from "@playwright/test";
 
+test("slow animation frames do not stretch a CV flight", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    let id = 0;
+    const timers = new Map<number, number>();
+    window.requestAnimationFrame = callback => {
+      const key = ++id;
+      timers.set(key, window.setTimeout(() => {
+        timers.delete(key);
+        callback(performance.now());
+      }, 160));
+      return key;
+    };
+    window.cancelAnimationFrame = key => {
+      clearTimeout(timers.get(key));
+      timers.delete(key);
+    };
+  });
+  await page.goto("/about");
+  await expect(page.locator(".career-corridor")).toHaveAttribute("data-live", "true");
+  await expect(page.locator(".corridor-canvas canvas")).toBeVisible();
+  await page.locator(".corridor-track").evaluate(track => scrollTo(0, scrollY + track.getBoundingClientRect().top));
+  await expect(page.locator(".corridor-station").first()).toHaveClass(/is-stop/);
+  const flightSeconds = await page.evaluate(() => new Promise<number>(resolve => {
+    const field = document.querySelector<HTMLElement>(".career-corridor")!;
+    const track = document.querySelector<HTMLElement>(".corridor-track")!;
+    const stage = document.querySelector<HTMLElement>(".corridor-stage")!;
+    let began = 0;
+    const observer = new MutationObserver(() => {
+      if (field.dataset.state === "travel" && !began) began = performance.now();
+      if (field.dataset.state === "arrival" && began) {
+        observer.disconnect();
+        resolve((performance.now() - began) / 1000);
+      }
+    });
+    observer.observe(field, { attributes: true, attributeFilter: ["data-state"] });
+    const leg = (track.offsetHeight - stage.clientHeight) / (track.querySelectorAll(".corridor-station").length - 1);
+    scrollBy(0, leg * 0.72);
+  }));
+  expect(flightSeconds).toBeGreaterThan(2.3);
+  expect(flightSeconds).toBeLessThan(3.5);
+});
+
 test("the CV fills the viewport when mobile browser controls retract", async ({ browser, browserName }) => {
   test.skip(browserName !== "chromium", "Toolbar size emulation uses the Chromium protocol.");
   const context = await browser.newContext({
