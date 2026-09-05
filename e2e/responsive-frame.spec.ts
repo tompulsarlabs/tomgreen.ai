@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { activatePlanetaryMap } from "./helpers/planetary-navigation";
 
 test("the shared frame grows for a wide monitor and reflows on phones", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -33,7 +34,7 @@ test("the planetary map keeps its destinations inside a portrait phone", async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/building");
-  await page.locator(".sphere-home").click();
+  await activatePlanetaryMap(page);
   await expect(page.locator(".orbit-canvas canvas")).toBeVisible();
   for (const id of ["work", "lab", "about", "contact"]) {
     const label = page.locator(`.orbit-portal a.orbit-label[data-body="${id}"]`);
