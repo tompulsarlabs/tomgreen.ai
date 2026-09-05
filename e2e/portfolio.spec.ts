@@ -489,7 +489,7 @@ test("the home route is the six-row evidence index, under the introduction", asy
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
   await expect(page.locator(".personal-hero img")).toHaveCount(0);
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
-  await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "An AI organisation. A European business." })).toBeVisible();
   await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(
