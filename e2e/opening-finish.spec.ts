@@ -11,7 +11,7 @@ test("desktop overview fits its outcome captions and starts the next section bel
     const next = (await page.locator(".work-index-group").first().boundingBox())!;
     expect(outcomes.y + outcomes.height).toBeLessThanOrEqual(height - 20);
     expect(next.y).toBeGreaterThanOrEqual(height);
-    await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
+    await expect(page.locator(".work-index-masthead h2")).toHaveText(
       "I build teams, operating models, and agents to run them.",
     );
   }

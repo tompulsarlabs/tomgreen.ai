@@ -1,8 +1,7 @@
-import { caseStudies } from "./case-studies";
 import { projects } from "./building";
 
 export type CategoryId = "agents" | "products" | "talent" | "craft";
-export type ClusterId = "companies" | "practice" | "systems" | "content";
+export type ClusterId = "practice" | "systems" | "content";
 
 export type GraphNode = {
   id: string;
@@ -40,12 +39,6 @@ export const clusters: Record<
   ClusterId,
   { label: string; eyebrow: string; blurb: string }
 > = {
-  companies: {
-    label: "Where I’ve worked",
-    eyebrow: "Work in context",
-    blurb:
-      "The organizations, businesses and operating environments where the outcomes were built.",
-  },
   practice: {
     label: "Teams & operating models",
     eyebrow: "How I operate",
@@ -53,7 +46,7 @@ export const clusters: Record<
       "Organization design, talent systems and operating workflows—the connected craft of building teams and making work run better.",
   },
   systems: {
-    label: "AI & agents",
+    label: "Systems & products",
     eyebrow: "What I build",
     blurb:
       "Tools and products I design, run and improve in public.",
@@ -67,9 +60,8 @@ export const clusters: Record<
 };
 
 export const clusterOrder: ClusterId[] = [
-  "companies",
-  "practice",
   "systems",
+  "practice",
   "content",
 ];
 
@@ -150,34 +142,13 @@ export const graphNodes: GraphNode[] = [
     blurb: project.tagline,
     meta: project.status,
   })),
-  ...caseStudies.map((study) => ({
-    id: study.slug,
-    label: study.company,
-    kind: "case" as const,
-    category: "talent" as const,
-    cluster: "companies" as const,
-    href: `/work/${study.slug}`,
-    blurb: study.headline,
-    meta: study.period,
-  })),
   ...practiceNodes,
   ...contentNodes,
 ];
 
-/** The authored field is deliberately selective. The complete archive remains
- * in the semantic record below it. */
-export const sceneNodeIds = [
-  "zalando",
-  "chapter-2",
-  "audibene",
-  "wave",
-  "wer",
-  "building-practice",
-  "recruiting-practice",
-  "operations-practice",
-  "ivy",
-  "sybil",
-  "this-site",
-  "tom-green-labs",
-  "stop-hiding-behind-culture",
-] as const;
+/** The Lab's builds, operating methods and writing, in one catalogue. */
+export const labNodeIds = [
+  ...projects.map((project) => project.slug),
+  ...practiceNodes.map((node) => node.id),
+  ...contentNodes.map((node) => node.id),
+];

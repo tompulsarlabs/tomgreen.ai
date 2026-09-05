@@ -10,47 +10,20 @@ import { site } from "@/lib/content/site";
  * This was /work's page body. It moved into a component when the home
  * route absorbed it, so there is exactly one implementation: /work now
  * redirects here rather than rendering a second copy that could drift.
- * The copy inside is the owner's and is reproduced unchanged.
+ * Home previews the work; each case study carries the full explanation.
  */
 
-const groups = [
-  {
-    id: "flagship",
-    label: "01 / Flagship",
-    heading: "An AI organisation. A European business.",
-    lead: "At Zalando, I built a 120-person AI organisation. At Chapter 2, I ran the European business and rebuilt People Ops on agentic workflows.",
-    tiers: ["flagship"],
-  },
-  {
-    id: "range",
-    label: "02 / Operating range",
-    heading: "Build it. Then operate inside it.",
-    lead: null,
-    tiers: ["supporting"],
-  },
-  {
-    id: "arc",
-    label: "03 / Wider arc",
-    heading: "What I’m building now. Where I started.",
-    lead: null,
-    tiers: ["current", "foundation"],
-  },
-] as const;
-
 export function WorkIndex() {
-  let rowIndex = 0;
-
   return (
     <div className="work-index-page">
       <div className="home-overview">
         <PersonalHero />
         {/* The Lab's section format: a mono label held on the left, the
-            heading and its lead carried on the right. */}
+            positioning statement carried on the right. */}
         <header className="work-index-masthead section-split">
           <p className="record">Selected work</p>
           <div className="section-split-body">
-            <h2 className="axis-display">Weighed by opportunity cost.</h2>
-            <p className="systems-lead">{site.positioning}</p>
+            <h2 className="axis-display">{site.positioning}</h2>
           </div>
         </header>
 
@@ -70,37 +43,13 @@ export function WorkIndex() {
         </section>
       </div>
 
-      {groups.map((group) => {
-        const members = caseStudies.filter((study) =>
-          (group.tiers as readonly string[]).includes(study.tier),
-        );
-        return (
-          <section
-            key={group.id}
-            aria-labelledby={`${group.id}-heading`}
-            className="work-index-group"
-          >
-            <div className="work-group-intro section-split">
-              <p className="record">{group.label}</p>
-              <div className="section-split-body">
-                <h2 id={`${group.id}-heading`} className="axis-heading">
-                  {group.heading}
-                </h2>
-                {group.lead && <p className="work-group-lead">{group.lead}</p>}
-              </div>
-            </div>
-            <div className="work-index-list">
-              {members.map((study) => (
-                <WorkIndexRow
-                  key={study.slug}
-                  study={study}
-                  index={rowIndex++}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <section aria-label="Case studies" className="work-index-group">
+        <div className="work-index-list">
+          {caseStudies.map((study, index) => (
+            <WorkIndexRow key={study.slug} study={study} index={index} />
+          ))}
+        </div>
+      </section>
 
       <aside className="work-index-next section-split">
         <p className="record">Next / the Lab</p>

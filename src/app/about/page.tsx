@@ -3,7 +3,6 @@ import { AboutOpening } from "@/components/about-opening";
 import { CareerCorridor } from "@/components/career-corridor";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
-import { sceneNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { testimonials } from "@/lib/content/testimonials";
 
@@ -23,7 +22,6 @@ export default function About() {
       <section aria-labelledby="career-heading" className="career-line">
         <CareerCorridor
           stops={career}
-          systemsIds={[...sceneNodeIds]}
           heading={
             <>
               <p className="record">2011 → now</p>

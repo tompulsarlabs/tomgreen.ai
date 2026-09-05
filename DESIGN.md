@@ -22,7 +22,7 @@ Three outcomes, in priority order:
 The intersection is the angle: most talent leaders don't build; most builders don't
 know talent. Tom does both.
 
-> **"I build the teams, the operating model, and the agents to run it."**
+> **"I build teams, operating models, and agents to run them."**
 
 Everything on the site should ladder up to that sentence. Proof points live in two
 registers: operating results (Zalando 0→120 AI org, metrics) and built systems
@@ -39,11 +39,15 @@ registers: operating results (Zalando 0→120 AI org, metrics) and built systems
 
 | Route | Content |
 |---|---|
-| `/` | Opening motion → Building in Founder Mode → operating outcomes → tiered evidence index |
+| `/` | Opening motion → Building in Founder Mode → positioning and headline outcomes → concise case-study previews |
 | `/work` | Redirects to the homepage's evidence index |
 | `/work/[slug]` | Editorial case study with mandate, decisions, system model, outcomes, evidence note, next action |
-| `/building` | **Lab** in the UI: a white, server-rendered index of work, operating models, agents and writing |
+| `/building` | **Lab** in the UI: systems and products → teams and operating models → writing and ideas |
 | `/about` | Public interactive career corridor, with the complete linear CV under reduced motion or without JavaScript |
+
+Home gives each case one preview sentence. The full explanation belongs on its case-study page.
+Lab contains the builds and methods, with no employer catalogue or repeated case-study summaries.
+About owns the full career sequence and links directly to the relevant case studies.
 
 Case studies are the core content unit. Each one: context → what Tom built/did →
 measurable outcome → what it demonstrates. Initial set (strongest first):
@@ -103,8 +107,8 @@ ships — because both must be true for the positioning to hold.
 
 The product model is deliberately simple:
 
-> **Work proves the outcomes. Systems proves the method. About proves the person.
-> Contact makes the next step obvious.**
+> **Home introduces the work. Case studies explain the results. Lab shows the builds and methods.
+> About tells the career story. Contact makes the next step obvious.**
 
 Case studies follow one readable sequence: verified outcomes, challenge, work, operating model,
 decisions, result and source note. Conceptual or reconstructed material must still be labelled,
