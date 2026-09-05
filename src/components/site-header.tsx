@@ -3,10 +3,9 @@
 import Link, { useLinkStatus } from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
 import { openOrbitPortal } from "@/lib/orbit-portal-bus";
-import { hasPlanetaryDiscovery, subscribePlanetaryDiscovery, undiscoveredOnServer } from "@/lib/planetary-discovery";
 
 // WebGL is loaded only in the browser; the button and the links are
 // server-rendered without it, so navigation never depends on the canvas.
@@ -32,22 +31,29 @@ function PendingMark() {
 }
 
 /**
- * Two lines invite the first click. Opening navigation resolves them
- * into the Moon; activating that Moon opens the planetary world.
- * Until the world has actually opened, closing restores the menu icon.
- * Discovery keeps the Moon for this visit, with its familiar hover/focus
- * navigation on desktop and two-tap navigation on touch screens.
+ * The navigation: one moon, suspended.
+ *
+ * At rest the Moon is the only visible thing — no capsule, no plate, no
+ * ring behind it. It is real geometry on a transparent canvas, and it
+ * sits in the page's space rather than inside a component. The hit area
+ * is a bare 44x44 centred on it, so the empty space where the menu will
+ * later appear is not hoverable.
+ *
+ * Reaching it grows the navigation surface out to the right, from the
+ * Moon's own anchor. The Moon never moves into the middle of a pill; it
+ * stays at the leading edge and in front of the surface in depth.
+ *
+ * It is also the only way into the planetary map, and it does nothing
+ * else: it navigates nowhere. Hover and focus open the navigation row,
+ * which carries every destination including Home, so the object itself
+ * is free to carry one meaning. Touch has neither hover nor focus, so
+ * there the first tap opens the row and only a second one opens the map.
  */
 export function SiteHeader({ showVoices }: { showVoices: boolean }) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("idle");
   const [seenPath, setSeenPath] = useState(pathname);
   const [reduced, setReduced] = useState(false);
-  const discovered = useSyncExternalStore(
-    subscribePlanetaryDiscovery,
-    hasPlanetaryDiscovery,
-    undiscoveredOnServer,
-  );
   const islandRef = useRef<HTMLDivElement>(null);
   const timers = useRef<{ intent?: number; leave?: number; settle?: number }>({});
 
@@ -143,7 +149,6 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
         className="nav-island"
         data-phase={phase}
         data-expanded={showing ? "true" : "false"}
-        data-moon={discovered || showing ? "true" : "false"}
         // Leaving the whole region — sphere, surface and links together —
         // is what starts the collapse, so crossing between them is safe.
         onPointerLeave={(event) => {
@@ -152,45 +157,42 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
         onPointerEnter={(event) => {
           if (event.pointerType === "mouse" && timers.current.leave) clearTimers();
         }}
-        onFocusCapture={() => {
-          if (discovered || showing) openNav(true);
-        }}
+        onFocusCapture={() => openNav(true)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeNav(true);
         }}
       >
         {/* The surface. It has no size of its own at rest, grows to the
-            left from the sphere's anchor, and sits behind the sphere. */}
+            right from the sphere's anchor, and sits behind the sphere. */}
         <div className="nav-surface" aria-hidden />
 
         <button
           type="button"
           className="sphere-home"
-          aria-label={showing ? "Open the planetary map" : "Open navigation"}
-          aria-controls="primary-navigation"
-          aria-expanded={showing}
-          aria-haspopup={showing ? "dialog" : undefined}
-          onClick={() => {
-            if (showing) openOrbitPortal();
-            else openNav(false);
-          }}
+          aria-label="Open the planetary map"
+          // The moon does not travel any more. It has one meaning: the
+          // hidden world. Every destination — Home included — lives in
+          // the row it reveals on hover, which is why it can afford to.
+          // A button, not a link, because it goes nowhere: there is no
+          // href a crawler or a middle-click should ever follow.
+          onClick={openOrbitPortal}
           onPointerEnter={(event) => {
-            if (event.pointerType !== "mouse" || !discovered) return;
+            if (event.pointerType !== "mouse") return;
             clearTimers();
             setPhase((current) => (current === "idle" || current === "collapsing" ? "approaching" : current));
             timers.current.intent = window.setTimeout(() => openNav(false), INTENT_MS);
           }}
-          // A first touch opens only navigation. Suppress its synthetic
-          // click so the same tap cannot immediately open the planets.
+          // Mouse and keyboard reveal the navigation before they can
+          // activate anything, so their click can simply mean the map.
+          // Touch has neither, so the first tap must only open the row —
+          // and cancelling the touch's default is what suppresses the
+          // click the browser would otherwise synthesise from it.
           onTouchEnd={(event) => {
             if (SHOWING.has(phase)) return;
             event.preventDefault();
             openNav(false);
           }}
         >
-          <span className="menu-lines" aria-hidden="true">
-            <span /><span />
-          </span>
           <span className="sphere-stage" aria-hidden>
             <NavSphere active={engaged} reduced={reduced} />
           </span>
@@ -201,8 +203,8 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
             {navItems.map((item) => {
               const isCurrent = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const isCta = item.href === "/contact";
-              // Home goes directly to the operating record. It marks the
-              // opening seen on the way out,
+              // Home is one of the labels, and it goes where the labels
+              // go: the map. It marks the opening seen on the way out,
               // so the landing arrives already resolved.
               const isHome = item.href === "/";
               return (

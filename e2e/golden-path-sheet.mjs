@@ -75,8 +75,7 @@ async function reachZalando(page, name) {
     polling: 500,
   });
   mark("loaded");
-  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  await page.getByRole("button", { name: "Open the planetary map", exact: true }).click();
+  await page.locator(".sphere-home").click();
   await page.locator('.orbit-portal[role="dialog"]').waitFor({ state: "visible" });
   await page
     .locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')

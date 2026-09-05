@@ -92,8 +92,7 @@ async function openMap(page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
-  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  await page.getByRole("button", { name: "Open the planetary map", exact: true }).click();
+  await page.locator(".sphere-home").click();
   await page.waitForSelector('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas', {
     timeout: 120_000,
   });
