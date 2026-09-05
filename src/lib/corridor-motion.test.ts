@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  arrivalPresence,
   buildStreaks,
   nearestStation,
   stationCentre,
@@ -26,6 +27,29 @@ describe("travelIntensity", () => {
     }
     const midLeg = (stationCentre(2, COUNT) + stationCentre(3, COUNT)) / 2;
     expect(travelIntensity(midLeg, COUNT)).toBeCloseTo(1, 6);
+  });
+
+  it("holds a cruise and drops out before an entry can appear, in either direction", () => {
+    for (const fraction of [0.38, 0.5, 0.62]) {
+      expect(travelIntensity((2 + fraction) / (COUNT - 1), COUNT)).toBe(1);
+    }
+    for (let fraction = 0; fraction <= 1; fraction += 0.01) {
+      const progress = (2 + fraction) / (COUNT - 1);
+      if (travelIntensity(progress, COUNT) > 0) {
+        expect(stationState(2, progress, COUNT).presence).toBe(0);
+        expect(stationState(3, progress, COUNT).presence).toBe(0);
+      }
+    }
+  });
+});
+
+describe("arrivalPresence", () => {
+  it("leaves a quiet interval before revealing the career entry", () => {
+    expect(arrivalPresence(0)).toBe(0);
+    expect(arrivalPresence(0.19)).toBe(0);
+    expect(arrivalPresence(0.4)).toBeCloseTo(0.5);
+    expect(arrivalPresence(0.6)).toBe(1);
+    expect(arrivalPresence(10)).toBe(1);
   });
 });
 

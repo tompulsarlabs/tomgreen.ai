@@ -20,6 +20,15 @@ export type StationState = {
 
 export const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
 export const easeOut = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
+const smoothstep = (start: number, end: number, value: number) => {
+  const t = clamp01((value - start) / (end - start));
+  return t * t * (3 - 2 * t);
+};
+
+/** Let the star field clear for 200ms, then bring the entry into focus. */
+export function arrivalPresence(calmSeconds: number): number {
+  return smoothstep(0.2, 0.6, calmSeconds);
+}
 
 /** Centre of station `index` on the 0..1 track. */
 export function stationCentre(index: number, count: number): number {
@@ -41,8 +50,10 @@ export function travelIntensity(progress: number, count: number): number {
   if (count <= 1) return 0;
   const segment = clamp01(progress) * (count - 1);
   const withinSegment = segment - Math.floor(segment);
-  // Sine bump: 0 at each station, 1 at the midpoint of a leg.
-  return Math.sin(Math.PI * withinSegment) ** 2;
+  // A sustained cruise between stops, with room to decelerate before
+  // any station appears. The same choreography works in both directions.
+  const distance = Math.min(withinSegment, 1 - withinSegment);
+  return smoothstep(0.16, 0.36, distance);
 }
 
 export function stationState(index: number, progress: number, count: number): StationState {
@@ -50,10 +61,9 @@ export function stationState(index: number, progress: number, count: number): St
   const span = count <= 1 ? 1 : 1 / (count - 1);
   const offset = (clamp01(progress) - centre) / span; // legs travelled from this stop
   const distance = Math.abs(offset);
-  // Presence holds ~1 through the dwell zone around the stop, then falls
-  // away — mid-leg keeps a glimpse of the neighbours (~0.12) so a plain
-  // scroll always shows the next station approaching, never blank road.
-  const presence = 1 - easeOut(clamp01((distance - 0.12) / 0.75));
+  // Keep the route clear while travelling. An entry only appears inside
+  // the quiet approach, once the field has been asked to drop out.
+  const presence = 1 - smoothstep(0.055, 0.16, distance);
   const scale =
     offset >= 0
       ? 1 + easeOut(clamp01(offset)) * 0.42 // passed: grows and leaves

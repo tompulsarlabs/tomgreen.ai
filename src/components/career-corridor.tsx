@@ -8,6 +8,7 @@ import type { CareerStop } from "@/lib/content/about";
 import type { HyperspaceDrive } from "@/components/hyperspace-field";
 import { spaceProgress } from "@/lib/hyperspace-field";
 import {
+  arrivalPresence,
   clamp01,
   nearestStation,
   stationCentre,
@@ -55,6 +56,7 @@ export function CareerCorridor({
   // hyperspace runs without a single React render.
   const driveRef = useRef<HyperspaceDrive>({
     intensity: 0,
+    velocity: 0.045,
     progress: 0,
     pointerX: 0,
     pointerY: 0,
@@ -84,9 +86,23 @@ export function CareerCorridor({
       section.querySelectorAll<HTMLButtonElement>(".corridor-rail button"),
     );
     if (!track || !stage || stations.length === 0) return;
-    // 74svh per station: enough travel for the streaks to breathe, short
-    // enough that plain scrolling never feels like dead road.
-    track.style.height = `${stations.length * 74}svh`;
+    // A screen and a half per leg gives acceleration, cruise and arrival
+    // their own space. Native scroll and the year rail remain available.
+    track.style.height = `${100 + Math.max(0, stations.length - 1) * 155}svh`;
+
+    // The opening shares a stage with the first career entry. On a narrow
+    // screen, reserve its measured height so the two cannot overlap.
+    const heading = section.querySelector<HTMLElement>(".corridor-heading");
+    const measureHeading = () => {
+      stage.style.setProperty(
+        "--first-heading-bottom",
+        `${heading ? heading.offsetTop + heading.offsetHeight : 0}px`,
+      );
+    };
+    const headingResize = new ResizeObserver(measureHeading);
+    if (heading) headingResize.observe(heading);
+    headingResize.observe(stage);
+    measureHeading();
 
     const count = stations.length;
     let progress = 0;
@@ -94,6 +110,8 @@ export function CareerCorridor({
     let frame = 0;
     let running = true;
     let visible = true;
+    let lastTime = 0;
+    let calmSince = -Infinity;
 
     const measureProgress = () => {
       const bounds = track.getBoundingClientRect();
@@ -111,10 +129,11 @@ export function CareerCorridor({
       section.style.setProperty("--space", space.toFixed(4));
     };
 
-    const applyStations = (active: number, intensity: number) => {
+    const applyStations = (active: number, arrival: number) => {
       stations.forEach((station, index) => {
         const state = stationState(index, smoothedProgress, count);
-        station.style.setProperty("--presence", state.presence.toFixed(4));
+        const presence = state.presence * arrival;
+        station.style.setProperty("--presence", presence.toFixed(4));
         station.style.setProperty("--station-scale", state.scale.toFixed(4));
         station.style.setProperty("--station-axis", state.axis.toFixed(2));
         station.style.setProperty(
@@ -125,9 +144,9 @@ export function CareerCorridor({
         // Interactive (and internally scrollable) only once arrived —
         // mid-leg an invisible station must never swallow the travel
         // scroll with its own overflow.
-        station.classList.toggle("is-stop", isActive && intensity < 0.35);
+        station.classList.toggle("is-stop", isActive && presence > 0.96);
         // Keyboard/AT never land inside a station that is visually away.
-        station.inert = !isActive;
+        station.inert = !isActive || presence < 0.9;
       });
       railButtons.forEach((button, index) => {
         button.setAttribute(
@@ -137,30 +156,36 @@ export function CareerCorridor({
       });
     };
 
-    const tick = () => {
+    const tick = (now: number) => {
       frame = 0;
       if (!running || !visible) return;
       measureProgress();
-      // A light spring keeps rail-jumps and fast scrolls inside the
-      // width-velocity budget instead of teleporting the stations.
-      smoothedProgress += (progress - smoothedProgress) * 0.16;
+      // Time-based pursuit gives trackpads and high-refresh displays
+      // the same restrained glide, without intercepting page scrolling.
+      const delta = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      smoothedProgress += (progress - smoothedProgress) * (1 - Math.exp(-delta * 4.5));
       if (Math.abs(progress - smoothedProgress) < 0.0004)
         smoothedProgress = progress;
       const active = nearestStation(smoothedProgress, count);
       const intensity = travelIntensity(smoothedProgress, count);
-      applyStations(active, intensity);
+      const velocity = driveRef.current.velocity;
+      if (intensity > 0.02 || velocity > 0.18) calmSince = now;
+      const arrival = arrivalPresence((now - calmSince) / 1000);
+      applyStations(active, arrival);
       // The field reads these each frame: intensity asks for velocity,
       // progress varies the trajectory between beats.
       driveRef.current.intensity = intensity;
       driveRef.current.progress = smoothedProgress;
-      section.dataset.state = intensity > 0.12 ? "travel" : "idle";
+      section.dataset.state = intensity > 0.12 ? "travel"
+        : velocity > 0.18 ? "dropout" : arrival < 1 ? "arrival" : "idle";
       // The heading belongs to the first stop: gone by the time the
       // traveller is most of the way to the second.
       stage.style.setProperty(
         "--heading-presence",
-        (1 - clamp01((smoothedProgress * (count - 1)) / 0.6)).toFixed(3),
+        (stationState(0, smoothedProgress, count).presence * arrival).toFixed(3),
       );
-      const settled = smoothedProgress === progress && intensity < 0.01;
+      const settled = smoothedProgress === progress && intensity < 0.01 && arrival === 1;
       if (!settled) request();
     };
     const request = () => {
@@ -236,6 +261,8 @@ export function CareerCorridor({
       cancelAnimationFrame(arrival);
       window.removeEventListener("hashchange", onHashChange);
       intersection.disconnect();
+      headingResize.disconnect();
+      stage.style.removeProperty("--first-heading-bottom");
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", request);
       window.removeEventListener("resize", request);

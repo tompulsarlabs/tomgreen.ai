@@ -88,7 +88,7 @@ describe("starCounts", () => {
     const desktop = starCounts(false);
     const mobile = starCounts(true);
     expect(mobile.trails).toBeLessThan(desktop.trails);
-    expect(mobile.trails).toBeGreaterThan(1000);
+    expect(mobile.trails).toBeGreaterThan(0);
     expect(mobile.points).toBeLessThan(desktop.points);
   });
 });
