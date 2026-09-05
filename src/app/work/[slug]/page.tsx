@@ -51,7 +51,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
             held at opacity 0 for at most a second and never removed, so the
             document, the accessibility tree and every reader without the
             cinematic see exactly what they see today. */}
-        <div className="mx-auto max-w-[1360px] px-[max(22px,6vw)] py-12 md:py-20" data-golden-masthead>
+        <div className="page-frame py-12 md:py-20" data-golden-masthead>
           <Link href="/work" className="record inline-flex min-h-11 items-center hover:underline">
             ← Evidence index
           </Link>

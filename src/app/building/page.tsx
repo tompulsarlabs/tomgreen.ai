@@ -101,9 +101,9 @@ function SystemRecord({ node }: { node: GraphNode }) {
 
 export default function Building() {
   return (
-    <div className="systems-route relative left-1/2 flex w-screen -translate-x-1/2 flex-col gap-20 px-[max(22px,6vw)] pb-20">
+    <div className="systems-route flex w-full flex-col gap-20 pb-20">
       <section
-        className="systems-hero mx-auto w-full max-w-[1360px]"
+        className="systems-hero w-full"
         aria-labelledby="systems-title"
       >
         <div className="systems-hero-copy">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   arrivalPresence,
   buildStreaks,
+  destinationStation,
   nearestStation,
   stationCentre,
   stationState,
@@ -9,6 +10,25 @@ import {
 } from "./corridor-motion";
 
 const COUNT = 7;
+
+describe("scroll destinations", () => {
+  it("finishes at a station from arbitrary scroll positions", () => {
+    for (const fraction of [0.12, 0.35, 0.48, 0.61, 0.83]) {
+      const destination = destinationStation((2 + fraction) / (COUNT - 1), COUNT, 2);
+      const landed = stationCentre(destination, COUNT);
+      expect(travelIntensity(landed, COUNT)).toBe(0);
+      expect(stationState(destination, landed, COUNT).presence).toBe(1);
+    }
+  });
+
+  it("ignores boundary jitter but responds to deliberate reverse travel", () => {
+    expect(destinationStation(2.59 / 6, COUNT, 2)).toBe(3);
+    expect(destinationStation(2.49 / 6, COUNT, 3)).toBe(3);
+    expect(destinationStation(2.41 / 6, COUNT, 3)).toBe(2);
+    expect(destinationStation(0, COUNT, 2)).toBe(0);
+    expect(destinationStation(1, COUNT, 2)).toBe(COUNT - 1);
+  });
+});
 
 describe("stationCentre / nearestStation", () => {
   it("spreads stations across the track and finds the nearest", () => {
