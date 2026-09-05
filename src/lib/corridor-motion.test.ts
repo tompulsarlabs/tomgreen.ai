@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   arrivalPresence,
+  advanceJourney,
   buildStreaks,
   destinationStation,
+  journeyView,
+  parkedJourney,
   nearestStation,
   stationCentre,
   stationState,
@@ -10,6 +13,47 @@ import {
 } from "./corridor-motion";
 
 const COUNT = 7;
+
+describe("timed chapter journeys", () => {
+  it.each([30, 60, 120])("cruises for a full journey and lands before queued scroll at %s fps", (fps) => {
+    let journey = parkedJourney();
+    const visits: number[] = [];
+    let cruiseSeconds = 0;
+    let firstArrival = 0;
+    let firstReadable = 0;
+    let secondDeparture = 0;
+    for (let tick = 0; tick < fps * 12; tick++) {
+      const t = tick / fps;
+      // Continued wheel motion asks for chapter four during the first
+      // flight. It must neither restart that clock nor skip its landing.
+      journey = advanceJourney(journey, t < 0.7 ? 1 : 3, 1 / fps);
+      const view = journeyView(journey, COUNT);
+      if (journey.to === 1 && view.intensity > 0.8) cruiseSeconds += 1 / fps;
+      if (journey.to === 1 && journey.phase === "arrival" && !firstArrival) firstArrival = t;
+      if (journey.phase === "idle" && journey.to > 0 && visits.at(-1) !== journey.to) {
+        visits.push(journey.to);
+        if (journey.to === 1) firstReadable = t;
+      }
+      if (journey.to === 2 && journey.phase === "flight" && !secondDeparture) secondDeparture = t;
+      if (view.intensity > 0.01) expect(view.presence).toBe(0);
+    }
+    expect(firstArrival).toBeGreaterThanOrEqual(2.39);
+    expect(firstArrival).toBeLessThan(2.5);
+    expect(cruiseSeconds).toBeGreaterThan(1.3);
+    expect(secondDeparture - firstReadable).toBeGreaterThanOrEqual(0.84);
+    expect(visits).toEqual([1, 2, 3]);
+  });
+
+  it("finishes an accepted flight before reversing, and supports a deliberate rail jump", () => {
+    let journey = advanceJourney(parkedJourney(1), 2, 0);
+    journey = advanceJourney(journey, 0, 1);
+    expect(journey.to).toBe(2);
+    expect(journey.phase).toBe("flight");
+    const direct = advanceJourney(parkedJourney(), 5, 0, true);
+    expect(direct.to).toBe(5);
+    expect(journeyView(direct, COUNT).active).toBe(0);
+  });
+});
 
 describe("scroll destinations", () => {
   it("finishes at a station from arbitrary scroll positions", () => {

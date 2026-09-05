@@ -24,9 +24,11 @@ import { GoldenPathLayer } from "@/components/golden-path-layer";
 import {
   CAPTURE_START as GOLDEN_CAPTURE_START,
   clampUnit,
+  goldenMotionAt,
   smoothstep,
 } from "@/lib/golden-path";
 import { captureReleaseAt } from "@/lib/capture-release";
+import { captureEntryValue } from "@/lib/capture-continuity";
 import { CORE_IN, coreHandover } from "@/lib/capture-core";
 import { CAPTURE_APPROACH_SECONDS } from "@/lib/capture-timing";
 import {
@@ -62,6 +64,7 @@ const goldenCoreHandover = () => coreHandover(goldenShotTime());
 
 /** The scene's exposure at rest. The golden path scales it and hands it back. */
 const BASE_EXPOSURE = 1.05;
+const SHOT_AT_PRESS = goldenMotionAt(GOLDEN_CAPTURE_START);
 
 /** A body as one frame drew it: centre, radius, and its nameplate's box. */
 type DrawnSpot = {
@@ -618,6 +621,8 @@ function OrbitScene({
     shotPosition: new THREE.Vector3(),
     shotQuaternion: new THREE.Quaternion(),
     shotExposure: BASE_EXPOSURE,
+    entryDistance: 7.4,
+    entryExposure: BASE_EXPOSURE,
     /** The first frame has run; the continuity seed happens only once. */
     seeded: false,
     /** Each body's own recent path, which is what its trail is drawn from. */
@@ -1135,6 +1140,10 @@ function OrbitScene({
      * instant again rather than half of a new one.
      */
     const shotNow = goldenIsRunning() ? goldenShotTime() : null;
+    if (shotNow !== null && s.shotWas === null) {
+      s.entryDistance = camera.position.length();
+      s.entryExposure = gl.toneMappingExposure;
+    }
     const shotStep =
       shotNow !== null && s.shotWas !== null ? Math.max(0, shotNow - s.shotWas) : 0;
     s.shotWas = shotNow;
@@ -1357,7 +1366,10 @@ function OrbitScene({
        * there is nothing to disagree with when the shot lets go.
        */
       const back = release?.cameraReturn ?? 0;
-      const camDistance = g.camDistance + (distance - g.camDistance) * back;
+      const entryDistance = captureEntryValue(
+        g.camDistance, SHOT_AT_PRESS.camDistance, s.entryDistance, goldenShotTime(),
+      );
+      const camDistance = entryDistance + (distance - entryDistance) * back;
       camera.position.set(
         camDistance * Math.sin(polar) * Math.sin(azimuth),
         camDistance * Math.cos(polar),
@@ -1367,7 +1379,11 @@ function OrbitScene({
       camera.translateX(g.camSlide[0] * (1 - back));
       camera.translateY(g.camSlide[1] * (1 - back));
       camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg * (1 - back)));
-      const shot = BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim;
+      const shot = captureEntryValue(
+        BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim,
+        BASE_EXPOSURE * Math.pow(2, SHOT_AT_PRESS.mapExposureEv) * SHOT_AT_PRESS.mapDim,
+        s.entryExposure, goldenShotTime(),
+      );
       const light = release?.lightReturn ?? 0;
       gl.toneMappingExposure = shot + (BASE_EXPOSURE - shot) * light;
       // Remembered every frame, so an interruption always has somewhere to

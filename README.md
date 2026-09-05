@@ -3,8 +3,8 @@
 Source for [tomgreen.ai](https://tomgreen.ai), my personal site and portfolio.
 
 Built with Next.js, TypeScript and Tailwind CSS. Content lives in typed
-modules under `src/lib/content`; the homepage also reads public GitHub
-activity and Ivy’s published state.
+modules under `src/lib/content`; motion is implemented in CSS and Three.js
+with complete semantic document fallbacks.
 
 ## Local development
 
@@ -36,3 +36,9 @@ the clean assets; earlier VFX review folders retain historical iterations.
 
 Production releases merge through GitHub into `main`, which Vercel deploys to
 [tomgreen.ai](https://tomgreen.ai).
+
+## Current interaction review
+
+The [seamless journeys review](review-vfx/seamless-journeys/README.md) covers
+the CV's timed flights and settled chapters, responsive planet handoffs,
+the shorter homepage introduction, and the shared violet hover treatment.

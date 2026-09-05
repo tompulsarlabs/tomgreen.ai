@@ -30,6 +30,74 @@ export function arrivalPresence(calmSeconds: number): number {
   return smoothstep(0.2, 0.6, calmSeconds);
 }
 
+export const CORRIDOR_FLIGHT_SECONDS = 2.4;
+export const CORRIDOR_ARRIVAL_SECONDS = 0.6;
+export const CORRIDOR_READING_SECONDS = 0.85;
+
+export type CorridorJourney = {
+  phase: "idle" | "flight" | "arrival";
+  from: number;
+  to: number;
+  elapsed: number;
+  hold: number;
+};
+
+export function parkedJourney(station = 0): CorridorJourney {
+  return { phase: "idle", from: station, to: station, elapsed: 0, hold: 0 };
+}
+
+/** Scroll queues a destination; an accepted flight always lands first.
+ * Ordinary scrolling visits each chapter. The year rail can explicitly
+ * choose a farther destination, using the same flight and landing.
+ */
+export function advanceJourney(
+  journey: CorridorJourney,
+  destination: number,
+  delta: number,
+  direct = false,
+): CorridorJourney {
+  if (journey.phase === "idle") {
+    const hold = Math.max(0, journey.hold - delta);
+    if (destination === journey.to || (hold > 0 && !direct))
+      return { ...journey, hold };
+    return {
+      phase: "flight", from: journey.to,
+      to: direct ? destination : journey.to + Math.sign(destination - journey.to),
+      elapsed: 0, hold: 0,
+    };
+  }
+  const elapsed = journey.elapsed + delta;
+  if (journey.phase === "flight" && elapsed >= CORRIDOR_FLIGHT_SECONDS)
+    return { ...journey, phase: "arrival", elapsed: 0 };
+  if (journey.phase === "arrival" && elapsed >= CORRIDOR_ARRIVAL_SECONDS)
+    return { ...parkedJourney(journey.to), hold: CORRIDOR_READING_SECONDS };
+  return { ...journey, elapsed };
+}
+
+/** A time-based cruise, independent of how fast the wheel moves. */
+export function journeyView(journey: CorridorJourney, count: number) {
+  const flying = journey.phase === "flight";
+  const t = journey.elapsed;
+  const fraction = flying ? smoothstep(0, CORRIDOR_FLIGHT_SECONDS, t) : 1;
+  const from = stationCentre(journey.from, count);
+  const to = stationCentre(journey.to, count);
+  // Clear the departing entry before accelerating. Give the field 250ms
+  // to brake before arrival's quiet interval and text reveal begin.
+  const intensity = flying
+    ? smoothstep(0.24, 0.6, t) * (1 - smoothstep(1.85, 2.15, t))
+    : 0;
+  const presence = flying ? 1 - smoothstep(0, 0.24, t)
+    : journey.phase === "arrival" ? arrivalPresence(t) : 1;
+  return {
+    progress: from + (to - from) * fraction,
+    active: flying ? journey.from : journey.to,
+    presence,
+    intensity,
+    scale: flying ? 1 + (1 - presence) * 0.035 : 0.965 + presence * 0.035,
+    state: flying ? (t < 2.15 ? "travel" : "dropout") : journey.phase,
+  };
+}
+
 /** Centre of station `index` on the 0..1 track. */
 export function stationCentre(index: number, count: number): number {
   if (count <= 1) return 0;

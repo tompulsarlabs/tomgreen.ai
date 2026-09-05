@@ -59,7 +59,7 @@ function SystemRecord({ node }: { node: GraphNode }) {
     <Reveal>
       <article
         id={node.id}
-        className="group flex h-full scroll-mt-24 flex-col border-t border-hairline py-6"
+        className="lab-record group flex h-full scroll-mt-24 flex-col border-t border-hairline py-6"
       >
         <div className="flex items-baseline justify-between gap-4">
           <h3
@@ -182,7 +182,7 @@ export default function Building() {
               <article
                 key={project.slug}
                 id={project.slug}
-                className="scroll-mt-24 border-t border-hairline py-5"
+                className="lab-record scroll-mt-24 border-t border-hairline py-5"
               >
                 <p className="record mb-3 text-muted">{project.status}</p>
                 <h3
