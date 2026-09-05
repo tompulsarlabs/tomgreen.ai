@@ -31,7 +31,7 @@ const HyperspaceField = dynamic(
  * The career corridor — an interactive CV the visitor travels through.
  * Scroll (or the year rail) moves the traveller; motion lives between
  * stations as a streak field and settles to stillness at every stop,
- * where the station's links jump to the case study and the systems map.
+ * where each station links to its detailed case study.
  *
  * The same DOM is the fallback: without JavaScript or with reduced
  * motion the stations render as the complete linear career document —
@@ -39,11 +39,9 @@ const HyperspaceField = dynamic(
  */
 export function CareerCorridor({
   stops,
-  systemsIds,
   heading,
 }: {
   stops: CareerStop[];
-  systemsIds: string[];
   /**
    * The section's own heading, rendered inside the stage rather than
    * above it: the stage is a full viewport with the first station at
@@ -63,7 +61,6 @@ export function CareerCorridor({
     pointerY: 0,
   });
   const [live, setLive] = useState(false);
-  const systems = new Set(systemsIds);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -307,7 +304,6 @@ export function CareerCorridor({
           )}
           <ol className="corridor-stations">
             {stops.map((stop, index) => {
-              const slug = stop.href?.split("/").pop();
               return (
                 <li
                   key={`${stop.company}-${stop.period}`}
@@ -347,18 +343,11 @@ export function CareerCorridor({
                       ))}
                     </dl>
                   ) : null}
-                  {(stop.href || (slug && systems.has(slug))) && (
+                  {stop.href && (
                     <p className="station-links">
-                      {stop.href && (
-                        <Link href={stop.href} className="text-link">
-                          Read →
-                        </Link>
-                      )}
-                      {slug && systems.has(slug) && (
-                        <Link href={`/building#${slug}`} className="text-link">
-                          In the Lab ↗
-                        </Link>
-                      )}
+                      <Link href={stop.href} className="text-link">
+                        Read →
+                      </Link>
                     </p>
                   )}
                 </li>

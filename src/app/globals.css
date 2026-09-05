@@ -1435,9 +1435,10 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    `.work-index-masthead h2` at any file position. */
 .work-index-masthead h2.axis-display {
   --axis: 88;
-  font-size: clamp(1.6875rem, 1.06rem + 2.57vw, 3.375rem); /* 27 → 54 → 54 */
+  max-width: 32ch;
+  font-size: clamp(1.5rem, 1rem + 2vw, 2.75rem);
   font-weight: 600;
-  line-height: 0.92;
+  line-height: 1.08;
   letter-spacing: -0.035em;
   text-wrap: balance;
   overflow-wrap: anywhere;
@@ -1519,7 +1520,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .work-index-page .work-index-next  .axis-heading { max-width: 22ch; }
 
 .work-index-page .work-group-lead { margin-top: var(--air-2); }
-.work-index-page .work-index-group .work-index-list { margin-top: var(--air-3); }
+.work-index-page .work-index-group .work-index-list { margin-top: 0; }
 
 /* Both ink rules on the closing band are kept — a ruled closing band is
    the site's own vocabulary, shared with .sequence-band, .range-records

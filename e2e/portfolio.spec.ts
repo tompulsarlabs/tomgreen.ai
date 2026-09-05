@@ -479,17 +479,17 @@ test("the home route is the six-row evidence index, under the introduction", asy
     "Building in Founder Mode",
   );
   await expect(
-    page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
+    page.getByRole("heading", { level: 2, name: "I build teams, operating models, and agents to run them." }),
   ).toBeVisible();
   // One short opening; the concrete claim introduces the evidence.
-  await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
+  await expect(page.locator(".work-index-masthead h2")).toHaveText(
     "I build teams, operating models, and agents to run them.",
   );
   // No photograph, and no placeholder standing in for one.
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
   await expect(page.locator(".personal-hero img")).toHaveCount(0);
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
-  await expect(page.getByRole("heading", { name: "An AI organisation. A European business." })).toBeVisible();
+  await expect(page.locator(".row-summary, .work-group-lead")).toHaveCount(0);
   await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(
@@ -1327,15 +1327,16 @@ test("the site navigates completely without the orb", async ({ browser }) => {
 });
 
 
-test("Systems exposes a clear semantic index", async ({ page }) => {
+test("Lab starts with builds and keeps operating models and writing distinct", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.getByRole("heading", { name: "Lab.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
-  for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
-    await expect(page.getByRole("heading", { name: heading })).toBeAttached();
-  }
-  for (const id of ["zalando", "ivy", "tom-green-labs"]) {
-    await expect(page.locator(`#${id}`)).toBeAttached();
+  await expect(page.locator(".systems-route h2")).toHaveText([
+    "Systems & products", "Teams & operating models", "Writing & ideas",
+  ]);
+  await expect(page.locator(".systems-route > section").nth(1)).toHaveAttribute("id", "projects");
+  await expect(page.locator('.systems-route a[href^="/work/"]')).toHaveCount(0);
+  for (const id of ["ivy", "sybil", "this-site", "writing-voice-skill", "brightpaws", "building-practice", "recruiting-practice", "operations-practice", "tom-green-labs"]) {
+    await expect(page.locator(`#${id}`)).toHaveCount(1);
   }
   const ivy = page.locator("#ivy");
   await expect(ivy.getByText(/^running$/i)).toBeVisible();
@@ -1345,8 +1346,8 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
     /"wdth" 100/,
   );
 
-  const workshop = page.getByText("Projects", { exact: true }).locator("..");
-  await expect(workshop.locator("article")).toHaveCount(2);
+  const workshop = page.locator("#projects");
+  await expect(workshop.locator("article")).toHaveCount(5);
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
@@ -1359,7 +1360,7 @@ test("Systems exposes a clear semantic index", async ({ page }) => {
   await expect(page.locator(".load-bearing-object")).toHaveCount(0);
 });
 
-test("Systems no-JavaScript fallback keeps the complete semantic index", async ({ browser }) => {
+test("Lab without JavaScript keeps every build and operating model available", async ({ browser }) => {
   const context = await browser.newContext({
     javaScriptEnabled: false,
     reducedMotion: "reduce",
@@ -1373,8 +1374,10 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   await expect(page.locator(".orbit-canvas")).toHaveCount(0);
   await expect(page.locator(".orbit-poster")).toHaveCount(0);
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
-  await expect(page.locator("#zalando")).toBeAttached();
+  await expect(page.getByRole("heading", { name: "Systems & products" })).toBeVisible();
+  await expect(page.locator("#projects article")).toHaveCount(5);
+  await expect(page.locator("#building-practice, #recruiting-practice, #operations-practice")).toHaveCount(3);
+  await expect(page.locator("#zalando, #chapter-2")).toHaveCount(0);
   await expect(page.locator("#ivy")).toBeAttached();
   await context.close();
 });
@@ -1451,7 +1454,7 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
   await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
   await expect(stations.nth(2).getByRole("link", { name: "Read →" })).toHaveAttribute("href", "/work/zalando");
-  await expect(stations.nth(2).getByRole("link", { name: "In the Lab ↗" })).toHaveAttribute("href", "/building#zalando");
+  await expect(corridor.locator('a[href^="/building#"]')).toHaveCount(0);
   await expect(page.locator(".career-corridor")).toHaveAttribute("data-state", "idle", { timeout: 12_000 });
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
 });

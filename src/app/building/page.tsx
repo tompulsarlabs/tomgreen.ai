@@ -3,29 +3,27 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/reveal";
 import { projects } from "@/lib/content/building";
-import { caseStudies } from "@/lib/content/case-studies";
 import {
   clusterOrder,
   clusters,
   graphNodes,
-  sceneNodeIds,
+  labNodeIds,
   type GraphNode,
 } from "@/lib/content/graph";
 
 export const metadata: Metadata = {
   title: "Lab",
   description:
-    "Explore where Tom Green has worked, the teams and operating models he designs, the AI agents he builds, and the ideas he publishes.",
+    "Explore Tom Green’s projects, experiments and operating models, plus writing on teams and useful AI.",
 };
 
 export const viewport: Viewport = { themeColor: "#ffffff" };
 
-const sceneIds = new Set<string>(sceneNodeIds);
-const sceneNodes = graphNodes.filter((node) => sceneIds.has(node.id));
+const labIds = new Set<string>(labNodeIds);
+const labNodes = graphNodes.filter((node) => labIds.has(node.id));
 const projectsBySlug = new Map(
   projects.map((project) => [project.slug, project]),
 );
-const studiesBySlug = new Map(caseStudies.map((study) => [study.slug, study]));
 
 function projectAxis(status: "running" | "shipped" | "in the lab") {
   if (status === "running") return 100;
@@ -52,7 +50,6 @@ function RecordLink({ node }: { node: GraphNode }) {
 
 function SystemRecord({ node }: { node: GraphNode }) {
   const project = projectsBySlug.get(node.id);
-  const study = studiesBySlug.get(node.id);
   const axis = project ? projectAxis(project.status) : 92;
 
   return (
@@ -88,11 +85,6 @@ function SystemRecord({ node }: { node: GraphNode }) {
             {paragraph}
           </p>
         ))}
-        {study && (
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-            {study.summary}
-          </p>
-        )}
         <RecordLink node={node} />
       </article>
     </Reveal>
@@ -120,26 +112,14 @@ export default function Building() {
         </div>
       </section>
 
-      <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-start">
-        <p className="record pt-1 text-muted">Explore</p>
-        <div>
-          <h2 id="systems-index-heading" className="axis-heading max-w-3xl">
-            The systems behind the outcomes.
-          </h2>
-          <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            Explore the companies I’ve worked with, how I build teams, and the
-            tools I’m developing. My writing shares what I learn along the way.
-          </p>
-        </div>
-      </section>
-
       {clusterOrder.map((clusterId, clusterIndex) => {
         const cluster = clusters[clusterId];
-        const members = sceneNodes.filter((node) => node.cluster === clusterId);
+        const members = labNodes.filter((node) => node.cluster === clusterId);
 
         return (
           <section
             key={clusterId}
+            id={clusterId === "systems" ? "projects" : undefined}
             aria-labelledby={`cluster-${clusterId}`}
             className="grid gap-8 md:grid-cols-[0.65fr_1.35fr]"
           >
@@ -167,47 +147,6 @@ export default function Building() {
           </section>
         );
       })}
-
-      <section
-        id="projects"
-        className="grid scroll-mt-24 gap-8 border-t border-hairline pt-12 md:grid-cols-[0.65fr_1.35fr]"
-      >
-        <p className="record text-muted">Projects</p>
-        <div className="grid gap-x-8 md:grid-cols-2">
-          {projects
-            .filter((project) => !sceneIds.has(project.slug))
-            .map((project) => (
-              <article
-                key={project.slug}
-                id={project.slug}
-                className="lab-record scroll-mt-24 border-t border-hairline py-5"
-              >
-                <p className="record mb-3 text-muted">{project.status}</p>
-                <h3
-                  className="axis-index text-lg"
-                  style={
-                    { "--axis": projectAxis(project.status) } as CSSProperties
-                  }
-                >
-                  {project.name}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-                  {project.tagline}
-                </p>
-                {project.repo && (
-                  <a
-                    href={project.repo}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-flex min-h-11 items-center text-sm text-accent hover:underline"
-                  >
-                    View on GitHub ↗
-                  </a>
-                )}
-              </article>
-            ))}
-        </div>
-      </section>
     </div>
   );
 }
