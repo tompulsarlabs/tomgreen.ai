@@ -121,16 +121,15 @@ export default function Building() {
       </section>
 
       <section className="grid gap-8 border-b border-hairline pb-14 md:grid-cols-[0.65fr_1.35fr] md:items-start">
-        <p className="record pt-1 text-muted">Explore</p>
+        <p className="record pt-1 text-muted">Index</p>
         <div>
           <h2 id="systems-index-heading" className="axis-heading max-w-3xl">
-            The systems behind the outcomes.
+            Most of this links to a repo, an essay or a case study.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            Where I’ve worked grounds the outcomes in real contexts. Teams and
-            operating models show how I operate. AI and agents make the method
-            inspectable. Writing turns the lessons into something others can
-            use.
+            Four groups: the companies where the work happened, the operating
+            models I design, the agents and products I build, and the essays
+            where I work the ideas out.
           </p>
         </div>
       </section>

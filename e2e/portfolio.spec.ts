@@ -479,7 +479,7 @@ test("the home route is the six-row evidence index, under the introduction", asy
     "I build the teams, the operating model, and the agents to run it.",
   );
   await expect(
-    page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
+    page.getByRole("heading", { level: 2, name: "Every claim here has a case study under it." }),
   ).toBeVisible();
   // The two lines swapped rather than one leaving: the positioning
   // claim opens the page as its h1 — the same string the site is indexed
@@ -491,7 +491,7 @@ test("the home route is the six-row evidence index, under the introduction", asy
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
   await expect(page.locator(".personal-hero img")).toHaveCount(0);
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
-  await expect(page.getByRole("heading", { name: "Two constraints. Two systems in motion." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "These two are the biggest things I have built." })).toBeVisible();
   await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(
@@ -829,7 +829,7 @@ test("Zalando reads as a clear case study with verified outcomes", async ({ page
 
   const system = page.getByRole("region", { name: "How the operating system worked" });
   await expect(system.getByRole("heading", {
-    name: "A talent system built around the organization—not a list of vacancies.",
+    name: "One system ran the whole build, across four countries.",
   })).toBeVisible();
   await expect(system.locator("ol > li h3")).toHaveText([
     "Capability map",
@@ -1331,7 +1331,7 @@ test("the site navigates completely without the orb", async ({ browser }) => {
 test("Systems exposes a clear semantic index", async ({ page }) => {
   await gotoReduced(page, "/building");
   await expect(page.getByRole("heading", { name: "Lab.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Most of this links to a repo, an essay or a case study." })).toBeVisible();
   for (const heading of ["Where I’ve worked", "Teams & operating models", "AI & agents", "Writing & ideas"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeAttached();
   }
@@ -1374,7 +1374,7 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
   await expect(page.locator(".orbit-canvas")).toHaveCount(0);
   await expect(page.locator(".orbit-poster")).toHaveCount(0);
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "The systems behind the outcomes." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Most of this links to a repo, an essay or a case study." })).toBeVisible();
   await expect(page.locator("#zalando")).toBeAttached();
   await expect(page.locator("#ivy")).toBeAttached();
   await context.close();
@@ -1382,7 +1382,7 @@ test("Systems no-JavaScript fallback keeps the complete semantic index", async (
 
 test("About under reduced motion is the complete linear record", async ({ page }) => {
   await gotoReduced(page, "/about");
-  await expect(page.getByRole("heading", { name: "The work, in sequence." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Every job I have had, in order." })).toBeVisible();
   const corridor = page.locator('[aria-label="Interactive CV, reverse chronological"]');
   await expect(corridor).toBeVisible();
   await expect(corridor).not.toHaveAttribute("data-live", "true");

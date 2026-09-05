@@ -95,8 +95,10 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
       <Reveal>
         <section aria-labelledby="mandate-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
-            <p className="record text-muted">01 · The mandate</p>
-            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">The problem worth solving.</h2>
+            <p className="record text-muted">01 · Before I started</p>
+            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">
+              {study.contextHeading}
+            </h2>
           </div>
           <p className="max-w-2xl text-lg leading-relaxed text-ink-secondary">{study.context}</p>
         </section>
@@ -106,7 +108,9 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
         <section aria-labelledby="work-built-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
             <p className="record text-muted">02 · What I built and led</p>
-            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">Decisions, not theatre.</h2>
+            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">
+              {study.workHeading}
+            </h2>
           </div>
           <div className="flex max-w-2xl flex-col gap-6 text-lg leading-relaxed text-ink-secondary">
             {study.body.map((paragraph, paragraphIndex) => (
@@ -129,7 +133,9 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
           <section aria-labelledby="judgment-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
             <div>
               <p className="record text-muted">03 · Tradeoffs and judgment</p>
-              <h2 id="judgment-heading" className="axis-index mt-3 text-3xl">The choices that shaped the system.</h2>
+              <h2 id="judgment-heading" className="axis-index mt-3 text-3xl">
+                I would make these calls again.
+              </h2>
             </div>
             <ol className="border-t border-hairline">
               {study.decisions.map((decision, decisionIndex) => (
@@ -177,7 +183,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
           <div className="border-t border-hairline py-6">
             <p className="record text-muted">Start a conversation</p>
             <p className="axis-index mt-3 max-w-lg text-2xl leading-tight">
-              Working on a team or operating system that needs to scale?
+              If you are building a team or the system it runs on, I would like
+              to hear about it.
             </p>
             <a
               href={`mailto:${site.email}?subject=${encodeURIComponent(`A question after reading ${study.company}`)}`}

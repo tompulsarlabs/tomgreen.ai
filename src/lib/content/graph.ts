@@ -44,13 +44,13 @@ export const clusters: Record<
     label: "Where I’ve worked",
     eyebrow: "Work in context",
     blurb:
-      "The organizations, businesses and operating environments where the outcomes were built.",
+      "Zalando, Chapter 2, Audibene, Wave and WeR — the places the record was actually built.",
   },
   practice: {
     label: "Teams & operating models",
     eyebrow: "How I operate",
     blurb:
-      "Organization design, talent systems and operating workflows—the connected craft of building teams and making work run better.",
+      "What I change when I come in: the shape of the organization, how it hires, and how it decides.",
   },
   systems: {
     label: "AI & agents",
@@ -62,7 +62,7 @@ export const clusters: Record<
     label: "Writing & ideas",
     eyebrow: "What I publish",
     blurb:
-      "Essays and field notes on talent, AI, organizations and the work behind the work.",
+      "Essays on talent, AI and how organizations actually run day to day.",
   },
 };
 
@@ -88,7 +88,7 @@ const practiceNodes: GraphNode[] = [
     kind: "practice",
     category: "craft",
     cluster: "practice",
-    blurb: "Shape the team, decision rights and operating model around the outcome—not the inherited org chart.",
+    blurb: "Shape the team, the decision rights and the operating model around the outcome you need.",
   },
   {
     id: "recruiting-practice",
@@ -96,7 +96,7 @@ const practiceNodes: GraphNode[] = [
     kind: "practice",
     category: "talent",
     cluster: "practice",
-    blurb: "Executive, technical and scaled hiring designed as a product—not a queue.",
+    blurb: "Executive, technical and scaled hiring, designed as a product with a measured funnel.",
   },
   {
     id: "operations-practice",
@@ -104,7 +104,7 @@ const practiceNodes: GraphNode[] = [
     kind: "practice",
     category: "agents",
     cluster: "practice",
-    blurb: "Cadence, decision rights and agent workflows that turn strategy into repeatable motion.",
+    blurb: "Cadence, decision rights and agent workflows, so the strategy turns into weekly action.",
   },
 ];
 
@@ -126,7 +126,7 @@ const contentNodes: GraphNode[] = [
     category: "craft",
     cluster: "content",
     href: "https://tomgreenlabs.substack.com/p/stop-hiding-behind-culture-b91",
-    blurb: "Culture is an outcome of the system—not an excuse for avoiding its design.",
+    blurb: "Culture is what your operating system produces, so go and design that instead.",
     meta: "Essay",
   },
 ];

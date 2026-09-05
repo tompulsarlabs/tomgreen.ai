@@ -9,8 +9,8 @@ export function SiteFooter() {
           <span aria-hidden className="mx-2 text-hairline">/</span>
           {site.location}
         </p>
-        {/* The wrapper the whole site sits inside — quiet, on every page. */}
-        <p className="hidden text-center md:block">Agentic execution · Human judgment</p>
+        {/* Quiet, on every page — and a fact rather than a slogan. */}
+        <p className="hidden text-center md:block">The code for this site is public</p>
         <p className="text-right">© {new Date().getFullYear()}</p>
       </div>
     </footer>

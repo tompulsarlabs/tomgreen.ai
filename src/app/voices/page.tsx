@@ -18,7 +18,7 @@ export default function VoicesPage() {
           <p className="record text-muted">References</p>
           <h1 className="axis-display">Voices</h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-secondary">
-            The people who ran the work alongside me — what they saw, in their own words.
+            The people who ran the work alongside me, in their own words.
           </p>
         </div>
       </section>
@@ -38,7 +38,7 @@ export default function VoicesPage() {
       </section>
 
       <section className="grid gap-8 border-t border-hairline pt-12 lg:grid-cols-[0.65fr_1.35fr]">
-        <p className="record text-muted">The record behind them</p>
+        <p className="record text-muted">What they worked on</p>
         <p className="max-w-2xl text-lg leading-relaxed text-ink-secondary">
           Every reference here worked on something you can inspect.{" "}
           <Link href="/work">Read the evidence</Link>, or{" "}

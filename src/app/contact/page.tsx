@@ -90,7 +90,7 @@ export default function ContactPage() {
             </h1>
             <div className="systems-lead">
               <p>
-                Talent density that compounds into advantage. Razor-sharp heuristics for winning elite folks. Systems that hold up long after the demo. Let’s build it.
+                I am good at two things: hiring people who are hard to hire, and building the operating system around them so it still works six months after the demo. Send me the problem you are stuck on.
               </p>
               <a
                 href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}
@@ -108,7 +108,7 @@ export default function ContactPage() {
         <div>
           <p className="record text-muted">Direct channels</p>
           <h2 id="contact-channels" className="axis-heading mt-3 max-w-sm">
-            Choose the shortest route.
+            Email gets you the quickest answer.
           </h2>
         </div>
 
@@ -153,7 +153,7 @@ export default function ContactPage() {
       </section>
 
       <aside className="mb-16 flex flex-wrap items-center justify-between gap-5 md:mb-24">
-        <p className="text-sm text-muted">Want the evidence before the conversation?</p>
+        <p className="text-sm text-muted">Read the record first if you would rather.</p>
         <div className="flex gap-5 text-sm">
           <Link href="/work" className="inline-flex min-h-11 items-center text-ink hover:underline">
             See the work →

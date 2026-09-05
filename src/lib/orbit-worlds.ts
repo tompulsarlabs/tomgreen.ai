@@ -106,7 +106,7 @@ export const orbitWorlds: OrbitWorld[] = [
     id: "work",
     label: "Work",
     href: "/",
-    note: "Operating records — the mandate, the system, the evidence.",
+    note: "The case studies, with the numbers behind each one.",
     bodies: workBodies,
   },
   {
