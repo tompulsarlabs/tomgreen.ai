@@ -180,15 +180,21 @@ const TRAIL_FRAGMENT = /* glsl */ `
                      + noise1(vRibbon.y * 23.0 - vSeed - uTime * 2.1) * 0.35;
     float across = abs(vRibbon.x) / (0.72 + 0.25 * turbulence);
     float halo = exp(-across * across * 4.0) * (1.0 - smoothstep(0.72, 1.0, across));
-    float body = 1.0 - smoothstep(0.34, 0.74, across);
-    float core = 1.0 - smoothstep(0.03, 0.23 + turbulence * 0.08, across);
+    // Resolve narrow edges over at least a fragment footprint, including
+    // when a high-DPR phone resamples the canvas onto its display.
+    float edgeAA = fwidth(across);
+    float body = 1.0 - smoothstep(0.34 - edgeAA, 0.74 + edgeAA, across);
+    float core = 1.0 - smoothstep(0.03 - edgeAA, 0.23 + turbulence * 0.08 + edgeAA, across);
     // Preserve the long body; erode the last half into irregular wisps.
     // Uneven breakup advances from the edges and fades out at the tip.
     float tail = smoothstep(0.4, 1.0, vRibbon.y);
     float grain = noise2(vec2(vRibbon.y * 20.0 - uTime * 1.4, vRibbon.x * 3.0) + vec2(vSeed, vSeed * 0.37)) * 0.65
                 + noise2(vec2(vRibbon.y * 41.0 + uTime * 0.8, vRibbon.x * 7.0) + vSeed * 0.7) * 0.35;
     float erosion = tail * (0.9 + abs(vRibbon.x) * 0.35);
-    float breakup = mix(1.0, smoothstep(erosion - 0.14, erosion + 0.14, grain), smoothstep(0.4, 0.6, vRibbon.y));
+    // Fine erosion must dissolve rather than flicker between hard chips
+    // when its noise becomes smaller than a pixel.
+    float erosionAA = max(0.14, fwidth(grain));
+    float breakup = mix(1.0, smoothstep(erosion - erosionAA, erosion + erosionAA, grain), smoothstep(0.4, 0.6, vRibbon.y));
     float ends = smoothstep(0.0, 0.025, vRibbon.y) * (1.0 - smoothstep(0.88, 1.0, vRibbon.y));
     float alpha = (halo * 0.2 + body * 0.65) * ends * breakup * (1.0 - tail * 0.35) * vLum * vFade
                 * mix(0.2, 1.0, rim) * smoothstep(0.04, 0.45, uVel);
@@ -281,12 +287,13 @@ function Scene({ drive }: { drive: MutableRefObject<HyperspaceDrive> }) {
   const gl = useThree((state) => state.gl);
   const camera = useThree((state) => state.camera);
   const setFrameloop = useThree((state) => state.setFrameloop);
+  const size = useThree((state) => state.size);
 
   const coarse = useMemo(
-    () => typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 820),
+    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
     [],
   );
-  const counts = starCounts(coarse);
+  const counts = starCounts(coarse || size.width < 820, size.width / Math.max(size.height, 1));
 
   const trailUniforms = useMemo(
     () => ({

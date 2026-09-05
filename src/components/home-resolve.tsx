@@ -140,9 +140,9 @@ export function HomeResolve() {
               and a document gets one h1. The sr-only sentence and the
               section's aria-labelledby are untouched. */}
           <p id="home-title" className="axis-display constraint-line">
-            <span className="sr-only">Identify the constraint. Then subtract.</span>
+            <span className="sr-only">Subtract. Then add.</span>
             <span className="line-mask desktop-constraint" aria-hidden="true">
-              <span><span>Identify the</span></span><span><span>constraint.</span></span><span><span>Then subtract.</span></span>
+              <span><span>Subtract.</span></span><span><span>Then add.</span></span>
             </span>
           </p>
           <p className="axis-display system-line" aria-label="Design the system.">

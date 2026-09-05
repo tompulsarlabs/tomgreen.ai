@@ -17,9 +17,13 @@ export const TUNNEL_RADIUS = 46;
 export type StarCounts = { trails: number; points: number };
 
 /** Star budget by device class — the concept survives, the count scales. */
-export function starCounts(coarse: boolean): StarCounts {
+export function starCounts(coarse: boolean, aspect = 1): StarCounts {
   // Long, wide strokes need room for their dissolving tails.
-  return coarse ? { trails: 300, points: 420 } : { trails: 500, points: 780 };
+  // A portrait frame shows a tighter slice of the tunnel. Use a stable
+  // budget per orientation so toolbar resizes do not rebuild the geometry.
+  const density = aspect < 0.8 ? 0.7 : 1;
+  const base = coarse ? { trails: 300, points: 420 } : { trails: 500, points: 780 };
+  return { trails: Math.round(base.trails * density), points: Math.round(base.points * density) };
 }
 
 /**

@@ -97,7 +97,7 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
 
   // The opening statements are the page's epigraph, not its title: the
   // h1 is the short personal introduction underneath them.
-  await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Subtract. Then add.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Building in Founder Mode",
   );
@@ -1524,11 +1524,10 @@ test("the 390px Home sets the production spine without overflow", async ({ page 
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReduced(page, "/");
   await expect(page.locator(".desktop-constraint > span")).toHaveText([
-    "Identify the",
-    "constraint.",
-    "Then subtract.",
+    "Subtract.",
+    "Then add.",
   ]);
-  await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Subtract. Then add.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.locator(".home-actions")).toHaveCount(0);
 });

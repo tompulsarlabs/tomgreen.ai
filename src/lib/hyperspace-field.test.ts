@@ -91,4 +91,14 @@ describe("starCounts", () => {
     expect(mobile.trails).toBeGreaterThan(0);
     expect(mobile.points).toBeLessThan(desktop.points);
   });
+
+  it("gives portrait trails room without rebuilding for Safari toolbar resizes", () => {
+    const expanded = starCounts(true, 393 / 680);
+    const collapsed = starCounts(true, 393 / 746);
+    const landscape = starCounts(true, 746 / 393);
+    expect(expanded).toEqual(collapsed);
+    expect(expanded.trails).toBeLessThan(landscape.trails);
+    expect(expanded.points).toBeLessThan(landscape.points);
+    expect(starCounts(false, 1440 / 900)).toEqual(starCounts(false));
+  });
 });

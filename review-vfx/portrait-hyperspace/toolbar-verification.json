@@ -1,0 +1,14 @@
+[
+  {
+    "label": "production-before",
+    "stageHeight": 680,
+    "visualHeight": 746,
+    "viewportHeight": 746
+  },
+  {
+    "label": "local-after",
+    "stageHeight": 746,
+    "visualHeight": 746,
+    "viewportHeight": 746
+  }
+]

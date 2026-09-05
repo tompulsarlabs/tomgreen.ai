@@ -1,5 +1,44 @@
 import { expect, test } from "@playwright/test";
 
+test("the CV fills the viewport when mobile browser controls retract", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "Toolbar size emulation uses the Chromium protocol.");
+  const context = await browser.newContext({
+    viewport: { width: 393, height: 746 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto("/about");
+    const corridor = page.locator(".career-corridor");
+    await expect(corridor).toHaveAttribute("data-live", "true");
+    await expect(page.locator(".corridor-canvas canvas")).toBeVisible();
+    // The viewport grows as Safari's controls retract, while 100svh
+    // remains 66px shorter. Apply after navigation to the actual frame.
+    const session = await context.newCDPSession(page);
+    await session.send("Emulation.setSmallViewportHeightDifferenceOverride", { difference: 66 });
+    const uncoveredHeight = () => page.evaluate(() => {
+      const canvas = document.querySelector(".corridor-canvas canvas")!;
+      return window.visualViewport!.height - canvas.getBoundingClientRect().height;
+    });
+    await expect.poll(uncoveredHeight).toBe(0);
+
+    await page.locator(".corridor-track").evaluate(track => {
+      scrollTo(0, scrollY + track.getBoundingClientRect().top);
+    });
+    await page.locator(".corridor-rail button").nth(1).click();
+    await expect(page.locator(".corridor-station").nth(1)).toHaveClass(/is-stop/, { timeout: 12_000 });
+    await expect(corridor).toHaveAttribute("data-state", "idle");
+
+    // A viewport resize also updates the canvas and its portrait budget.
+    await page.setViewportSize({ width: 746, height: 393 });
+    await expect.poll(uncoveredHeight).toBe(0);
+    await expect(corridor).toHaveAttribute("data-state", "idle");
+  } finally {
+    await context.close();
+  }
+});
+
 test("ordinary CV scrolling finishes travel and leaves the entry readable", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });

@@ -626,7 +626,9 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .career-corridor[data-live] .corridor-stage {
   position: sticky;
   top: 0;
-  height: 100svh;
+  /* Safari's toolbar can retract after scrolling starts. Fill the live
+     viewport so the trails cannot end above a band of empty paper. */
+  height: 100dvh;
   overflow: hidden;
 }
 .career-corridor[data-live] .corridor-canvas { display: block; position: absolute; inset: 0; opacity: var(--space); }

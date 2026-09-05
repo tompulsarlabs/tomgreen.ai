@@ -39,6 +39,9 @@ labels. Display weight never animates.
 - Reduced motion and no-JS render the complete document linearly at `wdth 100`.
 - CV: 2.4-second flights, then a 200ms quiet interval and 400ms reveal. Queued scrolling
   leaves at least 850ms of stillness at each entry. Explicit year selections may skip chapters.
+  The stage fills the dynamic viewport as mobile browser controls retract; scroll distances
+  use that measured stage height. Portrait fields carry 30% fewer trails and points, with
+  pixel-aware edge and tail smoothing. The portrait budget stays stable during toolbar resizes.
 - Planet captures join the actual camera distance and framing, then return the camera,
   exposure and photographic sky together. Full and compact shots share the same landmarks;
   the compact clock has continuous speed between them. Gas always covers the viewport.
@@ -49,7 +52,9 @@ labels. Display weight never animates.
 
 ## Route rules
 
-- Home: type resolve, “Building in Founder Mode” opposite the executive introduction, then
+- Home: “Subtract. Then add.”, “Design the system.”, “Make talent the engine for growth.”
+  open the page; timed above 768px and static on smaller screens or with reduced motion.
+  “Building in Founder Mode” sits opposite the executive introduction, then
   “Weighed by opportunity cost.” with the concrete teams/model/agents claim beneath it.
 - Work: six full-row links; hover and focus both resolve `92→100`.
 - Every case study: company masthead, verified metrics, challenge, work, a linear operating model,
