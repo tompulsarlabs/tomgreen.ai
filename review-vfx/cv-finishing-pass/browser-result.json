@@ -1,0 +1,28 @@
+[
+  {
+    "name": "desktop",
+    "errors": [],
+    "active": "Chapter 2",
+    "phases": [
+      "idle",
+      "arrival",
+      "travel",
+      "dropout"
+    ],
+    "medianFrameMs": 16.699999999999818,
+    "p95FrameMs": 16.799999999999272
+  },
+  {
+    "name": "mobile",
+    "errors": [],
+    "active": "Chapter 2",
+    "phases": [
+      "idle",
+      "arrival",
+      "travel",
+      "dropout"
+    ],
+    "medianFrameMs": 16.69999999999891,
+    "p95FrameMs": 16.799999999999272
+  }
+]

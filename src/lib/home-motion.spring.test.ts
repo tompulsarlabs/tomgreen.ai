@@ -4,8 +4,9 @@ import { homeMotionAt } from "./home-motion";
 /** The em travels declared in globals.css: the ratio is what shapes the
  *  path, so this test owns the same two numbers the stylesheet does. */
 const BEATS = [
-  { name: "system", from: 0.36, to: 0.58, x: 0.29, y: 0.355, ink: "systemOpacity", ox: "systemOffsetX", oy: "systemOffsetY" },
-  { name: "release", from: 0.68, to: 0.87, x: 0.38, y: 0.465, ink: "releaseOpacity1", ox: "releaseOffsetX", oy: "releaseOffsetY1" },
+  { name: "constraint", from: 0, to: 0.24, x: 0.34, y: 0.4, ink: "constraintOpacity", ox: "constraintOffsetX", oy: "constraintOffsetY" },
+  { name: "system", from: 0.36, to: 0.58, x: 0.34, y: 0.4, ink: "systemOpacity", ox: "systemOffsetX", oy: "systemOffsetY" },
+  { name: "release", from: 0.70, to: 0.89, x: 0.34, y: 0.4, ink: "releaseOpacity1", ox: "releaseOffsetX", oy: "releaseOffsetY1" },
 ] as const;
 
 type Key = keyof ReturnType<typeof homeMotionAt>;
@@ -21,8 +22,8 @@ describe("Home opening — the spring", () => {
       const y = sweep(beat.from, beat.to).map((s) => at(s, beat.oy));
       const first = Math.abs(Math.min(...y));
       const rebound = Math.max(...y.slice(y.indexOf(Math.min(...y))), 0);
-      expect(first).toBeGreaterThan(0.09); // it is a spring, not an ease-out
-      expect(first).toBeLessThan(0.13); // it is a settle, not a toy
+      expect(first).toBeGreaterThan(0.02); // a restrained settle remains visible
+      expect(first).toBeLessThan(0.05); // avoid the previous pronounced bounce
       expect(rebound / first).toBeLessThan(0.15); // one countable reversal
       expect(rebound * beat.y * 130).toBeLessThan(1); // and it is sub-pixel
     }
@@ -78,6 +79,18 @@ describe("Home opening — the curve", () => {
 });
 
 describe("Home opening — the contract", () => {
+  test("the three arrivals share their motion at the same elapsed time", () => {
+    const openings = [0, 0.36, 0.70];
+    for (const seconds of [0.1, 0.2, 0.4, 0.6]) {
+      const [constraint, system, release] = openings.map((start) => homeMotionAt(start + seconds / 6.2));
+      expect(constraint.constraintOffsetX).toBeCloseTo(system.systemOffsetX, 8);
+      expect(release.releaseOffsetX).toBeCloseTo(system.systemOffsetX, 8);
+      expect(constraint.constraintOffsetY).toBeCloseTo(system.systemOffsetY, 8);
+      expect(release.releaseOffsetY1).toBeCloseTo(system.systemOffsetY, 8);
+      expect(release.releaseOffsetY3).toBe(release.releaseOffsetY1);
+    }
+  });
+
   test("the release line has exactly one lateral channel, so its rail cannot rag", () => {
     // C6, structurally: one X for three welded nowrap blocks. A future
     // per-block releaseOffsetX2/X3 would fail here before it ships.

@@ -18,7 +18,8 @@ export type StarCounts = { trails: number; points: number };
 
 /** Star budget by device class — the concept survives, the count scales. */
 export function starCounts(coarse: boolean): StarCounts {
-  return coarse ? { trails: 2100, points: 420 } : { trails: 4200, points: 780 };
+  // Long, wide strokes need room for their dissolving tails.
+  return coarse ? { trails: 300, points: 420 } : { trails: 500, points: 780 };
 }
 
 /**

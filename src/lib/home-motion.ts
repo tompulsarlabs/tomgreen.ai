@@ -1,8 +1,6 @@
 export type HomeMotionState = {
-  /* Width axes — linear, monotone, byte-identical to the pre-spring model.
-     Width is a material property of the typeface, not a coordinate: it may
-     not overshoot (C1), it is the one channel here that costs layout (C4),
-     and it is rate-capped (C7). No spring touches it. */
+  /* Width axes stay monotone and resolve to their existing final widths.
+     Only transforms use a spring; width never overshoots. */
   constraintAxis: number;
   constraintRecede: number;
   systemAxis: number;
@@ -20,6 +18,8 @@ export type HomeMotionState = {
   constraintExitDrift: number;
   constraintExitLift: number;
   constraintOpacity: number;
+  constraintOffsetX: number;
+  constraintOffsetY: number;
 
   systemOffsetX: number;
   systemOffsetY: number;
@@ -44,42 +44,22 @@ function segment(progress: number, start: number, end: number) {
   return clampUnit((progress - start) / (end - start));
 }
 
-/* ──────────────────────────────────────────────────────────────────────
-   One material, three amplitudes.
-
-   Every spring below is expressed in REAL SECONDS, not in beat-normalised
-   units, so the system beat (1364ms) and the release beat (1178ms) share
-   one stiffness instead of being two different materials that happen to
-   share a formula. Amplitude is the only thing that separates the lines.
-
-   Closed form, never integrated. homeMotionAt is a pure function of
-   progress: the unit sweep samples 101 points, and finish() in
-   home-resolve.tsx calls apply(1) cold from wheel / key / pointer / focus
-   at any instant. An integrator would be mid-flight on the skip and
-   history-dependent in the sweep, and a dropped frame would change the
-   rendered result. Closed form is not a compromise here, it is the only
-   correct choice for this architecture.
-   ────────────────────────────────────────────────────────────────────── */
+/* All three statements share one motion in real seconds. The closed-form
+   spring is independent of frame rate and lands exactly when skipped. */
 
 const SEQUENCE_SECONDS = 6.2;
 const beatSeconds = (start: number, end: number) => (end - start) * SEQUENCE_SECONDS;
 
 const CONSTRAINT_EXIT_SECONDS = beatSeconds(0.24, 0.36); // 744ms
+const CONSTRAINT_SECONDS = beatSeconds(0, 0.24);
 const SYSTEM_SECONDS = beatSeconds(0.36, 0.58); // 1364ms
-const SYSTEM_EXIT_SECONDS = beatSeconds(0.62, 0.68); // 372ms
-const RELEASE_SECONDS = beatSeconds(0.68, 0.87); // 1178ms
+const SYSTEM_EXIT_SECONDS = CONSTRAINT_EXIT_SECONDS;
+const RELEASE_SECONDS = beatSeconds(0.70, 0.89); // 1178ms
 
-/* THE SET — the vertical. A line of type coming down onto its line: a mass
-   that arrives, crosses once and settles back. zeta 0.58 gives 10.68%
-   overshoot and a 1.14% second lobe. The second lobe is the number that
-   decides this: at the travels below it is 0.51px / 0.64px — sub-pixel, so
-   the eye counts ONE reversal. One reversal reads as weight; two read as
-   wobble. omega_n 10.71 is 1.389Hz, damped period 720ms: peak at 360ms,
-   back on the line at 611ms, 1% settled at 741ms. Slow enough to have mass
-   at 120px display size, fast enough that the recoil is a movement rather
-   than a drift (5.97px returned over 251ms, not over a second). */
-const SET_ZETA = 0.58;
-const SET_OMEGA = 10.71;
+/* Shared vertical settle: roughly 4% overshoot, with the second lobe
+   below a visible pixel. All three statements use the same material. */
+const SET_ZETA = 0.72;
+const SET_OMEGA = 12;
 const SET_DECAY = SET_ZETA * SET_OMEGA;
 const SET_WD = SET_OMEGA * Math.sqrt(1 - SET_ZETA * SET_ZETA);
 const SET_RATIO = SET_DECAY / SET_WD;
@@ -106,12 +86,9 @@ const INK_OMEGA = 19;
    at 94% ink before it has lifted at all. */
 const BREAK_OMEGA = 17;
 
-/* 60ms between the release line's three nowrap blocks. Above the ~40ms at
-   which sequential onsets fuse, so it reads as three lines in reading order;
-   tight enough that adjacent blocks never separate by more than 17.9px
-   against a 105.8px line box. Deliberately shorter than the constraint
-   mask's 80ms: those are three lines of a heading, these are one sentence. */
-const RELEASE_STAGGER_SECONDS = 0.06;
+/* Keep the release sentence together. Its legacy per-line channels stay
+   identical so captures and consumers still resolve the same contract. */
+const RELEASE_STAGGER_SECONDS = 0;
 
 /**
  * A real spring is asymptotic; the approved stops are exact. This dissolves
@@ -165,7 +142,7 @@ function departLift(r: number) {
 
 /**
  * One display cluster owns each beat. Axis motion windows do not overlap:
- * constraint 0–.24, system .36–.58, release .68–.87. Arrivals are sprung on
+ * constraint 0–.24, system .36–.58, release .70–.89. Arrivals are sprung on
  * two channels of deliberately different speed; exits are eased and never
  * sprung.
  */
@@ -173,9 +150,9 @@ export function homeMotionAt(rawProgress: number): HomeMotionState {
   const progress = clampUnit(rawProgress);
   const constraint = segment(progress, 0, 0.24);
   const system = segment(progress, 0.36, 0.58);
-  const release = segment(progress, 0.68, 0.87);
+  const release = segment(progress, 0.70, 0.89);
   const constraintOut = segment(progress, 0.24, 0.36);
-  const systemOut = segment(progress, 0.62, 0.68);
+  const systemOut = segment(progress, 0.58, 0.70);
 
   const systemT = system * SYSTEM_SECONDS;
   const releaseT = release * RELEASE_SECONDS;
@@ -183,9 +160,7 @@ export function homeMotionAt(rawProgress: number): HomeMotionState {
   const blockT3 = releaseT - 2 * RELEASE_STAGGER_SECONDS;
 
   return {
-    // Width axes: untouched. Linear, monotone, exact stops, and — the point
-    // of leaving them alone — the same rate profile as today, which is what
-    // keeps C1, C2, C4 and C7 exactly where they already are.
+    // Only one width cluster changes at a time.
     constraintAxis: 62 + constraint * 38,
     constraintRecede: constraintOut,
     systemAxis: 62 + system * 44,
@@ -195,23 +170,21 @@ export function homeMotionAt(rawProgress: number): HomeMotionState {
     releaseArrive: release,
     stageExit: segment(progress, 0.92, 1),
 
-    // CONSTRAINT — no arrival transform: the three masked spans own its
-    // entrance. Its motion is the departure, and the departure curves. The
-    // lateral break is 89% spent by 30% of the window while the lift is 6%
-    // spent; then the lift takes over and accelerates away. Two profiles on
-    // one clock: the tangent rotates 81° to 0° and the path bows 50px off
-    // its own 418px chord, peaking at 87% ink.
+    // The opening statement shares the other arrivals' path and clock.
+    // Both departing statements use the same 744ms curve.
     constraintExitDrift: 1 - railRemainder(BREAK_OMEGA, constraintOut * CONSTRAINT_EXIT_SECONDS, constraintOut),
     constraintExitLift: departLift(constraintOut),
     // Ink trails position on the way out: 94% at the moment the lateral
     // break lands, 75% at the halfway lift. You watch it leave instead of
     // watching it dissolve where it stands.
-    constraintOpacity: 1 - constraintOut * constraintOut,
+    constraintOpacity: Math.min(
+      1 - railRemainder(INK_OMEGA, constraint * CONSTRAINT_SECONDS, constraint),
+      1 - constraintOut * constraintOut,
+    ),
+    constraintOffsetX: railRemainder(RAIL_OMEGA, constraint * CONSTRAINT_SECONDS, constraint),
+    constraintOffsetY: setRemainder(constraint * CONSTRAINT_SECONDS, constraint),
 
-    // SYSTEM — the middle statement, 0.80x the release's travel on both
-    // axes. Same material, smaller amplitude. It is the only line that both
-    // arrives and departs, so it is where the sequence's lateral sense is
-    // taught: in from the left, out to the left.
+    // The middle statement arrives and departs as one block.
     systemOffsetX: railRemainder(RAIL_OMEGA, systemT, system),
     systemOffsetY: setRemainder(systemT, system),
     systemOpacity: Math.min(
@@ -221,12 +194,8 @@ export function homeMotionAt(rawProgress: number): HomeMotionState {
     systemExitDrift: 1 - railRemainder(BREAK_OMEGA, systemOut * SYSTEM_EXIT_SECONDS, systemOut),
     systemExitLift: departLift(systemOut),
 
-    // RELEASE — the payoff, largest amplitude. The lateral is ONE value for
-    // the whole line: the three nowrap blocks are one block registering into
-    // one column, so their left edges are welded at every single frame and
-    // the flush-left rail can never rag. Only the vertical staggers, because
-    // only the vertical is per-line — three lines of type settling onto
-    // three baselines, 60ms apart, in reading order.
+    // The final sentence has the same path and amplitude. Its authored
+    // lines stay together, with no stagger or changing line breaks.
     releaseOffsetX: railRemainder(RAIL_OMEGA, releaseT, release),
     releaseOffsetY1: setRemainder(releaseT, release),
     releaseOffsetY2: setRemainder(blockT2, release),

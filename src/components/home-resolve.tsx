@@ -5,7 +5,7 @@ import { site } from "@/lib/content/site";
 import { clampUnit, homeMotionAt } from "@/lib/home-motion";
 import { openingAlreadyPlayed, skipOpening } from "@/lib/opening-sequence";
 
-/** The sequence's clock: three statements, then the map. */
+/** The sequence's clock: three statements, then the portfolio. */
 const SEQUENCE_MS = 6200;
 const HOLD_MS = 600;
 
@@ -13,8 +13,8 @@ const HOLD_MS = 600;
  * Home's opening — the three statements resolving on their own clock,
  * no scroll required. The sequence plays once on arrival (any click,
  * key, wheel or focus skips it), then the stage yields to the
- * planetary map beneath. Reduced-motion, no-JS and small viewports
- * render the statements as a resolved document instead, with the map
+ * portfolio beneath. Reduced-motion, no-JS and small viewports
+ * render the statements as a resolved document instead, with the portfolio
  * following in flow.
  */
 export function HomeResolve() {
@@ -56,6 +56,8 @@ export function HomeResolve() {
       section.style.setProperty("--con-drift", String(state.constraintExitDrift));
       section.style.setProperty("--con-lift", String(state.constraintExitLift));
       section.style.setProperty("--con-opacity", String(state.constraintOpacity));
+      section.style.setProperty("--con-x", String(state.constraintOffsetX));
+      section.style.setProperty("--con-y", String(state.constraintOffsetY));
       section.style.setProperty("--sys-x", String(state.systemOffsetX));
       section.style.setProperty("--sys-y", String(state.systemOffsetY));
       section.style.setProperty("--sys-opacity", String(state.systemOpacity));
