@@ -93,8 +93,9 @@ axis quietly carries constraint, resolution and release. Persistent route coordi
 semantic fallbacks and motion that explains causal change remain part of the system.
 
 Editorial and restrained: strong typography, generous whitespace, green for live production
-state and clay for reconstruction labels. A pale violet wash (`#f3eff4`) acknowledges interaction
-on Home and Lab; it conveys no status. The live-data elements are
+state and clay for reconstruction labels. Near-white rose (`#faf7f8`) on Home and cool blue
+(`#f5f8fa`) in the Lab fade into the paper on interaction; they convey no status. Outcome
+figures stay still on white, with only a subdued blue, sage or rose ink tint on hover. The live-data elements are
 quiet instruments, not dashboards. The
 site should feel like it was designed by someone with taste and built by someone who
 ships — because both must be true for the positioning to hold.

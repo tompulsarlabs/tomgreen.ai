@@ -1,0 +1,227 @@
+{
+  "base": "http://127.0.0.1:3118",
+  "viewports": [
+    {
+      "width": 320,
+      "touch": true,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 24,
+          "roomBelow": 24,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "32.2px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 25,
+          "roomBelow": 24,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "32.2px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 25,
+          "roomBelow": 24,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "32.2px"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "touch": true,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 24.25,
+          "roomBelow": 24.25,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "32.2px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 25.25,
+          "roomBelow": 24.25,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "32.2px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 25.25,
+          "roomBelow": 24.25,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "32.2px"
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "touch": true,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 32.859375,
+          "roomBelow": 32.859375,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "37.1165px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 33.859375,
+          "roomBelow": 32.859375,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "37.1165px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 33.859375,
+          "roomBelow": 32.859375,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "37.1165px"
+        }
+      ]
+    },
+    {
+      "width": 769,
+      "touch": false,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 32.890625,
+          "roomBelow": 32.890625,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "37.1296px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 32.890625,
+          "roomBelow": 32.890625,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "37.1296px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 32.890625,
+          "roomBelow": 32.890625,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "37.1296px"
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "touch": false,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 44.53125,
+          "roomBelow": 44.53125,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "43.8288px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 44.53125,
+          "roomBelow": 44.53125,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "43.8288px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 44.53125,
+          "roomBelow": 44.53125,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "43.8288px"
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "touch": false,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 56.3125,
+          "roomBelow": 56.3125,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "47.978px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 56.3125,
+          "roomBelow": 56.3125,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "47.978px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 56.3125,
+          "roomBelow": 56.3125,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "47.978px"
+        }
+      ]
+    },
+    {
+      "width": 2560,
+      "touch": false,
+      "overflow": false,
+      "measurements": [
+        {
+          "text": "0 → 120",
+          "roomAbove": 59.34375,
+          "roomBelow": 59.34375,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "50.554px"
+        },
+        {
+          "text": "€3.3M",
+          "roomAbove": 59.34375,
+          "roomBelow": 59.34375,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "50.554px"
+        },
+        {
+          "text": "£1M",
+          "roomAbove": 59.34375,
+          "roomBelow": 59.34375,
+          "figureInside": true,
+          "captionInside": true,
+          "lineHeight": "50.554px"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "washes": {
+    "home": "linear-gradient(100deg, rgb(250, 247, 248), rgba(0, 0, 0, 0) 78%)",
+    "lab": "linear-gradient(135deg, rgb(245, 248, 250), rgba(0, 0, 0, 0) 72%)"
+  }
+}

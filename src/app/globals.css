@@ -17,8 +17,11 @@
   --ghost: #b9b9b9;
   --hairline: #e3e3e3;
   --card: #f6f6f6;
-  --interaction-wash: #f3eff4;
-  --interaction-ink: #61556b;
+  --wash-rose: #faf7f8;
+  --wash-blue: #f5f8fa;
+  --detail-blue: #41494f;
+  --detail-sage: #424b46;
+  --detail-rose: #50464c;
   --paper-high: #ffffff;
   --signal: #f6f6f6;
   --accent: #101410;
@@ -701,10 +704,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   min-height: 8rem;
   border-top: 1px solid var(--hairline);
   padding: 1.5rem 1rem;
-  transition: background var(--d-1) var(--ease);
 }
 .work-index-row.is-flagship { min-height: 12rem; border-color: var(--ink); }
-.work-index-row:hover, .work-index-row:focus-visible { background: var(--interaction-wash); }
 .work-index-row .row-company { display: inline-block; font-size: clamp(1.875rem, 5.2vw, 4rem); transition: font-variation-settings var(--d-1) var(--ease); }
 .work-index-row.is-supporting .row-company { font-size: clamp(1.875rem, 3.2vw, 2.5rem); }
 .work-index-row:hover .row-company, .work-index-row:focus-visible .row-company { font-variation-settings: "wdth" 100; }
@@ -806,34 +807,41 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .system-record-title { display: flex; align-items: center; gap: 0.65rem; }
 .system-record-title .live-node { flex: none; }
 
-/* A trace of violet on paper, shared by the evidence and its Lab records.
-   The wash extends into the gutter without moving the text or its rule. */
-.lab-record { position: relative; isolation: isolate; }
+/* Near-white rose on Home, cool blue in the Lab. The wash loses itself
+   in the paper before it reaches the far edge of a record. */
+.work-index-row, .lab-record { position: relative; isolation: isolate; }
+.work-index-row::before,
 .lab-record::before {
   content: "";
   position: absolute;
-  inset: 0 -0.75rem;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: var(--interaction-wash);
+  background: linear-gradient(100deg, var(--wash-rose), transparent 78%);
   opacity: 0;
   transition: opacity var(--d-2) var(--ease);
 }
-.lab-record:focus-within::before { opacity: 1; }
-.work-metric-rail > div {
-  transition: background-color var(--d-3) var(--ease);
+.lab-record::before {
+  inset-inline: -0.75rem;
+  background: linear-gradient(135deg, var(--wash-blue), transparent 72%);
 }
+.work-index-row:focus-visible::before,
+.lab-record:focus-within::before { opacity: 1; }
+.work-metric-rail > div:nth-child(1) { --metric-ink: var(--detail-blue); }
+.work-metric-rail > div:nth-child(2) { --metric-ink: var(--detail-sage); }
+.work-metric-rail > div:nth-child(3) { --metric-ink: var(--detail-rose); }
+/* Plain evidence stays on paper. Only the ink responds: no filled cell
+   ending against its caption, and no movement of the figures. */
 .work-metric-rail dd {
-  transition: color var(--d-3) var(--ease), transform var(--d-3) var(--ease);
+  transition: color var(--d-3) var(--ease);
 }
 @media (hover: hover) and (pointer: fine) {
+  .work-index-row:hover::before,
   .lab-record:hover::before { opacity: 1; }
-  .work-metric-rail > div:hover { background-color: var(--interaction-wash); }
-  .work-metric-rail > div:hover dd { color: var(--interaction-ink); transform: translateY(-1px); }
+  .work-metric-rail > div:hover dd { color: var(--metric-ink); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lab-record::before, .work-metric-rail > div, .work-metric-rail dd { transition: none; }
-  .work-metric-rail > div:hover dd { transform: none; }
+  .work-index-row::before, .lab-record::before, .work-metric-rail dd { transition: none; }
 }
 
 
@@ -1392,14 +1400,14 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    band copy is an orphan grey paragraph floating in the new air. */
 .work-index-page .work-metric-band {
   margin-top: var(--air-3);
-  padding-block: 0 var(--air-2);
+  padding-block: 0;
 }
 .work-index-page .work-metric-rail { margin-top: 0; }
 /* padding-block only. The rail's `padding` shorthand is re-set to
    `padding-left: 0` inside @media(≤768); a shorthand here would resurrect
    the inline padding and knock mobile rail cells 2 and 3 out of alignment
    with cell 1. */
-.work-index-page .work-metric-rail > div { padding-block: var(--air-2) 0; }
+.work-index-page .work-metric-rail > div { padding-block: var(--air-2); }
 
 /* Size kept, weight down. The width axis stays at `.axis-index`'s 92 — the
    numerals and the company names are one ledger and must not read as two
@@ -1408,8 +1416,10 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   --axis: 92;
   font-size: clamp(1.75rem, 1.47rem + 1.14vw, 2.5rem);  /* 28 → 40 → 40 */
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.03em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
 }
 /* 1u, not air-1. A dd/dt pair is one object; air-1 is calibrated for an
    eyebrow sitting above its heading, and the same number applied below a

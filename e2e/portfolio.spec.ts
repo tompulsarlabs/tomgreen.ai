@@ -528,10 +528,11 @@ test("Work hover and keyboard focus resolve the same width state", async ({ page
   const company = row.locator("[data-travel-name]");
   await row.hover();
   await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
+  await expect.poll(() => row.evaluate((element) => getComputedStyle(element, "::before").opacity)).toBe("1");
   await page.mouse.move(0, 0);
   await row.focus();
   await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
-  await expect(row).toHaveCSS("background-color", "rgb(243, 239, 244)");
+  await expect.poll(() => row.evaluate((element) => getComputedStyle(element, "::before").opacity)).toBe("1");
 });
 
 test("Work to case navigation aligns the travelling name with tolerant geometry", async ({ page }) => {
