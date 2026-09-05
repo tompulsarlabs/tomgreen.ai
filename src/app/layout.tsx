@@ -113,7 +113,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <RouteTransition>
           <SiteHeader showVoices={hasTestimonials} />
-          <main id="main-content" tabIndex={-1} className="site-main mx-auto w-full max-w-[1360px] flex-1 px-[max(22px,6vw)]">
+          <main id="main-content" tabIndex={-1} className="site-main mx-auto w-full flex-1">
             {children}
           </main>
           <SiteFooter />

@@ -10,6 +10,7 @@ import { spaceProgress } from "@/lib/hyperspace-field";
 import {
   arrivalPresence,
   clamp01,
+  destinationStation,
   nearestStation,
   stationCentre,
   stationState,
@@ -86,9 +87,9 @@ export function CareerCorridor({
       section.querySelectorAll<HTMLButtonElement>(".corridor-rail button"),
     );
     if (!track || !stage || stations.length === 0) return;
-    // A screen and a half per leg gives acceleration, cruise and arrival
-    // their own space. Native scroll and the year rail remain available.
-    track.style.height = `${100 + Math.max(0, stations.length - 1) * 155}svh`;
+    // Two screens per destination leave room for both the journey and
+    // reading the entry during ordinary, continuous scrolling.
+    track.style.height = `${100 + Math.max(0, stations.length - 1) * 200}svh`;
 
     // The opening shares a stage with the first career entry. On a narrow
     // screen, reserve its measured height so the two cannot overlap.
@@ -107,6 +108,7 @@ export function CareerCorridor({
     const count = stations.length;
     let progress = 0;
     let smoothedProgress = 0;
+    let destination = 0;
     let frame = 0;
     let running = true;
     let visible = true;
@@ -160,13 +162,17 @@ export function CareerCorridor({
       frame = 0;
       if (!running || !visible) return;
       measureProgress();
-      // Time-based pursuit gives trackpads and high-refresh displays
-      // the same restrained glide, without intercepting page scrolling.
+      // Native scroll selects a station. The visual journey always
+      // finishes there, even if the visitor stops halfway through a leg.
+      // Directly pursuing raw scroll left the field running forever and
+      // made text depend on finding a tiny, exact scroll position.
+      destination = destinationStation(progress, count, destination);
+      const target = stationCentre(destination, count);
       const delta = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
-      smoothedProgress += (progress - smoothedProgress) * (1 - Math.exp(-delta * 4.5));
-      if (Math.abs(progress - smoothedProgress) < 0.0004)
-        smoothedProgress = progress;
+      smoothedProgress += (target - smoothedProgress) * (1 - Math.exp(-delta * 4.5));
+      if (Math.abs(target - smoothedProgress) < 0.0004)
+        smoothedProgress = target;
       const active = nearestStation(smoothedProgress, count);
       const intensity = travelIntensity(smoothedProgress, count);
       const velocity = driveRef.current.velocity;
@@ -185,7 +191,7 @@ export function CareerCorridor({
         "--heading-presence",
         (stationState(0, smoothedProgress, count).presence * arrival).toFixed(3),
       );
-      const settled = smoothedProgress === progress && intensity < 0.01 && arrival === 1;
+      const settled = smoothedProgress === target && intensity < 0.01 && arrival === 1;
       if (!settled) request();
     };
     const request = () => {

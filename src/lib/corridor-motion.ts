@@ -42,6 +42,16 @@ export function nearestStation(progress: number, count: number): number {
   return Math.round(clamp01(progress) * (count - 1));
 }
 
+/** Scroll chooses a destination; it must never park the viewer in flight.
+ * A small dead band prevents trackpad jitter at a boundary from repeatedly
+ * reversing the journey. A deliberate rail jump still selects its exact stop.
+ */
+export function destinationStation(progress: number, count: number, previous: number): number {
+  if (count <= 1) return 0;
+  const position = clamp01(progress) * (count - 1);
+  return Math.abs(position - previous) <= 0.58 ? previous : Math.round(position);
+}
+
 /**
  * Travel intensity 0..1: zero when parked at any station, peaking midway
  * between two stations. Drives streak length/alpha and passing blur.

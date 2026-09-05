@@ -768,6 +768,10 @@ export function OrbitPortal() {
           />
         ) : null}
       </div>
+      <p className="orbit-portal-credit">
+        Veil Nebula · <a href="https://esahubble.org/images/potw2113a/" target="_blank" rel="noreferrer">ESA/Hubble &amp; NASA, Z. Levay</a>
+        {" · "}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
+      </p>
     </div>
   );
 }

@@ -1436,16 +1436,12 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(stations.nth(1)).toHaveAttribute("inert", "");
   await expect(corridor.locator(".corridor-rail button").first()).toHaveAttribute("aria-current", "true");
 
-  // Mid-leg the stations empty out and hyperspace carries the travel.
-  await setSectionProgress(page, ".corridor-track", 2.5 / legs);
-  await expect(page.locator(".career-corridor")).toHaveAttribute("data-state", "travel", { timeout: 8000 });
-  await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
-  // The spring advances per frame, so software-GL runners need wall-clock
-  // headroom to converge.
-  await expect.poll(() => customProperty(stations.nth(2), "--presence"), { timeout: 12_000 }).toBeLessThan(0.2);
-  // No station is interactive mid-leg — an invisible station must never
-  // swallow the travel scroll with its own overflow.
-  await expect(page.locator(".corridor-station.is-stop")).toHaveCount(0);
+  // An arbitrary position between entries must complete its journey,
+  // rather than running hyperspace indefinitely until an exact rail stop.
+  await setSectionProgress(page, ".corridor-track", 2.65 / legs);
+  await expect(stations.nth(3)).toHaveClass(/is-stop/, { timeout: 12_000 });
+  await expect(corridor).toHaveAttribute("data-state", "idle");
+  await expect(stations.nth(2)).toHaveAttribute("inert", "");
 
   // Arriving at Zalando: resolved to wdth 100, linked to the evidence,
   // and the corridor decelerates to idle — a calm field of points, not

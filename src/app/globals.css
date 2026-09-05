@@ -6,6 +6,10 @@
   /* The floating island's occupied band — it takes no flow space, so
      content that begins at the very top clears it explicitly. */
   --island-clear: 5.05rem;
+  /* One responsive frame shared by the page, navigation and footer.
+     Gutters stop growing once the frame reaches its reading-width cap. */
+  --page-width: 112rem;
+  --page-gutter: clamp(22px, 5vw, 6rem);
   --paper: #ffffff;
   --ink: #101410;
   --ink-secondary: #4f554d;
@@ -49,6 +53,7 @@
 }
 
 html {
+  font-size: clamp(100%, calc(87.5% + 0.14vw), 112.5%);
   scroll-padding-top: calc(var(--island-clear) + 1rem);
 }
 
@@ -58,6 +63,16 @@ body {
   color: var(--ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   text-rendering: optimizeLegibility;
+}
+
+.page-frame,
+.site-main,
+.site-header,
+.site-footer > div {
+  width: 100%;
+  max-width: var(--page-width);
+  padding-inline: var(--page-gutter);
+  margin-inline: auto;
 }
 
 ::selection { background: var(--ink); color: var(--paper); }
@@ -135,9 +150,9 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   justify-content: flex-end;
   /* Docked to the content column's right edge — the same metrics as
      .site-main — never centred over it, and never over the copy. */
-  max-width: 1360px;
+  max-width: var(--page-width);
   margin-inline: auto;
-  padding-inline: max(22px, 6vw);
+  padding-inline: var(--page-gutter);
   pointer-events: none;
 }
 /* The landing needs no island: the planetary map is the navigation. */
@@ -411,7 +426,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 /* Home resolve */
 .home-resolve { position: relative; background: var(--paper); }
-.home-resolve-stage { max-width: 1360px; margin: 0 auto; padding: 4rem max(22px, 6vw) 6rem; }
+.home-resolve-stage { max-width: var(--page-width); margin: 0 auto; padding: 4rem var(--page-gutter) 6rem; }
 .home-eyebrow { color: var(--ink-secondary); }
 .resolve-lines { display: grid; gap: 4rem; margin-top: 4rem; }
 .resolve-lines :is(h1, p) { margin: 0; }
@@ -1051,7 +1066,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   position: relative;
   z-index: 2;
   /* Its own, because the field is behind it now rather than below it. */
-  background: #05070d;
+  background: transparent;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -1062,6 +1077,24 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   color: rgba(232, 237, 245, 0.95);
 }
 .orbit-portal-record { color: rgba(232, 237, 245, 0.62); }
+.orbit-portal-credit {
+  position: absolute;
+  z-index: 2;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: max(22px, 6vw);
+  right: max(22px, 6vw);
+  margin: 0;
+  width: fit-content;
+  padding: 0.25rem 0.45rem;
+  background: rgba(5, 7, 13, 0.78);
+  color: #c3cbd7;
+  font-size: 0.675rem;
+  line-height: 1.6;
+  text-shadow: 0 1px 5px #05070d;
+}
+.orbit-portal-credit a { text-decoration: underline; text-underline-offset: 3px; }
+.orbit-portal-credit a:hover { color: #fff; }
+.orbit-portal-credit a:focus-visible { outline: 1px solid currentColor; outline-offset: 4px; }
 .orbit-portal-note {
   flex: 1 1 18rem;
   margin: 0;
@@ -1255,13 +1288,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    smaller step than the shared hero and a wider measure, and its row
    gives the bio a wider column: the bio is 176 characters, and a column
    that wraps it to six lines reads as a sidebar rather than a lead. The
-   size stops growing past 1440 on purpose — the content column does not
-   grow with the viewport, so type that did would only add lines. */
-.home-page .systems-title-row { grid-template-columns: minmax(0, 1.3fr) minmax(24rem, 0.75fr); }
+   type grows with the wider frame while prose keeps a readable measure. */
+.home-page .systems-title-row { grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.75fr); }
 .home-page .systems-hero h1.hero-title-long.personal-headline {
   --axis: 100;
   max-width: 24ch;
-  font-size: clamp(1.75rem, 1rem + 2.8vw, 3.5rem); /* 28 → 56 → 56 */
+  font-size: clamp(1.75rem, 1rem + 2.8vw, 4.75rem);
   font-weight: 800;
   line-height: 0.97;
   letter-spacing: -0.04em;
@@ -1302,13 +1334,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 
 /* 9u below the rule against 5u above it. The rule closes the hero, so the
    larger measure sits on the far side, with the movement it opens. The
-   60rem cap gives the introduction column structural right margin while
-   every hairline and record row keeps the full grid — the rules are the
-   skeleton and stay full-bleed. */
+   introduction uses the same columns as the record rows below it;
+   prose keeps its own readable line length inside that shared grid. */
 .work-index-masthead {
   display: grid;
   gap: 0;
-  max-width: 60rem;
+  max-width: none;
   padding-top: calc(var(--u) * 7);      /* 57 → 113, below the rule */
   padding-bottom: 0;
 }
@@ -1568,7 +1599,8 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   background: transparent;
 }
 
-.orbit-portal[data-golden] .orbit-portal-chrome {
+.orbit-portal[data-golden] .orbit-portal-chrome,
+.orbit-portal[data-golden] .orbit-portal-credit {
   visibility: hidden;
   pointer-events: none;
 }
