@@ -20,8 +20,8 @@ labels. Display weight never animates.
 - Paper `#fff`; ink `#101410`; reading `#4f554d`; ghost `#b9b9b9`; hairline `#e3e3e3`.
 - Interaction washes: near-white rose `#faf7f8` for Home rows and cool blue `#f5f8fa` for Lab
   records, fading to transparent across each record. Keyboard focus receives the same acknowledgment.
-  Outcome figures use restrained blue `#41494f`, sage `#424b46` and rose `#50464c` ink on hover;
-  their cells remain white.
+  Outcome figures use slate blue `#446f89`, sage `#507861` and dusty rose `#946378` ink on hover,
+  accompanied by a short 2px accent on the existing rule. Their cells remain white.
 - Live green `#3fa06c` means running in production only.
 - Clay `#e45b3d` marks a small case/source annotation and never becomes a decorative field.
 - Shared frame up to 112rem, with gutters clamped from 22px to 6rem. Type and content grow
@@ -42,9 +42,10 @@ labels. Display weight never animates.
 - Planet captures join the actual camera distance and framing, then return the camera,
   exposure and photographic sky together. Full and compact shots share the same landmarks;
   the compact clock has continuous speed between them. Gas always covers the viewport.
-- Outcome figures receive a slow ink tint on pointer hover and stay still, with room above and
-  below both figure and caption. They remain plain data, with no button cursor, invented click
-  action or animated count. Reduced motion makes the tint immediate.
+- Outcome figures resolve to a visible colour in 280ms on pointer hover; a short accent draws
+  along the existing rule in 440ms. Figures and captions stay still, with room above and below.
+  They remain plain data, with no button cursor, invented click action or animated count.
+  Reduced motion makes both responses immediate; touch keeps the neutral resting state.
 
 ## Route rules
 

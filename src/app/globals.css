@@ -19,9 +19,9 @@
   --card: #f6f6f6;
   --wash-rose: #faf7f8;
   --wash-blue: #f5f8fa;
-  --detail-blue: #41494f;
-  --detail-sage: #424b46;
-  --detail-rose: #50464c;
+  --detail-blue: #446f89;
+  --detail-sage: #507861;
+  --detail-rose: #946378;
   --paper-high: #ffffff;
   --signal: #f6f6f6;
   --accent: #101410;
@@ -830,18 +830,39 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .work-metric-rail > div:nth-child(1) { --metric-ink: var(--detail-blue); }
 .work-metric-rail > div:nth-child(2) { --metric-ink: var(--detail-sage); }
 .work-metric-rail > div:nth-child(3) { --metric-ink: var(--detail-rose); }
-/* Plain evidence stays on paper. Only the ink responds: no filled cell
-   ending against its caption, and no movement of the figures. */
+/* Colour arrives in the figure and a short stroke on the existing rule.
+   Keep the response local to the evidence, with no moving text or fill. */
+.work-metric-rail > div { position: relative; }
+.work-metric-rail > div::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 1.25rem;
+  width: min(6rem, 40%);
+  height: 2px;
+  background: var(--metric-ink);
+  pointer-events: none;
+  opacity: 0;
+  transform: scaleX(0.25);
+  transform-origin: left;
+  transition: opacity var(--d-2) var(--ease), transform var(--d-3) var(--ease-settle);
+}
+.work-metric-rail > div:first-child::before { left: 0; }
 .work-metric-rail dd {
-  transition: color var(--d-3) var(--ease);
+  transition: color var(--d-2) var(--ease);
 }
 @media (hover: hover) and (pointer: fine) {
   .work-index-row:hover::before,
   .lab-record:hover::before { opacity: 1; }
   .work-metric-rail > div:hover dd { color: var(--metric-ink); }
+  .work-metric-rail > div:hover::before { opacity: 1; transform: scaleX(1); }
+}
+@media (max-width: 768px) {
+  .work-metric-rail > div::before { left: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .work-index-row::before, .lab-record::before, .work-metric-rail dd { transition: none; }
+  .work-index-row::before, .lab-record::before,
+  .work-metric-rail > div::before, .work-metric-rail dd { transition: none; }
 }
 
 
