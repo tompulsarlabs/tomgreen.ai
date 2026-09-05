@@ -510,7 +510,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
     animation: route-display-resolve var(--d-3) var(--ease-settle) both;
   }
   .route-entering :is(.systems-hero h1, .contact-title) { --arrival-axis: 100; }
-  .route-entering .about-opening h1 { --arrival-axis: 82; }
   .route-entering :is(.systems-lead, .about-intro) {
     animation: route-reading-in var(--d-2) var(--ease) var(--d-3) both;
   }
@@ -565,11 +564,39 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .home-contact .action { margin-top: 2rem; }
 
 /* About: a canonical linear career record. */
-.about-page { display: flex; flex-direction: column; gap: clamp(6rem, 11vw, 10rem); padding: 0 0 6rem; }
-.about-opening { display: grid; min-height: min(46rem, calc(82svh - var(--site-header-h))); grid-template-columns: 1.2fr 0.8fr; gap: clamp(3rem, 7vw, 7rem); align-items: end; border-bottom: 1px solid var(--ink); padding-bottom: clamp(3rem, 6vw, 6rem); }
-.about-opening h1 { --axis: 82; max-width: 11.5ch; margin-top: clamp(2.5rem, 6vw, 5rem); font-size: clamp(2.7rem, 6.6vw, 6.4rem); word-spacing: 0.05em; }
+.about-page { display: flex; flex-direction: column; padding: 0 0 6rem; }
+.about-opening-hero {
+  display: flex;
+  overflow: clip;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  padding-block: max(var(--island-clear), 6svh) max(3rem, 6svh);
+  text-align: center;
+}
+.about-opening-copy { width: 100%; max-width: 68rem; }
+.about-opening-hero h1 {
+  --axis: 100;
+  margin: clamp(1.5rem, 4svh, 2.5rem) 0;
+  font-size: clamp(2rem, 5.7vw, 6.5rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  word-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+.about-opening-title, .about-opening-title > span { display: block; }
 .about-intro { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 0.5rem; }
-.about-intro p { max-width: 42rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
+.about-opening-hero .about-intro { max-width: 46ch; margin-inline: auto; animation: none; }
+.about-intro p { font-size: clamp(1rem, 1.3vw, 1.2rem); line-height: 1.6; color: var(--ink-secondary); }
+.about-opening-hero [data-dissolve] {
+  opacity: calc(1 - var(--dissolve, 0));
+  filter: blur(calc(var(--dissolve, 0) * 12px));
+  transform: translate3d(calc(var(--dissolve, 0) * var(--dissolve-x, 0px)), calc(var(--dissolve, 0) * -2rem), 0)
+    scale(calc(1 + var(--dissolve, 0) * 0.035));
+}
+.about-opening-title > span:first-child { --dissolve-x: -1.25rem; }
+.about-opening-title > span:last-child { --dissolve-x: 1.25rem; }
 /* The sequence heading rides at the top of the corridor's stage rather
    than above it. The stage is a full viewport with the first station at
    its centre, so a heading placed above it left a screen of paper
@@ -685,7 +712,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .career-corridor[data-live] .corridor-rail button:hover { color: var(--ink); }
 .career-corridor[data-live] .corridor-rail button[aria-current="true"] { color: var(--ink); }
 .career-corridor[data-live] .corridor-rail button[aria-current="true"] .rail-dot { background: var(--ink); transform: scale(1.35); }
-.about-references { display: grid; grid-template-columns: 0.68fr 1.32fr; gap: clamp(2rem, 6vw, 6rem); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: clamp(4rem, 8vw, 7rem) 0; }
+.about-references { display: grid; grid-template-columns: 0.68fr 1.32fr; gap: clamp(2rem, 6vw, 6rem); margin-top: clamp(6rem, 11vw, 10rem); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: clamp(4rem, 8vw, 7rem) 0; }
 .about-references h2 { max-width: 8ch; margin-top: 1rem; }
 .about-reference-body { display: flex; flex-direction: column; gap: 3rem; }
 .about-reference-note { max-width: 42rem; font-family: var(--font-archivo), Arial, sans-serif; font-size: clamp(1.75rem, 3.3vw, 2.5rem); font-weight: 800; font-variation-settings: "wdth" 82; line-height: 1.1; }
@@ -939,7 +966,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .systems-lead { max-width: 34rem; padding-bottom: 0; }
   .systems-hero { min-height: auto; padding-top: 2rem; }
   .orbit-field { flex: none; min-height: 0; height: clamp(320px, 46svh, 430px); margin-top: 0; margin-bottom: 0.5rem; order: -1; }
-  .about-opening, .corridor-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
+  .corridor-heading, .about-references { min-height: auto; grid-template-columns: 1fr; }
   .station-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .station-metrics > div:nth-child(odd) { border-left: 0; padding-left: 0; }
   .career-corridor[data-live] .corridor-station { left: 22px; right: 58px; max-height: calc(98svh - var(--site-header-h)); }
@@ -954,10 +981,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .career-corridor[data-live] .station-achievements li { font-size: 0.85rem; }
   .career-corridor[data-live] .corridor-rail { right: 4px; }
   .career-corridor[data-live] .corridor-rail .record { display: none; }
-}
-
-@media (max-width: 520px) {
-  .about-opening h1 { word-spacing: 0.14em; }
 }
 
 /* Short desktop viewports: cap the journey display size against height so
@@ -1530,6 +1553,26 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 
 /* The animated desktop stage is fixed, so the introduction beneath it
    clears the Moon. Touch, reduced-motion and no-JS openings stay in flow. */
+@media (min-width: 769px) {
+  /* The introduction and outcomes are one composition. Height controls
+     its breathing room; type keeps its existing width-based scale.
+     Minimum height allows enlarged text and very short windows to scroll. */
+  .home-overview {
+    --u: clamp(0.5rem, min(calc(0.32rem + 0.76vw), 1.2svh), 1.125rem);
+    --air-1: calc(var(--u) * 2);
+    --air-2: calc(var(--u) * 3);
+    --air-3: calc(var(--u) * 6);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-block-size: 100vh;
+    min-block-size: 100dvh;
+    padding-bottom: clamp(1.5rem, 4svh, 3rem);
+  }
+  .home-overview > * { flex-shrink: 0; }
+  .home-overview + .work-index-group { margin-top: var(--air-2); }
+}
+
 @media (min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .js .home-page .personal-hero {
     padding-top: calc(var(--island-clear) + var(--air-2));

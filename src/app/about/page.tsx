@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AboutOpening } from "@/components/about-opening";
 import { CareerCorridor } from "@/components/career-corridor";
 import { TestimonialCarousel } from "@/components/testimonial-carousel";
 import { aboutIntro, career, referencesNote } from "@/lib/content/about";
@@ -15,21 +16,9 @@ export const metadata: Metadata = {
 export default function About() {
   return (
     <div className="about-page">
-      <header className="systems-hero about-opening-hero">
-        <div className="systems-hero-copy">
-          <p className="record">About / operating record</p>
-          <div className="systems-title-row">
-            <h1 className="axis-display hero-title-long">
-              A career at the intersection.
-            </h1>
-            <div className="systems-lead about-intro">
-              {aboutIntro.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </header>
+      <AboutOpening>
+        {aboutIntro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+      </AboutOpening>
 
       <section aria-labelledby="career-heading" className="career-line">
         <CareerCorridor

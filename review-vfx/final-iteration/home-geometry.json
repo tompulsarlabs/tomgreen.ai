@@ -1,0 +1,152 @@
+[
+  {
+    "width": 1280,
+    "height": 700,
+    "overview": {
+      "top": 0,
+      "bottom": 700,
+      "height": 700
+    },
+    "hero": {
+      "top": 0,
+      "bottom": 294.921875,
+      "height": 294.921875
+    },
+    "masthead": {
+      "top": 316.34375,
+      "bottom": 476.90625,
+      "height": 160.5625
+    },
+    "outcomes": {
+      "top": 548.703125,
+      "bottom": 672,
+      "height": 123.296875
+    },
+    "flagship": {
+      "top": 744.53125,
+      "bottom": 1409.1875,
+      "height": 664.65625
+    },
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "height": 780,
+    "overview": {
+      "top": 0,
+      "bottom": 780,
+      "height": 780
+    },
+    "hero": {
+      "top": 0,
+      "bottom": 314.859375,
+      "height": 314.859375
+    },
+    "masthead": {
+      "top": 350.65625,
+      "bottom": 524.65625,
+      "height": 174
+    },
+    "outcomes": {
+      "top": 616.609375,
+      "bottom": 748.8125,
+      "height": 132.203125
+    },
+    "flagship": {
+      "top": 828.203125,
+      "bottom": 1529.15625,
+      "height": 700.953125
+    },
+    "overflow": false
+  },
+  {
+    "width": 1470,
+    "height": 835,
+    "overview": {
+      "top": 0,
+      "bottom": 835,
+      "height": 835
+    },
+    "hero": {
+      "top": 0,
+      "bottom": 321.0625,
+      "height": 321.0625
+    },
+    "masthead": {
+      "top": 372.328125,
+      "bottom": 553.171875,
+      "height": 180.84375
+    },
+    "outcomes": {
+      "top": 664.546875,
+      "bottom": 801.609375,
+      "height": 137.0625
+    },
+    "flagship": {
+      "top": 883.921875,
+      "bottom": 1590.8125,
+      "height": 706.890625
+    },
+    "overflow": false
+  },
+  {
+    "width": 1920,
+    "height": 1000,
+    "overview": {
+      "top": 0,
+      "bottom": 1000,
+      "height": 1000
+    },
+    "hero": {
+      "top": 0,
+      "bottom": 356.296875,
+      "height": 356.296875
+    },
+    "masthead": {
+      "top": 443.484375,
+      "bottom": 647.34375,
+      "height": 203.859375
+    },
+    "outcomes": {
+      "top": 806.515625,
+      "bottom": 960,
+      "height": 153.484375
+    },
+    "flagship": {
+      "top": 1056.3125,
+      "bottom": 1812.5,
+      "height": 756.1875
+    },
+    "overflow": false
+  },
+  {
+    "width": 2508,
+    "height": 1322,
+    "overview": {
+      "top": 0,
+      "bottom": 1322,
+      "height": 1322
+    },
+    "hero": {
+      "top": 0,
+      "bottom": 417.9375,
+      "height": 417.9375
+    },
+    "masthead": {
+      "top": 580.890625,
+      "bottom": 827.5,
+      "height": 246.609375
+    },
+    "outcomes": {
+      "top": 1085.625,
+      "bottom": 1269.46875,
+      "height": 183.84375
+    },
+    "flagship": {
+      "top": 1381.09375,
+      "bottom": 2174.53125,
+      "height": 793.4375
+    },
+    "overflow": false
+  }
+]

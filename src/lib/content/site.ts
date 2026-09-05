@@ -6,7 +6,7 @@ export const site = {
   headline: "Building in Founder Mode",
   /** The concrete claim, also used for search and sharing. */
   positioning:
-    "I build the teams, the operating model, and the agents to run it.",
+    "I build teams, operating models, and agents to run them.",
   intro:
     "Executive talent leader and systems builder. I’ve built a 120-person AI organization in six months, led global talent teams, and redesigned operations around agent workflows.",
   links: {
