@@ -37,7 +37,8 @@ async function reachZalando(page) {
   // the whole budget before the map is ever opened.
   await page.goto(`${baseURL}/building`, { waitUntil: "load" });
   await page.waitForFunction(() => !document.documentElement.classList.contains("route-entering"));
-  await page.locator(".sphere-home").click();
+  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+  await page.getByRole("button", { name: "Open the planetary map", exact: true }).click();
   await page.locator('.orbit-portal[role="dialog"]').waitFor({ state: "visible" });
   await page
     .locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')

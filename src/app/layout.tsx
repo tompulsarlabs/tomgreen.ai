@@ -9,6 +9,7 @@ import { isLaunched } from "@/lib/site-env";
 import { SiteFooter } from "@/components/site-footer";
 import { RouteTransition } from "@/components/route-transition";
 import { site } from "@/lib/content/site";
+import { PLANETARY_DISCOVERY_KEY } from "@/lib/planetary-discovery";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -108,7 +109,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* .js gates scroll-reveal CSS; no-JS never hides content. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: "document.documentElement.classList.add('js')",
+            __html: `document.documentElement.classList.add('js');try{if(sessionStorage.getItem('${PLANETARY_DISCOVERY_KEY}')==='1')document.documentElement.dataset.orbitDiscovered='true'}catch{}`,
           }}
         />
         <RouteTransition>

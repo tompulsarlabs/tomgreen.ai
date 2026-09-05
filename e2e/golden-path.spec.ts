@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { activatePlanetaryMap } from "./helpers/planetary-navigation";
 
 /**
  * The golden path, judged on the acceptance criteria it was commissioned
@@ -16,7 +17,7 @@ async function waitForFonts(page: Page) {
 }
 
 async function openPortal(page: Page) {
-  await page.locator(".sphere-home").click();
+  await activatePlanetaryMap(page);
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
   await expect(
     page.locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas'),
