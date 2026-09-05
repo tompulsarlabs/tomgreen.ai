@@ -6,7 +6,7 @@
  *
  * The click never waits. Arming is a synchronous decision made from what is
  * already in hand: if the plate is not decoded, the press takes the site's
- * existing procedural transition instead, which shares the same first 0.75
+ * existing procedural transition instead, which shares the same first 0.84
  * seconds of spiral, so the visitor sees a response in the same frame
  * either way and never sees a spinner, a black frame or a stall.
  *
@@ -123,7 +123,8 @@ export function prefetchGoldenPath() {
     assets = { tier: "none", plate: null, paper: null };
     return;
   }
-  const plate = makeVideo(plateSrc);
+  // A new URL prevents an already-cached shard master surviving the replacement.
+  const plate = makeVideo(`${plateSrc}?v=gas-only-v4`);
   const paper = makeVideo(paperSrc);
   assets = { tier, plate, paper };
   plate.load();
@@ -181,7 +182,7 @@ if (process.env.NEXT_PUBLIC_GOLDEN_REVIEW === "1" && typeof window !== "undefine
  * is 0.05 s before the detonation.
  *
  * Called at the press rather than when the plate is first drawn, so the seek
- * has the whole compression to land in: 0.75 s on the full clock, 0.45 s on
+ * has the whole compression to land in: 0.84 s on the full clock, 0.50 s on
  * the compact one. And frame zero is the frame the shot wants there anyway.
  */
 export function rewindGoldenAssets() {

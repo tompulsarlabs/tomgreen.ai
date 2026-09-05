@@ -3,6 +3,5 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 python3 build_volume.py
-python3 build_fragments.py
 python3 build_scene.py
 python3 render_review.py "$@"

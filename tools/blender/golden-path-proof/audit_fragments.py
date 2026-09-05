@@ -47,6 +47,8 @@ def read_rgb(path, res):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", default="seq3", help="cache tag of the render to audit")
+    ap.add_argument("--expect-no-solids", action="store_true",
+                    help="fail unless every requested frame is readable and has zero solid coverage")
     ap.add_argument("--frames", type=int, nargs=2, default=[C.f_of(C.VOLUME_IN), C.f_of(C.PAGE_FULL)])
     args = ap.parse_args()
     root = os.path.join(C.CACHE_DIR, f"render_{args.tag}", "event")
@@ -72,6 +74,12 @@ def main():
         f"  mean {sum(cov) / len(cov) * 100:.2f}%"
         f"  over 10%: {sum(1 for c in cov if c > 0.10)} frames"
     )
+    if args.expect_no_solids:
+        expected = args.frames[1] - args.frames[0] + 1
+        if len(rows) != expected or any(c > 0 for c in cov):
+            print("FAIL: incomplete sequence or rendered solids remain")
+            return 1
+        print(f"PASS: all {expected} frames contain zero rendered solids")
     return 0
 
 

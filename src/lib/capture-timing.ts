@@ -24,14 +24,14 @@ import {
  * - are very nearly untouched while the approach and the aftermath compress.
  *
  *   segment                        full     compact   rate
- *   0.35 -> 1.10  spiral           0.75 s   0.45 s    1.67x
+ *   0.35 -> 1.10  spiral           0.84 s   0.50 s    1.50x
  *   1.10 -> 1.65  WHITE HEAT       0.55 s   0.40 s    1.38x   <- protected
  *   1.65 -> 1.83  HOLD             0.18 s   0.14 s    1.29x   <- protected
  *   1.83 -> 2.53  BREAKOUT         0.70 s   0.65 s    1.08x   <- the hero beat
  *   2.53 -> 3.28  passage          0.75 s   0.45 s    1.67x
  *   3.28 -> 4.18  resolution       0.90 s   0.65 s    1.38x
  *   4.18 -> 5.58  remnant          1.40 s   0.62 s    2.26x
- *                                  5.23 s   3.36 s
+ *                                  5.32 s   3.41 s
  *
  * The hold is 180 ms at full and 140 ms compact, so the authored beat where
  * something enormous is about to happen survives the compact edit as a beat
@@ -45,6 +45,11 @@ import {
  */
 
 export type CaptureMode = "full" | "compact";
+
+/** A slightly more readable inward flight; every later beat keeps its pace. */
+export const CAPTURE_APPROACH_SECONDS = 0.84;
+const AUTHORED_APPROACH = CORE_IN - CAPTURE_START;
+const APPROACH_DELAY = CAPTURE_APPROACH_SECONDS - AUTHORED_APPROACH;
 
 /**
  * The breakout beat ends here, on the shot clock. Not a landmark the render
@@ -61,7 +66,7 @@ export const BREAKOUT_OUT = 1.75 + RELEASE_DELAY;
  * the render's own clock sleeps through.
  */
 const SEGMENTS: ReadonlyArray<{ from: number; to: number; compact: number }> = [
-  { from: CAPTURE_START, to: CORE_IN, compact: 0.45 },
+  { from: CAPTURE_START, to: CORE_IN, compact: 0.5 },
   { from: CORE_IN, to: WHITE_PEAK, compact: 0.4 },
   { from: WHITE_PEAK, to: RELEASE_AT, compact: 0.14 },
   { from: RELEASE_AT, to: BREAKOUT_OUT, compact: 0.65 },
@@ -71,7 +76,7 @@ const SEGMENTS: ReadonlyArray<{ from: number; to: number; compact: number }> = [
 ];
 
 /** Elapsed seconds from the press to the end of the shot, per mode. */
-export const FULL_SECONDS = SHOT_END - CAPTURE_START;
+export const FULL_SECONDS = SHOT_END - CAPTURE_START + APPROACH_DELAY;
 export const COMPACT_SECONDS = SEGMENTS.reduce((total, s) => total + s.compact, 0);
 
 export function captureSeconds(mode: CaptureMode) {
@@ -81,13 +86,16 @@ export function captureSeconds(mode: CaptureMode) {
 /**
  * Elapsed seconds since the press -> canonical shot time.
  *
- * FULL is the identity, offset by the press: a full capture is the approved
- * shot and nothing here may perturb it, so it is written as a single addition
- * rather than as a piecewise map that happens to have every rate at 1.
+ * Stretch only the approach in FULL. Once the planet reaches the core, the
+ * heating, hold, gas and arrivals run at their original rate on the same clock.
  */
 export function shotTimeFor(mode: CaptureMode, elapsed: number): number {
   if (elapsed <= 0) return CAPTURE_START;
-  if (mode === "full") return Math.min(CAPTURE_START + elapsed, SHOT_END);
+  if (mode === "full") {
+    if (elapsed < CAPTURE_APPROACH_SECONDS)
+      return CAPTURE_START + elapsed * AUTHORED_APPROACH / CAPTURE_APPROACH_SECONDS;
+    return Math.min(CAPTURE_START + elapsed - APPROACH_DELAY, SHOT_END);
+  }
 
   let spent = 0;
   for (const segment of SEGMENTS) {
@@ -110,7 +118,8 @@ export function shotTimeFor(mode: CaptureMode, elapsed: number): number {
  * piecewise-linear and the true derivative is a constant on each piece.
  */
 export function shotRateAt(mode: CaptureMode, shotTime: number): number {
-  if (mode === "full") return 1;
+  if (mode === "full")
+    return shotTime < CORE_IN ? AUTHORED_APPROACH / CAPTURE_APPROACH_SECONDS : 1;
   for (const segment of SEGMENTS) {
     if (shotTime < segment.to) {
       return (segment.to - segment.from) / segment.compact;

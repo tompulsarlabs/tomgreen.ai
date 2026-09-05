@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import time
+import hashlib
 
 import numpy as np
 
@@ -139,6 +140,9 @@ def luminance(rgb):
 
 
 def oidn(rgb):
+    if os.environ.get("GP_OIDN_LIBRARY"):
+        from native_oidn import denoise
+        return denoise(rgb)
     import oidn as O
     h, w, _ = rgb.shape
     dev = O.NewDevice(O.DEVICE_TYPE_CPU)
@@ -294,10 +298,59 @@ def frame_list(args):
     return list(range(f0, f1 + 1))
 
 
+def render_source(args, blender_version):
+    """A cache belongs to its scene inputs and render settings, not just its tag."""
+    files = [os.path.join(C.TOOLS_DIR, name) for name in
+             ("build_scene.py", "build_volume.py", "common.py")]
+    files.append(os.path.join(VOL_DIR, "meta.json"))
+    hashes = {}
+    for path in files:
+        with open(path, "rb") as fh:
+            hashes[os.path.basename(path)] = hashlib.sha256(fh.read()).hexdigest()
+    settings = {name: getattr(args, name) for name in
+                ("seq3", "stills", "scale", "iso_full", "samples", "still_samples",
+                 "volume_bounces", "step_rate", "tune", "border", "device")}
+    return {"inputs": hashes, "settings": settings, "sequence": SEQ3,
+            "blender": blender_version}
+
+
+def verify_render_source(args, blender_version):
+    source = render_source(args, blender_version)
+    path = os.path.join(RENDER_DIR, "render-source.json")
+    if os.path.exists(path):
+        with open(path) as fh:
+            if json.load(fh) != source:
+                raise RuntimeError("Render inputs changed: choose a fresh --cache-tag, so old frames cannot survive.")
+    elif os.path.isdir(RENDER_DIR) and any(os.scandir(RENDER_DIR)):
+        raise RuntimeError("Unverified render cache: choose a fresh --cache-tag.")
+    os.makedirs(RENDER_DIR, exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(source, fh, indent=2)
+
+
 def render_frames(args, report):
     import bpy
     bpy.ops.wm.open_mainfile(filepath=BLEND)
     scene = bpy.context.scene
+    if (not scene.get("fragment_free") or not scene.get("solid_particle_free")
+            or bpy.data.collections["fragments"].all_objects
+            or bpy.data.collections["motes"].all_objects):
+        raise RuntimeError("Rebuild the fragment-free scene before rendering; old shard scenes are not production inputs.")
+    if not bpy.data.objects["frag_key"].hide_render:
+        raise RuntimeError("Disable the fragment-only light; an empty receiver collection illuminates everything.")
+    verify_render_source(args, bpy.app.version_string)
+    if args.device != "CPU":
+        prefs = bpy.context.preferences.addons["cycles"].preferences
+        prefs.compute_device_type = args.device
+        prefs.get_devices()
+        selected = [d for d in prefs.devices if d.type == args.device]
+        if not selected:
+            raise RuntimeError(f"No {args.device} render device available")
+        for device in prefs.devices:
+            device.use = device.type == args.device
+        scene.cycles.device = "GPU"
+    else:
+        scene.cycles.device = "CPU"
     scene.render.resolution_percentage = int(round(args.scale * 100))
     apply_tune(args.tune)
     imgs = {L: bpy.data.images[f"atlas_{L}"] for L in ("mid", "far", "near")}
@@ -365,8 +418,8 @@ def render_frames(args, report):
             full_iso = iso and (args.stills or (f in ISO_FULL_FRAMES and args.iso_full))
             out_dir = os.path.join(RENDER_DIR, L + ("_full" if full_iso else ""))
             os.makedirs(out_dir, exist_ok=True)
-            done = os.path.join(out_dir, f"Image_{f:04d}.exr")
-            if os.path.exists(done) and not args.force:
+            complete = all(os.path.isfile(os.path.join(out_dir, f"{p}_{f:04d}.exr")) for p in PASSES[L])
+            if complete and not args.force:
                 continue
             for vl in scene.view_layers:
                 vl.use = vl.name == L
@@ -712,6 +765,11 @@ def composite(args, report):
                 mult = 1 - (a_res * M)[..., None] * (1 - tint[None, None] * 0.55)
             disp = disp * mult
         save_png(out_path, disp)
+        if getattr(args, "final_only", False):
+            # Production matting needs only the beauty. Isolated diagnostic
+            # images and their extra denoise passes are for review exports.
+            print(f"composited f{f:04d} t={t:.3f}", flush=True)
+            continue
         # --------------------------------------------- isolated layers
         def iso(L_, name, emissive_gain=1.0):
             if L_ is None:
@@ -927,10 +985,13 @@ def main():
     ap.add_argument("--frames", type=int, nargs=2, default=None)
     ap.add_argument("--list", default=None, help="explicit frame list, e.g. 44,75,82")
     ap.add_argument("--layers", default="all")
+    ap.add_argument("--device", default="CPU", choices=["CPU", "METAL", "CUDA", "OPTIX", "HIP", "ONEAPI"])
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--samples", type=int, default=16)
     ap.add_argument("--still-samples", type=int, default=None, help="event samples for the key stills (48; 256 in --stills mode)")
-    ap.add_argument("--iso-full", action="store_true", default=True)
+    # Sequence smoothing needs a same-sized auxiliary frame at every instant.
+    # Full-resolution isolated approval stills are an explicit extra operation.
+    ap.add_argument("--iso-full", action="store_true", default=False)
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--composite-only", action="store_true")
     ap.add_argument("--render-only", action="store_true")

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BREAKOUT_OUT,
+  CAPTURE_APPROACH_SECONDS,
   COMPACT_SECONDS,
   FULL_SECONDS,
   captureSeconds,
@@ -17,26 +18,39 @@ import {
 } from "@/lib/capture-core";
 
 describe("the full capture", () => {
-  it("is the approved shot, exactly — the identity, not a map that rounds to it", () => {
-    expect(FULL_SECONDS).toBeCloseTo(5.23, 10);
-    for (let elapsed = 0; elapsed <= FULL_SECONDS; elapsed += 0.01) {
-      expect(shotTimeFor("full", elapsed)).toBeCloseTo(CAPTURE_START + elapsed, 12);
+  it("gives the inward flight 90 ms more while preserving every later beat", () => {
+    expect(FULL_SECONDS).toBeCloseTo(5.32, 10);
+    expect(shotTimeFor("full", CAPTURE_APPROACH_SECONDS)).toBeCloseTo(CORE_IN, 12);
+    expect(shotTimeFor("full", CAPTURE_APPROACH_SECONDS / 2)).toBeCloseTo((CAPTURE_START + CORE_IN) / 2, 12);
+    for (let elapsed = CAPTURE_APPROACH_SECONDS; elapsed <= FULL_SECONDS; elapsed += 0.01) {
+      expect(shotTimeFor("full", elapsed)).toBeCloseTo(CAPTURE_START + elapsed - 0.09, 12);
     }
   });
 
-  it("runs at wall-clock rate everywhere, so nothing downstream can drift", () => {
-    for (let t = 0; t <= SHOT_END; t += 0.05) {
+  it.each(["full", "compact"] as const)("keeps the %s clock continuous and its reported rate accurate", (mode) => {
+    const end = captureSeconds(mode);
+    for (let elapsed = 0.001; elapsed < end; elapsed += 0.013) {
+      const t = shotTimeFor(mode, elapsed);
+      const next = shotTimeFor(mode, elapsed + 1e-6);
+      expect((next - t) / 1e-6).toBeCloseTo(shotRateAt(mode, t), 5);
+      expect(next).toBeGreaterThan(t);
+    }
+  });
+
+  it("returns to wall-clock rate at the core", () => {
+    expect(shotRateAt("full", CAPTURE_START)).toBeCloseTo(0.75 / 0.84, 12);
+    for (let t = CORE_IN; t <= SHOT_END; t += 0.05) {
       expect(shotRateAt("full", t)).toBe(1);
     }
   });
 });
 
 describe("the compact capture", () => {
-  it("is a real compression of the whole event, at 3.36 s", () => {
+  it("is a real compression of the whole event, at 3.41 s", () => {
     // The shot grew by the core event it was missing, so the compact edit
     // grew with it. What matters is the ratio: a returning visitor spends
     // under two thirds of the time a first one does, on the same event.
-    expect(COMPACT_SECONDS).toBeCloseTo(3.36, 10);
+    expect(COMPACT_SECONDS).toBeCloseTo(3.41, 10);
     expect(captureSeconds("compact")).toBe(COMPACT_SECONDS);
     expect(COMPACT_SECONDS / FULL_SECONDS).toBeLessThan(0.65);
   });
@@ -45,13 +59,13 @@ describe("the compact capture", () => {
     // The whole design is these seven numbers; a change to any of them is a
     // change to the pacing and should fail here rather than be noticed.
     expect(shotTimeFor("compact", 0)).toBeCloseTo(CAPTURE_START, 10);
-    expect(shotTimeFor("compact", 0.45)).toBeCloseTo(CORE_IN, 10);
-    expect(shotTimeFor("compact", 0.85)).toBeCloseTo(WHITE_PEAK, 10);
-    expect(shotTimeFor("compact", 0.99)).toBeCloseTo(RELEASE_AT, 10);
-    expect(shotTimeFor("compact", 1.64)).toBeCloseTo(BREAKOUT_OUT, 10);
-    expect(shotTimeFor("compact", 2.09)).toBeCloseTo(PAGE_IN + RELEASE_DELAY, 10);
-    expect(shotTimeFor("compact", 2.74)).toBeCloseTo(PAGE_FULL + RELEASE_DELAY, 10);
-    expect(shotTimeFor("compact", 3.36)).toBeCloseTo(SHOT_END, 10);
+    expect(shotTimeFor("compact", 0.50)).toBeCloseTo(CORE_IN, 10);
+    expect(shotTimeFor("compact", 0.90)).toBeCloseTo(WHITE_PEAK, 10);
+    expect(shotTimeFor("compact", 1.04)).toBeCloseTo(RELEASE_AT, 10);
+    expect(shotTimeFor("compact", 1.69)).toBeCloseTo(BREAKOUT_OUT, 10);
+    expect(shotTimeFor("compact", 2.14)).toBeCloseTo(PAGE_IN + RELEASE_DELAY, 10);
+    expect(shotTimeFor("compact", 2.79)).toBeCloseTo(PAGE_FULL + RELEASE_DELAY, 10);
+    expect(shotTimeFor("compact", 3.41)).toBeCloseTo(SHOT_END, 10);
   });
 
   it("protects the whole hero passage and compresses the aftermath hardest", () => {
@@ -61,7 +75,7 @@ describe("the compact capture", () => {
     expect(shotRateAt("compact", 1.3)).toBeCloseTo(1.375, 2); // white heat
     expect(shotRateAt("compact", 1.75)).toBeCloseTo(1.286, 2); // hold
     expect(shotRateAt("compact", 2.2)).toBeCloseTo(1.077, 2); // breakout
-    expect(shotRateAt("compact", 0.7)).toBeCloseTo(1.667, 2); // spiral
+    expect(shotRateAt("compact", 0.7)).toBeCloseTo(1.5, 2); // spiral
     expect(shotRateAt("compact", 2.8)).toBeCloseTo(1.667, 2); // passage
     expect(shotRateAt("compact", 3.6)).toBeCloseTo(1.385, 2); // resolution
     expect(shotRateAt("compact", 5.0)).toBeCloseTo(2.258, 2); // remnant
@@ -84,7 +98,7 @@ describe("the compact capture", () => {
     expect(hold).toBeLessThan(heat);
     expect(heat).toBeLessThan(resolution);
     expect(resolution).toBeLessThan(spiral);
-    expect(spiral).toBeCloseTo(passage, 10);
+    expect(spiral).toBeLessThan(passage);
     expect(Math.max(...all)).toBe(remnant);
   });
 

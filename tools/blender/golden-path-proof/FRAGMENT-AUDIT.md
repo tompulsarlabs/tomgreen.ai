@@ -1,4 +1,72 @@
-# Where the fragments are, and what it costs to remove them
+# Fragment removal: recovery on 5 September 2026
+
+The original audit below correctly located the shards in the baked event. It did
+**not** deliver their removal: the production MP4/WebM assets on `35ddd50` still
+contained them. Behavioural tests did not check those video pixels.
+
+The recovery uses Blender 4.2.23, the original gas seeds, resolution, camera,
+and remaining lights. The missing volume cache and scene have been
+rebuilt on the local Mac, and Metal rendering is working. Both the hero fragments
+and solid foreground motes are excluded; the first proof without hero fragments
+showed that the motes still read as small chips at display size.
+
+The prepared switch also left the fragment-only `frag_key` light enabled with
+an empty receiver collection. Blender 4.2's `EmitterSetMembership::get_mask()`
+treats that as lighting every receiver ([Blender source](https://github.com/blender/blender/blob/v4.2.23/source/blender/depsgraph/intern/depsgraph_light_linking.cc)), so deleting the objects inadvertently
+relit the gas and map. The clean scene explicitly disables that obsolete light;
+the renderer checks this before accepting the scene.
+
+There was also an incomplete rebuild recipe. `derive_plate.py --cache-tag` changed
+where it read coverage, but still consumed pre-existing `a_noreveal` / `bgmap`
+colour PNGs. The two scripts which produced those PNGs retained absolute paths
+to the previous container and the old `seq3` tag. The documented four commands
+neither rebuilt these inputs nor copied the encoded replacements into `public/`.
+
+The executable recovery path is now:
+
+```sh
+# From the repository root; requires bpy, numpy, scipy, Pillow, OIDN and ffmpeg.
+# Set BLENDER to use a standalone Blender executable instead of the bpy wheel.
+# GP_DEVICE=METAL uses an Apple GPU; CPU is the default.
+bash tools/golden-path-web/rebuild_clean_plate.sh seq5-clean
+```
+
+It builds the scene without any solid debris, renders through frame 103 (the
+extra far frame is used by temporal smoothing), requires zero solid coverage in
+all 70 event frames, rebuilds both colour composites, verifies their cache tag,
+derives the matched matte, encodes all three tiers in both codecs, and installs
+all six replacements. The existing paper reveal masters are preserved. A missing
+frame or stale source fails instead of silently producing an incomplete plate.
+
+The local standalone Mac run uses `GP_PYTHONPATH` for temporary Python dependencies
+and `GP_OIDN_LIBRARY` for Blender's bundled denoiser. Neither Blender nor those
+Python packages is required by the website build.
+
+**Asset replacement completed:** all six production plate files have been regenerated and
+replaced in `public/golden-path/`. All 70 event frames report **0.00% solid
+coverage**, versus the original 12.24% peak. Both codecs decode all 70 frames at
+every tier; hashes confirm all six plates changed and both paper files stayed
+identical. The matte's worst pre-encode recomposition error is 1/255.
+
+The browser loaded the new `?v=gas-only-v4` asset URL and completed a FULL Work
+capture, then a COMPACT capture into `/work/zalando`, with no page errors. The
+recorded frames show gas without the old shards or solid chips. The clicked
+planet's approach now lasts 0.84 seconds in FULL (previously 0.75) and 0.50 in
+COMPACT (previously 0.45); later beats retain their previous pace.
+
+Evidence is in [`review-vfx/fragment-removal/`](../../../review-vfx/fragment-removal/):
+the complete solid-coverage log, source/settings and video hashes in
+`validation.json`, browser results, and the actual browser recording. This
+records the local verification before release; deployment status is tracked in
+[PR #16](https://github.com/tompulsarlabs/tomgreen.ai/pull/16) and its Vercel checks.
+
+Validation passed: unit tests, lint, type checking, the production webpack
+build, and all six capture-engine browser tests after asset replacement. The
+production bundle also passes the check excluding the review-clock hook.
+
+---
+
+## Original audit (4 September; historical findings and blockers)
 
 The ruling: remove the fragment system entirely, and *"audit the baked VFX plate
 too. If the current baked plate contains rendered fragments, simply disabling the

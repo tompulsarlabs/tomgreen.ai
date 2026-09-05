@@ -14,17 +14,33 @@
 # all. VP9 costs those browsers nothing extra: exactly one master is fetched, chosen by
 # canPlayType in golden-path-assets.ts.
 #
-# Usage: encode_plates.sh [SRC] [OUT]
+# Usage: encode_plates.sh [SRC] [OUT] [--plates-only]
+# --plates-only preserves the existing paper transition when replacing only the gas.
 #   SRC  the working directory derive_plate.py wrote, holding rgb/, matte/ and paper/
 #        (default: tools/golden-path-web/plate, beside this script)
 #   OUT  where the masters land (default: SRC/web). Copy them into public/golden-path/.
-set -e
+set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 SRC=${1:-$HERE/plate}
 OUT=${2:-$SRC/web}
 mkdir -p "$OUT"
-FIRST=$(ls $SRC/rgb | head -1 | sed 's/f0*\([0-9]*\)\.png/\1/')
-PAPER_FIRST=$(ls $SRC/paper | head -1 | sed 's/f0*\([0-9]*\)\.png/\1/')
+RANGE=$(python3 - "$SRC" <<'PY'
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+source = json.loads((root / 'plate-source.json').read_text())
+first, last = source['frames']
+count = last - first + 1
+if source['frame_count'] != count:
+    raise SystemExit('Incomplete derived plate')
+for folder in ('rgb', 'matte'):
+    for frame in range(first, last + 1):
+        if not (root / folder / f'f{frame:04d}.png').is_file():
+            raise SystemExit(f'Missing {folder} frame {frame}')
+print(first, count)
+PY
+)
+read -r FIRST COUNT <<< "$RANGE"
 
 stack () {   # name  width  height  crf  vp9crf
   local name=$1 w=$2 h=$3 crf=$4 vcrf=$5
@@ -33,21 +49,23 @@ stack () {   # name  width  height  crf  vp9crf
     -framerate 30 -start_number $FIRST -i "$SRC/rgb/f%04d.png" \
     -framerate 30 -start_number $FIRST -i "$SRC/matte/f%04d.png" \
     -filter_complex "$chain" \
-    -map "[v]" -c:v libx264 -profile:v main -level 4.0 -preset slow -crf "$crf" \
+    -map "[v]" -frames:v "$COUNT" -c:v libx264 -profile:v main -level 4.0 -preset slow -crf "$crf" \
     -pix_fmt yuv420p -movflags +faststart -an "$OUT/$name.mp4"
   ffmpeg -y -hide_banner -loglevel error \
     -framerate 30 -start_number $FIRST -i "$SRC/rgb/f%04d.png" \
     -framerate 30 -start_number $FIRST -i "$SRC/matte/f%04d.png" \
     -filter_complex "$chain" \
-    -map "[v]" -c:v libvpx-vp9 -b:v 0 -crf "$vcrf" -row-mt 1 -deadline good -cpu-used 1 \
+    -map "[v]" -frames:v "$COUNT" -c:v libvpx-vp9 -b:v 0 -crf "$vcrf" -row-mt 1 -deadline good -cpu-used 1 \
     -pix_fmt yuv420p -an "$OUT/$name.webm"
   printf '%-30s %9s mp4  %9s webm  %sx%s\n' "$name" \
-    "$(stat -c %s "$OUT/$name.mp4")" "$(stat -c %s "$OUT/$name.webm")" "$w" "$((h*2))"
+    "$(wc -c < "$OUT/$name.mp4")" "$(wc -c < "$OUT/$name.webm")" "$w" "$((h*2))"
 }
 
 # The whiteout field. One channel, so it is written as luma and read as .r.
 paper () {
   local name=golden-path-paper
+  local PAPER_FIRST
+  PAPER_FIRST=$(ls "$SRC/paper" | head -1 | sed 's/f0*\([0-9]*\)\.png/\1/')
   ffmpeg -y -hide_banner -loglevel error \
     -framerate 30 -start_number $PAPER_FIRST -i "$SRC/paper/f%04d.png" \
     -vf "format=gray,format=yuv420p" \
@@ -59,10 +77,10 @@ paper () {
     -c:v libvpx-vp9 -b:v 0 -crf 26 -row-mt 1 -deadline good -cpu-used 1 \
     -pix_fmt yuv420p -an "$OUT/$name.webm"
   printf '%-30s %9s mp4  %9s webm\n' "$name" \
-    "$(stat -c %s "$OUT/$name.mp4")" "$(stat -c %s "$OUT/$name.webm")"
+    "$(wc -c < "$OUT/$name.mp4")" "$(wc -c < "$OUT/$name.webm")"
 }
 
 stack golden-path-plate-high   1440 900 20 30
 stack golden-path-plate-medium 1024 640 22 32
 stack golden-path-plate-low     720 448 24 34
-paper
+if [ "${3:-}" != "--plates-only" ]; then paper; fi

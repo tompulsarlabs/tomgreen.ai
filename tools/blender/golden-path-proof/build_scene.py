@@ -5,16 +5,15 @@ Simplified but correctly framed planetary map (membrane lattice, core,
 six Work bodies with nameplates, the Zalando capture), the approved
 camera script (40 degree vertical FOV, one push, one settle, still by
 3.60 s), the three depth-separated volume layers rebuilt from the solver
-atlases as Geometry Nodes grids, the animated hero fragments appended
-from fragments.blend, the near particulate motes, one coherent key
+atlases as Geometry Nodes grids, one coherent key
 light riding the hot core, and the view layers render_review.py uses.
 
 Output: review-vfx/golden-path-asset-proof/blend/golden-path-proof.blend
 
-GP_NO_FRAGMENTS=1 builds the same scene without the hero fragments: they are
-never appended, and the event view layer never contains them. Everything else
-- the solved volumes, the camera, the lights, the motes, the map - is bit for
-bit the approved V3 scene. This is the supported way to a fragment-free plate;
+Hero fragments are no longer part of this scene. They are never appended,
+and the event view layer never contains them. Solid foreground motes are also
+excluded: at display size they read as small chips. The solved gas volumes,
+camera, lights and map retain the existing V3 settings. This is the path to a clean plate;
 see FRAGMENT-AUDIT.md for why it cannot be done in the compositor instead.
 """
 import json
@@ -30,9 +29,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common as C  # noqa: E402
 
 VOL_DIR = os.path.join(C.CACHE_DIR, "volume")
-# Build the scene with no hero fragments at all, so the event layer traces the
-# gas that used to be behind them. The look is otherwise untouched.
-FRAGMENT_FREE = os.environ.get("GP_NO_FRAGMENTS", "") not in ("", "0")
 LATTICE_PNG = os.path.join(C.CACHE_DIR, "lattice.png")
 LATTICE_RES = 4096
 
@@ -803,6 +799,11 @@ def build_lights(meta, coll, bodies, cam):
     K2.color = tuple(float(x) for x in C.srgb_to_linear(C.blackbody(11000)))
     K2.use_shadow = True
     fkey = bpy.data.objects.new("frag_key", K2)
+    # An EMPTY receiver collection means "light everything" in Blender 4.2
+    # (EmitterSetMembership::get_mask), not "light nothing". The fragment-only
+    # light must be disabled when its receivers are removed, or it relights
+    # the gas and map. Keep its name for historical --tune compatibility.
+    fkey.hide_render = True
     link(fkey, coll)
     fkey.parent = cam
     fkey.matrix_parent_inverse = Matrix.Identity(4)
@@ -909,17 +910,15 @@ def setup_render(scene, colls):
     # That is also why the hero fragments cannot be composited out afterwards -
     # they occlude the gas behind them, so the passes that exclude them
     # (Emit, VolumeDir, VolumeInd) carry fragment-shaped holes where the gas
-    # was never traced. FRAGMENT_FREE is the only clean way to a plate without
+    # was never traced. Removing the geometry is the clean way to a plate without
     # them: leave them out of the layer and trace the gas that was behind them.
-    event_keep = {"far", "mid", "near", "motes", "lights"}
-    if not FRAGMENT_FREE:
-        event_keep.add("fragments")
+    event_keep = {"far", "mid", "near", "lights"}
     layers = {
         "map": {"map", "lights"},
         "event": event_keep,
         "far": {"far", "lights"},
         "mid": {"mid", "lights"},
-        "near": {"near", "motes", "lights"},
+        "near": {"near", "lights"},
         "fragments": {"fragments", "lights"},
     }
     base = scene.view_layers[0]
@@ -939,9 +938,9 @@ def setup_render(scene, colls):
 
 
 def main():
-    bpy.context.preferences.filepaths.save_version = 0   # no .blend1 backups in the review folder
     C.ensure_dirs()
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.context.preferences.filepaths.save_version = 0   # factory settings reset this preference
     scene = bpy.context.scene
     with open(os.path.join(VOL_DIR, "meta.json")) as fh:
         meta = json.load(fh)
@@ -954,16 +953,11 @@ def main():
     build_gold_stream(colls["map"])
     vols, imgs = build_volumes(meta, colls, cam)
     key, sun, fill, rim, fkey = build_lights(meta, colls["lights"], bodies, cam)
-    build_motes(colls["motes"], cam)
-    # hero fragments from the library file
-    if not FRAGMENT_FREE:
-        frag_blend = os.path.join(C.BLEND_DIR, "fragments.blend")
-        with bpy.data.libraries.load(frag_blend, link=False) as (src, dst):
-            dst.collections = [c for c in src.collections if c == "hero_fragments"]
-        hero = dst.collections[0]
-        for ob in list(hero.objects):
-            link(ob, colls["fragments"])
-        bpy.data.collections.remove(hero)
+    # No solid foreground particles: they read as chips in the actual plate.
+    # The empty historical collection keeps isolated-pass tooling compatible;
+    # no fragment library or geometry is loaded, including on a default build.
+    scene["fragment_free"] = True
+    scene["solid_particle_free"] = True
     # the cold fill reaches the solids only (fragments, core, motes); the gas is lit by the key alone
     fc = bpy.data.collections.new("fill_receivers")
     for ob in list(colls["fragments"].objects) + list(colls["motes"].objects) + [bpy.data.objects["core"]]:

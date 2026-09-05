@@ -221,18 +221,18 @@ describe("which speed the capture plays at", () => {
       tier: "high",
       mode: "compact",
     });
-    // Half a second in, a compact capture is already past the detonation that
-    // a full one does not reach until 0.75 s.
+    // Half a second in, a compact capture reaches the core that
+    // a full one does not reach until 0.84 s.
     vi.advanceTimersByTime(500);
     const compactAt500 = store.goldenShotTime();
-    expect(compactAt500).toBeGreaterThan(1.1);
+    expect(compactAt500).toBeCloseTo(1.1, 10);
 
     store.finishGoldenPath();
     store.endPlanetarySession();
     arm();
     vi.advanceTimersByTime(500);
     expect(store.goldenShotTime()).toBeLessThan(compactAt500);
-    expect(store.goldenShotTime()).toBeCloseTo(0.85, 2);
+    expect(store.goldenShotTime()).toBeCloseTo(0.35 + 0.5 * 0.75 / 0.84, 10);
   });
 
   it("sizes its own watchdog, so a compact shot is not pinned for the full one's length", () => {
@@ -245,9 +245,9 @@ describe("which speed the capture plays at", () => {
     });
     // A stalled compact capture must not leave the camera pinned and the map
     // at a sixth of its brightness for the full capture's duration. The
-    // compact edit runs 3.36 s and the watchdog allows 0.9 s beyond it; the
+    // compact edit runs 3.41 s and the watchdog allows 0.9 s beyond it; the
     // full one would still have well over a second and a half to go here.
-    vi.advanceTimersByTime(4.3 * 1000);
+    vi.advanceTimersByTime(4.32 * 1000);
     expect(store.goldenIsRunning()).toBe(false);
   });
 

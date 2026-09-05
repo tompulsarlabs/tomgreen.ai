@@ -22,3 +22,17 @@ npm run dev
 
 The site is deployed on Vercel. External-data failures fall back to static
 content.
+
+## Planetary capture assets
+
+The current gas effect contains no solid fragments or foreground chips. Its
+six production videos live in `public/golden-path/`; the clicked-planet approach
+takes 0.84 seconds in the full capture and 0.50 seconds in the compact capture.
+
+The [fragment-removal audit](tools/blender/golden-path-proof/FRAGMENT-AUDIT.md)
+documents the complete rebuild command and the stale-input checks. The
+[latest browser recording and validation](review-vfx/fragment-removal/) cover
+the clean assets; earlier VFX review folders retain historical iterations.
+
+Production releases merge through GitHub into `main`, which Vercel deploys to
+[tomgreen.ai](https://tomgreen.ai).

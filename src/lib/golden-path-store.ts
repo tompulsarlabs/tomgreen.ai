@@ -145,9 +145,8 @@ export function goldenShotTime(): number {
   if (state.phase === "idle") return 0;
   if (state.phase === "done" || state.phase === "aborted") return SHOT_END;
   const elapsed = (performance.now() - state.originMs) / 1000;
-  // The mode decides how elapsed seconds map onto the shot: FULL is the
-  // identity and COMPACT compresses the anticipation and the aftermath while
-  // very nearly preserving the breakout.
+  // The mode maps elapsed seconds onto the shot. FULL slightly stretches the
+  // approach; COMPACT also compresses the aftermath while preserving the breakout.
   return shotTimeFor(state.mode, elapsed);
 }
 

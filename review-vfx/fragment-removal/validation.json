@@ -1,0 +1,167 @@
+{
+  "render_source": {
+    "inputs": {
+      "build_scene.py": "e88c738a6f9eb8e0cca30ecc2ef929a825b2a16226a2488aebe71a84d2702325",
+      "build_volume.py": "a3963f5116bb1d67bedefb2946cb0ccf1fc7cb1090fc657d8d0a9e9d4eae2eb6",
+      "common.py": "5aca65f911d0a2ca4b08dd26621a0216198937ae290014de147c7939701875c0",
+      "meta.json": "6ef659c904bf8bc1821b678fe830718ce68ae5ebe5b6d346a67cd5655077c12a"
+    },
+    "settings": {
+      "seq3": true,
+      "stills": false,
+      "scale": 1.0,
+      "iso_full": false,
+      "samples": 16,
+      "still_samples": 48,
+      "volume_bounces": 1,
+      "step_rate": 1.0,
+      "tune": "",
+      "border": null,
+      "device": "METAL"
+    },
+    "sequence": {
+      "event_spp_out": 8,
+      "event_spp_in": 8,
+      "aux_spp": 4,
+      "aux_scale": 0.5,
+      "residual_spp": 4,
+      "residual_scale": 0.5,
+      "in_grid": 0.6,
+      "in_max_steps": 256,
+      "out_max_steps": 512,
+      "map_spp": 16,
+      "step_rate": 2.0,
+      "bounces": 0,
+      "split_always": true
+    },
+    "blender": "4.2.23 LTS"
+  },
+  "derived_plate": {
+    "cache_tag": "seq5-clean",
+    "frames": [
+      33,
+      102
+    ],
+    "frame_count": 70,
+    "recomposition_error": 0.003921568393707275
+  },
+  "solid_coverage": {
+    "event_frames": 70,
+    "peak_percent": 0,
+    "mean_percent": 0
+  },
+  "assets": {
+    "golden-path-paper.mp4": {
+      "before": {
+        "bytes": 259982,
+        "sha256": "cf8a71e48f7e4476703c37561ed6780bd66a4830b0de3af8c2c0571c7f3fde84"
+      },
+      "after": {
+        "bytes": 259982,
+        "sha256": "cf8a71e48f7e4476703c37561ed6780bd66a4830b0de3af8c2c0571c7f3fde84"
+      },
+      "changed": false
+    },
+    "golden-path-paper.webm": {
+      "before": {
+        "bytes": 62950,
+        "sha256": "357549e8321053a614c3bfdbac3a46054ba0aef53866f85a96f02567bcbe77ea"
+      },
+      "after": {
+        "bytes": 62950,
+        "sha256": "357549e8321053a614c3bfdbac3a46054ba0aef53866f85a96f02567bcbe77ea"
+      },
+      "changed": false
+    },
+    "golden-path-plate-high.mp4": {
+      "before": {
+        "bytes": 2208834,
+        "sha256": "ad07457de2173f518c9daea91a992dd6d8ef155804db9b24a9c71108e439269f"
+      },
+      "after": {
+        "bytes": 1802008,
+        "sha256": "7255a09f8da377d9830e17f2460c478b9866d016fbbce69e91c9290d0d64dee9",
+        "frames": 70,
+        "width": 1440,
+        "height": 1800,
+        "stream": "Stream #0:0[0x1](und): Video: h264 (Main) (avc1 / 0x31637661), yuv420p(progressive), 1440x1800, 6173 kb/s, 30 fps, 30 tbr, 15360 tbn (default)"
+      },
+      "changed": true
+    },
+    "golden-path-plate-high.webm": {
+      "before": {
+        "bytes": 1138877,
+        "sha256": "e26fe1fbe9f47e0ee24d606877e83fc26b99fa35cf4370875b286f03e5d5aff3"
+      },
+      "after": {
+        "bytes": 716799,
+        "sha256": "89b881d4a348b941c5b462f48b0226aa3efdfe5927310e0eedca502617330a02",
+        "frames": 70,
+        "width": 1440,
+        "height": 1800,
+        "stream": "Stream #0:0: Video: vp9 (Profile 0), yuv420p(tv, progressive), 1440x1800, SAR 1:1 DAR 4:5, 30 fps, 30 tbr, 1k tbn"
+      },
+      "changed": true
+    },
+    "golden-path-plate-low.mp4": {
+      "before": {
+        "bytes": 429789,
+        "sha256": "ca07064b53e9170b28f867d35626a726774097bb8138203ef675d05a417e9112"
+      },
+      "after": {
+        "bytes": 376481,
+        "sha256": "88ec98128ba3252abc443efc424defd6554b296b0295d801b85bfb4e0f82ce70",
+        "frames": 70,
+        "width": 720,
+        "height": 896,
+        "stream": "Stream #0:0[0x1](und): Video: h264 (Main) (avc1 / 0x31637661), yuv420p(progressive), 720x896, 1284 kb/s, 30 fps, 30 tbr, 15360 tbn (default)"
+      },
+      "changed": true
+    },
+    "golden-path-plate-low.webm": {
+      "before": {
+        "bytes": 344579,
+        "sha256": "f066be441b0c062babd5fb65e51680b91631d1a16a148bbfdcb570345aa6096d"
+      },
+      "after": {
+        "bytes": 251645,
+        "sha256": "bce3cd29ce86c28d9cc484e61112ce7d3176f94ff4ffca5ecbc7832baff1fe75",
+        "frames": 70,
+        "width": 720,
+        "height": 896,
+        "stream": "Stream #0:0: Video: vp9 (Profile 0), yuv420p(tv, progressive), 720x896, SAR 1:1 DAR 45:56, 30 fps, 30 tbr, 1k tbn"
+      },
+      "changed": true
+    },
+    "golden-path-plate-medium.mp4": {
+      "before": {
+        "bytes": 955338,
+        "sha256": "eb6d4f45b894989828bf88cdae10b0ee29ab43253664e7885b96308a84a227fa"
+      },
+      "after": {
+        "bytes": 847133,
+        "sha256": "96d88d4e7a25b9fb34f9575e028d2dfe94add4866bfebc1e8cc3dd45994f1281",
+        "frames": 70,
+        "width": 1024,
+        "height": 1280,
+        "stream": "Stream #0:0[0x1](und): Video: h264 (Main) (avc1 / 0x31637661), yuv420p(progressive), 1024x1280, 2898 kb/s, 30 fps, 30 tbr, 15360 tbn (default)"
+      },
+      "changed": true
+    },
+    "golden-path-plate-medium.webm": {
+      "before": {
+        "bytes": 587792,
+        "sha256": "8c64cb0b31d8f23a4dade3adc90005b2087fb8f6be2b84bebd3b38f08ed45b74"
+      },
+      "after": {
+        "bytes": 416819,
+        "sha256": "5f8ac1dac1214b7c8481796b58c10829d478cee0ca2adf5dfe90ff29ff9b6879",
+        "frames": 70,
+        "width": 1024,
+        "height": 1280,
+        "stream": "Stream #0:0: Video: vp9 (Profile 0), yuv420p(tv, progressive), 1024x1280, SAR 1:1 DAR 4:5, 30 fps, 30 tbr, 1k tbn"
+      },
+      "changed": true
+    }
+  }
+}

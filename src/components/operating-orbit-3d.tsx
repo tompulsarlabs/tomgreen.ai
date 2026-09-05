@@ -27,7 +27,8 @@ import {
   smoothstep,
 } from "@/lib/golden-path";
 import { captureReleaseAt } from "@/lib/capture-release";
-import { coreHandover } from "@/lib/capture-core";
+import { CORE_IN, coreHandover } from "@/lib/capture-core";
+import { CAPTURE_APPROACH_SECONDS } from "@/lib/capture-timing";
 import {
   goldenIsBody,
   goldenIsRunning,
@@ -113,12 +114,9 @@ const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
  */
 const MAX_CONTACT_BODIES = 10;
 
-/** How long a clicked planet takes to spiral into the core. */
-const CAPTURE_SECONDS = 0.75;
+/** Duration on the canonical shot clock; capture-timing sets the wall time. */
+const CAPTURE_SECONDS = CORE_IN - GOLDEN_CAPTURE_START;
 
-/** Fragment assembly: how long the system takes to draw itself together
- *  out of scattered pieces when it first appears, or when one section's
- *  system replaces another. */
 /** Travel, in px, before an armed press becomes a camera drag. */
 /**
  * A press becomes a drag only after this much travel. Five pixels was
@@ -1248,7 +1246,7 @@ function OrbitScene({
         // keeps the integrator exactly as it was.
         c.progress = goldenIsBody(c.id)
           ? clampUnit((goldenShotTime() - GOLDEN_CAPTURE_START) / CAPTURE_SECONDS)
-          : Math.min(1, c.progress + dt / CAPTURE_SECONDS);
+          : Math.min(1, c.progress + dt / CAPTURE_APPROACH_SECONDS);
         if (c.progress >= 1 && !c.navigated) {
           c.navigated = true;
           const handler = onCaptureRef.current;

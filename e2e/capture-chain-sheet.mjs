@@ -68,7 +68,7 @@ const LEAF_END = [
  *
  * Both speeds play the identical range of shot time, so photographing COMPACT
  * at the same shot seconds as FULL would produce the same ten pictures. What
- * differs is the warp - where the compact edit spends its 3.36 s - so these
+ * differs is the warp - where the compact edit spends its 3.41 s - so these
  * are eight evenly spaced instants of a compact capture as a visitor
  * experiences it, and the shot time each one lands on is asked of the page.
  */

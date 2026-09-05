@@ -1,0 +1,30 @@
+{
+  "initial": {
+    "started": true,
+    "tier": "high",
+    "ready": true,
+    "plate": {
+      "src": "http://127.0.0.1:3117/golden-path/golden-path-plate-high.mp4?v=gas-only-v4",
+      "readyState": 4,
+      "error": null
+    },
+    "paper": {
+      "src": "http://127.0.0.1:3117/golden-path/golden-path-paper.mp4",
+      "readyState": 4,
+      "error": null
+    }
+  },
+  "marks": [
+    {
+      "event": "FULL Work capture",
+      "at": 1.398
+    },
+    {
+      "event": "COMPACT internal leaf",
+      "at": 7.671
+    }
+  ],
+  "errors": [],
+  "path": "http://127.0.0.1:3117/work/zalando",
+  "h1": "ZALANDO"
+}
