@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
 import { clampUnit, homeMotionAt } from "@/lib/home-motion";
 import { openingAlreadyPlayed, skipOpening } from "@/lib/opening-sequence";
@@ -13,20 +13,29 @@ const HOLD_MS = 600;
  * Home's opening — the three statements resolving on their own clock,
  * no scroll required. The sequence plays once on arrival (any click,
  * key, wheel or focus skips it), then the stage yields to the
- * portfolio beneath. Reduced-motion, no-JS and small viewports
+ * portfolio beneath. Reduced-motion, no-JS, touch and small viewports
  * render the statements as a resolved document instead, with the portfolio
  * following in flow.
  */
 export function HomeResolve() {
   const sectionRef = useRef<HTMLElement>(null);
+  const [timed, setTimed] = useState(false);
+
+  useEffect(() => {
+    // Match the CSS stage: rotating a touch device must not turn its
+    // document into a desktop overlay with no running animation.
+    const media = window.matchMedia(
+      "(min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+    );
+    const update = () => setTimed(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;
-    if (!section) return;
-    const timed =
-      window.matchMedia("(prefers-reduced-motion: no-preference)").matches &&
-      window.matchMedia("(min-width: 769px)").matches;
-    if (!timed) return;
+    if (!section || !timed) return;
 
     // The sequence is a first-arrival moment, and the doors home decide
     // whether this counts as one: Home marks it seen before it leaves,
@@ -86,6 +95,7 @@ export function HomeResolve() {
       finish();
       return () => {
         section.classList.remove("is-done");
+        section.removeAttribute("style");
       };
     }
 
@@ -125,8 +135,9 @@ export function HomeResolve() {
       window.removeEventListener("keydown", skip);
       document.removeEventListener("focusin", onFocusIn);
       section.classList.remove("is-done");
+      section.removeAttribute("style");
     };
-  }, []);
+  }, [timed]);
 
   return (
     <section ref={sectionRef} className="home-resolve" aria-labelledby="home-title">
@@ -140,9 +151,9 @@ export function HomeResolve() {
               and a document gets one h1. The sr-only sentence and the
               section's aria-labelledby are untouched. */}
           <p id="home-title" className="axis-display constraint-line">
-            <span className="sr-only">Subtract. Then add.</span>
+            <span className="sr-only">Subtract then add.</span>
             <span className="line-mask desktop-constraint" aria-hidden="true">
-              <span><span>Subtract.</span></span><span><span>Then add.</span></span>
+              <span><span>Subtract</span></span><span><span>then add.</span></span>
             </span>
           </p>
           <p className="axis-display system-line" aria-label="Design the system.">

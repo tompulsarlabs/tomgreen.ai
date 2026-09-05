@@ -53,8 +53,11 @@ labels. Display weight never animates.
 
 ## Route rules
 
-- Home: “Subtract. Then add.”, “Design the system.”, “Make talent the engine for growth.”
-  open the page; timed above 768px and static on smaller screens or with reduced motion.
+- Home: “Subtract then add.”, “Design the system.”, “Make talent the engine for growth.”
+  open the page; timed above 768px with a fine hover pointer, and static on touch devices,
+  smaller screens or with reduced motion. The mobile opening fills the available dynamic
+  viewport before the introduction begins. Type and spacing adapt to width and height;
+  short landscape screens use three columns. Enlarged text may extend the opening naturally.
   “Building in Founder Mode” sits opposite the executive introduction, then
   “Weighed by opportunity cost.” with the concrete teams/model/agents claim beneath it.
 - Work: six full-row links; hover and focus both resolve `92→100`.
