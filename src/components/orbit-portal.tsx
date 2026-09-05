@@ -30,7 +30,6 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { OperatingOrbit } from "@/components/operating-orbit";
 import { displayLabel, navOrbitElements } from "@/lib/orbit-nav";
 import { onOrbitPortalOpen } from "@/lib/orbit-portal-bus";
-import { rememberPlanetaryDiscovery } from "@/lib/planetary-discovery";
 import { mapBodies, worldById } from "@/lib/orbit-worlds";
 import { captureEndingFor, planetsById } from "@/lib/planet-model";
 import type { Flare } from "@/components/orbit-flare";
@@ -90,9 +89,6 @@ export function OrbitPortal() {
   const router = useRouter();
   const goldenFrame = useRef(0);
   const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (open) rememberPlanetaryDiscovery();
-  }, [open]);
   const [view, setView] = useState<View>({ kind: "map" });
   const [flare, setFlare] = useState<Flare | null>(null);
   const [leaving, setLeaving] = useState(false);

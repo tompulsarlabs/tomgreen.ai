@@ -1,6 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { activatePlanetaryMap } from "./helpers/planetary-navigation";
 
 // /work is a permanent redirect to "/" now — the operating record moved
 // to the home route — so the page itself is audited as "/".
@@ -182,7 +181,7 @@ test("the island is docked to the top right", async ({ page }) => {
   expectWithin(moon.x + moon.width, island.x + island.width, 1);
 });
 
-test("the menu reveals the Moon and the Moon opens the map", async ({ page }) => {
+test("the Moon is the way into the map, not a way home", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/building");
@@ -191,12 +190,11 @@ test("the menu reveals the Moon and the Moon opens the map", async ({ page }) =>
   // It used to be a link home. It is a control now, and it says so: no
   // href, and a label that names what it actually does.
   const moon = page.locator("button.sphere-home");
-  await expect(moon).toHaveAttribute("aria-label", "Open navigation");
+  await expect(moon).toHaveAttribute("aria-label", "Open the planetary map");
   await expect(moon).not.toHaveAttribute("href", /.*/);
 
-  // The first activation reveals navigation and the Moon.
-  await moon.click();
-  await expect(moon).toHaveAttribute("aria-label", "Open the planetary map");
+  // Hover reveals the row; the click means the map, not travel.
+  await moon.hover();
   await settleIsland(page);
   await moon.click();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
@@ -210,8 +208,9 @@ test("the open island names the way home in words", async ({ page }) => {
   await page.goto("/building");
   await waitForFonts(page);
 
-  // The navigation names each destination explicitly.
-  await page.locator("button.sphere-home").click();
+  // The Moon is a picture of home; not everyone reads it as one. The
+  // open island says it, and leads the row it opens with.
+  await page.locator("button.sphere-home").hover();
   await settleIsland(page);
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   const home = nav.getByRole("link", { name: "Home", exact: true });
@@ -257,7 +256,7 @@ test("a second touch tap on the open island opens the map", async ({ browser }) 
   await context.close();
 });
 
-test("a fresh visit starts with two menu lines in a bare 44px target", async ({ page }) => {
+test("collapsed, the sphere is the only visible navigation object", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/building");
@@ -266,7 +265,7 @@ test("a fresh visit starts with two menu lines in a bare 44px target", async ({ 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
 
-  // Nothing behind the menu: no ground, no rim, no elevation on the
+  // Nothing behind the sphere: no ground, no rim, no elevation on the
   // frame, and the navigation surface has no width and no opacity.
   const resting = await island.evaluate((element) => {
     const frame = getComputedStyle(element);
@@ -286,9 +285,8 @@ test("a fresh visit starts with two menu lines in a bare 44px target", async ({ 
   // scaleX(0) — the surface has not grown at all.
   expect(resting.surfaceTransform).toMatch(/matrix\(0,/);
 
-  // The Moon is prewarmed at the same anchor, behind the menu strokes.
-  await expect(island.locator(".sphere-stage")).toHaveCSS("opacity", "0");
-  await expect(island.locator(".menu-lines > span").first()).toHaveCSS("opacity", "1");
+  // The sphere is real WebGL, and its hit area is a bare 44x44 centred
+  // on it rather than the whole width the open menu will occupy.
   const canvas = island.locator(".sphere-stage canvas");
   await expect(canvas).toBeVisible();
   const button = island.locator("button.sphere-home");
@@ -314,7 +312,7 @@ test("empty space beside the sphere does not open the navigation", async ({ page
   await expect(island).toHaveAttribute("data-expanded", "false");
 });
 
-test("the navigation grows from the menu and restores the lines when the pointer leaves", async ({ page }) => {
+test("the navigation grows from the sphere and returns when the pointer leaves", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/building");
@@ -324,7 +322,7 @@ test("the navigation grows from the menu and restores the lines when the pointer
   const button = island.locator("button.sphere-home");
   const sphereBefore = (await button.boundingBox())!;
 
-  await button.click();
+  await button.hover();
   await expect(island).toHaveAttribute("data-expanded", "true");
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await settleIsland(page);
@@ -349,14 +347,13 @@ test("the navigation grows from the menu and restores the lines when the pointer
   await page.mouse.move(720, 600);
   await expect(island).toHaveAttribute("data-expanded", "false");
   await settleIsland(page);
-  // Until the planets are discovered, closing restores the invitation.
-  await expect(island.locator(".sphere-stage")).toHaveCSS("opacity", "0");
-  await expect(island.locator(".menu-lines > span").first()).toHaveCSS("opacity", "1");
-  await button.click();
+  // The sphere never disappears — it can always be reached again.
+  await expect(island.locator(".sphere-stage canvas")).toBeVisible();
+  await button.hover();
   await expect(island).toHaveAttribute("data-expanded", "true");
 });
 
-test("keyboard activation opens the island and Escape closes it", async ({ page }) => {
+test("keyboard focus opens the island and leaving it closes again", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/building");
@@ -364,10 +361,8 @@ test("keyboard activation opens the island and Escape closes it", async ({ page 
 
   const island = page.locator(".nav-island");
   await page.keyboard.press("Tab"); // skip link
-  await page.keyboard.press("Tab"); // the menu
+  await page.keyboard.press("Tab"); // the Moon
   await expect(island.locator("button.sphere-home")).toBeFocused();
-  await expect(island).toHaveAttribute("data-expanded", "false");
-  await page.keyboard.press("Enter");
   await expect(island).toHaveAttribute("data-expanded", "true");
 
   // Every navigation link is reachable once open.
@@ -399,7 +394,7 @@ test("a touch tap opens the island instead of navigating, and tapping away close
 
   await page.locator("body").tap({ position: { x: 40, y: 600 } });
   await expect(island).toHaveAttribute("data-expanded", "false");
-  await expect(island.locator(".sphere-stage")).toHaveCSS("opacity", "0");
+  await expect(island.locator(".sphere-stage canvas")).toBeVisible();
   await context.close();
 });
 
@@ -898,7 +893,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
   await gotoReduced(page, "/building");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.locator(".menu-lines > span").first()).toHaveCSS("opacity", "1");
+  await expect(page.locator(".sphere-stage canvas")).toBeVisible();
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
 });
 
@@ -916,7 +911,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
 
 /** Open the portal from whatever page is loaded, and wait for the map. */
 async function openPortal(page: Page) {
-  await activatePlanetaryMap(page);
+  await page.locator(".sphere-home").click();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
   await expect(page.locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas')).toBeVisible({
     timeout: 45_000,
@@ -994,7 +989,7 @@ test("the moon opens the map and navigates nowhere", async ({ page }) => {
   await page.goto("/building");
   await waitForFonts(page);
 
-  // It is a button, not a link: there is no
+  // One object, one meaning. It is a button, not a link: there is no
   // href for a crawler or a middle-click to follow, because it does not
   // go anywhere — it opens the world.
   const moon = page.locator(".sphere-home");
@@ -1004,9 +999,7 @@ test("the moon opens the map and navigates nowhere", async ({ page }) => {
   await expect(page.locator("a.sphere-home")).toHaveCount(0);
   await expect(page.locator(".sphere-stage canvas")).toBeVisible();
 
-  // Opening navigation alone does not open the world or navigate.
-  await expect(page.locator(".orbit-portal")).toHaveCount(0);
-  await moon.click();
+  // Nothing is open until it is clicked, and clicking it does not travel.
   await expect(page.locator(".orbit-portal")).toHaveCount(0);
   await moon.click();
   await expect(page.locator(".orbit-portal")).toBeVisible();
@@ -1308,7 +1301,7 @@ test("the portal steps back one level at a time, then closes", async ({ page }) 
 
 test("the map is reachable under reduced motion, as its poster", async ({ page }) => {
   await gotoReduced(page, "/building");
-  await activatePlanetaryMap(page);
+  await page.locator(".sphere-home").click();
   const portal = page.locator(".orbit-portal");
   await expect(portal).toBeVisible();
   // No WebGL scene under reduced motion — the composed poster instead,
@@ -1510,7 +1503,7 @@ test("Voices stays invisible until someone has actually spoken", async ({ page }
   // No planet for it in the hidden world either.
   await expect(page.locator('a[href="/voices"]')).toHaveCount(0);
   const island = page.locator(".nav-island");
-  await island.locator(".sphere-home").click();
+  await island.hover();
   await expect(island.getByRole("link", { name: "Voices" })).toHaveCount(0);
   // A real sibling is still there, so the absence above is Voices being
   // gated rather than the row failing to open.

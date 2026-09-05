@@ -1,5 +1,4 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { activatePlanetaryMap } from "./helpers/planetary-navigation";
 
 /**
  * The shared capture engine, judged on what it was commissioned to be.
@@ -21,7 +20,7 @@ async function openPortal(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
-  await activatePlanetaryMap(page);
+  await page.locator(".sphere-home").click();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
   await expect(
     page.locator('.orbit-portal .orbit-field[data-live="true"] .orbit-canvas'),
