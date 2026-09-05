@@ -3,21 +3,10 @@ export const site = {
   domain: "tomgreen.ai",
   location: "Berlin",
   email: "tom@tomgreen.ai",
-  /**
-   * The page's opening statement, and the claim the site is indexed and
-   * shared under: the home h1, the description, og:description,
-   * twitter:description and the JSON-LD in layout.tsx all read this one
-   * string, so what a visitor sees first and what a search result shows
-   * cannot drift apart.
-   */
+  headline: "Building in Founder Mode",
+  /** The concrete claim, also used for search and sharing. */
   positioning:
     "I build the teams, the operating model, and the agents to run it.",
-  /**
-   * The lead under the operating record's masthead: what the records
-   * add up to.
-   */
-  recordLead:
-    "Building organizations, talent systems, and operating models, in founder mode.",
   intro:
     "Executive talent leader and systems builder. I’ve built a 120-person AI organization in six months, led global talent teams, and redesigned Operations around agent workflows.",
   links: {

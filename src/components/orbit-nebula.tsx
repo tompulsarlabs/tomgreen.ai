@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Flare } from "@/components/orbit-flare";
 import { BURST_LIFE, lightCurve, thermal } from "@/lib/supernova";
-import { goldenBurstTime, goldenIsRunning, goldenMotionNow } from "@/lib/golden-path-store";
+import { goldenBurstTime, goldenIsRunning, goldenRenderTime, goldenShotTime, goldenTakesChildren } from "@/lib/golden-path-store";
+import { captureSkyOpacity } from "@/lib/capture-continuity";
 
 /**
  * Hubble's Veil Nebula behind the planetary map. The photograph supplies
@@ -95,6 +96,7 @@ export function OrbitNebula({
      the golden path scales what is written there, and an accumulator that
      reads back its own scaled value would ratchet itself down. */
   const fade = useRef(0);
+  const shotOpacity = useRef(1);
 
   const uniforms = useMemo(
     () => ({
@@ -167,12 +169,13 @@ export function OrbitNebula({
       : -1;
     const remount = flare && burst < BURST_LIFE;
     fade.current = remount ? 1 : Math.min(1, fade.current + (u.uImageReady.value ? delta * 0.55 : 0));
-    // The deep field recedes through the golden path exactly as it does in
-    // the render - the plate is difference-matted against that field, so
-    // wherever the matte is open the live sky has to be the sky the matte
-    // was cut from. The fade above stays the fade: this only scales it, so
-    // the shot borrows the field's opacity rather than taking it over.
-    u.uOpacity.value = fade.current * (goldenIsRunning() ? goldenMotionNow().nebulaOpacity : 1);
+    // The photographic sky joins the capture from rest and returns with
+    // the incoming system. The old 0.55 -> 1 handoff was a brightness cut.
+    // Interrupted captures also recover gently from their last value.
+    shotOpacity.current = goldenIsRunning()
+      ? captureSkyOpacity(goldenShotTime(), goldenRenderTime(), goldenTakesChildren())
+      : shotOpacity.current + (1 - shotOpacity.current) * (1 - Math.exp(-delta * 6));
+    u.uOpacity.value = fade.current * shotOpacity.current;
 
     // The echo runs on the burst's own wall clock, so the scene that
     // replaces this one at the descent draws the same ring in the same

@@ -47,15 +47,11 @@ export function WorkIndex() {
         <p className="record">Evidence / selected operating records</p>
         <div className="section-split-body">
           <h2 className="axis-display">Weighed by opportunity cost.</h2>
-          <p className="systems-lead">{site.recordLead}</p>
+          <p className="systems-lead">{site.positioning}</p>
         </div>
       </header>
 
       <section aria-label="Selected outcomes" className="work-metric-band">
-        <p className="max-w-2xl leading-relaxed text-ink-secondary">
-          Inspect the mandate, operating logic, judgment and evidence behind
-          every decision.
-        </p>
         <dl className="work-metric-rail">
           {[
             ["0 → 120", "AI organization / six months"],

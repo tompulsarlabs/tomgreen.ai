@@ -96,10 +96,10 @@ test("Home presents the complete Load-Bearing Type journey", async ({ page }) =>
   await gotoReduced(page, "/");
 
   // The opening statements are the page's epigraph, not its title: the
-  // h1 is the positioning claim underneath them.
+  // h1 is the short personal introduction underneath them.
   await expect(page.getByText("Identify the constraint. Then subtract.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building in Founder Mode",
   );
   await expect(page.locator(".system-line")).toBeVisible();
   await expect(page.getByText("Make talent the engine for growth.", { exact: true })).toBeVisible();
@@ -476,16 +476,14 @@ test("the home route is the six-row evidence index, under the introduction", asy
   // it as a section heading, which is the hierarchy a reader expects.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building in Founder Mode",
   );
   await expect(
     page.getByRole("heading", { level: 2, name: "Weighed by opportunity cost." }),
   ).toBeVisible();
-  // The two lines swapped rather than one leaving: the positioning
-  // claim opens the page as its h1 — the same string the site is indexed
-  // under — and the founder-mode line sits under the record's masthead.
+  // One short opening; the concrete claim introduces the evidence.
   await expect(page.locator(".work-index-masthead .systems-lead")).toHaveText(
-    "Building organizations, talent systems, and operating models, in founder mode.",
+    "I build the teams, the operating model, and the agents to run it.",
   );
   // No photograph, and no placeholder standing in for one.
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
@@ -533,7 +531,7 @@ test("Work hover and keyboard focus resolve the same width state", async ({ page
   await page.mouse.move(0, 0);
   await row.focus();
   await expect(company).toHaveCSS("font-variation-settings", /"wdth" 100/);
-  await expect(row).toHaveCSS("background-color", "rgb(246, 246, 246)");
+  await expect(row).toHaveCSS("background-color", "rgb(243, 239, 244)");
 });
 
 test("Work to case navigation aligns the travelling name with tolerant geometry", async ({ page }) => {
@@ -1647,9 +1645,9 @@ test("the 390px Home passes full-document accessibility and heading checks", asy
     violation.impact === "serious" || violation.impact === "critical",
   )).toEqual([]);
   expect(results.violations.map((violation) => violation.id)).not.toContain("empty-heading");
-  // Exactly one h1, and it is the positioning claim, not the epigraph.
+  // Exactly one h1, introducing the person beneath the opening sequence.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "I build the teams, the operating model, and the agents to run it.",
+    "Building in Founder Mode",
   );
 });

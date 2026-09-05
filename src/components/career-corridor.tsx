@@ -8,13 +8,13 @@ import type { CareerStop } from "@/lib/content/about";
 import type { HyperspaceDrive } from "@/components/hyperspace-field";
 import { spaceProgress } from "@/lib/hyperspace-field";
 import {
-  arrivalPresence,
+  advanceJourney,
   clamp01,
   destinationStation,
-  nearestStation,
+  journeyView,
+  parkedJourney,
   stationCentre,
   stationState,
-  travelIntensity,
 } from "@/lib/corridor-motion";
 
 // The star field ships only to visitors who actually travel: dynamic,
@@ -107,13 +107,13 @@ export function CareerCorridor({
 
     const count = stations.length;
     let progress = 0;
-    let smoothedProgress = 0;
     let destination = 0;
+    let directDestination: number | null = null;
+    let journey = parkedJourney();
     let frame = 0;
     let running = true;
     let visible = true;
     let lastTime = 0;
-    let calmSince = -Infinity;
 
     const measureProgress = () => {
       const bounds = track.getBoundingClientRect();
@@ -131,18 +131,18 @@ export function CareerCorridor({
       section.style.setProperty("--space", space.toFixed(4));
     };
 
-    const applyStations = (active: number, arrival: number) => {
+    const applyStations = (view: ReturnType<typeof journeyView>) => {
       stations.forEach((station, index) => {
-        const state = stationState(index, smoothedProgress, count);
-        const presence = state.presence * arrival;
+        const state = stationState(index, view.progress, count);
+        const isActive = index === view.active;
+        const presence = isActive ? view.presence : 0;
         station.style.setProperty("--presence", presence.toFixed(4));
-        station.style.setProperty("--station-scale", state.scale.toFixed(4));
-        station.style.setProperty("--station-axis", state.axis.toFixed(2));
+        station.style.setProperty("--station-scale", view.scale.toFixed(4));
+        station.style.setProperty("--station-axis", (98 + presence * 2).toFixed(2));
         station.style.setProperty(
           "--station-drift",
           `${(state.offset * -7).toFixed(3)}vh`,
         );
-        const isActive = index === active;
         // Interactive (and internally scrollable) only once arrived —
         // mid-leg an invisible station must never swallow the travel
         // scroll with its own overflow.
@@ -153,7 +153,7 @@ export function CareerCorridor({
       railButtons.forEach((button, index) => {
         button.setAttribute(
           "aria-current",
-          index === active ? "true" : "false",
+          index === view.active ? "true" : "false",
         );
       });
     };
@@ -162,36 +162,28 @@ export function CareerCorridor({
       frame = 0;
       if (!running || !visible) return;
       measureProgress();
-      // Native scroll selects a station. The visual journey always
-      // finishes there, even if the visitor stops halfway through a leg.
-      // Directly pursuing raw scroll left the field running forever and
-      // made text depend on finding a tiny, exact scroll position.
-      destination = destinationStation(progress, count, destination);
-      const target = stationCentre(destination, count);
-      const delta = Math.min((now - lastTime) / 1000, 0.05);
+      destination = directDestination ?? destinationStation(progress, count, destination);
+      const elapsed = lastTime ? (now - lastTime) / 1000 : 0;
+      // Reading time counts while the animation loop rests, too. A new
+      // scroll after a long pause should start its flight immediately.
+      const delta = journey.phase === "idle" ? elapsed : Math.min(elapsed, 0.1);
       lastTime = now;
-      smoothedProgress += (target - smoothedProgress) * (1 - Math.exp(-delta * 2.8));
-      if (Math.abs(target - smoothedProgress) < 0.0004)
-        smoothedProgress = target;
-      const active = nearestStation(smoothedProgress, count);
-      const intensity = travelIntensity(smoothedProgress, count);
-      const velocity = driveRef.current.velocity;
-      if (intensity > 0.02 || velocity > 0.18) calmSince = now;
-      const arrival = arrivalPresence((now - calmSince) / 1000);
-      applyStations(active, arrival);
+      journey = advanceJourney(journey, destination, delta, directDestination !== null);
+      const view = journeyView(journey, count);
+      applyStations(view);
       // The field reads these each frame: intensity asks for velocity,
       // progress varies the trajectory between beats.
-      driveRef.current.intensity = intensity;
-      driveRef.current.progress = smoothedProgress;
-      section.dataset.state = intensity > 0.12 ? "travel"
-        : velocity > 0.18 ? "dropout" : arrival < 1 ? "arrival" : "idle";
+      driveRef.current.intensity = view.intensity;
+      driveRef.current.progress = view.progress;
+      section.dataset.state = view.state;
       // The heading belongs to the first stop: gone by the time the
       // traveller is most of the way to the second.
       stage.style.setProperty(
         "--heading-presence",
-        (stationState(0, smoothedProgress, count).presence * arrival).toFixed(3),
+        (view.active === 0 ? view.presence : 0).toFixed(3),
       );
-      const settled = smoothedProgress === target && intensity < 0.01 && arrival === 1;
+      const settled = journey.phase === "idle" && journey.to === destination;
+      if (settled) directDestination = null;
       if (!settled) request();
     };
     const request = () => {
@@ -200,11 +192,13 @@ export function CareerCorridor({
 
     const intersection = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting && !document.hidden;
+      lastTime = 0;
       if (visible) request();
     });
     intersection.observe(section);
     const onVisibility = () => {
       visible = !document.hidden;
+      lastTime = 0;
       if (visible) request();
     };
     document.addEventListener("visibilitychange", onVisibility);
@@ -224,12 +218,14 @@ export function CareerCorridor({
       if (!button) return;
       const index = railButtons.indexOf(button as HTMLButtonElement);
       if (index < 0) return;
+      directDestination = index;
       const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
       const top = track.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: top + stationCentre(index, count) * travel,
         behavior: "smooth",
       });
+      request();
     };
     section
       .querySelector(".corridor-rail")
@@ -245,6 +241,10 @@ export function CareerCorridor({
       if (!match) return;
       const index = Number(match[1]);
       if (!(index >= 0 && index < count)) return;
+      directDestination = index;
+      // A shared link opens at its named entry. Subsequent hash changes
+      // travel there, just like an explicit selection on the year rail.
+      if (behavior === "instant") journey = parkedJourney(index);
       const travel = Math.max(track.offsetHeight - window.innerHeight, 1);
       const top = track.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({

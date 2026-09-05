@@ -17,6 +17,8 @@
   --ghost: #b9b9b9;
   --hairline: #e3e3e3;
   --card: #f6f6f6;
+  --interaction-wash: #f3eff4;
+  --interaction-ink: #61556b;
   --paper-high: #ffffff;
   --signal: #f6f6f6;
   --accent: #101410;
@@ -702,7 +704,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   transition: background var(--d-1) var(--ease);
 }
 .work-index-row.is-flagship { min-height: 12rem; border-color: var(--ink); }
-.work-index-row:hover, .work-index-row:focus-visible { background: var(--card); }
+.work-index-row:hover, .work-index-row:focus-visible { background: var(--interaction-wash); }
 .work-index-row .row-company { display: inline-block; font-size: clamp(1.875rem, 5.2vw, 4rem); transition: font-variation-settings var(--d-1) var(--ease); }
 .work-index-row.is-supporting .row-company { font-size: clamp(1.875rem, 3.2vw, 2.5rem); }
 .work-index-row:hover .row-company, .work-index-row:focus-visible .row-company { font-variation-settings: "wdth" 100; }
@@ -803,6 +805,36 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .live-node { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--live); box-shadow: 0 0 8px rgba(63, 160, 108, 0.45); }
 .system-record-title { display: flex; align-items: center; gap: 0.65rem; }
 .system-record-title .live-node { flex: none; }
+
+/* A trace of violet on paper, shared by the evidence and its Lab records.
+   The wash extends into the gutter without moving the text or its rule. */
+.lab-record { position: relative; isolation: isolate; }
+.lab-record::before {
+  content: "";
+  position: absolute;
+  inset: 0 -0.75rem;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--interaction-wash);
+  opacity: 0;
+  transition: opacity var(--d-2) var(--ease);
+}
+.lab-record:focus-within::before { opacity: 1; }
+.work-metric-rail > div {
+  transition: background-color var(--d-3) var(--ease);
+}
+.work-metric-rail dd {
+  transition: color var(--d-3) var(--ease), transform var(--d-3) var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lab-record:hover::before { opacity: 1; }
+  .work-metric-rail > div:hover { background-color: var(--interaction-wash); }
+  .work-metric-rail > div:hover dd { color: var(--interaction-ink); transform: translateY(-1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-record::before, .work-metric-rail > div, .work-metric-rail dd { transition: none; }
+  .work-metric-rail > div:hover dd { transform: none; }
+}
 
 
 /* Restored editorial bands (recovery R2) */
@@ -1362,10 +1394,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   margin-top: var(--air-3);
   padding-block: 0 var(--air-2);
 }
-/* Unlayered, so it beats the `max-w-2xl` utility in the markup. */
-.work-index-page .work-metric-band > p { max-width: 38rem; }
-
-.work-index-page .work-metric-rail { margin-top: var(--air-2); }
+.work-index-page .work-metric-rail { margin-top: 0; }
 /* padding-block only. The rail's `padding` shorthand is re-set to
    `padding-left: 0` inside @media(≤768); a shorthand here would resurrect
    the inline padding and knock mobile rail cells 2 and 3 out of alignment

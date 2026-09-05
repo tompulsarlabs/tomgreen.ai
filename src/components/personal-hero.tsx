@@ -31,7 +31,7 @@ export function PersonalHero() {
         </p>
         <div className="systems-title-row">
           <h1 className="axis-display hero-title-long personal-headline">
-            {site.positioning}
+            {site.headline}
           </h1>
           <p className="systems-lead personal-bio">{site.intro}</p>
         </div>

@@ -32,6 +32,8 @@ import * as THREE from "three";
 import { FOV_Y, PLATE_ASPECT, goldenMotionAt } from "@/lib/golden-path";
 import { PAPER_T0, PLATE_T0, getGoldenAssets } from "@/lib/golden-path-assets";
 import { followDecoder, type Follower } from "@/lib/capture-decoders";
+import { captureEntryBlend, capturePlateScale } from "@/lib/capture-continuity";
+import { captureReleaseAt } from "@/lib/capture-release";
 import {
   getGoldenState,
   goldenIsHeld,
@@ -238,13 +240,17 @@ export function GoldenPathLayer() {
     );
   }, []);
 
-  const placeOnCamera = useMemo(
-    () =>
-      function place(this: THREE.Object3D, _r: unknown, _s: unknown, camera: THREE.Camera) {
-        this.matrixWorld.multiplyMatrices(camera.matrixWorld, offset);
-      },
-    [offset],
-  );
+  const placeOnCamera = useMemo(() => {
+    const covered = offset.clone();
+    return function place(this: THREE.Object3D, _r: unknown, _s: unknown, camera: THREE.Camera) {
+      const perspective = camera as THREE.PerspectiveCamera;
+      const scale = capturePlateScale(perspective.aspect, perspective.fov);
+      covered.copy(offset);
+      covered.elements[0] *= scale;
+      covered.elements[5] *= scale;
+      this.matrixWorld.multiplyMatrices(camera.matrixWorld, covered);
+    };
+  }, [offset]);
 
   /**
    * Frames still to spend warming the two programs.
@@ -326,7 +332,7 @@ export function GoldenPathLayer() {
     [],
   );
 
-  useFrame((frame) => {
+  useFrame((frame, delta) => {
     // The camera comes from the frame state rather than a hook selector: it
     // is written here, and a hook's return value is not ours to write.
     const camera = frame.camera as THREE.PerspectiveCamera;
@@ -336,7 +342,8 @@ export function GoldenPathLayer() {
     const eraseMesh = eraseRef.current;
     if (!plateMesh || !eraseMesh) return;
     if (camera.fov !== baseFov.current && !running) {
-      camera.fov = baseFov.current;
+      camera.fov += (baseFov.current - camera.fov) * (1 - Math.exp(-delta * 8));
+      if (Math.abs(camera.fov - baseFov.current) < 0.001) camera.fov = baseFov.current;
       camera.updateProjectionMatrix();
     }
 
@@ -370,7 +377,10 @@ export function GoldenPathLayer() {
     // Crop the live frustum exactly as cover-fit crops the plate, so the
     // baked core and the live core stay the same size at every aspect.
     const aspect = camera.aspect;
-    const fov = (2 * Math.atan(Math.tan(FOV_Y / 2) * Math.min(1, PLATE_ASPECT / aspect)) * 180) / Math.PI;
+    const shotFov = (2 * Math.atan(Math.tan(FOV_Y / 2) * Math.min(1, PLATE_ASPECT / aspect)) * 180) / Math.PI;
+    const entry = captureEntryBlend(goldenShotTime());
+    const back = goldenTakesChildren() ? captureReleaseAt(t).cameraReturn : 0;
+    const fov = baseFov.current + (shotFov - baseFov.current) * entry * (1 - back);
     if (Math.abs(camera.fov - fov) > 1e-4) {
       camera.fov = fov;
       camera.updateProjectionMatrix();

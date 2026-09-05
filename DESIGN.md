@@ -39,11 +39,11 @@ registers: operating results (Zalando 0→120 AI org, metrics) and built systems
 
 | Route | Content |
 |---|---|
-| `/` | Positioning → operating outcomes → flagship work → systems → live state → person → contact |
-| `/work` | Tiered archive: flagship, supporting evidence, current chapter, foundations |
+| `/` | Opening motion → Building in Founder Mode → operating outcomes → tiered evidence index |
+| `/work` | Redirects to the homepage's evidence index |
 | `/work/[slug]` | Editorial case study with mandate, decisions, system model, outcomes, evidence note, next action |
-| `/building` | **Systems** in the UI: a clean, white, server-rendered index of work, operating models, agents and writing |
-| `/about` | A local-only linear career record, references, the person, and a direct contact path; hidden on every Vercel deployment |
+| `/building` | **Lab** in the UI: a white, server-rendered index of work, operating models, agents and writing |
+| `/about` | Public interactive career corridor, with the complete linear CV under reduced motion or without JavaScript |
 
 Case studies are the core content unit. Each one: context → what Tom built/did →
 measurable outcome → what it demonstrates. Initial set (strongest first):
@@ -81,8 +81,8 @@ This is a public repo, so **a git push is a publish**. Rules:
 - No client-side data fetching for content.
 - Vercel Analytics and Speed Insights provide privacy-conscious journey and performance
   telemetry; neither is used to gate rendering.
-- `/building` has no canvas, WebGL, decorative object or inverted route. Status is attached in
-  plain language to the relevant project and the full index remains usable at every breakpoint.
+- The Lab's document is a complete semantic index. Status is attached in plain language to each
+  project. The moon opens a separate planetary navigation layer from any route.
 
 ## Design intent
 
@@ -92,8 +92,9 @@ is [DESIGN-MOTION.md](DESIGN-MOTION.md): a continuous white editorial field wher
 axis quietly carries constraint, resolution and release. Persistent route coordinates,
 semantic fallbacks and motion that explains causal change remain part of the system.
 
-Editorial and restrained: strong typography, generous whitespace and two semantic accents only:
-green for live production state and clay for reconstruction labels. The live-data elements are
+Editorial and restrained: strong typography, generous whitespace, green for live production
+state and clay for reconstruction labels. A pale violet wash (`#f3eff4`) acknowledges interaction
+on Home and Lab; it conveys no status. The live-data elements are
 quiet instruments, not dashboards. The
 site should feel like it was designed by someone with taste and built by someone who
 ships — because both must be true for the positioning to hold.
@@ -109,22 +110,21 @@ but no special visual object is required to make the work credible.
 
 ## Current implementation status
 
-Fable's handoff was implemented far enough to test its design hypotheses in context. Product
-review rejected the inverted Systems route and both flagship evidence-object treatments because
-they made visitors decode design language instead of the work. The authoritative branch now uses
-one white editorial ground and one linear case-study model. The branch is review-ready; it is not
-merged or deployed.
+The site is live on Vercel at tomgreen.ai. The document keeps one white editorial ground and one
+linear case-study model. The moon opens the planetary map over a credited Hubble Veil Nebula
+photograph. Captures use regenerated gas-only media and responsive camera handoffs.
 
-The procedural 3D object, maturity legend, M01–M06 ruler, generic role crowd and Chapter 2 sentence
-fork have been removed rather than cosmetically refined. No external artist or paid asset is
-required. About remains complete locally and hidden on every Vercel deployment.
+The public CV travels for 2.4 seconds between entries, drops out, then reveals each chapter at
+rest. Native scroll queues subsequent chapters; the year rail selects a destination directly.
+Reduced motion and no JavaScript retain the complete linear record. See the
+[current motion and interaction review](review-vfx/seamless-journeys/README.md).
 
 ## Current quality gates
 
 1. Typed content and named-claim review remain the publishing gate.
-2. `npm run lint`, `npm run typecheck`, and 30 unit tests cover static quality, motion schedules
+2. `npm run lint`, `npm run typecheck`, and the unit suite cover static quality, motion schedules
    and data parsing.
-3. The 35-test Playwright suite covers the visitor journey, route handoff geometry, mobile overflow,
+3. The Playwright suite covers the visitor journey, route handoff geometry, mobile overflow,
    linear flagship stories, the continuous white ground, reduced motion, no JavaScript, keyboard
    behavior and full-document Axe scans.
 4. CI builds before running Playwright, so browser tests exercise the production server.

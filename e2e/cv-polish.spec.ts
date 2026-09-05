@@ -15,6 +15,12 @@ test("ordinary CV scrolling finishes travel and leaves the entry readable", asyn
   // Real wheel input stops away from an exact station centre.
   await page.mouse.move(50, 700);
   await page.mouse.wheel(0, leg * 0.72);
+  await expect(corridor).toHaveAttribute("data-state", "travel");
+  // A complete flight remains visible after the old spring would have
+  // already dropped out. The destination cannot appear during cruise.
+  await page.waitForTimeout(1700);
+  await expect(corridor).toHaveAttribute("data-state", "travel");
+  await expect(page.locator(".corridor-station").nth(1)).toHaveAttribute("inert", "");
   await expect(page.locator(".corridor-station").nth(1)).toHaveClass(/is-stop/, { timeout: 12_000 });
   await expect(corridor).toHaveAttribute("data-state", "idle");
   // Small continued scrolling in the same reading zone must not erase it.

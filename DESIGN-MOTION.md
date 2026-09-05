@@ -9,17 +9,21 @@ labels. Display weight never animates.
 
 ## Type
 
-- Display and structure: Archivo variable, 800, width axis 62–125.
+- Display and structure: Archivo variable; weight and width follow the hierarchy of each section.
 - Reading/UI: Geist 400/500, sentence case, 1.55–1.6 leading.
 - Record voice: Geist Mono 400/500, 10–12px, tracked uppercase.
-- Display: `clamp(56px, 11.8vw, 172px)`; index: `clamp(30px, 5.2vw, 64px)`.
+- Display and index sizes are fluid; the home title, section headings and evidence rows have
+  separate scales. The three opening statements share one interpolation and size.
 
 ## Palette and structure
 
-- Paper `#fff`; ink `#101410`; reading `#4f554d`; ghost `#b9bdb4`; hairline `#deded8`.
+- Paper `#fff`; ink `#101410`; reading `#4f554d`; ghost `#b9b9b9`; hairline `#e3e3e3`.
+- Interaction wash `#f3eff4`, with muted violet ink `#61556b` on the outcome figures.
+  Home rows and Lab records share the wash; keyboard focus receives the same acknowledgment.
 - Live green `#3fa06c` means running in production only.
 - Clay `#e45b3d` marks a small case/source annotation and never becomes a decorative field.
-- Twelve columns, 1360px max, 24px gutters, 6vw margins, 8px baseline.
+- Shared frame up to 112rem, with gutters clamped from 22px to 6rem. Type and content grow
+  modestly with the viewport; prose retains its reading measure and phones use one column.
 - Every route and section uses the white paper ground. Near-black is reserved for type, rules and
   compact controls; there are no full-width dark bands or inverted routes.
 - Display blocks are left-set. The right third is reserved for content or air.
@@ -27,14 +31,22 @@ labels. Display weight never animates.
 ## Motion
 
 - Durations: 160 / 280 / 440 / 700ms.
-- Properties: transform, opacity and `font-variation-settings` only.
+- Document motion uses transform, opacity, colour and `font-variation-settings`.
 - Width changes do not exceed 40 units per 100ms and occur on one display cluster at a time.
 - Route exits compress and rise in 280ms; arrivals resolve in 440ms.
 - Reduced motion and no-JS render the complete document linearly at `wdth 100`.
+- CV: 2.4-second flights, then a 200ms quiet interval and 400ms reveal. Queued scrolling
+  leaves at least 850ms of stillness at each entry. Explicit year selections may skip chapters.
+- Planet captures join the actual camera distance and framing, then return the camera,
+  exposure and photographic sky together. Full and compact shots share the same landmarks;
+  the compact clock has continuous speed between them. Gas always covers the viewport.
+- Outcome figures receive a slow tint and 1px lift on pointer hover. They remain plain data,
+  with no button cursor, invented click action or animated count. Reduced motion removes the lift.
 
 ## Route rules
 
-- Home: type resolve, selected outcomes, Work bridge, white Systems bridge, contact.
+- Home: type resolve, “Building in Founder Mode” opposite the executive introduction, then
+  “Weighed by opportunity cost.” with the concrete teams/model/agents claim beneath it.
 - Work: six full-row links; hover and focus both resolve `92→100`.
 - Every case study: company masthead, verified metrics, challenge, work, a linear operating model,
   key decisions, outcome, source note and next action.
@@ -42,7 +54,7 @@ labels. Display weight never animates.
   “typeset,” role-crowd, sentence-fork or month-ruler treatments.
 - Systems: white route and complete semantic index. Running, shipped and lab status remains plain
   content attached to the relevant record; typography never explains itself.
-- About: local-only linear career record; no corridor.
+- About: public career corridor with a complete semantic CV fallback.
 - Contact: direct mailto remains primary.
 
 ## Systems composition
@@ -50,8 +62,8 @@ labels. Display weight never animates.
 - The title and short explanation lead directly into four editorial content domains.
 - Status is stated in words on the relevant project. Width may reinforce hierarchy, but no axis
   value or maturity legend is shown to visitors.
-- There is no canvas, WebGL, poster, 3D metaphor or decorative replacement. Mobile, reduced
-  motion and no JavaScript therefore retain the same complete composition without a fallback fork.
+- The Lab index itself is a document. The moon opens a separate planetary navigation layer;
+  mobile, reduced motion and no JavaScript retain the complete index.
 
 ## Rejected patterns
 
@@ -63,5 +75,6 @@ a new explicit product decision.
 
 ## Cut list
 
-No operating field, pointer parallax, category colours, heat palette, About corridor, Home WebGL,
-gradients in UI, sound, custom cursor, magnetic controls or letter-by-letter effects.
+No embedded planetary map in the document, category colours, heat palette, gradients in UI,
+sound, custom cursor, magnetic controls or letter-by-letter effects. The moon portal and
+interactive CV are the explicitly commissioned spatial experiences.
