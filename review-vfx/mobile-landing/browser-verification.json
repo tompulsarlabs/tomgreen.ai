@@ -1,0 +1,210 @@
+[
+  {
+    "browser": "webkit",
+    "label": "tall-phone",
+    "visualHeight": 820,
+    "opening": {
+      "top": 0,
+      "bottom": 820,
+      "width": 396,
+      "height": 820
+    },
+    "intro": {
+      "top": 820,
+      "bottom": 1130.1875,
+      "width": 396,
+      "height": 310.1875
+    },
+    "lastStatement": {
+      "top": 595.625,
+      "bottom": 699.828125,
+      "width": 352,
+      "height": 104.203125
+    },
+    "scrollWidth": 440,
+    "width": 440,
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "label": "short-phone",
+    "visualHeight": 480,
+    "opening": {
+      "top": 0,
+      "bottom": 480,
+      "width": 276,
+      "height": 480
+    },
+    "intro": {
+      "top": 480,
+      "bottom": 809.296875,
+      "width": 276,
+      "height": 329.296875
+    },
+    "lastStatement": {
+      "top": 339.09375,
+      "bottom": 418.03125,
+      "width": 232,
+      "height": 78.9375
+    },
+    "scrollWidth": 320,
+    "width": 320,
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "label": "landscape",
+    "visualHeight": 440,
+    "opening": {
+      "top": 0,
+      "bottom": 440,
+      "width": 860.40625,
+      "height": 440
+    },
+    "intro": {
+      "top": 440,
+      "bottom": 744.015625,
+      "width": 860.40625,
+      "height": 304.015625
+    },
+    "lastStatement": {
+      "top": 187.890625,
+      "bottom": 274.09375,
+      "width": 253.03125,
+      "height": 86.203125
+    },
+    "scrollWidth": 956,
+    "width": 956,
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "label": "tablet",
+    "visualHeight": 1024,
+    "opening": {
+      "top": 0,
+      "bottom": 1024,
+      "width": 724,
+      "height": 1024
+    },
+    "intro": {
+      "top": 1024,
+      "bottom": 1318.28125,
+      "width": 724,
+      "height": 294.28125
+    },
+    "lastStatement": {
+      "top": 724.25,
+      "bottom": 882.125,
+      "width": 680,
+      "height": 157.875
+    },
+    "scrollWidth": 768,
+    "width": 768,
+    "errors": []
+  },
+  {
+    "browser": "chrome",
+    "label": "tall-phone",
+    "visualHeight": 820,
+    "opening": {
+      "top": 0,
+      "bottom": 820,
+      "width": 396,
+      "height": 820
+    },
+    "intro": {
+      "top": 820,
+      "bottom": 1130.1875,
+      "width": 396,
+      "height": 310.1875
+    },
+    "lastStatement": {
+      "top": 595.625,
+      "bottom": 699.828125,
+      "width": 352,
+      "height": 104.203125
+    },
+    "scrollWidth": 440,
+    "width": 440,
+    "errors": []
+  },
+  {
+    "browser": "chrome",
+    "label": "short-phone",
+    "visualHeight": 480,
+    "opening": {
+      "top": 0,
+      "bottom": 480,
+      "width": 276,
+      "height": 480
+    },
+    "intro": {
+      "top": 480,
+      "bottom": 809.296875,
+      "width": 276,
+      "height": 329.296875
+    },
+    "lastStatement": {
+      "top": 339.09375,
+      "bottom": 418.03125,
+      "width": 232,
+      "height": 78.9375
+    },
+    "scrollWidth": 320,
+    "width": 320,
+    "errors": []
+  },
+  {
+    "browser": "chrome",
+    "label": "landscape",
+    "visualHeight": 440,
+    "opening": {
+      "top": 0,
+      "bottom": 440,
+      "width": 860.40625,
+      "height": 440
+    },
+    "intro": {
+      "top": 440,
+      "bottom": 744.015625,
+      "width": 860.40625,
+      "height": 304.015625
+    },
+    "lastStatement": {
+      "top": 187.875,
+      "bottom": 274.125,
+      "width": 253.015625,
+      "height": 86.25
+    },
+    "scrollWidth": 956,
+    "width": 956,
+    "errors": []
+  },
+  {
+    "browser": "chrome",
+    "label": "tablet",
+    "visualHeight": 1024,
+    "opening": {
+      "top": 0,
+      "bottom": 1024,
+      "width": 724,
+      "height": 1024
+    },
+    "intro": {
+      "top": 1024,
+      "bottom": 1318.28125,
+      "width": 724,
+      "height": 294.28125
+    },
+    "lastStatement": {
+      "top": 724.25,
+      "bottom": 882.125,
+      "width": 680,
+      "height": 157.875
+    },
+    "scrollWidth": 768,
+    "width": 768,
+    "errors": []
+  }
+]

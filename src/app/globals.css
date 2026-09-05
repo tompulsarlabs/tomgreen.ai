@@ -454,7 +454,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
    planetary map — the sections in orbit around talent — with the
    support line and actions resting at its foot. */
 
-@media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
 
   /* The sequence is a stage over the map: it plays on its own clock,
      then yields — opacity out, hit-testing off, map beneath already
@@ -921,8 +921,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .site-main { padding-right: 22px; padding-left: 22px; }
   .axis-display { font-size: clamp(2.75rem, 11.8vw, 4.5rem); line-height: 0.84; }
   .axis-heading { font-size: clamp(2.25rem, 11vw, 3.25rem); }
-  .home-resolve-stage { padding-top: 1.5rem; padding-right: 22px; padding-left: 22px; }
-  .resolve-lines { gap: 5rem; margin-top: 3rem; }
   .home-actions { display: grid; width: 100%; }
   .home-actions .action { width: 100%; }
   .proof-band dl { grid-template-columns: repeat(2, 1fr); }
@@ -964,14 +962,14 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 
 /* Short desktop viewports: cap the journey display size against height so
    the release line never overflows its stage (recovery R3). */
-@media (min-width: 769px) and (max-height: 780px) and (prefers-reduced-motion: no-preference) {
+@media (min-width: 769px) and (max-height: 780px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .js .resolve-lines .axis-display { font-size: clamp(2.75rem, 11vh, 6.6rem); }
 }
 
 /* Reduced motion changes the choreography, never the architecture: the
    landing is still one viewport with the map reachable without a scroll.
    The statements are simply shown resolved and compact, above it. */
-@media (min-width: 769px) and (prefers-reduced-motion: reduce) {
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: reduce) {
 
   .js .home-resolve-stage { padding: 1.75rem max(22px, 6vw) 0; }
   .js .resolve-lines { gap: 0.3rem; margin-top: 0.9rem; }
@@ -1393,6 +1391,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   line-height: 0.92;
   letter-spacing: -0.035em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 /* 9u below the rule against 5u above it. The rule closes the hero, so the
@@ -1488,6 +1487,8 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    untouched. */
 .work-index-page .work-index-row .row-company {
   --axis: 92;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-weight: 700;
   letter-spacing: -0.035em;
 }
@@ -1501,7 +1502,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 /* 54rem at 16px is about 95 characters — nearly twice a readable measure,
    on the six blocks carrying most of the document's height. */
 .work-index-page .row-headline,
-.work-index-page .row-summary { max-width: 42rem; }
+.work-index-page .row-summary { max-width: 42rem; overflow-wrap: anywhere; }
 
 /* Fluid block padding instead of a fixed min-height that forced dead air
    into short rows and squeezed long ones. Flagship keeps a taller box and
@@ -1527,42 +1528,68 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .work-index-page .work-index-next > .record { color: var(--muted); }
 
 
-/* ── 7. THE GATES ─────────────────────────────────────────────────────
-   Island clearance, matched to the exact query in which it is needed.
-   `.js .home-resolve { position: fixed }` applies only inside
-   `(min-width: 769px) and (prefers-reduced-motion: no-preference)`, and
-   only there is `.personal-hero` genuinely first in flow under the
-   floating island — where the old clamp resolved to 63px at a 900px-tall
-   window, so the eyebrow had been sliding under the nav. Outside that
-   query — at ≤768, with JS off, and under reduced motion, which is the
-   path every Playwright test takes — `.home-resolve` is a normal flow
-   block with its own padding above the hero, and an unconditional island
-   offset would stack about 200px of dead air mid-document. */
-@media (min-width: 769px) and (prefers-reduced-motion: no-preference) {
+/* The animated desktop stage is fixed, so the introduction beneath it
+   clears the Moon. Touch, reduced-motion and no-JS openings stay in flow. */
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .js .home-page .personal-hero {
-    padding-top: calc(var(--island-clear) + var(--air-2));   /* 129 @1440 */
+    padding-top: calc(var(--island-clear) + var(--air-2));
   }
 }
 
 @media (max-width: 768px) {
-  /* Full column. A short measure at the top of a phone screen reads as
-     broken, not as air. */
   .home-page .personal-headline { max-width: none; letter-spacing: -0.04em; }
   .work-index-masthead h2.axis-display { letter-spacing: -0.03em; }
   .work-index-masthead { max-width: none; }
+}
 
-  /* The opening sequence, at ≤768 only. This is the one place the block
-     reaches outside the named blocks, and it is necessary: `.js
-     .home-resolve { position: fixed }` does not apply here, so the three
-     statements render in flow above the hero, and the ≤768 `.axis-display`
-     puts them at 46px/800 against a 40px h1 — the h1 would not be the
-     largest structural type on the page at the width where crowding bites
-     hardest. On desktop with motion the sequence is a fixed full-viewport
-     stage at 137px and is not touched; under desktop reduced motion it is
-     already compacted. The identity moment is intact, and the release
-     line's nowrap spans are safe because a smaller size only narrows
-     them. */
-  .home-page .resolve-lines .axis-display { font-size: clamp(2rem, 8.4vw, 3.125rem); }
+/* A complete first screen on phones and touch tablets. The dynamic
+   viewport follows browser controls; stable small-viewport units size
+   the type and minimum gaps so toolbar changes do not reflow the words.
+   This is a minimum, not a clipped panel: large text can grow the document. */
+@media (max-width: 768px), (hover: none), (pointer: coarse) {
+  .home-page .home-resolve-stage {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100vh;
+    min-block-size: 100dvh;
+    padding: clamp(1.5rem, 4svh, 2.5rem) 22px clamp(2.5rem, 8svh, 5rem);
+  }
+  .home-page .home-eyebrow { padding-inline-end: 2.75rem; text-wrap: balance; }
+  .home-page .resolve-lines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: clamp(1.5rem, 5svh, 4rem);
+    margin-top: clamp(1.5rem, 5svh, 3rem);
+  }
+  .home-page .resolve-lines .axis-display {
+    max-width: none;
+    font-size: clamp(1.75rem, min(8.4vw, 6.5svh), 3.5rem);
+    line-height: 0.94;
+    letter-spacing: -0.055em;
+    overflow-wrap: anywhere;
+  }
+  .home-page .resolve-lines .line-mask > span { overflow: visible; }
+  .home-page .release-line > span { white-space: normal; }
+}
+
+/* A short, wide touch screen has room for a row of statements. Keeping
+   the same three steps in columns avoids a cramped portrait stack when
+   a phone rotates, without switching on the desktop animation. */
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 600px),
+       (hover: none) and (orientation: landscape) and (max-height: 600px),
+       (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+  .home-page .resolve-lines {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    align-content: center;
+    gap: clamp(1rem, 3vw, 3rem);
+  }
+  .home-page .resolve-lines .axis-display {
+    font-size: clamp(1.125rem, 3.2vw, 2.25rem);
+  }
 }
 
 
@@ -1578,7 +1605,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   align-items: start;
 }
 .section-split > .record { margin: 0; padding-top: 0.3rem; }
-.section-split-body { display: grid; gap: 0; min-width: 0; }
+.section-split-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; min-width: 0; }
 
 /* The home masthead now sits inside the split, so the vertical rhythm
    that used to run down one column runs down the right-hand one. */
