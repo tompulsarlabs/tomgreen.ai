@@ -22,7 +22,8 @@ export function starCounts(coarse: boolean, aspect = 1): StarCounts {
   // A portrait frame shows a tighter slice of the tunnel. Use a stable
   // budget per orientation so toolbar resizes do not rebuild the geometry.
   const density = aspect < 0.8 ? 0.7 : 1;
-  const base = coarse ? { trails: 300, points: 420 } : { trails: 500, points: 780 };
+  // A little more presence while parked; the travel-stroke budget stays sparse.
+  const base = coarse ? { trails: 300, points: 500 } : { trails: 500, points: 900 };
   return { trails: Math.round(base.trails * density), points: Math.round(base.points * density) };
 }
 

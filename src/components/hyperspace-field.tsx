@@ -226,7 +226,7 @@ const POINT_VERTEX = /* glsl */ `
     vec4 clip = projectionMatrix * mv;
     vNdc = clip.xy / max(clip.w, 0.0001);
     gl_Position = clip;
-    gl_PointSize = clamp(aGrain.z * uPixelRatio * (150.0 / -mv.z), 1.0, 5.5 * uPixelRatio);
+    gl_PointSize = clamp(aGrain.z * uPixelRatio * (165.0 / -mv.z), 1.0, 5.5 * uPixelRatio);
   }
 `;
 
