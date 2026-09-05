@@ -188,3 +188,56 @@ export function assertPlanetModel(nodes: readonly PlanetNode[] = planetNodes): s
 
   return problems;
 }
+
+/**
+ * How the gravity core lets a planet go.
+ *
+ * One capture engine serves the whole map, and it branches exactly once — at
+ * the end, on what the node actually IS. Nothing about the event before that
+ * instant differs between a section and a case study, which is the point: the
+ * visitor learns one physical event and then learns that it resolves according
+ * to what was captured.
+ *
+ * The four endings are the four shapes a node can have, and they are read off
+ * the action union rather than off a list of ids. There is no list of ids.
+ */
+export type CaptureEnding =
+  /** The captured body's own system is released out of the remnant. */
+  | { kind: "children"; childIds: readonly string[] }
+  /** Depth collapses, paper takes the frame, and the destination lands. */
+  | { kind: "paper"; href: string }
+  /**
+   * A departure, not a capture. Mail clients and other origins are not places
+   * the gravity core can deliver anyone to, and holding a mailto: behind five
+   * seconds of volumetrics is a worse interaction than no volumetrics at all.
+   * These answer at once and leave.
+   */
+  | { kind: "external"; href: string }
+  /** Nothing to resolve into: the body is not a control. */
+  | { kind: "none" };
+
+export function captureEndingFor(id: string): CaptureEnding {
+  const action = planetAction(id);
+  if (!action) return { kind: "none" };
+  switch (action.type) {
+    case "children":
+      return { kind: "children", childIds: action.childIds };
+    case "route":
+      return action.external
+        ? { kind: "external", href: action.href }
+        : { kind: "paper", href: action.href };
+    // An anchor on the page the visitor is already looking at. The paper
+    // takeover resolves onto a destination; here the destination is already
+    // on screen behind the portal, so there is nothing for the paper to
+    // reveal. No node in the current map uses this, and until one does the
+    // honest answer is that it keeps the site's existing travel.
+    case "content":
+      return { kind: "none" };
+  }
+}
+
+/** True for the bodies the shared capture engine plays its event for. */
+export function usesCaptureEngine(id: string): boolean {
+  const kind = captureEndingFor(id).kind;
+  return kind === "children" || kind === "paper";
+}

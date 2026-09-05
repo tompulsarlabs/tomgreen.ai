@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Alternate build outputs. next.config.mjs honours NEXT_DIST_DIR, which
+    // the Vercel contract script and the golden path's review build both use
+    // to avoid clobbering .next - and a build output is not source.
+    ".next-*/**",
   ]),
 ]);
 

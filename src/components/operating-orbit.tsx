@@ -57,12 +57,14 @@ const BODY_PX = 38;
 export function OperatingOrbit({
   bodies,
   onCapture,
+  onPress,
   flare,
   handoff,
 }: {
   bodies: OrbitBody[];
   /** Redirects a captured planet away from travel — see OrbitScene. */
   onCapture?: (id: string) => void;
+  onPress?: (id: string) => void;
   /** The core burst, owned by the portal so it outlives this scene. */
   flare?: Flare | null;
   /** The outgoing scene's camera and reveal, for the one replacing it. */
@@ -281,6 +283,7 @@ export function OperatingOrbit({
       <OperatingOrbitLive
         bodies={bodies}
         onCapture={onCapture}
+      onPress={onPress}
         flare={flare}
         handoff={handoff}
       />

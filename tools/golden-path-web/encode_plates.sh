@@ -1,0 +1,86 @@
+#!/bin/bash
+# Encode the derived event plate and the paper field into the masters the site ships.
+#
+# One file per tier carries colour on top and its matte below in a single stream: alpha
+# video (VP9/WebM, HEVC-with-alpha) is not safe across Safari/iOS + Chrome + Firefox, and a
+# stacked matte needs no alpha support at all - the shader samples both halves and
+# reconstructs premultiplied colour. Matte detail lives in luma, which 4:2:0 keeps at full
+# resolution, so subsampling costs the matte nothing.
+#
+# Two codecs, because a container is not a decoder. H.264 is the primary: Safari and iOS
+# decode nothing else reliably, and it is hardware-decoded almost everywhere. But H.264 is
+# licensed, so it is absent from unbranded Chromium builds and from Firefox builds without
+# a system decoder - and a browser that cannot decode the plate does not get the shot at
+# all. VP9 costs those browsers nothing extra: exactly one master is fetched, chosen by
+# canPlayType in golden-path-assets.ts.
+#
+# Usage: encode_plates.sh [SRC] [OUT] [--plates-only]
+# --plates-only preserves the existing paper transition when replacing only the gas.
+#   SRC  the working directory derive_plate.py wrote, holding rgb/, matte/ and paper/
+#        (default: tools/golden-path-web/plate, beside this script)
+#   OUT  where the masters land (default: SRC/web). Copy them into public/golden-path/.
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+SRC=${1:-$HERE/plate}
+OUT=${2:-$SRC/web}
+mkdir -p "$OUT"
+RANGE=$(python3 - "$SRC" <<'PY'
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+source = json.loads((root / 'plate-source.json').read_text())
+first, last = source['frames']
+count = last - first + 1
+if source['frame_count'] != count:
+    raise SystemExit('Incomplete derived plate')
+for folder in ('rgb', 'matte'):
+    for frame in range(first, last + 1):
+        if not (root / folder / f'f{frame:04d}.png').is_file():
+            raise SystemExit(f'Missing {folder} frame {frame}')
+print(first, count)
+PY
+)
+read -r FIRST COUNT <<< "$RANGE"
+
+stack () {   # name  width  height  crf  vp9crf
+  local name=$1 w=$2 h=$3 crf=$4 vcrf=$5
+  local chain="[0:v]scale=$w:$h:flags=lanczos[c];[1:v]scale=$w:$h:flags=lanczos,format=gray,format=yuv420p[m];[c][m]vstack=inputs=2,format=yuv420p[v]"
+  ffmpeg -y -hide_banner -loglevel error \
+    -framerate 30 -start_number $FIRST -i "$SRC/rgb/f%04d.png" \
+    -framerate 30 -start_number $FIRST -i "$SRC/matte/f%04d.png" \
+    -filter_complex "$chain" \
+    -map "[v]" -frames:v "$COUNT" -c:v libx264 -profile:v main -level 4.0 -preset slow -crf "$crf" \
+    -pix_fmt yuv420p -movflags +faststart -an "$OUT/$name.mp4"
+  ffmpeg -y -hide_banner -loglevel error \
+    -framerate 30 -start_number $FIRST -i "$SRC/rgb/f%04d.png" \
+    -framerate 30 -start_number $FIRST -i "$SRC/matte/f%04d.png" \
+    -filter_complex "$chain" \
+    -map "[v]" -frames:v "$COUNT" -c:v libvpx-vp9 -b:v 0 -crf "$vcrf" -row-mt 1 -deadline good -cpu-used 1 \
+    -pix_fmt yuv420p -an "$OUT/$name.webm"
+  printf '%-30s %9s mp4  %9s webm  %sx%s\n' "$name" \
+    "$(wc -c < "$OUT/$name.mp4")" "$(wc -c < "$OUT/$name.webm")" "$w" "$((h*2))"
+}
+
+# The whiteout field. One channel, so it is written as luma and read as .r.
+paper () {
+  local name=golden-path-paper
+  local PAPER_FIRST
+  PAPER_FIRST=$(ls "$SRC/paper" | head -1 | sed 's/f0*\([0-9]*\)\.png/\1/')
+  ffmpeg -y -hide_banner -loglevel error \
+    -framerate 30 -start_number $PAPER_FIRST -i "$SRC/paper/f%04d.png" \
+    -vf "format=gray,format=yuv420p" \
+    -c:v libx264 -profile:v main -level 4.0 -preset slow -crf 15 \
+    -pix_fmt yuv420p -movflags +faststart -an "$OUT/$name.mp4"
+  ffmpeg -y -hide_banner -loglevel error \
+    -framerate 30 -start_number $PAPER_FIRST -i "$SRC/paper/f%04d.png" \
+    -vf "format=gray,format=yuv420p" \
+    -c:v libvpx-vp9 -b:v 0 -crf 26 -row-mt 1 -deadline good -cpu-used 1 \
+    -pix_fmt yuv420p -an "$OUT/$name.webm"
+  printf '%-30s %9s mp4  %9s webm\n' "$name" \
+    "$(wc -c < "$OUT/$name.mp4")" "$(wc -c < "$OUT/$name.webm")"
+}
+
+stack golden-path-plate-high   1440 900 20 30
+stack golden-path-plate-medium 1024 640 22 32
+stack golden-path-plate-low     720 448 24 34
+if [ "${3:-}" != "--plates-only" ]; then paper; fi

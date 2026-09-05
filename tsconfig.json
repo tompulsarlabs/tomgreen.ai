@@ -36,7 +36,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next-vercel-contract/types/**/*.ts",
-    ".next-vercel-contract/dev/types/**/*.ts"
+    ".next-vercel-contract/dev/types/**/*.ts",
+    ".next-review/types/**/*.ts",
+    ".next-review/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

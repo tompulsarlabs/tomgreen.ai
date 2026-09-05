@@ -1076,6 +1076,8 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .orbit-portal-chrome {
   position: relative;
   z-index: 2;
+  /* Its own, because the field is behind it now rather than below it. */
+  background: #05070d;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -1175,9 +1177,16 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   to   { opacity: 0; }
 }
 
-/* The field fills what the chrome leaves, and drops the full-bleed
-   trick it needs when it is a band inside a page. */
-.orbit-portal-field { position: relative; flex: 1 1 auto; min-height: 0; }
+/* The field is the whole viewport, always, and the chrome sits on top of it.
+   It used to be a band in a flex column that the shot then took full-bleed,
+   which cost a drawing-buffer resize at each end of the capture. The one at
+   the press was hidden by the compression; the one at the END is not hideable
+   at all - it lands on the beat a parent capture spends settling its released
+   system, and a fixed vertical FOV turns 58 px of returned chrome into the
+   whole scene shrinking 6.4% and stepping up the screen. So the canvas is one
+   size for the life of the portal and the resize does not exist. The chrome
+   carries its own ground for the same reason it always had one. */
+.orbit-portal-field { position: fixed; inset: 0; }
 .orbit-portal-field .orbit-field {
   width: 100%;
   height: 100%;
@@ -1521,3 +1530,104 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .home-page .systems-title-row { grid-template-columns: minmax(0, 1fr); }
   .home-page .systems-hero h1.hero-title-long.personal-headline { max-width: none; }
 }
+
+/* ---------------------------------------------------------------- golden path
+   The Zalando cinematic lands on /work/zalando while its own paper takeover is
+   still playing, and the approved shot reveals the complete masthead as one
+   composition at 3.03 s. These two classes are that reveal.
+
+   Both sit on <html>, which also carries .js, so they are compound selectors
+   and not descendant ones: `.js .golden-landing` would require the class on a
+   child of <html>, would silently never match, and the masthead would be
+   visible from the moment the route pushed.
+
+   The hold is opacity only and lasts about a second. The content is
+   server-rendered and stays in the document and in the accessibility tree
+   throughout, so no-JS visitors, crawlers and the content guard are unaffected;
+   without .js neither rule applies at all. */
+/* The whole page, not only the masthead. The route pushes at 2.30 s and the
+   paper arrives at 2.78, so anything the document carries that is not held is
+   on the paper before the typography is - and on a 1080-tall viewport the
+   section below the masthead is exactly that: body copy sitting on white while
+   the masthead is still blank. The approved order is white paper, then
+   complete typography, so nothing precedes it.
+
+   Both are held and both are released on the same beat. Holding the parent
+   alone would have been enough to hide it, but it would also have made the
+   masthead's own opacity assertion pass for free. */
+.js.golden-landing main,
+.js.golden-landing [data-golden-masthead] {
+  opacity: 0;
+}
+
+.js.golden-typography main,
+.js.golden-typography [data-golden-masthead] {
+  opacity: 1;
+  transition: opacity 270ms var(--ease-settle, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js.golden-landing main,
+  .js.golden-landing [data-golden-masthead],
+  .js.golden-typography main,
+  .js.golden-typography [data-golden-masthead] {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* For the length of the shot the overlay is not merely faded but gone:
+   visibility removes the nameplates and the portal chrome from the tab order
+   and from hit-testing, which opacity cannot do — and a focused nameplate
+   carries `!important`, so it would otherwise paint a white label and a white
+   outline over the event. It keeps its box, so the scene's label measurement
+   cache and press bookkeeping go on working unchanged; display: none would
+   zero those boxes and poison the cache. */
+/* The takeover dissolves the CANVAS to transparent, in the ragged field the
+   render authored, so that what arrives underneath is the real page. Anything
+   with a ground of its own between the two would be what showed instead - and
+   both the portal and the field carry one. They are redundant for this shot
+   either way: the deep field writes alpha 1 across the whole frame, so the
+   canvas is already opaque on its own until the erase quad takes it apart. */
+.orbit-portal[data-golden],
+.orbit-portal[data-golden] .orbit-field {
+  background: transparent;
+}
+
+.orbit-portal[data-golden] .orbit-portal-chrome {
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Nameplates are held for the event and released by the portal at the body
+   swap, not by the end of the shot. A parent capture spends its last two
+   seconds drawing a system together, and its names are meant to resolve into
+   that assembly - held until `data-golden` dropped, they would instead appear
+   whole, all at once, on the frame the clock ran out. The scene fades them up
+   against its own assembly ease once they are released; this only decides
+   when they may be seen at all. A paper capture never releases them: the
+   portal has closed by then. */
+.orbit-portal[data-golden][data-golden-labels="held"] .orbit-labels {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* An external leaf's departure. Not a transition out of the portal - a
+   mailto: leaves the map exactly where it was - but an acknowledgement that
+   the press was taken, on the frame it was taken, while the browser does the
+   thing the visitor actually asked for. The field cools and settles back;
+   nothing waits on it, and nothing waits for it. */
+.orbit-portal[data-departing="true"] .orbit-portal-field {
+  animation: orbit-portal-depart 420ms var(--ease-settle) both;
+}
+@keyframes orbit-portal-depart {
+  0%   { opacity: 1; }
+  22%  { opacity: 0.72; }
+  100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-portal[data-departing="true"] .orbit-portal-field { animation: none; }
+}
+
+/* The shot is full-bleed and so is the field, always - see .orbit-portal-field
+   above. All that is left for the shot to do is take the chrome's ground out
+   of the way with it, which the visibility rule already does. */

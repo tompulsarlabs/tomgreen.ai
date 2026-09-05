@@ -20,18 +20,58 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
+import { GoldenPathLayer } from "@/components/golden-path-layer";
+import {
+  CAPTURE_START as GOLDEN_CAPTURE_START,
+  clampUnit,
+  smoothstep,
+} from "@/lib/golden-path";
+import { captureReleaseAt } from "@/lib/capture-release";
+import { CORE_IN, coreHandover } from "@/lib/capture-core";
+import { CAPTURE_APPROACH_SECONDS } from "@/lib/capture-timing";
+import {
+  goldenIsBody,
+  goldenIsRunning,
+  goldenMotionNow,
+  goldenBurstTime,
+  goldenRenderTime,
+  goldenShotTime,
+  goldenTakesChildren,
+} from "@/lib/golden-path-store";
 import {
   BURST_LIFE,
   lightCurve,
   smoothstep as burstStep,
   thermal,
 } from "@/lib/supernova";
-import { isInteractive } from "@/lib/planet-model";
+import { captureEndingFor, isInteractive } from "@/lib/planet-model";
+import { TRAIL_SAMPLES, TrailField, TrailSamples } from "@/lib/comet-trail";
+import {
+  arrivalPlan,
+  arrivalPoint,
+  orbitNormal,
+  orbitTangent,
+  type ArrivalPlan,
+} from "@/lib/comet-arrival";
 import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
+import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 
+/** The core event's share of the screen, read per frame from the shot clock. */
+const goldenCoreHandover = () => coreHandover(goldenShotTime());
+
+/** The scene's exposure at rest. The golden path scales it and hands it back. */
+const BASE_EXPOSURE = 1.05;
+
 /** A body as one frame drew it: centre, radius, and its nameplate's box. */
-type DrawnSpot = { x: number; y: number; r: number; plate: Rect | null };
+type DrawnSpot = {
+  x: number;
+  y: number;
+  r: number;
+  plate: Rect | null;
+  /** False while the body is still flying to its orbit. See settledIds. */
+  settled: boolean;
+};
 /** One drawn frame, wall-clock stamped, for the press model's memory. */
 type DrawnFrame = { t: number; at: Map<string, DrawnSpot> };
 import {
@@ -67,12 +107,16 @@ const CORE_RADIUS = 0.34;
 const NARROW_LABELS = 4;
 const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
 
-/** How long a clicked planet takes to spiral into the core. */
-const CAPTURE_SECONDS = 0.75;
+/**
+ * How many bodies the membrane's contact shading has slots for. The same ten
+ * are written into the shader's own loop bound, which is a GLSL string and
+ * cannot read this: changing one means changing the other.
+ */
+const MAX_CONTACT_BODIES = 10;
 
-/** Fragment assembly: how long the system takes to draw itself together
- *  out of scattered pieces when it first appears, or when one section's
- *  system replaces another. */
+/** Duration on the canonical shot clock; capture-timing sets the wall time. */
+const CAPTURE_SECONDS = CORE_IN - GOLDEN_CAPTURE_START;
+
 /** Travel, in px, before an armed press becomes a camera drag. */
 /**
  * A press becomes a drag only after this much travel. Five pixels was
@@ -107,9 +151,53 @@ const HIT_MEMORY_FRAMES = 6;
 /** A press this close to a nameplate's box, in px, is a press on it. */
 const HIT_PLATE_PX = 8;
 
+/**
+ * The capture filament, from the core to the fallen planet.
+ *
+ * One array for every filament in the scene, and a module constant rather
+ * than a literal in the map: drei rebuilds a Line's geometry whenever the
+ * `points` identity changes and disposes the material it still holds in the
+ * same cleanup, so a fresh array literal per render meant every re-render of
+ * the scene threw away and rebuilt N line geometries and relinked N line
+ * programs. The scene re-renders several times inside the event itself. Safe
+ * to share: drei only reads it, and the frame loop writes the real endpoints
+ * through setPoints.
+ */
+const FILAMENT_POINTS: [number, number, number][] = [
+  [0, 0, 0],
+  [0, CORE_Y, 0],
+];
+
+/** How long the scene takes to come home from an interrupted shot. */
+const RECOVER_SECONDS = 0.45;
+
 const ASSEMBLY_SECONDS = 1.45;
-/** How far out the pieces start, in world units of extra orbit radius. */
-const ASSEMBLY_SCATTER = 5.4;
+
+/**
+ * Trails.
+ *
+ * One field for the scene, sized to the largest system the shader already
+ * carries, so a released system can have every child trailing at once without
+ * anything being allocated at the moment it happens.
+ */
+const MAX_TRAILS = MAX_CONTACT_BODIES;
+/** Trail half-width at the head, as a multiple of the body's own radius. */
+const TRAIL_WIDTH = 0.62;
+/**
+ * The speed at which a trail is at full strength, in world units per second.
+ * Orbital speed out at the ellipses is around 0.4, so a body has to be going
+ * several times faster than it ever does in orbit before it leaves anything:
+ * the trail marks the two events, and is invisible the rest of the time.
+ */
+const TRAIL_FULL_SPEED = 3.2;
+/** Below this a body is simply in orbit and leaves nothing at all. */
+const TRAIL_MIN_SPEED = 0.9;
+/** What a trail whitens toward as its body heats. Read only; never mutated. */
+const TRAIL_PLASMA = new THREE.Color(1, 0.96, 0.92);
+/** Floats between one slot's drive values and the next's, in the field. */
+const FIELD_TRAIL_STRIDE = TRAIL_SAMPLES * 2 * 2;
+/** Only a review build carries the trail probe. */
+const GOLDEN_REVIEW = process.env.NEXT_PUBLIC_GOLDEN_REVIEW === "1";
 
 /** Position on a body's ellipse at parameter t, world space (y up). */
 function orbitPoint(
@@ -268,6 +356,14 @@ type SceneProps = {
    */
   onCapture?: (id: string) => void;
   /**
+   * A press the scene has accepted, reported at the moment it is accepted
+   * rather than when the spiral lands. The golden path needs its clock to
+   * start on the visitor's own input, and this is the single funnel every
+   * input path already reaches — sphere, label, touch, Enter and Space —
+   * so hooking it here costs the press model nothing.
+   */
+  onPress?: (id: string) => void;
+  /**
    * The burst at the core, owned by the portal rather than the scene so
    * it survives the remount a descent performs. Both the outgoing scene
    * and the incoming one read the same detonation time.
@@ -317,13 +413,13 @@ function OrbitScene({
   narrow,
   bodies,
   onCapture,
+  onPress,
   flare,
   handoff,
 }: SceneProps) {
   const { camera, gl, size } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
-
   const elements = useMemo(
     () => bodies.map((_, index) => navOrbitElements(index, bodies.length)),
     [bodies],
@@ -423,8 +519,31 @@ function OrbitScene({
     [bodies, elements, narrow],
   );
 
+  /**
+   * Every trail in the scene, in one geometry and one program.
+   *
+   * Built once for the life of the canvas rather than per system: the
+   * released children of a captured parent all trail at the same instant,
+   * and that is the worst possible moment to be compiling a shader.
+   */
+  const trails = useMemo(() => new TrailField(MAX_TRAILS), []);
+  useEffect(() => () => trails.dispose(), [trails]);
+
+  /**
+   * How each body of this system leaves the core and reaches its orbit.
+   *
+   * Per set rather than per frame: the plan is the body's ejection, and an
+   * ejection does not change while it is happening.
+   */
+  const arrivals = useMemo<ArrivalPlan[]>(
+    () => bodies.map((_, index) => arrivalPlan(index, bodies.length)),
+    [bodies],
+  );
+
   const bodyRefs = useRef(new Map<string, THREE.Group>());
   const bodyMaterials = useRef(new Map<string, THREE.MeshPhysicalMaterial>());
+  /** Each body's heat uniform, so the frame loop can drive it directly. */
+  const bodyHeat = useRef(new Map<string, { value: number }>());
   const filamentRefs = useRef(
     new Map<
       string,
@@ -438,6 +557,8 @@ function OrbitScene({
   const coreRef = useRef<THREE.Mesh>(null);
   const coreMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
   const pathMaterials = useRef<{ opacity: number }[]>([]);
+  /** The body set the scene is currently holding state for. */
+  const heldBodies = useRef<readonly OrbitBody[] | null>(null);
 
   // Interaction state — all refs, never React state inside the loop.
   const state = useRef({
@@ -478,12 +599,29 @@ function OrbitScene({
     lastInteraction: -10,
     reveal: 0,
     revealTarget: 0,
-    /** 0 while the system is still scattered, 1 once assembled. */
+    /** Last frame's shot time, or null when no shot is running. */
+    shotWas: null as number | null,
+    /** Last frame's assembly, and the rate it is running at, in 1/seconds. */
+    assemblyWas: 0,
+    assemblyRate: 1 / ASSEMBLY_SECONDS,
+    /** How far the system is through arriving out of the core, 0 to 1. */
     assembly: 0,
+    /**
+     * What the shot had done to the camera and the light when it stopped, and
+     * how much of it is still owed back. A shot can end at any instant -
+     * Escape, the watchdog, a hidden tab - and it leaves both wherever it had
+     * taken them: up to 5.9x of exposure and 5.6 units of camera distance from
+     * where the map lives. Releasing them in one frame is a jump the visitor
+     * reads as a second fault on top of whatever made them interrupt it.
+     */
+    recover: 0,
+    shotPosition: new THREE.Vector3(),
+    shotQuaternion: new THREE.Quaternion(),
+    shotExposure: BASE_EXPOSURE,
     /** The first frame has run; the continuity seed happens only once. */
     seeded: false,
-    /** Seeded into a live burst: nameplates wait for assembly instead. */
-    labelGate: false,
+    /** Each body's own recent path, which is what its trail is drawn from. */
+    trailPaths: new Map<string, TrailSamples>(),
     pointerWorld: new THREE.Vector3(99, 0, 99),
     pointerStrength: 0,
     // Label placement: the chosen anchor per body, where each label is
@@ -506,8 +644,23 @@ function OrbitScene({
     // Any capture, not only an active one: a held capture belongs to a
     // scene the portal is about to replace.
     if (s.capture) return;
+    // And one event at a time. A parent's capture keeps the screen for two
+    // seconds after its child system has landed, and this scene's own
+    // capture is cleared at the swap - so without this a press taken during
+    // the assembly would start the procedural transition and travel out from
+    // underneath a remnant that is still burning.
+    if (goldenIsRunning()) return;
     if (!bodyById.has(id)) return;
     if (!isInteractive(id)) return;
+    // A departure is not a capture. The gravity core cannot deliver anyone to
+    // a mail client or another origin, so it does not take these bodies in at
+    // all: no spiral, no filament, no event. The portal answers the press on
+    // the frame it arrives, still inside the activation the gesture gave it,
+    // which is also what lets a mailto: reach a mail client at all.
+    if (captureEndingFor(id).kind === "external") {
+      onCaptureRef.current?.(id);
+      return;
+    }
     s.capture = {
       id,
       progress: 0,
@@ -515,6 +668,10 @@ function OrbitScene({
       held: false,
       navigated: false,
     };
+    // Reported after the guards, so a press the scene refused never starts
+    // a clock. Nothing above this line changed: the pointer capture, the
+    // drag threshold and the frame memory all still decide what a press is.
+    onPressRef.current?.(id);
   };
   const startCaptureRef = useRef(startCapture);
   // Kept current in an effect, never during render: the scene reads it
@@ -524,6 +681,10 @@ function OrbitScene({
   useEffect(() => {
     onCaptureRef.current = onCapture;
   }, [onCapture]);
+  const onPressRef = useRef(onPress);
+  useEffect(() => {
+    onPressRef.current = onPress;
+  }, [onPress]);
 
   const navigate = (target: OrbitTarget) => {
     switch (target.kind) {
@@ -634,13 +795,10 @@ function OrbitScene({
       watchingFonts = false;
     });
 
-    bodies.forEach((body, index) =>
-      s.angles.set(body.id, elements[index].phase),
-    );
-    // Swapping the body set swaps the system. It draws itself together
-    // again rather than cutting, which is what makes descending into a
-    // section read as one continuous world instead of a page change.
-    s.assembly = 0;
+    // Adopting a body set is the frame loop's job now (adoptBodies). Doing it
+    // here as well would restart the assembly a scheduler task after it had
+    // already begun - the passive effect runs after the commit, and by then
+    // the system is a frame or two into drawing itself together.
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -680,6 +838,9 @@ function OrbitScene({
         let bestScore = Infinity;
         frame.at.forEach((spot, id) => {
           if (!isInteractive(id)) return;
+          // Still on its way to its orbit: a moving body is not a target,
+          // and the middle of the frame belongs to the nucleus.
+          if (!spot.settled) return;
           const reach = Math.max(HIT_MIN_PX, spot.r * HIT_SCALE);
           // 0 at the centre, 1 at the edge of the reach; and the same
           // scale for the nameplate's box, which is part of the planet.
@@ -825,17 +986,159 @@ function OrbitScene({
       v3: new THREE.Vector3(),
       ndc: new THREE.Vector2(),
       core: new THREE.Vector3(),
+      /** Where a body's orbit would have it, before any event moves it. */
+      settled: new THREE.Vector3(),
+      /** The destination orbit's direction of travel, and its plane normal. */
+      tangent: new THREE.Vector3(),
+      normal: new THREE.Vector3(),
+      /** Scratch for the arrival curve, which allocates nothing of its own. */
+      hermite: { a: new THREE.Vector3(), b: new THREE.Vector3() },
+      /** The trail's colour for this body this frame. */
+      tint: new THREE.Color(),
       /** An orphan used to aim a body at the core. */
       aim: new THREE.Object3D(),
     }),
     [],
   );
 
+  /**
+   * Take on a new body set, in one synchronous step, before anything is drawn.
+   *
+   * The scene was always written to swap systems in place - "it draws itself
+   * together again rather than cutting" - but the portal used to give it a new
+   * key, so in practice every descent got a fresh component and this never
+   * ran. With one canvas for the life of the portal it runs for real, and the
+   * per-body state left behind by the departed system is now this component's
+   * to account for. One consequence is not a matter of degree: a capture is
+   * parked in `held` and the press gate refuses a press while ANY capture is
+   * held, so without this the first descent of a session would lock out every
+   * press that followed it. The rest - stale hit frames, a nameplate anchored
+   * where another planet used to be, orbit paths and membrane slots still
+   * describing bodies that are gone - are bounded or self-correcting, and are
+   * cleared here because a set that is half the previous one is not a state
+   * worth reasoning about later.
+   *
+   * It happens HERE rather than in the effect that used to do it because the
+   * frame loop is not synchronised with a passive effect, which React flushes
+   * in a scheduler task after the commit. Until adoption runs, an arriving
+   * body has no entry in `s.angles` (read as `?? 0`) and `s.assembly` still
+   * holds the departed system's finished value, so any frame drawn in that
+   * gap describes the new set with the old set's state. The remount used to
+   * make that impossible by construction.
+   */
+  const adoptBodies = () => {
+    if (heldBodies.current === bodies) return;
+    heldBodies.current = bodies;
+
+    const live = new Set(bodies.map((body) => body.id));
+    const s = state.current;
+
+    // Every id-keyed store, pruned against the set that is actually here.
+    pruneToLiveBodies(
+      [
+        s.hoverEase,
+        s.angles,
+        s.anchors,
+        s.gaps,
+        s.hidden,
+        s.baseOpacity,
+        s.labelAt,
+        s.pending,
+        s.lockedUntil,
+        s.measured,
+        s.labels,
+        bodyRefs.current,
+        bodyMaterials.current,
+        bodyHeat.current,
+        filamentRefs.current,
+      ],
+      live,
+    );
+
+    // Index-keyed things, which have no id to prune by and would otherwise
+    // keep drawing the departed system: the orbit paths, and the membrane's
+    // contact shading, whose shader reads all ten slots unconditionally, so
+    // a four-body system arriving after an eight-body one would leave four
+    // contact dimples pressed into the lattice where nothing is.
+    pathMaterials.current.length = bodies.length;
+    for (const slot of idleBodySlots(bodies.length, MAX_CONTACT_BODIES)) {
+      membraneUniforms.uBodies.value[slot].set(999, 999, 999);
+    }
+
+    bodies.forEach((body, index) => s.angles.set(body.id, elements[index].phase));
+
+    // Where a nameplate was last drawn belongs to the system it was drawn
+    // for. Kept, a system entered a second time would have its names slide
+    // in from wherever they happened to sit when the visitor last left it,
+    // across a scene that is meanwhile assembling from scattered. The
+    // measured boxes stay - a nameplate's width is a property of its text.
+    s.labelAt.clear();
+    s.anchors.clear();
+    s.gaps.clear();
+    // A trail is where a body has BEEN. Carried across a swap, a body that
+    // appears in both systems would draw a ribbon from where it used to orbit
+    // to where it now does - across the whole frame, through the core.
+    s.trailPaths.clear();
+
+    // A capture belongs to the set it was started in. It used to be left
+    // parked in `held`, on an assumption that was true only while the portal
+    // replaced the scene: that this component was about to be thrown away.
+    // Left behind, it refuses every press in the incoming system, because the
+    // press gate refuses any capture at all.
+    s.capture = null;
+    s.pendingPress = null;
+    s.pressOrigin = null;
+    s.pressTravel = 0;
+    // Where things were drawn is how a press is resolved. The memory is
+    // short and newest-first, so a departed body could only win over empty
+    // space for a moment - but it is the departed system's memory, and it
+    // belongs to it.
+    s.frames = [];
+    s.hover = null;
+
+    // The system arrives out of the core, and its nameplates wait for it -
+    // every time, including the first open. There used to be a flag here
+    // exempting the first mount, from when a system arrived by falling in
+    // from outside and there was nothing to wait for. Now there is: a body
+    // still in flight has no business carrying a name, and its NAMEPLATE is
+    // a link with a real hit box, so an ungated one over the middle of the
+    // frame is a control sitting exactly where the nucleus is.
+    s.assembly = 0;
+    s.assemblyWas = 0;
+    s.assemblyRate = 1 / ASSEMBLY_SECONDS;
+  };
+
   useFrame((rootState, rawDelta) => {
+    adoptBodies();
     const s = state.current;
     const dt = Math.min(rawDelta, 0.05);
     const now = rootState.clock.elapsedTime;
     const lerpIn = (rate: number) => Math.min(1, dt * rate);
+
+    /**
+     * ONE CLOCK FOR EVERYTHING THE BODIES DO.
+     *
+     * A capture's spiral and a released system's arrival are both READ from
+     * the shot clock rather than integrated from the frame time, because the
+     * event is choreographed against baked frames at fixed seconds. Their
+     * orbital angles were still integrated from wall time, which is fine
+     * while nothing else is - and wrong the moment something is: on a machine
+     * that sags, the planet's fall is where the shot says and its orbital
+     * motion is where the frame rate says, and the two disagree by however
+     * far behind the renderer is.
+     *
+     * The trails made that visible, because a trail is a record of where the
+     * body has been: sampled on one clock while the body moves on another,
+     * the ribbon separates from the planet it belongs to. So while a shot is
+     * running everything the bodies do runs on the shot's own clock, and a
+     * frame that arrives without the clock having moved draws the same
+     * instant again rather than half of a new one.
+     */
+    const shotNow = goldenIsRunning() ? goldenShotTime() : null;
+    const shotStep =
+      shotNow !== null && s.shotWas !== null ? Math.max(0, shotNow - s.shotWas) : 0;
+    s.shotWas = shotNow;
+    const motionDt = shotNow !== null ? shotStep : dt;
 
     // A scene that mounts into a live burst is a remount, not a first
     // open. It skips the entry choreography — the dolly in, the well
@@ -851,7 +1154,6 @@ function OrbitScene({
       if (live) {
         s.reveal = 1;
         s.revealTarget = 1;
-        s.labelGate = true;
         const h = handoff?.current;
         if (h && wall - h.at < HANDOFF_FRESH_MS) {
           s.drift = h.drift;
@@ -866,13 +1168,69 @@ function OrbitScene({
       }
     }
 
+    /**
+     * THE PARENT ENDING.
+     *
+     * A captured parent does not travel anywhere: it releases its own system
+     * out of the remnant, inside the same event, and the last two seconds of
+     * the shot are that release. While one is running the scene's two entry
+     * channels are READ from the shot clock rather than integrated - for the
+     * same reason the capture spiral is (see c.progress below): the schedule
+     * is choreographed against baked frames, and a sagging frame rate would
+     * walk the assembly off the remnant it is meant to arrive through. Every
+     * other entry into a system - a step back, a first open, a descent with
+     * no capture engine available - keeps the integrator exactly as it was.
+     *
+     * Neither branch writes revealTarget. That latch stays at whatever the
+     * intersection observer set, so the moment the shot ends - or is aborted,
+     * or watchdogged, or the tab is hidden and comes back - the integrator
+     * picks the scene straight back up and pulls it home. A schedule that
+     * wrote the latch would leave an interrupted shot holding a scene at
+     * whatever fraction of itself it had reached.
+     */
+    const release = goldenTakesChildren()
+      ? captureReleaseAt(goldenRenderTime())
+      : null;
+
     // Entry: the well deepens, the system condenses, the camera settles.
-    s.reveal += (s.revealTarget - s.reveal) * lerpIn(1.6);
-    if (s.assembly < 1)
+    const eased = s.reveal + (s.revealTarget - s.reveal) * lerpIn(1.6);
+    s.reveal = release
+      ? release.swapped
+        ? release.reveal
+        : // Still the integrator until the dismissal overtakes it. Assigning
+          // the schedule outright would snap a scene that was still easing in
+          // - a press taken in the first second of an open portal - straight
+          // to 1 on the frame the shot armed.
+          Math.min(eased, release.outgoing)
+      : eased;
+    // The schedule's assembly describes the ARRIVING system, which does not
+    // exist until the swap. Applied before it, it drives the departing
+    // system's own bodies to zero on the frame the shot arms - so the planet
+    // the visitor just pressed, and every one of its siblings, vanishes at the
+    // press and the whole event becomes a core and some gas. Before the swap
+    // the outgoing system is assembled, because it is: it has been on screen
+    // the entire time the visitor was looking at it.
+    if (release) s.assembly = release.swapped ? release.assembly : 1;
+    else if (s.assembly < 1)
       s.assembly = Math.min(1, s.assembly + dt / ASSEMBLY_SECONDS);
-    // Cubic-out: the pieces arrive fast and settle slowly, so the last
-    // of the assembly is the part that reads as deliberate.
-    const assembled = 1 - Math.pow(1 - s.assembly, 3);
+    // How fast the arrival is running, in real seconds - which the flight
+    // curves need, because a body has to arrive travelling at orbital speed
+    // and "orbital speed" is a rate. It is not a constant: the integrator
+    // takes ASSEMBLY_SECONDS, the parent ending's schedule takes its own
+    // window, and a compact capture takes that window faster still. Measured
+    // rather than tabulated, so all three are right without any of them
+    // being written down twice, and smoothed because the schedule is read
+    // from a clock that can step.
+    const wasAssembled = s.assemblyWas;
+    s.assemblyWas = s.assembly;
+    const rate = dt > 0 ? (s.assembly - wasAssembled) / dt : 0;
+    if (rate > 1e-4)
+      s.assemblyRate += (rate - s.assemblyRate) * Math.min(1, dt * 6);
+    const arrivalSeconds = THREE.MathUtils.clamp(
+      1 / Math.max(s.assemblyRate, 1e-3),
+      0.3,
+      4,
+    );
 
     // Capture: the clicked planet spirals into the core; at the bottom
     // the site travels. Anchor travel keeps the scene alive, so the
@@ -881,7 +1239,14 @@ function OrbitScene({
     if (s.capture) {
       const c = s.capture;
       if (c.active) {
-        c.progress = Math.min(1, c.progress + dt / CAPTURE_SECONDS);
+        // The spiral is normally integrated from dt. Under the golden path
+        // it is read from the shot clock instead, because the plate's
+        // detonation is at a fixed second and a frame rate that sags would
+        // walk the live capture off the baked breakout. Every other planet
+        // keeps the integrator exactly as it was.
+        c.progress = goldenIsBody(c.id)
+          ? clampUnit((goldenShotTime() - GOLDEN_CAPTURE_START) / CAPTURE_SECONDS)
+          : Math.min(1, c.progress + dt / CAPTURE_APPROACH_SECONDS);
         if (c.progress >= 1 && !c.navigated) {
           c.navigated = true;
           const handler = onCaptureRef.current;
@@ -953,6 +1318,72 @@ function OrbitScene({
       distance * Math.sin(polar) * Math.cos(azimuth),
     );
     camera.lookAt(0, -0.42, 0);
+
+    /* THE APPROVED CAMERA.
+     *
+     * Distance, roll and slide are the render's own, sampled per frame from
+     * the tables in golden-path.ts; azimuth and polar stay the visitor's,
+     * because the breakout is screen-space authored and snapping the angle
+     * at the press would be a jump. The dive is the whole shot: 7.62 units
+     * out to 2.00 at the core, rolling to -2.5 degrees and sliding laterally
+     * through the passage.
+     *
+     * And the map dims as it did in the render - which is not a mood, it is
+     * arithmetic. The plate is difference-matted against the map the render
+     * drew, so P + (1 - M) * B reproduces the approved frame only where the
+     * live map IS that B. At the detonation the matte leaves 98% of the
+     * frame to the live map; a map at full brightness there is not the
+     * approved image at all. Exposure falls 1.4 EV as the planet spirals in,
+     * then the map takes a further 0.45x as the event breaks out.
+     */
+    if (goldenIsRunning()) {
+      const g = goldenMotionNow();
+      /*
+       * ...and then, for a parent, it comes back. The approved shot ends
+       * parked 2.00 units from the core, rolled and slid, with the map at
+       * 0.45 x 2^-1.4 of its own exposure - all of which is right, because
+       * paper is about to take the frame and none of it will be seen again.
+       * A released system has to be seen. Its orbits span roughly 1.29 to
+       * 3.11 units, so a camera left at 2.00 stands INSIDE the shell it is
+       * revealing with half the system behind it, and a map left at a sixth
+       * of its brightness would assemble dark and then snap 5.9x on the frame
+       * the shot ended. Both ease home across the assembly instead, and both
+       * land on the map's own values rather than on remembered ones: the
+       * distance is the same expression the resting camera just used, so
+       * there is nothing to disagree with when the shot lets go.
+       */
+      const back = release?.cameraReturn ?? 0;
+      const camDistance = g.camDistance + (distance - g.camDistance) * back;
+      camera.position.set(
+        camDistance * Math.sin(polar) * Math.sin(azimuth),
+        camDistance * Math.cos(polar),
+        camDistance * Math.sin(polar) * Math.cos(azimuth),
+      );
+      camera.lookAt(0, -0.42, 0);
+      camera.translateX(g.camSlide[0] * (1 - back));
+      camera.translateY(g.camSlide[1] * (1 - back));
+      camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg * (1 - back)));
+      const shot = BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim;
+      const light = release?.lightReturn ?? 0;
+      gl.toneMappingExposure = shot + (BASE_EXPOSURE - shot) * light;
+      // Remembered every frame, so an interruption always has somewhere to
+      // come back FROM. A shot that runs to its own end is already home - the
+      // release schedule lands both channels at base by 4.30 s - so this costs
+      // that case nothing and saves every other one.
+      s.shotPosition.copy(camera.position);
+      s.shotQuaternion.copy(camera.quaternion);
+      s.shotExposure = gl.toneMappingExposure;
+      s.recover = 1;
+    } else if (s.recover > 0) {
+      s.recover = Math.max(0, s.recover - dt / RECOVER_SECONDS);
+      const k = s.recover;
+      camera.position.lerp(s.shotPosition, k);
+      camera.quaternion.slerp(s.shotQuaternion, k);
+      gl.toneMappingExposure =
+        BASE_EXPOSURE + (s.shotExposure - BASE_EXPOSURE) * k;
+    } else if (gl.toneMappingExposure !== BASE_EXPOSURE) {
+      gl.toneMappingExposure = BASE_EXPOSURE;
+    }
 
     // Membrane uniforms.
     membraneUniforms.uTime.value = now;
@@ -1027,6 +1458,26 @@ function OrbitScene({
     let hoverTheta = 0;
     let hoverStrength = 0;
 
+    // Trails are written per body below; anything not written this frame
+    // collapses in commit(), so a body that stopped moving stops trailing
+    // without anyone having to remember to turn it off.
+    trails.begin();
+
+    /**
+     * A BODY IN FLIGHT IS NOT A CONTROL.
+     *
+     * Movement is travel; stillness is information. Its nameplate is already
+     * gated on arriving, and the hit target has to be gated on the same
+     * thing, because a system now comes OUT of the core rather than in from
+     * outside: for the first second of an arrival there are planets crossing
+     * the middle of the frame, which is exactly where the nucleus is - a
+     * destination everything falls toward and deliberately not a control.
+     * Pressing it would otherwise capture whichever body had just flown
+     * through, which is neither what was aimed at nor a thing that can be
+     * aimed at.
+     */
+    const settledIds = new Set<string>();
+
     bodies.forEach((body, index) => {
       const el = elements[index];
       const hovered = s.hover === body.id;
@@ -1040,40 +1491,120 @@ function OrbitScene({
       const speedBoost = captured ? 1 + 9 * (s.capture?.progress ?? 0) : 1;
       const angle =
         (s.angles.get(body.id) ?? 0) +
-        dt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
+        motionDt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
       s.angles.set(body.id, angle);
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
       orbitPoint(el, angle, scratch.v1);
-      // Fragment assembly: each piece starts far out along its own
-      // orbital direction and falls in along it, so nothing crosses the
-      // core and the paths never tangle. Deterministic per index, so the
-      // same system assembles identically every time it is opened.
-      if (assembled < 1) {
-        const out = 1 - assembled;
-        const lift = ((index % 3) - 1) * 0.6;
-        scratch.v1.multiplyScalar(1 + ASSEMBLY_SCATTER * out);
-        scratch.v1.y += ASSEMBLY_SCATTER * out * lift;
-      }
       // Ride above the sheet. The orbits are inclined ellipses about the
       // origin, but the membrane falls away as a funnel, so out where the
       // funnel flattens toward y=0 a low-inclination body sits *in* the
       // mesh and the lattice draws straight across it. Lifting each body
       // clear of the local surface by its own radius keeps it a planet
       // above a sheet rather than a bead threaded onto it.
+      // Applied to the orbital position BEFORE the arrival is computed, so
+      // the arrival's destination is exactly where the body will settle and
+      // there is no correction to make on the frame it lands.
       const groundR = Math.hypot(scratch.v1.x, scratch.v1.z);
       const clearance = body.size * 1.9 + 0.08;
       scratch.v1.y = Math.max(scratch.v1.y, wellDepth(groundR) + clearance);
+
+      /**
+       * THE ARRIVAL. A system does not appear: it comes out of the core.
+       *
+       * Each body has its own flight - its own moment of leaving, its own
+       * ejection direction, its own inclination out of the orbital plane, its
+       * own arrival - and the path between is the cubic through the two
+       * states in comet-arrival.ts. So the system resolves as several bodies
+       * on several trajectories rather than as one gesture, and it lands in
+       * exactly the arrangement it would be in if it had never left, because
+       * the destination is read live off the ellipse it is settling onto.
+       */
+      const plan = arrivals[index];
+      const flight = Math.max(plan.end - plan.start, 1e-3);
+      const arrived =
+        s.assembly >= 1 ? 1 : clampUnit((s.assembly - plan.start) / flight);
+      if (arrived < 1) {
+        scratch.settled.copy(scratch.v1);
+        const orbitRate = orbitTangent(el, angle, scratch.tangent);
+        orbitNormal(el, scratch.normal);
+        arrivalPoint(
+          plan,
+          arrived,
+          scratch.core,
+          scratch.settled,
+          scratch.tangent,
+          scratch.normal,
+          orbitRate * el.speed,
+          arrivalSeconds * flight,
+          scratch.v1,
+          scratch.hermite,
+        );
+      }
+      // Out of the remnant, and settled onto its ellipse. The first is what
+      // the body is drawn by; the second is what its nameplate waits for.
+      const emerged = smoothstep(0, 0.14, arrived);
+      const landed = smoothstep(0.74, 1, arrived);
       if (suction > 0) scratch.v1.lerp(scratch.core, suction);
       group.position.copy(scratch.v1);
+
+      /**
+       * THE TRAIL, and the heat, from one measurement.
+       *
+       * How fast the body is actually moving, taken from the positions just
+       * written rather than from a curve that describes them - so the same
+       * number covers a planet falling into the core and a planet thrown out
+       * of one, and there is no second schedule that could disagree with the
+       * first. In orbit it is far below the floor and both are simply off.
+       */
+      let path = s.trailPaths.get(body.id);
+      if (!path) {
+        path = new TrailSamples();
+        s.trailPaths.set(body.id, path);
+      }
+      path.advance(scratch.v1.x, scratch.v1.y, scratch.v1.z, motionDt);
+      const glow =
+        clampUnit(
+          (path.speed - TRAIL_MIN_SPEED) / (TRAIL_FULL_SPEED - TRAIL_MIN_SPEED),
+        ) *
+        emerged *
+        s.reveal;
+      const surface = bodyHeat.current.get(body.id);
+      if (surface) surface.value = glow * 0.85;
+      if (index < MAX_TRAILS) {
+        trails.write(
+          index,
+          path,
+          scratch.tint.set(body.color).lerp(TRAIL_PLASMA, 0.4 * glow),
+          glow,
+          body.size * TRAIL_WIDTH * (0.55 + 0.45 * glow),
+        );
+      }
+
+      /**
+       * The orbit resolves WITH its planet, over the last half of that
+       * body's approach. Drawing the finished ellipses first would give away
+       * the arrangement before anything had arrived in it, and would leave
+       * every body flying toward a line already waiting for it.
+       */
+      const pathMaterial = pathMaterials.current[index];
+      if (pathMaterial)
+        pathMaterial.opacity = 0.1 * s.reveal * smoothstep(0.45, 1, arrived);
       // Feed the membrane's contact shading (first ten bodies).
-      if (index < 10) membraneUniforms.uBodies.value[index].copy(scratch.v1);
+      if (index < MAX_CONTACT_BODIES)
+        membraneUniforms.uBodies.value[index].copy(scratch.v1);
       const pressBump = s.pendingPress?.id === body.id ? 1 : 0;
       const swell =
         (1 + 0.08 * nextEase + 0.06 * pressBump) *
         (0.35 + 0.65 * s.reveal) *
-        (1 - 0.85 * suction) *
-        (0.3 + 0.7 * assembled);
+        // A captured planet is the subject of the shot until the core has
+        // it. It used to be down to a seventh of itself half way through the
+        // fall - a bright speck, gone long before the compression it is
+        // supposed to be causing. Now it holds most of its size until the
+        // last third and only disappears inside the core itself.
+        (1 - 0.9 * Math.pow(suction, 2.6)) *
+        // It arrives as a planet, not as a piece growing into one.
+        (0.62 + 0.38 * emerged);
       if (captured && suction > 0) {
         // Tidal compression. A body falling toward the core is stretched
         // along the fall and squeezed across it — the tide across its
@@ -1096,7 +1627,7 @@ function OrbitScene({
         group.scale.setScalar(Math.max(swell, 0.001));
       }
       const material = bodyMaterials.current.get(body.id);
-      if (material) material.opacity = s.reveal * assembled;
+      if (material) material.opacity = s.reveal * emerged;
 
       // Filament to the core: surfacing on hover, taut during capture.
       const filament = filamentRefs.current.get(body.id);
@@ -1154,10 +1685,15 @@ function OrbitScene({
         // nameplate down with it.
         const base =
           ((narrow ? 0.42 : 0.58) + 0.38 * near) * (occluded ? 0.45 : 1);
+        // Last, and per body: a nameplate appears only once ITS planet is
+        // close to its final position and has lost most of its speed, so the
+        // names resolve one after another behind the arrivals rather than
+        // all at once over a system that is still moving.
         const opacity =
           (base + (1 - base) * nextEase) *
           s.reveal *
-          (s.labelGate ? assembled : 1) *
+          landed *
+          (1 - 0.85 * glow) *
           (captured ? Math.max(0, 1 - (s.capture?.progress ?? 0) * 1.8) : 1);
         s.baseOpacity.set(body.id, opacity);
         // Measuring every frame would thrash layout. A nameplate's box
@@ -1174,6 +1710,7 @@ function OrbitScene({
           };
           if (box.width > 0) s.measured.set(body.id, box);
         }
+        if (landed > 0) settledIds.add(body.id);
         s.items.push({
           id: body.id,
           x,
@@ -1185,6 +1722,38 @@ function OrbitScene({
         });
       }
     });
+    // One upload for every trail in the scene, once the whole set is written.
+    trails.commit();
+    if (GOLDEN_REVIEW) {
+      // What the trails were actually told this frame. The ribbon is written
+      // from four numbers - the clock it is sampled on, the speed that came
+      // out of it, the gain that speed earned and the width - and when
+      // nothing appears on screen it is one of those four, not the shader.
+      (
+        window as unknown as { __goldenDebugTrails?: () => unknown }
+      ).__goldenDebugTrails = () => ({
+        motionDt,
+        assembly: s.assembly,
+        reveal: s.reveal,
+        capture: s.capture && { id: s.capture.id, progress: s.capture.progress, active: s.capture.active },
+        bodies: bodies.map((body, index) => ({
+          id: body.id,
+          at: bodyRefs.current.get(body.id)?.position.toArray().map((n) => Number(n.toFixed(4))),
+          head: Array.from(
+            (s.trailPaths.get(body.id)?.path ?? new Float32Array(3)).slice(0, 3),
+          ).map((n) => Number(n.toFixed(4))),
+          heat: bodyHeat.current.get(body.id)?.value ?? null,
+          speed: s.trailPaths.get(body.id)?.speed ?? null,
+          count: s.trailPaths.get(body.id)?.count ?? 0,
+          gain: (trails.geometry.getAttribute("aDrive").array as Float32Array)[
+            index * FIELD_TRAIL_STRIDE
+          ],
+          width: (trails.geometry.getAttribute("aDrive").array as Float32Array)[
+            index * FIELD_TRAIL_STRIDE + 1
+          ],
+        })),
+      });
+    }
     // Where each nameplate belongs is a layout decision, not a per-frame
     // one: it re-settles at about 7Hz and the labels glide to whatever it
     // chooses, so nothing jitters while the system turns.
@@ -1343,15 +1912,23 @@ function OrbitScene({
         const hide = s.hidden.get(item.id) ?? 0;
         const next = hide + (wanted - hide) * fade;
         s.hidden.set(item.id, next);
-        label.style.opacity = (
-          (s.baseOpacity.get(item.id) ?? 1) *
-          (1 - next)
-        ).toFixed(3);
+        const shown = (s.baseOpacity.get(item.id) ?? 1) * (1 - next);
+        label.style.opacity = shown.toFixed(3);
+        // A NAMEPLATE NOBODY CAN SEE IS NOT A CONTROL EITHER.
+        //
+        // Opacity does not stop an anchor taking a click, and a nameplate is
+        // an anchor with a real hit box. Its body's is gated on having
+        // arrived; this is the same gate for the DOM half, and it matters
+        // most for exactly the bodies the gate exists for: a planet still
+        // inside the core has its nameplate projected onto the middle of the
+        // frame, invisible, on top of the nucleus.
+        label.style.pointerEvents = shown > 0.02 ? "" : "none";
         at.set(item.id, {
           x: item.x,
           y: item.y,
           r: item.radius,
           plate: next < 0.5 ? box : null,
+          settled: settledIds.has(item.id),
         });
       }
       s.frames.push({ t: wall, at });
@@ -1386,9 +1963,6 @@ function OrbitScene({
       ).toFixed(3);
     }
 
-    // Orbit paths stay quiet — the membrane carries the depth.
-    for (const material of pathMaterials.current)
-      material.opacity = 0.1 * s.reveal;
 
     // The live capture, on the field: the contract is that an accepted
     // press begins exactly one transition, and this is how a test sees
@@ -1471,12 +2045,23 @@ function OrbitScene({
       <OrbitNebula narrow={narrow} flare={flare ?? null} />
 
       {/* The burst at the core. Mounted last so it draws over the
-          system it just tore a planet out of. */}
+          system it just tore a planet out of.
+
+          The shared capture engine does not stand this down - it CONDUCTS it.
+          The baked V3 material is the release and the aftermath; this is the
+          cause, and without it a capture reads as a planet vanishing into gas.
+          Under the engine it runs on the one shot clock rather than the wall,
+          so it compresses with everything else at the compact speed, and it
+          hands the screen over once the volumetric breakout has taken it.
+          Every other capture on the site keeps it exactly as it was. */}
       <OrbitFlare
         flare={flare ?? null}
         origin={[0, CORE_Y, 0]}
         narrow={narrow}
+        clock={flare?.conducted ? goldenBurstTime : null}
+        gain={flare?.conducted ? goldenCoreHandover : null}
       />
+      <GoldenPathLayer />
 
       {/* The spacetime membrane: displaced funnel geometry rendered as a
           procedural graphite lattice — sub-pixel AA lines, no boundary. */}
@@ -1524,6 +2109,18 @@ function OrbitScene({
         </mesh>
       )}
 
+      {/* Every comet trail in the scene: one geometry, one program, one
+          draw call, written into by the frame loop. Never culled, because
+          its bounding box is whatever the trails happen to span this frame
+          and computing one would cost more than drawing it. */}
+      <mesh
+        geometry={trails.geometry}
+        material={trails.material}
+        frustumCulled={false}
+        renderOrder={3}
+        raycast={() => null}
+      />
+
       {/* True 3D orbit paths — in front of and behind the well. */}
       {orbitPaths.map((path, index) => (
         <Line
@@ -1548,10 +2145,7 @@ function OrbitScene({
       {bodies.map((body) => (
         <Line
           key={`f-${body.id}`}
-          points={[
-            [0, 0, 0],
-            [0, CORE_Y, 0],
-          ]}
+          points={FILAMENT_POINTS}
           color="#dbe2ee"
           lineWidth={1}
           transparent
@@ -1598,7 +2192,10 @@ function OrbitScene({
                 // Terrain, not a snooker ball. Patched onto the material
                 // the body already has, so its mineral colour, clearcoat
                 // and environment reflection all survive.
-                applyPlanetSurface(material, planetSeed(body.id));
+                const surface = applyPlanetSurface(material, planetSeed(body.id));
+                // The heat the frame loop drives: a body glows because it is
+                // falling into the core or was just thrown out of one.
+                bodyHeat.current.set(body.id, surface.uniforms.uHeat);
               }}
               color={body.color}
               roughness={0.42}
@@ -1623,6 +2220,45 @@ function OrbitScene({
           </mesh>
         </group>
       ))}
+
+      {/*
+        One planet's material that never leaves.
+
+        Every planet compiles to the same program - applyPlanetSurface pins
+        customProgramCacheKey to "planet-surface" and puts the seed in a
+        uniform - so the whole map costs one shader. three counts how many
+        materials are using that program and deletes it the moment the count
+        reaches zero. Swapping a body set unmounts every material in it, and
+        R3F disposes them on an idle callback that is not ordered against the
+        frame loop: if idle work runs before the arriving planets have drawn
+        once, the count touches zero, the program is deleted, and the frame
+        the child system first appears on pays for a full relink of a physical
+        shader. That frame is the one beat the parent ending needs to be
+        unobservable.
+
+        So one material holds the count above zero for the life of the canvas.
+        It has to be drawn to hold it - a culled or invisible mesh never
+        acquires the program at all - hence a sub-millimetre sphere at zero
+        opacity with culling off. It is three triangles and no pixels.
+      */}
+      <mesh frustumCulled={false} position={[0, CORE_Y, 0]}>
+        <sphereGeometry args={[0.0005, 3, 2]} />
+        <meshPhysicalMaterial
+          ref={(material) => {
+            if (material) applyPlanetSurface(material, planetSeed("keeper"));
+          }}
+          color="#000000"
+          roughness={0.42}
+          metalness={0.05}
+          clearcoat={0.55}
+          clearcoatRoughness={0.35}
+          envMapIntensity={0.85}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          dispose={null}
+        />
+      </mesh>
     </group>
   );
 }
@@ -1633,6 +2269,7 @@ export function OperatingOrbit3D({
   bodies,
   handoff,
   onCapture,
+  onPress,
   flare,
 }: SceneProps) {
   return (
@@ -1645,7 +2282,7 @@ export function OperatingOrbit3D({
         antialias: true,
         powerPreference: "high-performance",
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.05,
+        toneMappingExposure: BASE_EXPOSURE,
       }}
       style={{ background: "transparent" }}
       eventPrefix="client"
@@ -1661,6 +2298,7 @@ export function OperatingOrbit3D({
         narrow={narrow}
         bodies={bodies}
         onCapture={onCapture}
+        onPress={onPress}
         flare={flare}
         handoff={handoff}
       />
