@@ -56,7 +56,7 @@ export const clusters: Record<
     label: "AI & agents",
     eyebrow: "What I build",
     blurb:
-      "Agentic systems and products I design, run and improve in public.",
+      "Tools and products I design, run and improve in public.",
   },
   content: {
     label: "Writing & ideas",
@@ -104,7 +104,7 @@ const practiceNodes: GraphNode[] = [
     kind: "practice",
     category: "agents",
     cluster: "practice",
-    blurb: "Cadence, decision rights and agent workflows that turn strategy into repeatable motion.",
+    blurb: "I clarify who decides what, how work gets reviewed and where AI can help.",
   },
 ];
 

@@ -31,9 +31,9 @@ export default function About() {
                 The work, in sequence.
               </h2>
               <p>
-                Search, company building, global talent leadership, product
-                operations and agentic operating design. One continuous record,
-                from the first search to current systems work.
+                Executive search, company building, global talent leadership, product
+                operations and AI agents at work. From the first search to the
+                projects I’m building today.
               </p>
             </>
           }

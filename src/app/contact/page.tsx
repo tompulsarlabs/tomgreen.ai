@@ -6,7 +6,7 @@ import { site } from "@/lib/content/site";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Contact Tom Green about AI organizations, talent systems, operating models and agent workflows.",
+    "Contact Tom Green about hiring, building teams and putting AI to work.",
 };
 
 function MailIcon(props: SVGProps<SVGSVGElement>) {
@@ -90,7 +90,7 @@ export default function ContactPage() {
             </h1>
             <div className="systems-lead">
               <p>
-                Talent density that compounds into advantage. Razor-sharp heuristics for winning elite folks. Systems that hold up long after the demo. Let’s build it.
+                If you need to hire exceptional folks, improve how your team operates, or put AI to work, let’s talk.
               </p>
               <a
                 href={`mailto:${site.email}?subject=Let’s%20talk%20about%20the%20system`}

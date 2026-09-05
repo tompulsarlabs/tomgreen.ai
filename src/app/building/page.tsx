@@ -41,7 +41,7 @@ function RecordLink({ node }: { node: GraphNode }) {
 
   return external ? (
     <a href={node.href} target="_blank" rel="noreferrer" className={className}>
-      {node.kind === "content" ? "Read on Substack ↗" : "Inspect the system ↗"}
+      {node.kind === "content" ? "Read on Substack ↗" : "View on GitHub ↗"}
     </a>
   ) : (
     <Link href={node.href} className={className}>
@@ -113,8 +113,8 @@ export default function Building() {
               Lab.
             </h1>
             <p className="systems-lead">
-              The products, operating models and agents behind the outcomes,
-              organised by what is running, shipped and still in the lab.
+              Products, practical experiments and the methods I use to build and
+              run teams.
             </p>
           </div>
         </div>
@@ -127,10 +127,8 @@ export default function Building() {
             The systems behind the outcomes.
           </h2>
           <p className="mt-5 max-w-2xl leading-relaxed text-ink-secondary">
-            Where I’ve worked grounds the outcomes in real contexts. Teams and
-            operating models show how I operate. AI and agents make the method
-            inspectable. Writing turns the lessons into something others can
-            use.
+            Explore the companies I’ve worked with, how I build teams, and the
+            tools I’m developing. My writing shares what I learn along the way.
           </p>
         </div>
       </section>
@@ -203,7 +201,7 @@ export default function Building() {
                     rel="noreferrer"
                     className="mt-3 inline-flex min-h-11 items-center text-sm text-accent hover:underline"
                   >
-                    Inspect the system ↗
+                    View on GitHub ↗
                   </a>
                 )}
               </article>

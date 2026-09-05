@@ -53,12 +53,12 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
             cinematic see exactly what they see today. */}
         <div className="page-frame py-12 md:py-20" data-golden-masthead>
           <Link href="/work" className="record inline-flex min-h-11 items-center hover:underline">
-            ← Evidence index
+            ← All work
           </Link>
           <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(16rem,0.42fr)_minmax(0,1.58fr)] lg:items-start">
             <div>
               <p className="record evidence-mark">
-                Operating record / {String(index + 1).padStart(2, "0")}
+                Case study / {String(index + 1).padStart(2, "0")}
               </p>
               <p className="mt-5 max-w-xs text-sm leading-relaxed text-ink-secondary">
                 {study.role}<br />{study.period}

@@ -17,8 +17,8 @@ const groups = [
   {
     id: "flagship",
     label: "01 / Flagship",
-    heading: "Two constraints. Two systems in motion.",
-    lead: "One built an AI organization across four countries. One ran a European business, then rebuilt its People Ops around agents.",
+    heading: "An AI organisation. A European business.",
+    lead: "At Zalando, I built a 120-person AI organisation. At Chapter 2, I ran the European business and rebuilt People Ops on agentic workflows.",
     tiers: ["flagship"],
   },
   {
@@ -31,7 +31,7 @@ const groups = [
   {
     id: "arc",
     label: "03 / Wider arc",
-    heading: "Current work. Calibrated foundations.",
+    heading: "What I’m building now. Where I started.",
     lead: null,
     tiers: ["current", "foundation"],
   },
@@ -47,7 +47,7 @@ export function WorkIndex() {
         {/* The Lab's section format: a mono label held on the left, the
             heading and its lead carried on the right. */}
         <header className="work-index-masthead section-split">
-          <p className="record">Evidence / selected operating records</p>
+          <p className="record">Selected work</p>
           <div className="section-split-body">
             <h2 className="axis-display">Weighed by opportunity cost.</h2>
             <p className="systems-lead">{site.positioning}</p>
@@ -103,14 +103,13 @@ export function WorkIndex() {
       })}
 
       <aside className="work-index-next section-split">
-        <p className="record">Next / the operating logic</p>
+        <p className="record">Next / the Lab</p>
         <div className="section-split-body">
           <p className="axis-heading">
-            Want the operating logic, not just the result?
+            Want to see how I work?
           </p>
           <p className="work-next-lead">
-            The Lab connects the agent workflows, products, case studies and
-            public build record behind this work.
+            Explore the products, tools and methods behind these results.
           </p>
         </div>
         <Link href="/building" className="action action-light">

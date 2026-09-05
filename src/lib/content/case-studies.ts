@@ -45,7 +45,7 @@ export const caseStudies: CaseStudy[] = [
     period: "2022 – 2025",
     headline: "An AI organization from zero to 120 people in six months",
     summary:
-      "Built a pan-European AI organization from zero to 120 people across four countries, led a 22-person talent team across Europe and China, and moved every headline hiring metric.",
+      "Built a pan-European AI organization from zero to 120 people across four countries, led a 22-person talent team across Europe and China, and improved hiring speed and offer acceptance.",
     context:
       "Europe's leading fashion platform was making its big bet on AI. It needed an entire cross-functional AI organization — research, ML engineering, product — built from nothing, at speed, across markets it hadn't hired in before.",
     body: [
@@ -76,7 +76,7 @@ export const caseStudies: CaseStudy[] = [
         },
         {
           label: "Market entry",
-          detail: "Design a hiring motion for Germany, Ireland, Switzerland and Finland.",
+          detail: "Design a hiring approach for Germany, Ireland, Switzerland and Finland.",
           owner: "human",
         },
         {
@@ -91,7 +91,7 @@ export const caseStudies: CaseStudy[] = [
         },
         {
           label: "AI organization",
-          detail: "Land the leadership spine and 120-person cross-functional organization in six months.",
+          detail: "Build the leadership team and 120-person cross-functional organization in six months.",
           owner: "team",
         },
       ],
@@ -100,7 +100,7 @@ export const caseStudies: CaseStudy[] = [
     },
     decisions: [
       {
-        title: "Build the leadership spine first",
+        title: "Build the leadership team first",
         detail:
           "Executive search and capability planning set the shape of the organization before volume hiring accelerated.",
       },
@@ -128,10 +128,10 @@ export const caseStudies: CaseStudy[] = [
     summary:
       "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
-      "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how agents could change People Ops.",
+      "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how AI could improve People Ops.",
     body: [
       "I led recruiting programs across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
-      "I rebuilt EU People Ops so a Germany-based operator, supported by governed agents, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
+      "I rebuilt EU People Ops so a Germany-based operator, supported by AI agents working within clear rules, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
       "The model became the reference for the group’s wider AI transformation.",
     ],
     metrics: [
@@ -176,7 +176,7 @@ export const caseStudies: CaseStudy[] = [
         },
       ],
       outcome:
-        "One Germany-based operator now runs EU People Ops with governed agents, replacing reliance on three UK shared-service roles while keeping sensitive decisions with people.",
+        "One Germany-based operator now runs EU People Ops with agents working within clear rules, replacing reliance on three UK shared-service roles while keeping sensitive decisions with people.",
     },
     decisions: [
       {
