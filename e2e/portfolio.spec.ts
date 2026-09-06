@@ -1384,7 +1384,7 @@ test("Lab without JavaScript keeps every build and operating model available", a
 
 test("About under reduced motion is the complete linear record", async ({ page }) => {
   await gotoReduced(page, "/about");
-  await expect(page.getByRole("heading", { name: "The work, in sequence." })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Career", exact: true })).toBeVisible();
   const corridor = page.locator('[aria-label="Interactive CV, reverse chronological"]');
   await expect(corridor).toBeVisible();
   await expect(corridor).not.toHaveAttribute("data-live", "true");

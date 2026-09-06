@@ -133,6 +133,11 @@ rest. Native scroll queues subsequent chapters; the year rail selects a destinat
 Reduced motion and no JavaScript retain the complete linear record. See the
 [current motion and interaction review](review-vfx/seamless-journeys/README.md).
 
+Career roles use a larger, darker semibold line so seniority and founder status read beneath
+each company. Audibene explicitly shows the documented promotion from Talent Acquisition Lead
+to Product Operations. The corridor introduction shares the entries' left edge; the extra
+“The work, in sequence” headline is removed, with a screen-reader heading retaining structure.
+
 ## Current quality gates
 
 1. Typed content and named-claim review remain the publishing gate.

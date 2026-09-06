@@ -20,14 +20,12 @@ export default function About() {
       </AboutOpening>
 
       <section aria-labelledby="career-heading" className="career-line">
+        <h2 id="career-heading" className="sr-only">Career</h2>
         <CareerCorridor
           stops={career}
           heading={
             <>
               <p className="record">2011 → now</p>
-              <h2 id="career-heading" className="axis-heading">
-                The work, in sequence.
-              </h2>
               <p>
                 Executive search, company building, global talent leadership, product
                 operations and AI agents at work. From the first search to the

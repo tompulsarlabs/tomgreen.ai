@@ -325,6 +325,11 @@ export function CareerCorridor({
                   </p>
                   <h3 className="station-company axis-index">{stop.company}</h3>
                   <p className="station-role">{stop.role}</p>
+                  {stop.promotedFrom && (
+                    <p className="station-progression">
+                      Promoted from {stop.promotedFrom}
+                    </p>
+                  )}
                   <p className="station-note">{stop.note}</p>
                   {stop.achievements.length > 0 && (
                     <ul className="station-achievements">
