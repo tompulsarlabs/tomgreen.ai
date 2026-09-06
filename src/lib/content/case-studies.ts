@@ -124,7 +124,7 @@ export const caseStudies: CaseStudy[] = [
     role: "Managing Director",
     period: "2025 – 2026",
     headline:
-      "Ran the European business. Won €3.3M of new business in twelve months. Then rebuilt how Europe operated.",
+      "Ran the European business. Won €3.3M in new ARR over twelve months. Then rebuilt how Europe operated.",
     summary:
       "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
@@ -136,7 +136,7 @@ export const caseStudies: CaseStudy[] = [
     ],
     metrics: [
       { value: "Europe", label: "P&L owned" },
-      { value: "€3.3M", label: "New business won in twelve months" },
+      { value: "€3.3M", label: "New ARR won in twelve months" },
       { value: "4 countries", label: "Recruiting programs led" },
       { value: "3 roles", label: "Shared-service reliance removed" },
     ],
@@ -196,7 +196,7 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     evidenceNote:
-      "Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
+      "Metrics are drawn from the operating record for this work. The €3.3M is the combined annual recurring revenue of new business I brought to Chapter 2 over twelve months, not the company’s net ARR increase. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
   },
   {
     slug: "audibene",
@@ -306,7 +306,7 @@ export const workProjects: WorkProject[] = [
   { id: "ai-organisation", label: "0 → 120 AI build", slug: "zalando" },
   { id: "interviewer-training", label: "Interviewer training system", slug: "zalando" },
   // Chapter 2 — the commercial result, and the operating rebuild behind it.
-  { id: "new-business", label: "€3.3M new business", slug: "chapter-2" },
+  { id: "new-business", label: "€3.3M new ARR won", slug: "chapter-2" },
   { id: "agent-people-ops", label: "People Ops on agents", slug: "chapter-2" },
   // Audibene / Hear.com — the function built from nothing.
   { id: "product-operations", label: "Product Ops from zero", slug: "audibene" },

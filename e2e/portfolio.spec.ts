@@ -490,7 +490,7 @@ test("the home route is the six-row evidence index, under the introduction", asy
   await expect(page.locator(".personal-hero img")).toHaveCount(0);
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
   await expect(page.locator(".row-summary, .work-group-lead")).toHaveCount(0);
-  await expect(page.locator(".work-metric-rail")).toContainText("New business won / 12 months");
+  await expect(page.locator(".work-metric-rail")).toContainText("New ARR won / 12 months");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
   await expect(
     page.locator("[data-work-row]").filter({ hasText: "Zalando" }),
@@ -864,7 +864,7 @@ test("Chapter 2 presents one linear, accountable workflow", async ({ page }) => 
   ]);
   await expect(system.getByText("Human judgment", { exact: true })).toBeVisible();
   await expect(page.getByText(
-    "Evidence note · Metrics are drawn from the operating record for this work. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
+    "Evidence note · Metrics are drawn from the operating record for this work. The €3.3M is the combined annual recurring revenue of new business I brought to Chapter 2 over twelve months, not the company’s net ARR increase. The workflow is a confidentiality-safe reconstruction rather than a production screenshot; selected references are available privately.",
     { exact: true },
   )).toBeVisible();
   await expect(page.getByText(/evidence object|sentence that splits|classified →|workflow reconstructed/i)).toHaveCount(0);

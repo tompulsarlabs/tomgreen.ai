@@ -72,6 +72,8 @@ This is a public repo, so **a git push is a publish**. Rules:
 - The Google EMEA engagement is under NDA — it is never described beyond the single
   line already public on the CV.
 - Numbers on the site must match the CV exactly; no embellishment drift.
+- Chapter 2’s €3.3M is the combined ARR of new business Tom brought in over twelve months.
+  Label it “new ARR won”; it is not the company’s net ARR increase, margin or total contract value.
 
 ## Architecture
 
