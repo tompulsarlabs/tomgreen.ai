@@ -1,143 +1,174 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { site } from "@/lib/content/site";
-import { clampUnit, homeMotionAt } from "@/lib/home-motion";
+import { ASSEMBLY_MS, ASSEMBLY_HOLD_MS, FRAGMENT_CLIPS, assemblyPiece } from "@/lib/home-assembly";
 import { openingAlreadyPlayed, skipOpening } from "@/lib/opening-sequence";
 
-/** The sequence's clock: three statements, then the portfolio. */
-const SEQUENCE_MS = 6200;
-const HOLD_MS = 600;
+/** Intact words own layout. Temporary visual pieces never affect reading order. */
+function Words({ text }: { text: string }) {
+  return text.split(" ").map((word, index) => (
+    <Fragment key={`${index}-${word}`}>
+      {index > 0 ? " " : null}
+      <span className="assembly-word"><span className="assembly-source">{word}</span></span>
+    </Fragment>
+  ));
+}
 
-/**
- * Home's opening — the three statements resolving on their own clock,
- * no scroll required. The sequence plays once on arrival (any click,
- * key, wheel or focus skips it), then the stage yields to the
- * portfolio beneath. Reduced-motion, no-JS, touch and small viewports
- * render the statements as a resolved document instead, with the portfolio
- * following in flow.
- */
 export function HomeResolve() {
   const sectionRef = useRef<HTMLElement>(null);
-  const [timed, setTimed] = useState(false);
-
-  useEffect(() => {
-    // Match the CSS stage: rotating a touch device must not turn its
-    // document into a desktop overlay with no running animation.
-    const media = window.matchMedia(
-      "(min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
-    );
-    const update = () => setTimed(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;
-    if (!section || !timed) return;
-
-    // The sequence is a first-arrival moment, and the doors home decide
-    // whether this counts as one: Home marks it seen before it leaves,
-    // the Moon clears the mark. A back button does neither, so it lands
-    // wherever the session already stood.
-    const played = openingAlreadyPlayed();
-
-    let frame = 0;
-    let holdTimer = 0;
-    let finished = false;
-
-    const apply = (progress: number) => {
-      const state = homeMotionAt(progress);
-      section.style.setProperty("--resolve-progress", String(progress));
-      section.style.setProperty("--axis-constraint", String(state.constraintAxis));
-      section.style.setProperty("--axis-system", String(state.systemAxis));
-      section.style.setProperty("--axis-release", String(state.releaseAxis));
-      section.style.setProperty("--constraint-word-space", `${(1 - clampUnit((state.constraintAxis - 62) / 38)) * 0.14}em`);
-      // --release-arrive has no CSS consumer since the release line's spans
-      // took their own staggered channels, but e2e/capture-review.mjs polls
-      // it to know when the sequence has landed. It stays for that.
-      section.style.setProperty("--release-arrive", String(state.releaseArrive));
-      section.style.setProperty("--stage-exit", String(state.stageExit));
-      // The curve and the spring. Offsets are REMAINING fractions of travel:
-      // 1 is fully displaced, 0 is home, and negative is past the mark —
-      // which is where the overshoot lives.
-      section.style.setProperty("--con-drift", String(state.constraintExitDrift));
-      section.style.setProperty("--con-lift", String(state.constraintExitLift));
-      section.style.setProperty("--con-opacity", String(state.constraintOpacity));
-      section.style.setProperty("--con-x", String(state.constraintOffsetX));
-      section.style.setProperty("--con-y", String(state.constraintOffsetY));
-      section.style.setProperty("--sys-x", String(state.systemOffsetX));
-      section.style.setProperty("--sys-y", String(state.systemOffsetY));
-      section.style.setProperty("--sys-opacity", String(state.systemOpacity));
-      section.style.setProperty("--sys-drift", String(state.systemExitDrift));
-      section.style.setProperty("--sys-lift", String(state.systemExitLift));
-      section.style.setProperty("--rel-x", String(state.releaseOffsetX));
-      section.style.setProperty("--rel-y-1", String(state.releaseOffsetY1));
-      section.style.setProperty("--rel-y-2", String(state.releaseOffsetY2));
-      section.style.setProperty("--rel-y-3", String(state.releaseOffsetY3));
-      section.style.setProperty("--rel-o-1", String(state.releaseOpacity1));
-      section.style.setProperty("--rel-o-2", String(state.releaseOpacity2));
-      section.style.setProperty("--rel-o-3", String(state.releaseOpacity3));
-    };
-
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      cancelAnimationFrame(frame);
-      window.clearTimeout(holdTimer);
-      apply(1);
-      section.classList.add("is-done");
-      skipOpening();
-    };
-
-    if (played) {
-      finish();
-      return () => {
-        section.classList.remove("is-done");
-        section.removeAttribute("style");
-      };
-    }
-
-    const start = performance.now();
-    const tick = (now: number) => {
-      frame = 0;
-      const progress = clampUnit((now - start) / SEQUENCE_MS);
-      apply(progress);
-      if (progress >= 1) {
-        holdTimer = window.setTimeout(finish, HOLD_MS);
+    if (!section) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+    let dispose = () => {};
+    const setup = () => {
+      dispose();
+      if (!motion.matches) {
+        section.classList.add("is-ready");
         return;
       }
-      frame = requestAnimationFrame(tick);
+      let cancelled = false;
+      let finished = false;
+      let frame = 0;
+      let holdTimer = 0;
+      let fontTimer = 0;
+      let layoutObserver: ResizeObserver | undefined;
+      const animations: Animation[] = [];
+      const words = Array.from(section.querySelectorAll<HTMLElement>(".assembly-word"));
+      const clearPieces = () => {
+        animations.forEach(animation => animation.cancel());
+        section.querySelectorAll(".assembly-fragment").forEach(piece => piece.remove());
+      };
+      const settle = () => {
+        layoutObserver?.disconnect();
+        clearPieces();
+        words.forEach(word => { word.dataset.assembled = ""; });
+        section.classList.remove("is-assembling");
+        section.classList.add("is-ready");
+        section.style.setProperty("--resolve-progress", "1");
+        section.style.setProperty("--release-arrive", "1");
+      };
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        cancelAnimationFrame(frame);
+        window.clearTimeout(holdTimer);
+        window.clearTimeout(fontTimer);
+        settle();
+        section.classList.add("is-done");
+        skipOpening();
+      };
+      const onFocus = (event: FocusEvent) => {
+        if (event.target instanceof Element && event.target.closest(".home-overview, .work-index, #main-content")) finish();
+      };
+      // Input always wins, including before fonts are ready. Touch retains
+      // its scrolling document; desktop yields the overlay.
+      section.addEventListener("pointerdown", finish);
+      window.addEventListener("wheel", finish, { passive: true });
+      window.addEventListener("touchmove", finish, { passive: true });
+      window.addEventListener("keydown", finish);
+      window.addEventListener("resize", finish);
+      document.addEventListener("focusin", onFocus);
+      dispose = () => {
+        cancelled = true;
+        cancelAnimationFrame(frame);
+        window.clearTimeout(holdTimer);
+        window.clearTimeout(fontTimer);
+        clearPieces();
+        layoutObserver?.disconnect();
+        section.removeEventListener("pointerdown", finish);
+        window.removeEventListener("wheel", finish);
+        window.removeEventListener("touchmove", finish);
+        window.removeEventListener("keydown", finish);
+        window.removeEventListener("resize", finish);
+        document.removeEventListener("focusin", onFocus);
+        words.forEach(word => { delete word.dataset.assembled; });
+        section.classList.remove("is-assembling", "is-done", "is-ready");
+        section.removeAttribute("style");
+      };
+      if (openingAlreadyPlayed()) {
+        finish();
+        return;
+      }
+      // A stalled font request must not hold the opening indefinitely.
+      fontTimer = window.setTimeout(finish, 1800);
+      void document.fonts.ready.then(() => {
+        window.clearTimeout(fontTimer);
+        if (cancelled || finished) return;
+        const stage = section.getBoundingClientRect();
+        const composition = section.querySelector<HTMLElement>(".resolve-lines")!;
+        // When enlarged text needs more than a screen, reading takes
+        // priority over assembling words outside the visible area.
+        if (stage.height > window.innerHeight + 1 || composition.scrollHeight > composition.clientHeight + 1) {
+          finish();
+          return;
+        }
+        const compact = window.matchMedia("(max-width: 768px), (hover: none), (pointer: coarse)").matches;
+        const groups = Array.from(section.querySelectorAll(".resolve-lines > p"));
+        const destinations = words.map(word => word.getBoundingClientRect());
+        try {
+          // Text enlargement changes destinations without necessarily
+          // resizing the viewport. Settle before any measured path goes stale.
+          layoutObserver = new ResizeObserver(entries => {
+            if (entries.some(entry => {
+              const box = destinations[words.indexOf(entry.target as HTMLElement)];
+              return box && (Math.abs(entry.contentRect.width - box.width) > 1 ||
+                Math.abs(entry.contentRect.height - box.height) > 1);
+            })) finish();
+          });
+          words.forEach(word => layoutObserver!.observe(word));
+          words.forEach((word, wordIndex) => {
+            const box = destinations[wordIndex];
+            const group = groups.indexOf(word.closest("p")!);
+            const text = word.textContent;
+            let remaining = FRAGMENT_CLIPS.length;
+            FRAGMENT_CLIPS.forEach((clip, piece) => {
+              const fragment = document.createElement("span");
+              fragment.className = "assembly-fragment";
+              fragment.setAttribute("aria-hidden", "true");
+              fragment.textContent = text;
+              fragment.style.clipPath = clip;
+              word.append(fragment);
+              const path = assemblyPiece({
+                word: wordIndex, piece, group,
+                x: box.x + box.width / 2 - stage.x,
+                y: box.y + box.height / 2 - stage.y,
+                width: stage.width, height: stage.height, compact,
+              });
+              const animation = fragment.animate(path.keyframes, {
+                delay: path.delay, duration: path.duration, fill: "both", easing: "linear",
+              });
+              animation.onfinish = () => {
+                remaining -= 1;
+                if (remaining === 0) word.dataset.assembled = "";
+              };
+              animations.push(animation);
+            });
+          });
+          section.classList.add("is-assembling", "is-ready");
+          const start = performance.now();
+          const tick = (now: number) => {
+            const progress = Math.min(1, (now - start) / ASSEMBLY_MS);
+            section.style.setProperty("--resolve-progress", String(progress));
+            if (progress < 1) frame = requestAnimationFrame(tick);
+            else {
+              settle();
+              holdTimer = window.setTimeout(finish, ASSEMBLY_HOLD_MS);
+            }
+          };
+          section.style.setProperty("--resolve-progress", "0");
+          frame = requestAnimationFrame(tick);
+        } catch {
+          finish();
+        }
+      });
     };
-
-    // Any attempt to move on — click, wheel, touch, key, focus into the
-    // page — completes the sequence immediately.
-    const skip = () => finish();
-    const onFocusIn = (event: FocusEvent) => {
-      if (!(event.target instanceof Element)) return;
-      if (event.target.closest(".home-landing")) finish();
-    };
-    section.addEventListener("pointerdown", skip);
-    window.addEventListener("wheel", skip, { passive: true });
-    window.addEventListener("touchmove", skip, { passive: true });
-    window.addEventListener("keydown", skip);
-    document.addEventListener("focusin", onFocusIn);
-
-    apply(0);
-    frame = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.clearTimeout(holdTimer);
-      section.removeEventListener("pointerdown", skip);
-      window.removeEventListener("wheel", skip);
-      window.removeEventListener("touchmove", skip);
-      window.removeEventListener("keydown", skip);
-      document.removeEventListener("focusin", onFocusIn);
-      section.classList.remove("is-done");
-      section.removeAttribute("style");
-    };
-  }, [timed]);
+    setup();
+    motion.addEventListener("change", setup);
+    return () => { dispose(); motion.removeEventListener("change", setup); };
+  }, []);
 
   return (
     <section ref={sectionRef} className="home-resolve" aria-labelledby="home-title">
@@ -146,24 +177,21 @@ export function HomeResolve() {
           Executive talent leader · Systems builder · {site.location}
         </p>
         <div className="resolve-lines">
-          {/* Not an h1 any more: the page continues below the opening
-              with an introduction that is the document's real subject,
-              and a document gets one h1. The sr-only sentence and the
-              section's aria-labelledby are untouched. */}
           <p id="home-title" className="axis-display constraint-line">
             <span className="sr-only">Subtract then add.</span>
             <span className="line-mask desktop-constraint" aria-hidden="true">
-              <span><span>Subtract</span></span><span><span>then add.</span></span>
+              <span><Words text="Subtract" /></span><span><Words text="then add." /></span>
             </span>
           </p>
-          <p className="axis-display system-line" aria-label="Design the system.">
-            <span>Design</span><span className="system-word">the system.</span>
+          <p className="axis-display system-line">
+            <span className="sr-only">Design the system.</span>
+            <span aria-hidden="true"><Words text="Design" /></span><span className="system-word" aria-hidden="true"><Words text="the system." /></span>
           </p>
           <p className="axis-display release-line">
             <span className="sr-only">Make talent the engine for growth.</span>
-            <span aria-hidden="true">Make talent</span>
-            <span aria-hidden="true">the engine</span>
-            <span aria-hidden="true">for growth.</span>
+            <span aria-hidden="true"><Words text="Make talent" /></span>
+            <span aria-hidden="true"><Words text="the engine" /></span>
+            <span aria-hidden="true"><Words text="for growth." /></span>
           </p>
         </div>
       </div>

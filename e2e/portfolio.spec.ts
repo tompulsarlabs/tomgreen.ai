@@ -115,10 +115,9 @@ test("Home's statements resolve on their own clock, then yield to the page", asy
   await waitForFonts(page);
 
   const hero = page.locator(".home-resolve");
-  // The same three-beat choreography, driven by time instead of scroll:
-  // the release beat lands and the stage yields with the page unmoved.
-  await expect.poll(async () => customProperty(hero, "--axis-release"), { timeout: 10_000 })
-    .toBeGreaterThan(124);
+  // All three statements gather into one composition, then hold and yield.
+  await expect.poll(async () => customProperty(hero, "--release-arrive"), { timeout: 10_000 })
+    .toBe(1);
   await expect(hero).toHaveClass(/is-done/, { timeout: 10_000 });
   await expect(hero).toHaveCSS("visibility", "hidden");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -141,11 +140,10 @@ test("the release line's composition is authored, not measured", async ({ page }
   await page.goto("/");
   await waitForFonts(page);
 
-  // The width axis animates per frame, so a break the browser had to
-  // measure would move mid-transition — THE jumping from the first line
-  // to the second. The breaks are elements now, so they cannot move.
-  const lines = page.locator(".release-line span[aria-hidden]");
-  await expect(lines).toHaveText(["Make talent", "the engine", "for growth."]);
+  // Word fragments travel while the authored line breaks stay fixed.
+  const lines = page.locator(".release-line > span[aria-hidden]");
+  const text = await lines.evaluateAll(items => items.map(item => [...item.querySelectorAll('.assembly-source')].map(word => word.textContent).join(' ')));
+  expect(text).toEqual(["Make talent", "the engine", "for growth."]);
   for (const line of await lines.all()) {
     await expect(line).toHaveCSS("white-space", "nowrap");
     await expect(line).toHaveCSS("display", "block");
@@ -1537,7 +1535,7 @@ test("the 390px Home sets the production spine without overflow", async ({ page 
   await expect(page.locator(".home-actions")).toHaveCount(0);
 });
 
-test("the 390px Home renders the statements resolved, no journey", async ({ page }) => {
+test("the 390px Home keeps its resolved type scale and document layout", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");

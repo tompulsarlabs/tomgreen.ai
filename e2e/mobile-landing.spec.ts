@@ -119,15 +119,13 @@ test("the mobile opening fits without JavaScript", async ({ browser }) => {
   }
 });
 
-test("resizing a desktop through the opening breakpoint starts and clears its clock", async ({ page }) => {
+test("resizing through the opening breakpoint settles pieces before changing layout", async ({ page }) => {
   await page.setViewportSize({ width: 740, height: 800 });
   await page.goto("/");
   await expectCompleteOpening(page);
   await page.setViewportSize({ width: 1200, height: 800 });
   await expect(page.locator(".home-resolve")).toHaveCSS("position", "fixed");
-  await expect.poll(() => page.locator(".home-resolve").evaluate(element =>
-    Number.parseFloat((element as HTMLElement).style.getPropertyValue("--resolve-progress")),
-  )).toBeGreaterThan(0);
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/);
   await page.setViewportSize({ width: 740, height: 800 });
   await expectCompleteOpening(page);
 });
