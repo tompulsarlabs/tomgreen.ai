@@ -1371,20 +1371,14 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 
 
 /* ── 0. THE UNIT ──────────────────────────────────────────────────────
-   One fluid baseline solved through two points: 8px at 390 and 16px at
-   1440, so the same multiple gives the right absolute number at both ends,
-   which a fixed unit cannot. Four multiples, and nothing on this route
-   invents a fifth vertical value. Declared on :root so no rule becomes
-   invalid at computed-value time if the page wrapper is ever refactored;
-   nothing outside this block reads them. */
+   Home spacing grows with width; related elements keep consistent gaps.
+   The desktop overview also caps this unit against the available height. */
 :root {
   --u:     clamp(0.5rem, 0.32rem + 0.76vw, 1.125rem); /*  8.1 → 16.1 → 18  */
   --air-1: calc(var(--u) *  2);   /* 16 →  32  a label and the thing it labels */
   --air-2: calc(var(--u) *  3);   /* 24 →  48  a thing and its own prose       */
   --air-3: calc(var(--u) *  6);   /* 49 →  97  block → block, one movement     */
   --air-4: calc(var(--u) * 10);   /* 81 → 161  movement → movement             */
-  /* The hinge is 5u above the hero's rule and 9u below it. Deliberately
-     not a token: it happens once and must not be reachable by habit. */
 }
 
 
@@ -1394,12 +1388,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    spacing were inherited from `.axis-display` and are now stated: -0.075em
    is an optical setting for a 170px instance and closes the word spaces at
    76px. */
-/* The home title is a sentence where the Lab's is a word. It takes a
-   smaller step than the shared hero and a wider measure, and its row
-   gives the bio a wider column: the bio is 176 characters, and a column
-   that wraps it to six lines reads as a sidebar rather than a lead. The
-   type grows with the wider frame while prose keeps a readable measure. */
-.home-page .systems-title-row { grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.75fr); }
+/* Bring the factual introduction closer to the title while retaining
+   the two-column composition and a bounded prose measure. */
+.home-page .systems-title-row { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
 .home-page .systems-hero h1.hero-title-long.personal-headline {
   --axis: 100;
   max-width: 24ch;
@@ -1410,7 +1401,11 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   word-spacing: 0.06em;
   text-wrap: balance;
 }
-.home-page .personal-bio { max-width: 34rem; }
+.home-page .personal-bio {
+  max-width: 53ch;
+  font-size: clamp(1.0625rem, 0.9rem + 0.5vw, 1.25rem);
+}
+.home-page .personal-role { color: var(--ink); font-weight: 500; }
 
 /* One column, so the headline is measured by its own max-width rather
    than by what a portrait left over. */
@@ -1435,7 +1430,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    `.work-index-masthead h2` at any file position. */
 .work-index-masthead h2.axis-display {
   --axis: 88;
-  max-width: 32ch;
+  max-width: 34ch;
   font-size: clamp(1.5rem, 1rem + 2vw, 2.75rem);
   font-weight: 600;
   line-height: 1.08;
@@ -1444,15 +1439,13 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   overflow-wrap: anywhere;
 }
 
-/* 9u below the rule against 5u above it. The rule closes the hero, so the
-   larger measure sits on the far side, with the movement it opens. The
-   introduction uses the same columns as the record rows below it;
-   prose keeps its own readable line length inside that shared grid. */
+/* The section marker belongs above its heading, on the same left edge
+   as the introduction and first outcome. The rule separates the groups. */
 .work-index-masthead {
   display: grid;
   gap: 0;
   max-width: none;
-  padding-top: calc(var(--u) * 7);      /* 57 → 113, below the rule */
+  padding-top: calc(var(--u) * 5);
   padding-bottom: 0;
 }
 .work-index-masthead > h2       { margin-top: var(--air-1); }
@@ -1466,12 +1459,10 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 
 
 /* ── 3. THE METRIC BAND ───────────────────────────────────────────────
-   air-3, not air-4: the band is the masthead's evidence, the same
-   movement's second sentence. air-4 here would make the page read as six
-   blocks with no grouping. The band keeps its hairline — without it the
-   band copy is an orphan grey paragraph floating in the new air. */
+   Keep the evidence close to the claim, with bounded space between them
+   even on tall screens. */
 .work-index-page .work-metric-band {
-  margin-top: var(--air-3);
+  margin-top: clamp(2rem, calc(var(--u) * 4), 4rem);
   padding-block: 0;
 }
 .work-index-page .work-metric-rail { margin-top: 0; }
@@ -1581,9 +1572,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 /* The animated desktop stage is fixed, so the introduction beneath it
    clears the Moon. Touch, reduced-motion and no-JS openings stay in flow. */
 @media (min-width: 769px) {
-  /* The introduction and outcomes are one composition. Height controls
-     its breathing room; type keeps its existing width-based scale.
-     Minimum height allows enlarged text and very short windows to scroll. */
+  /* Keep a complete first screen, with spare height after the outcomes.
+     Related text uses bounded gaps instead of spreading to fill the frame.
+     Minimum height allows enlarged text and short windows to scroll. */
   .home-overview {
     --u: clamp(0.5rem, min(calc(0.32rem + 0.76vw), 1.2svh), 1.125rem);
     --air-1: calc(var(--u) * 2);
@@ -1591,7 +1582,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
     --air-3: calc(var(--u) * 6);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     min-block-size: 100vh;
     min-block-size: 100dvh;
     padding-bottom: clamp(1.5rem, 4svh, 3rem);
@@ -1663,11 +1653,9 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 }
 
 
-/* ── The Lab's section format, shared ────────────────────────────────
-   A mono label held on the left, the heading and its lead carried on the
-   right. The Lab already composed its sections this way at 0.65fr/1.35fr;
-   Home stacked everything in one column and read as a different site.
-   This is that composition named once, so the two pages move together. */
+/* ── The Lab's section format, shared with secondary sections ─────────
+   Home's overview uses a label above its heading; this split remains for
+   the Lab and supporting sections with a separate label column. */
 .section-split {
   display: grid;
   grid-template-columns: 0.65fr 1.35fr;
@@ -1677,11 +1665,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .section-split > .record { margin: 0; padding-top: 0.3rem; }
 .section-split-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; min-width: 0; }
 
-/* The home masthead now sits inside the split, so the vertical rhythm
-   that used to run down one column runs down the right-hand one. */
-.work-index-page .work-index-masthead.section-split > .record { margin-top: 0; }
-.work-index-page .section-split-body > h2 { margin-top: 0; }
-.work-index-page .section-split-body > .systems-lead { margin-top: var(--air-2); }
 .work-index-page .work-group-intro.section-split .axis-heading { margin-top: 0; }
 
 @media (max-width: 768px) {
