@@ -1,5 +1,5 @@
 /** One gathering motion, followed by a real pause to read the whole composition. */
-export const ASSEMBLY_MS = 5200;
+export const ASSEMBLY_MS = 5500;
 export const ASSEMBLY_HOLD_MS = 1400;
 
 export const FRAGMENT_CLIPS = [
@@ -27,14 +27,17 @@ const cubic = (a: number, b: number, c: number, t: number) =>
 export function assemblyPiece(geometry: PieceGeometry) {
   const { word, wordInGroup, piece, group, x, y, width, height, compact } = geometry;
   const id = word * 7 + piece * 19 + 1;
-  // Every word gathers from the perimeter. Pieces begin faint and just
-  // beyond the stage, becoming legible as they enter the composition.
-  const edge = id % 4;
+  // Interleave edge and corner approaches around the whole perimeter.
+  // Each word draws from opposing quarters; neighbouring words rotate
+  // that pattern, so the composition gathers from every direction.
+  const sector = (word * 3 + piece * 2) % 8;
+  const angle = sector * Math.PI / 4 + (seed(id + 17) - 0.5) * 0.28;
+  const rayX = Math.cos(angle);
+  const rayY = Math.sin(angle);
+  const boundary = Math.max(Math.abs(rayX), Math.abs(rayY));
   const outside = compact ? 0.025 : 0.045;
-  const originX = edge === 0 ? -width * outside : edge === 1 ? width * (1 + outside)
-    : width * (0.08 + seed(id) * 0.84);
-  const originY = edge === 2 ? -height * outside : edge === 3 ? height * (1 + outside)
-    : height * (0.14 + seed(id + 3) * 0.72);
+  const originX = width * (0.5 + rayX / boundary * (0.5 + outside));
+  const originY = height * (0.5 + rayY / boundary * (0.5 + outside));
   const dx = originX - x;
   const dy = originY - y;
   const curl = (seed(id + 5) - 0.5) * Math.min(width, height) * (compact ? 0.45 : 0.65);
@@ -43,7 +46,7 @@ export function assemblyPiece(geometry: PieceGeometry) {
   // Start together; layer the arrivals instead of holding later statements
   // still. The short word stagger preserves the reading order within each row.
   const delay = 90 + seed(id + 11) * 110;
-  const arrival = 3250 + group * 650 + wordInGroup * 90 + piece * 40 + seed(id + 2) * 80;
+  const arrival = 3050 + group * 900 + wordInGroup * 90 + piece * 40 + seed(id + 2) * 80;
   const duration = arrival - delay;
   const keyframes = Array.from({ length: 61 }, (_, index) => {
     const t = index / 60;

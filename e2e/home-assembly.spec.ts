@@ -7,6 +7,7 @@ type AssemblyTrace = {
   initialFragmentOpacity: number | null;
   sawConcurrentMotionBeforeSettlement: boolean;
   statementCompletionOrder: number[];
+  statementCompletedAt: number[];
   readableHandoffs: boolean[];
   assembledAt: number | null;
   dismissedAt: number | null;
@@ -23,6 +24,7 @@ async function traceAssembly(page: Page) {
       initialFragmentOpacity: null,
       sawConcurrentMotionBeforeSettlement: false,
       statementCompletionOrder: [],
+      statementCompletedAt: [],
       readableHandoffs: [],
       assembledAt: null,
       dismissedAt: null,
@@ -55,7 +57,10 @@ async function traceAssembly(page: Page) {
           });
         });
         complete.forEach((settled, index) => {
-          if (settled && !trace.statementCompletionOrder.includes(index)) trace.statementCompletionOrder.push(index);
+          if (settled && !trace.statementCompletionOrder.includes(index)) {
+            trace.statementCompletionOrder.push(index);
+            trace.statementCompletedAt[index] = now;
+          }
         });
         if (opening.classList.contains("is-assembling")) {
           const opacities: number[] = [];
@@ -100,6 +105,12 @@ function expectOrderedAssembly(trace: AssemblyTrace, statementCount: number) {
   expect(trace.initialFragmentOpacity!).toBeLessThan(0.1);
   expect(trace.sawConcurrentMotionBeforeSettlement).toBe(true);
   expect(trace.statementCompletionOrder).toEqual(Array.from({ length: statementCount }, (_, index) => index));
+  expect(trace.statementCompletedAt).toHaveLength(statementCount);
+  // The hierarchy needs a perceptible reading beat, not just completions
+  // arriving in the right order a frame or two apart.
+  for (let index = 1; index < trace.statementCompletedAt.length; index++) {
+    expect(trace.statementCompletedAt[index] - trace.statementCompletedAt[index - 1]).toBeGreaterThanOrEqual(600);
+  }
   // Each line has its own readable phase while the next is still gathering.
   // Simultaneously finishing everything would satisfy order alone.
   expect(trace.readableHandoffs).toEqual(Array.from({ length: statementCount - 1 }, () => true));
