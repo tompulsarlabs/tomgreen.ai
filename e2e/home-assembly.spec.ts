@@ -4,6 +4,10 @@ type AssemblyTrace = {
   sawMovingInk: boolean;
   sawPartialAssembly: boolean;
   lostAssembledWord: boolean;
+  initialFragmentOpacity: number | null;
+  sawConcurrentMotionBeforeSettlement: boolean;
+  statementCompletionOrder: number[];
+  readableHandoffs: boolean[];
   assembledAt: number | null;
   dismissedAt: number | null;
 };
@@ -16,12 +20,17 @@ async function traceAssembly(page: Page) {
       sawMovingInk: false,
       sawPartialAssembly: false,
       lostAssembledWord: false,
+      initialFragmentOpacity: null,
+      sawConcurrentMotionBeforeSettlement: false,
+      statementCompletionOrder: [],
+      readableHandoffs: [],
       assembledAt: null,
       dismissedAt: null,
     };
     (window as Window & { assemblyTrace?: AssemblyTrace }).assemblyTrace = trace;
     let greatestAssembled = 0;
     let lastSample = 0;
+    const lastTransforms = new WeakMap<Element, string>();
     const observe = (now: number) => {
       const opening = document.querySelector(".home-resolve");
       if (opening && now - lastSample >= 40) {
@@ -34,12 +43,45 @@ async function traceAssembly(page: Page) {
         if (words.length > 0 && assembled === words.length && trace.assembledAt === null) {
           trace.assembledAt = now;
         }
-        if (!trace.sawMovingInk && opening.classList.contains("is-assembling")) {
-          trace.sawMovingInk = [...opening.querySelectorAll(".assembly-fragment")].some(fragment => {
-            const style = getComputedStyle(fragment);
-            const displaced = style.transform !== "none" && !new DOMMatrixReadOnly(style.transform).isIdentity;
-            return displaced && Number(style.opacity) > 0.05;
+        const groups = [...opening.querySelectorAll(".resolve-lines > p")];
+        const complete = groups.map(group => {
+          const groupWords = [...group.querySelectorAll(".assembly-word")];
+          return groupWords.length > 0 && groupWords.every(word => {
+            const source = word.querySelector(".assembly-source");
+            if (!source || !word.hasAttribute("data-assembled")) return false;
+            const style = getComputedStyle(source);
+            return Number(style.opacity) === 1 && (style.filter === "none" || style.filter === "blur(0px)") &&
+              (style.transform === "none" || new DOMMatrixReadOnly(style.transform).isIdentity);
           });
+        });
+        complete.forEach((settled, index) => {
+          if (settled && !trace.statementCompletionOrder.includes(index)) trace.statementCompletionOrder.push(index);
+        });
+        if (opening.classList.contains("is-assembling")) {
+          const opacities: number[] = [];
+          const movingGroups = groups.map(group => {
+            let moving = false;
+            for (const fragment of group.querySelectorAll(".assembly-fragment")) {
+              const style = getComputedStyle(fragment);
+              const opacity = Number(style.opacity);
+              opacities.push(opacity);
+              const displaced = style.transform !== "none" && !new DOMMatrixReadOnly(style.transform).isIdentity;
+              const previous = lastTransforms.get(fragment);
+              if (displaced && opacity > 0.05 && previous !== undefined && previous !== style.transform) moving = true;
+              lastTransforms.set(fragment, style.transform);
+            }
+            return moving;
+          });
+          if (trace.initialFragmentOpacity === null && opacities.length > 0) {
+            trace.initialFragmentOpacity = Math.max(...opacities);
+          }
+          if (movingGroups.some(Boolean)) trace.sawMovingInk = true;
+          if (assembled === 0 && movingGroups.length > 0 && movingGroups.every(Boolean)) {
+            trace.sawConcurrentMotionBeforeSettlement = true;
+          }
+          for (let index = 0; index < groups.length - 1; index++) {
+            if (complete[index] && !complete[index + 1] && movingGroups[index + 1]) trace.readableHandoffs[index] = true;
+          }
         }
         if (opening.classList.contains("is-done")) {
           trace.dismissedAt = now;
@@ -50,6 +92,27 @@ async function traceAssembly(page: Page) {
     };
     requestAnimationFrame(observe);
   });
+}
+
+function expectOrderedAssembly(trace: AssemblyTrace, statementCount: number) {
+  expect(trace.initialFragmentOpacity).not.toBeNull();
+  expect(trace.initialFragmentOpacity!).toBeGreaterThan(0);
+  expect(trace.initialFragmentOpacity!).toBeLessThan(0.1);
+  expect(trace.sawConcurrentMotionBeforeSettlement).toBe(true);
+  expect(trace.statementCompletionOrder).toEqual(Array.from({ length: statementCount }, (_, index) => index));
+  // Each line has its own readable phase while the next is still gathering.
+  // Simultaneously finishing everything would satisfy order alone.
+  expect(trace.readableHandoffs).toEqual(Array.from({ length: statementCount - 1 }, () => true));
+}
+
+async function expectStatementSpacing(page: Page) {
+  const statements = await page.locator(".resolve-lines > p").evaluateAll(groups => groups.map(group => {
+    const box = group.getBoundingClientRect();
+    return { top: box.top, bottom: box.bottom };
+  }));
+  for (let index = 1; index < statements.length; index++) {
+    expect(statements[index].top).toBeGreaterThan(statements[index - 1].bottom);
+  }
 }
 
 async function expectCrispSources(page: Page) {
@@ -82,6 +145,8 @@ test("the opening reassembles cumulatively, holds readable type, then hands over
   expect(trace.sawMovingInk).toBe(true);
   expect(trace.sawPartialAssembly).toBe(true);
   expect(trace.lostAssembledWord).toBe(false);
+  expectOrderedAssembly(trace, await page.locator(".resolve-lines > p").count());
+  await expectStatementSpacing(page);
   expect(trace.assembledAt).not.toBeNull();
   expect(trace.dismissedAt).not.toBeNull();
   // The finished composition must be available to read, not just flash
@@ -144,9 +209,16 @@ test("touch reassembly leaves the complete composition readable in document flow
     await expect(page.locator(".home-resolve")).not.toHaveClass(/is-assembling/, { timeout: 12_000 });
     await expect(page.locator(".home-resolve")).toHaveCSS("position", "relative");
     await expect(page.locator(".home-resolve")).toBeVisible();
-    expect(await page.evaluate(() =>
-      (window as Window & { assemblyTrace?: AssemblyTrace }).assemblyTrace!.sawMovingInk,
-    )).toBe(true);
+    const statementCount = await page.locator(".resolve-lines > p").count();
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { assemblyTrace?: AssemblyTrace }).assemblyTrace!.statementCompletionOrder.length,
+    )).toBe(statementCount);
+    const trace = await page.evaluate(() =>
+      (window as Window & { assemblyTrace?: AssemblyTrace }).assemblyTrace!,
+    );
+    expect(trace.sawMovingInk).toBe(true);
+    expectOrderedAssembly(trace, statementCount);
+    await expectStatementSpacing(page);
     for (const statement of await page.locator(".resolve-lines > p").all()) {
       await expect(statement).toBeInViewport();
     }

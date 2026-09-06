@@ -107,6 +107,7 @@ export function HomeResolve() {
         }
         const compact = window.matchMedia("(max-width: 768px), (hover: none), (pointer: coarse)").matches;
         const groups = Array.from(section.querySelectorAll(".resolve-lines > p"));
+        const groupWords = groups.map(group => Array.from(group.querySelectorAll(".assembly-word")));
         const destinations = words.map(word => word.getBoundingClientRect());
         try {
           // Text enlargement changes destinations without necessarily
@@ -132,7 +133,7 @@ export function HomeResolve() {
               fragment.style.clipPath = clip;
               word.append(fragment);
               const path = assemblyPiece({
-                word: wordIndex, piece, group,
+                word: wordIndex, wordInGroup: groupWords[group].indexOf(word), piece, group,
                 x: box.x + box.width / 2 - stage.x,
                 y: box.y + box.height / 2 - stage.y,
                 width: stage.width, height: stage.height, compact,

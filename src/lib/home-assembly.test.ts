@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASSEMBLY_HOLD_MS, ASSEMBLY_MS, assemblyPiece } from "./home-assembly";
+import { ASSEMBLY_HOLD_MS, ASSEMBLY_MS, FRAGMENT_CLIPS, assemblyPiece } from "./home-assembly";
 
 const viewports = [
   { width: 320, height: 568, compact: true },
@@ -15,7 +15,7 @@ type Frame = ReturnType<typeof assemblyPiece>["keyframes"][number];
 function geometry(viewport: typeof viewports[number], word: number, piece: number): Geometry {
   const group = word < 3 ? 0 : word < 6 ? 1 : 2;
   return {
-    ...viewport, word, piece, group,
+    ...viewport, word, piece, group, wordInGroup: word - group * 3,
     // Measured word centres cover left, middle and right of each statement.
     x: viewport.width * (0.15 + (word % 3) * 0.35),
     y: viewport.height * (0.22 + group * 0.27),
@@ -51,12 +51,12 @@ describe("the home opening reassembles into readable words", () => {
   it("replays deterministically and finishes every fragment before the reading pause", () => {
     for (const viewport of viewports) {
       for (let word = 0; word < 12; word++) {
-        for (let piece = 0; piece < 3; piece++) {
+        for (let piece = 0; piece < FRAGMENT_CLIPS.length; piece++) {
           const input = geometry(viewport, word, piece);
           const result = assemblyPiece(input);
           expect(result).toEqual(assemblyPiece(input));
           expect(result.delay).toBeGreaterThanOrEqual(0);
-          expect(result.duration).toBeGreaterThan(1800);
+          expect(result.duration).toBeGreaterThan(2500);
           expect(result.delay + result.duration).toBeLessThanOrEqual(ASSEMBLY_MS);
           expect(result.keyframes.at(-1)).toEqual({
             offset: 1, opacity: 1,
@@ -69,29 +69,75 @@ describe("the home opening reassembles into readable words", () => {
     expect(ASSEMBLY_HOLD_MS).toBeGreaterThanOrEqual(1000);
   });
 
-  it("gathers all three statements together while settling them in reading order", () => {
-    const groups = [0, 1, 2].map(group => {
-      const paths = Array.from({ length: 12 }, (_, word) => word)
-        .filter(word => geometry(viewports[4], word, 0).group === group)
-        .flatMap(word => [0, 1, 2].map(piece => assemblyPiece(geometry(viewports[4], word, piece))));
+  it("starts one shared gathering motion, then layers words in top-to-bottom reading order", () => {
+    const words = Array.from({ length: 12 }, (_, word) => {
+      const paths = FRAGMENT_CLIPS.map((_, piece) => assemblyPiece(geometry(viewports[4], word, piece)));
+      const arrivals = paths.map(path => path.delay + path.duration);
       return {
-        starts: Math.min(...paths.map(path => path.delay)),
-        finishes: Math.max(...paths.map(path => path.delay + path.duration)),
+        group: geometry(viewports[4], word, 0).group,
+        starts: paths.map(path => path.delay),
+        firstArrival: Math.min(...arrivals),
+        lastArrival: Math.max(...arrivals),
       };
     });
-    const commonTravel = Math.min(...groups.map(group => group.finishes)) - Math.max(...groups.map(group => group.starts));
-    expect(commonTravel).toBeGreaterThan(1000);
-    for (let group = 1; group < groups.length; group++) {
-      expect(groups[group].finishes - groups[group - 1].finishes).toBeGreaterThan(100);
-      expect(groups[group].finishes - groups[group - 1].finishes).toBeLessThan(700);
+    const starts = words.flatMap(word => word.starts);
+    // Later statements must already be travelling rather than waiting for
+    // their turn to appear. Their destinations, not departure, are staggered.
+    expect(Math.max(...starts)).toBeLessThan(250);
+    expect(Math.max(...starts) - Math.min(...starts)).toBeLessThan(150);
+    expect(Math.min(...words.map(word => word.firstArrival)) - Math.max(...starts)).toBeGreaterThan(2500);
+
+    for (let word = 0; word < words.length; word++) {
+      const current = words[word];
+      // A word builds from its pieces without the whole line snapping in.
+      expect(current.lastArrival - current.firstArrival).toBeGreaterThan(30);
+      expect(current.lastArrival - current.firstArrival).toBeLessThan(250);
+      if (word === 0) continue;
+      const previous = words[word - 1];
+      if (current.group === previous.group) {
+        expect(current.lastArrival - previous.lastArrival).toBeGreaterThan(0);
+        expect(current.lastArrival - previous.lastArrival).toBeLessThan(180);
+      } else {
+        // Finish the earlier statement before the next one becomes complete.
+        expect(current.firstArrival - previous.lastArrival).toBeGreaterThan(150);
+      }
     }
+  });
+
+  it.each(viewports)("begins as faint, small fragments around the edges at $width × $height", viewport => {
+    const edges = new Set<string>();
+    for (let word = 0; word < 12; word++) {
+      for (let piece = 0; piece < FRAGMENT_CLIPS.length; piece++) {
+        const input = geometry(viewport, word, piece);
+        const path = assemblyPiece(input);
+        const initial = pose(path.keyframes[0]);
+        expect(initial.opacity).toBeGreaterThanOrEqual(0);
+        expect(initial.opacity).toBeLessThanOrEqual(0.025);
+        expect(initial.scale).toBeGreaterThan(0.4);
+        expect(initial.scale).toBeLessThan(0.75);
+        // Keep the first few frames quiet instead of immediately flooding
+        // the screen with readable, full-size pieces.
+        expect(sample(path.keyframes, 150 / path.duration).opacity).toBeLessThan(0.04);
+        const originX = input.x + initial.x;
+        const originY = input.y + initial.y;
+        const touched = [
+          originX <= viewport.width * 0.15 ? "left" : null,
+          originX >= viewport.width * 0.85 ? "right" : null,
+          originY <= viewport.height * 0.15 ? "top" : null,
+          originY >= viewport.height * 0.85 ? "bottom" : null,
+        ].filter((edge): edge is string => edge !== null);
+        expect(touched.length).toBeGreaterThan(0);
+        touched.forEach(edge => edges.add(edge));
+      }
+    }
+    expect(edges.size).toBe(4);
   });
 
   it.each(viewports)("keeps valid, continuous motion at $width × $height", viewport => {
     const diagonal = Math.hypot(viewport.width, viewport.height);
     let curvedPaths = 0;
     for (let word = 0; word < 12; word++) {
-      for (let piece = 0; piece < 3; piece++) {
+      for (let piece = 0; piece < FRAGMENT_CLIPS.length; piece++) {
         const { keyframes, duration } = assemblyPiece(geometry(viewport, word, piece));
         expect(keyframes[0].offset).toBe(0);
         let previousOffset = -1;
@@ -139,6 +185,6 @@ describe("the home opening reassembles into readable words", () => {
     }
     // Most pieces take a perceptibly curved return instead of moving as one
     // uniformly translated block. Individual nearly straight paths are fine.
-    expect(curvedPaths).toBeGreaterThanOrEqual(18);
+    expect(curvedPaths).toBeGreaterThanOrEqual(12 * FRAGMENT_CLIPS.length / 2);
   });
 });
