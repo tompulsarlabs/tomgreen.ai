@@ -118,6 +118,12 @@ but no special visual object is required to make the work credible.
 
 ## Current implementation status
 
+The Home opening assembles all three statements into one composition. Pieces of the actual
+type return along curved paths over 3.6 seconds, followed by 1.4 seconds of still reading time.
+Desktop then yields to the portfolio; phones keep the completed opening in normal document
+flow. Any input settles it immediately. Reduced motion and no JavaScript show intact text.
+The original sequential width-axis/spring opening is retired.
+
 Home keeps its two-column introduction, with the factual bio closer to the headline and the
 role sentence given modest emphasis. “Selected work” sits directly above the positioning
 statement on the main left edge, followed closely by its three outcomes. These elements stay

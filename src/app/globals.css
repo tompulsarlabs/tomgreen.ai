@@ -437,72 +437,40 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .resolve-lines :is(h1, p) { margin: 0; }
 .resolve-lines .axis-display { --axis: 100; }
 .resolve-lines .line-mask, .resolve-lines .line-mask > span, .system-line > span { display: block; }
-/* Authored line breaks: the release line's width axis animates, so any
-   break the browser had to measure would move mid-transition. */
+/* Authored line breaks stay fixed while the fragments return. */
 .release-line > span { display: block; white-space: nowrap; }
-.resolve-lines .line-mask > span { overflow: hidden; }
-.resolve-lines .line-mask > span > span { display: block; }
-.constraint-line { max-width: 15ch; word-spacing: var(--constraint-word-space, 0); font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }
-/* Six words — one step below the display size so "Make talent" and its
-   fellows compose as three lines at wdth 125. */
+.resolve-lines .line-mask > span { overflow: visible; }
+.constraint-line { max-width: 15ch; font-size: clamp(2.75rem, 9.4vw, 8.6rem); line-height: 0.84; }
+/* The linear fallback keeps all three statements within a reading screen. */
 .release-line { max-width: 19ch; font-size: clamp(2.75rem, 8.35vw, 7.6rem); line-height: 0.88; }
-/* The middle line grew to a sentence — it takes a display step down so
-   the linear document stays inside two viewports on every renderer. */
 .system-line { max-width: 15ch; font-size: clamp(2.75rem, 8.8vw, 8rem); line-height: 0.88; }
 .home-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
-/* Home is one landing, no scroll: the statements resolve over the
-   planetary map — the sections in orbit around talent — with the
-   support line and actions resting at its foot. */
+/* Fragment layers are temporary. Intact words keep the font's kerning and
+   take over at rest, so the final ink has no clipping seams. */
+.assembly-word { position: relative; display: inline-block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.assembly-fragment { display: none; position: absolute; inset: 0; white-space: nowrap; pointer-events: none; transform-origin: center; }
+.home-resolve.is-assembling .assembly-word:not([data-assembled]) .assembly-source { opacity: 0; }
+.home-resolve.is-assembling .assembly-word:not([data-assembled]) .assembly-fragment { display: block; will-change: transform, opacity; }
+.home-resolve-stage { overflow: clip; }
+@media (prefers-reduced-motion: no-preference) {
+  /* Font measurement is brief. If the script fails to start, CSS still
+     reveals the complete statements instead of leaving an empty stage. */
+  .js .home-resolve:not(.is-ready) .resolve-lines { opacity: 0; animation: assembly-fallback 0s 1.8s forwards; }
+}
+@keyframes assembly-fallback { to { opacity: 1; } }
 
 @media (min-width: 769px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-
-  /* The sequence is a stage over the map: it plays on its own clock,
-     then yields — opacity out, hit-testing off, map beneath already
-     composed. */
-
-  /* z 6: the stage must out-stack the field's canvas and nameplate
-     layers (labels carry z 2 and their own contexts). */
-  .js .home-resolve { position: fixed; inset: 0; z-index: 7; background: var(--paper); transition: opacity var(--d-4) var(--ease), visibility 0s var(--d-4) linear; }
+  .js .home-resolve { position: fixed; inset: 0; z-index: 7; background: var(--paper); transition: opacity 550ms var(--ease), visibility 0s 550ms linear; }
   .js .home-resolve.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
-  .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; overflow: hidden; }
-  .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 15%; display: block; margin: 0; }
-  .js .constraint-line, .js .system-line, .js .release-line { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
-  /* One type scale and one arrival path. The last sentence moves as a
-     block, with the same restrained settle as the preceding statements. */
+  .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; }
+  .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 9%; display: flex; flex-direction: column; justify-content: space-around; gap: 2.5svh; margin: 0; }
   .js .resolve-lines .axis-display {
-    font-size: clamp(2.75rem, 7.3vw, 6.6rem);
+    max-width: none;
+    font-size: clamp(2rem, min(5.2vw, 7.6svh), 5rem);
     line-height: 0.94;
     letter-spacing: -0.055em;
-    word-spacing: calc(0.04em + var(--constraint-word-space, 0em));
+    word-spacing: 0.04em;
   }
-  .js .constraint-line {
-    --axis: var(--axis-constraint, 62);
-    transform-origin: left center;
-    opacity: var(--con-opacity, 0);
-    transform:
-      translate3d(calc(var(--con-x, 1) * -0.34em + var(--con-drift, 0) * max(-2vw, -28px)),
-                  calc(var(--con-y, 1) * 0.4em + var(--con-lift, 0) * -12vh), 0)
-      scale(calc(1 - var(--con-lift, 0) * 0.16));
-  }
-  .js .system-line {
-    --axis: var(--axis-system, 62);
-    transform-origin: left center;
-    opacity: var(--sys-opacity, 0);
-    transform:
-      translate3d(calc(var(--sys-x, 1) * -0.34em + var(--sys-drift, 0) * max(-2vw, -28px)),
-                  calc(var(--sys-y, 1) * 0.4em + var(--sys-lift, 0) * -12vh), 0)
-      scale(calc(1 - var(--sys-lift, 0) * 0.16));
-  }
-  .js .release-line {
-    --axis: var(--axis-release, 106);
-    max-width: 19ch;
-    transform: translate3d(calc(var(--rel-x, 1) * -0.34em), 0, 0);
-  }
-  .js .release-line > span[aria-hidden] {
-    opacity: var(--rel-o-1, 0);
-    transform: translate3d(0, calc(var(--rel-y-1, 1) * 0.4em), 0);
-  }
-  .js .resolve-lines, .js .home-eyebrow { opacity: calc(1 - var(--stage-exit, 0)); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1003,12 +971,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .career-corridor[data-live] .corridor-rail button { flex: 1; min-width: 0; }
   .career-corridor[data-live] .corridor-station { top: calc(50% - 2rem); max-height: calc(100dvh - 7rem); }
   .career-corridor[data-live] .corridor-station:first-child { top: calc((100% - 4rem + var(--first-heading-bottom, 0px)) / 2); max-height: calc(100dvh - var(--first-heading-bottom, 0px) - 5rem); }
-}
-
-/* Short desktop viewports: cap the journey display size against height so
-   the release line never overflows its stage (recovery R3). */
-@media (min-width: 769px) and (max-height: 780px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .js .resolve-lines .axis-display { font-size: clamp(2.75rem, 11vh, 6.6rem); }
 }
 
 /* Reduced motion changes the choreography, never the architecture: the
@@ -1632,7 +1594,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 
 /* A short, wide touch screen has room for a row of statements. Keeping
    the same three steps in columns avoids a cramped portrait stack when
-   a phone rotates, without switching on the desktop animation. */
+   a phone rotates, without switching to a desktop overlay. */
 @media (max-width: 768px) and (orientation: landscape) and (max-height: 600px),
        (hover: none) and (orientation: landscape) and (max-height: 600px),
        (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {

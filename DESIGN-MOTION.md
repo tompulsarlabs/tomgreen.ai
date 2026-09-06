@@ -13,7 +13,7 @@ labels. Display weight never animates.
 - Reading/UI: Geist 400/500, sentence case, 1.55–1.6 leading.
 - Record voice: Geist Mono 400/500, 10–12px, tracked uppercase.
 - Display and index sizes are fluid; the home title, section headings and evidence rows have
-  separate scales. The three opening statements share one interpolation and size.
+  separate scales. The three opening statements share one size and assemble into one composition.
 
 ## Palette and structure
 
@@ -36,6 +36,9 @@ labels. Display weight never animates.
 - Document motion uses transform, opacity, colour and `font-variation-settings`.
 - Width changes do not exceed 40 units per 100ms and occur on one display cluster at a time.
 - Route exits compress and rise in 280ms; arrivals resolve in 440ms.
+- Home uses pieces of its own type on curved return paths: 3.6 seconds to assemble,
+  then 1.4 seconds to read. Intact words replace the pieces at rest, preserving crisp edges.
+  Any input or viewport resize settles the opening immediately. It plays once per session.
 - Reduced motion and no-JS render the complete document linearly at `wdth 100`.
 - CV: 2.4-second flights, then a 200ms quiet interval and 400ms reveal. Queued scrolling
   leaves at least 850ms of stillness at each entry. Explicit year selections may skip chapters.
@@ -54,14 +57,15 @@ labels. Display weight never animates.
 ## Route rules
 
 - Home: “Subtract then add.”, “Design the system.”, “Make talent the engine for growth.”
-  open the page; timed above 768px with a fine hover pointer, and static on touch devices,
-  smaller screens or with reduced motion. The mobile opening fills the available dynamic
+  assemble together on first arrival. Desktop yields to the portfolio after the reading pause;
+  touch and smaller screens retain the completed statements in flow. Reduced motion and no-JS
+  show the intact text without assembly. The mobile opening fills the available dynamic
   viewport before the introduction begins. Type and spacing adapt to width and height;
   short landscape screens use three columns. Enlarged text may extend the opening naturally.
   On desktop the introduction, evidence statement and outcomes form a complete viewport;
   vertical spacing responds to height so laptop captions fit and the next section starts below it.
-  “Building in Founder Mode” sits opposite the executive introduction, then
-  “Weighed by opportunity cost.” with the concrete teams/model/agents claim beneath it.
+  “Building in Founder Mode” sits beside the executive introduction, followed by the
+  closely grouped “Selected work” label, concrete teams/model/agents claim and outcomes.
 - Work: six full-row links; hover and focus both resolve `92→100`.
 - Every case study: company masthead, verified metrics, challenge, work, a linear operating model,
   key decisions, outcome, source note and next action.
