@@ -120,9 +120,9 @@ but no special visual object is required to make the work credible.
 
 The Home opening assembles all three statements into one composition. Pieces of the actual
 type start small and almost invisible around all edges and corners, returning along curved
-paths over 5.5 seconds. All statements move together, while their arrivals are separated by
-roughly a second in reading order from top to bottom. The completed composition holds for
-1.4 seconds of still reading time.
+paths over 6.5 seconds. Each statement starts roughly a second after the previous one,
+with the journeys overlapping as the words form from top to bottom. The completed
+composition holds for 1.4 seconds of still reading time.
 Desktop then yields to the portfolio; phones keep the completed opening in normal document
 flow. Any input settles it immediately. Reduced motion and no JavaScript show intact text.
 The original sequential width-axis/spring opening is retired.

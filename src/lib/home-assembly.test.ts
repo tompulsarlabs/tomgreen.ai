@@ -69,7 +69,7 @@ describe("the home opening reassembles into readable words", () => {
     expect(ASSEMBLY_HOLD_MS).toBeGreaterThanOrEqual(1000);
   });
 
-  it("starts one shared gathering motion, then layers words in top-to-bottom reading order", () => {
+  it("staggers statement starts while overlapping their journeys in reading order", () => {
     const words = Array.from({ length: 12 }, (_, word) => {
       const paths = FRAGMENT_CLIPS.map((_, piece) => assemblyPiece(geometry(viewports[4], word, piece)));
       const arrivals = paths.map(path => path.delay + path.duration);
@@ -80,12 +80,20 @@ describe("the home opening reassembles into readable words", () => {
         lastArrival: Math.max(...arrivals),
       };
     });
-    const starts = words.flatMap(word => word.starts);
-    // Later statements must already be travelling rather than waiting for
-    // their turn to appear. Their destinations, not departure, are staggered.
-    expect(Math.max(...starts)).toBeLessThan(250);
-    expect(Math.max(...starts) - Math.min(...starts)).toBeLessThan(150);
-    expect(Math.min(...words.map(word => word.firstArrival)) - Math.max(...starts)).toBeGreaterThan(2500);
+    const groups = [0, 1, 2].map(group => {
+      const starts = words.filter(word => word.group === group).flatMap(word => word.starts);
+      return { first: Math.min(...starts), last: Math.max(...starts) };
+    });
+    expect(groups[0].first).toBeLessThan(250);
+    groups.forEach(group => expect(group.last - group.first).toBeLessThan(150));
+    for (let group = 1; group < groups.length; group++) {
+      // Distinct departures, rather than a few frames of incidental jitter.
+      expect(groups[group].first - groups[group - 1].last).toBeGreaterThan(850);
+      expect(groups[group].first - groups[group - 1].first).toBeLessThan(1250);
+    }
+    // All three still share a substantial part of the journey: never wait
+    // for a statement to finish before beginning the next one.
+    expect(Math.min(...words.map(word => word.firstArrival)) - groups[2].last).toBeGreaterThan(1000);
 
     for (let word = 0; word < words.length; word++) {
       const current = words[word];

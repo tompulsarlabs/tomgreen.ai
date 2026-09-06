@@ -1,5 +1,5 @@
 /** One gathering motion, followed by a real pause to read the whole composition. */
-export const ASSEMBLY_MS = 5500;
+export const ASSEMBLY_MS = 6500;
 export const ASSEMBLY_HOLD_MS = 1400;
 
 export const FRAGMENT_CLIPS = [
@@ -43,10 +43,10 @@ export function assemblyPiece(geometry: PieceGeometry) {
   const curl = (seed(id + 5) - 0.5) * Math.min(width, height) * (compact ? 0.45 : 0.65);
   const rotation = (seed(id + 8) - 0.5) * (compact ? 110 : 180);
   const scale = 0.48 + seed(id + 13) * 0.24;
-  // Start together; layer the arrivals instead of holding later statements
-  // still. The short word stagger preserves the reading order within each row.
-  const delay = 90 + seed(id + 11) * 110;
-  const arrival = 3050 + group * 900 + wordInGroup * 90 + piece * 40 + seed(id + 2) * 80;
+  // Give each statement its own departure, then overlap their journeys.
+  // The smaller word stagger keeps formation flowing within each statement.
+  const delay = 90 + group * 1050 + seed(id + 11) * 110;
+  const arrival = 3750 + group * 1050 + wordInGroup * 90 + piece * 40 + seed(id + 2) * 80;
   const duration = arrival - delay;
   const keyframes = Array.from({ length: 61 }, (_, index) => {
     const t = index / 60;
