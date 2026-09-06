@@ -116,6 +116,12 @@ but no special visual object is required to make the work credible.
 
 ## Current implementation status
 
+Home keeps its two-column introduction, with the factual bio closer to the headline and the
+role sentence given modest emphasis. “Selected work” sits directly above the positioning
+statement on the main left edge, followed closely by its three outcomes. These elements stay
+grouped as the viewport grows; spare screen height follows the outcomes instead of separating
+the label, statement and evidence. Phones retain a single reading column.
+
 The site is live on Vercel at tomgreen.ai. The document keeps one white editorial ground and one
 linear case-study model. The moon opens the planetary map over a credited Hubble Veil Nebula
 photograph. Captures use regenerated gas-only media and responsive camera handoffs.

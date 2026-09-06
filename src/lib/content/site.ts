@@ -1,3 +1,5 @@
+const role = "Executive talent leader and systems builder.";
+
 export const site = {
   name: "Tom Green",
   domain: "tomgreen.ai",
@@ -7,8 +9,9 @@ export const site = {
   /** The concrete claim, also used for search and sharing. */
   positioning:
     "I build teams, operating models, and agents to run them.",
+  role,
   intro:
-    "Executive talent leader and systems builder. I’ve built a 120-person AI organization in six months, led global talent teams, and redesigned how teams work.",
+    `${role} I’ve built a 120-person AI organization in six months, led global talent teams, and redesigned how teams work.`,
   links: {
     calendly: "https://calendly.com/tom-tomgreen",
     github: "https://github.com/tompulsarlabs",

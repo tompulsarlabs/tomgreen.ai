@@ -18,29 +18,27 @@ export function WorkIndex() {
     <div className="work-index-page">
       <div className="home-overview">
         <PersonalHero />
-        {/* The Lab's section format: a mono label held on the left, the
-            positioning statement carried on the right. */}
-        <header className="work-index-masthead section-split">
-          <p className="record">Selected work</p>
-          <div className="section-split-body">
+        <div className="home-selected-work">
+          <header className="work-index-masthead">
+            <p className="record">Selected work</p>
             <h2 className="axis-display">{site.positioning}</h2>
-          </div>
-        </header>
+          </header>
 
-        <section aria-label="Selected outcomes" className="work-metric-band">
-          <dl className="work-metric-rail">
-            {[
-              ["0 → 120", "AI organization / six months"],
-              ["€3.3M", "New business won / 12 months"],
-              ["£1M", "Bootstrapped / two years"],
-            ].map(([value, label]) => (
-              <div key={label}>
-                <dd className="axis-index">{value}</dd>
-                <dt>{label}</dt>
-              </div>
-            ))}
-          </dl>
-        </section>
+          <section aria-label="Selected outcomes" className="work-metric-band">
+            <dl className="work-metric-rail">
+              {[
+                ["0 → 120", "AI organization / six months"],
+                ["€3.3M", "New business won / 12 months"],
+                ["£1M", "Bootstrapped / two years"],
+              ].map(([value, label]) => (
+                <div key={label}>
+                  <dd className="axis-index">{value}</dd>
+                  <dt>{label}</dt>
+                </div>
+              ))}
+            </dl>
+          </section>
+        </div>
       </div>
 
       <section aria-label="Case studies" className="work-index-group">
