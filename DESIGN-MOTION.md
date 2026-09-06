@@ -37,8 +37,8 @@ labels. Display weight never animates.
 - Width changes do not exceed 40 units per 100ms and occur on one display cluster at a time.
 - Route exits compress and rise in 280ms; arrivals resolve in 440ms.
 - Home uses small, initially faint pieces of its own type entering from all edges and corners
-  on curved return paths: 5.5 seconds to assemble, then 1.4 seconds to read. All statements move
-  together; arrivals follow top to bottom with roughly a second between statements.
+  on curved return paths: 6.5 seconds to assemble, then 1.4 seconds to read. Statements start
+  roughly a second apart from top to bottom, with overlapping travel and layered word arrivals.
   Intact words replace the pieces at rest,
   preserving crisp edges.
   Any input or viewport resize settles the opening immediately. It plays once per session.

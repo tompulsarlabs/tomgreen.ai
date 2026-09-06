@@ -5,7 +5,9 @@ type AssemblyTrace = {
   sawPartialAssembly: boolean;
   lostAssembledWord: boolean;
   initialFragmentOpacity: number | null;
-  sawConcurrentMotionBeforeSettlement: boolean;
+  sawConcurrentMotion: boolean;
+  statementStartOrder: number[];
+  statementStartedAt: number[];
   statementCompletionOrder: number[];
   statementCompletedAt: number[];
   readableHandoffs: boolean[];
@@ -22,7 +24,9 @@ async function traceAssembly(page: Page) {
       sawPartialAssembly: false,
       lostAssembledWord: false,
       initialFragmentOpacity: null,
-      sawConcurrentMotionBeforeSettlement: false,
+      sawConcurrentMotion: false,
+      statementStartOrder: [],
+      statementStartedAt: [],
       statementCompletionOrder: [],
       statementCompletedAt: [],
       readableHandoffs: [],
@@ -80,9 +84,15 @@ async function traceAssembly(page: Page) {
           if (trace.initialFragmentOpacity === null && opacities.length > 0) {
             trace.initialFragmentOpacity = Math.max(...opacities);
           }
+          movingGroups.forEach((moving, index) => {
+            if (moving && trace.statementStartedAt[index] === undefined) {
+              trace.statementStartOrder.push(index);
+              trace.statementStartedAt[index] = now;
+            }
+          });
           if (movingGroups.some(Boolean)) trace.sawMovingInk = true;
-          if (assembled === 0 && movingGroups.length > 0 && movingGroups.every(Boolean)) {
-            trace.sawConcurrentMotionBeforeSettlement = true;
+          if (movingGroups.length > 0 && movingGroups.every(Boolean)) {
+            trace.sawConcurrentMotion = true;
           }
           for (let index = 0; index < groups.length - 1; index++) {
             if (complete[index] && !complete[index + 1] && movingGroups[index + 1]) trace.readableHandoffs[index] = true;
@@ -103,7 +113,14 @@ function expectOrderedAssembly(trace: AssemblyTrace, statementCount: number) {
   expect(trace.initialFragmentOpacity).not.toBeNull();
   expect(trace.initialFragmentOpacity!).toBeGreaterThan(0);
   expect(trace.initialFragmentOpacity!).toBeLessThan(0.1);
-  expect(trace.sawConcurrentMotionBeforeSettlement).toBe(true);
+  expect(trace.statementStartOrder).toEqual(Array.from({ length: statementCount }, (_, index) => index));
+  expect(trace.statementStartedAt).toHaveLength(statementCount);
+  // These timestamps come from visibly moving ink, not animation delay
+  // metadata: each statement needs a distinct beginning that can be seen.
+  for (let index = 1; index < trace.statementStartedAt.length; index++) {
+    expect(trace.statementStartedAt[index] - trace.statementStartedAt[index - 1]).toBeGreaterThanOrEqual(700);
+  }
+  expect(trace.sawConcurrentMotion).toBe(true);
   expect(trace.statementCompletionOrder).toEqual(Array.from({ length: statementCount }, (_, index) => index));
   expect(trace.statementCompletedAt).toHaveLength(statementCount);
   // The hierarchy needs a perceptible reading beat, not just completions
