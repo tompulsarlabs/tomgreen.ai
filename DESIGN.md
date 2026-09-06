@@ -126,6 +126,11 @@ Desktop then yields to the portfolio; phones keep the completed opening in norma
 flow. Any input settles it immediately. Reduced motion and no JavaScript show intact text.
 The original sequential width-axis/spring opening is retired.
 
+Home work rows lead with Chapter 2's European business remit, followed by Zalando's AI
+organisation. They show the company and outcome without dates. Employment periods remain
+in the individual case studies and visual CV, where chronology adds context. Contact's
+planet labels use their authored casing, including Calendly.
+
 Home keeps its two-column introduction, with the factual bio closer to the headline and the
 role sentence given modest emphasis. “Selected work” sits directly above the positioning
 statement on the main left edge, followed closely by its three outcomes. These elements stay

@@ -419,7 +419,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   transform: translate(var(--travel-x, 0), var(--travel-y, 0)) scale(var(--travel-scale, 1), var(--travel-scale-y, 1));
   font-variation-settings: "wdth" 106;
 }
-.travelling-active .case-company.handoff-target { animation: none !important; opacity: 0; }
+/* Measure the settled destination, including in WebKit where cancelling
+   the arrival animation can otherwise start a width-axis transition. */
+.travelling-active .case-company.handoff-target {
+  animation: none !important;
+  transition: none !important;
+  font-variation-settings: "wdth" 106;
+  opacity: 0;
+}
 .route-entering .case-company.handoff-complete { animation: none; transition: none; opacity: 1; }
 .travelling-active .case-headline { animation-delay: 610ms; }
 
@@ -696,7 +703,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .work-index-list { margin-top: 5rem; }
 .work-index-row {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  grid-template-columns: 4rem minmax(0, 1fr);
   gap: 1.5rem;
   align-items: center;
   min-height: 8rem;
@@ -708,7 +715,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .work-index-row.is-supporting .row-company { font-size: clamp(1.875rem, 3.2vw, 2.5rem); }
 .work-index-row:hover .row-company, .work-index-row:focus-visible .row-company { font-variation-settings: "wdth" 100; }
 .row-headline { display: block; max-width: 54rem; margin-top: 0.5rem; line-height: 1.45; color: var(--ink-secondary); }
-.row-period { text-align: right; color: var(--ink-secondary); }
 .work-index-next { display: grid; grid-template-columns: 0.45fr 1fr auto; gap: 2rem; align-items: start; margin-top: 8rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 3rem 0; }
 .work-index-next .axis-heading { max-width: 12ch; }
 
@@ -929,7 +935,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
   .work-index-row.is-flagship { min-height: 11rem; }
   .work-index-row.is-flagship .row-company { font-size: clamp(2.5rem, 12vw, 3rem); }
   .work-index-row.is-supporting .row-company { font-size: clamp(1.75rem, 7.7vw, 1.875rem); }
-  .row-period { grid-column: 2; text-align: left; }
   .work-index-next { grid-template-columns: 1fr; align-items: start; }
   .systems-title-row { grid-template-columns: 1fr; gap: 1.75rem; }
   .systems-lead { max-width: 34rem; padding-bottom: 0; }
@@ -1518,9 +1523,8 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    furniture: the thing that makes an index read as a record rather than a
    blog, and quieting them would cost the document quality the rest of this
    is buying. Only the colour moves, --ink → --muted, so the four caps
-   labels label rather than announce. Child combinators keep `.row-index`
-   and `.row-period`, also `.record` and also on this page, at their
-   existing colours. */
+   labels label rather than announce. Child combinators keep `.row-index`,
+   also `.record` and also on this page, at its existing colour. */
 .home-page .personal-hero-copy > .record,
 .work-index-masthead > .record,
 .work-index-page .work-group-intro > .record,

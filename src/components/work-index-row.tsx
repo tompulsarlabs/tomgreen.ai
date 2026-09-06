@@ -14,7 +14,6 @@ export function WorkIndexRow({ study, index }: { study: CaseStudy; index: number
         <strong className="axis-index row-company" data-travel-name>{study.company}</strong>
         <span className="row-headline">{study.headline}</span>
       </span>
-      <span className="record row-period">{study.period}</span>
     </Link>
   );
 }

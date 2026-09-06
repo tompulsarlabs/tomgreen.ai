@@ -4,6 +4,13 @@ import { PersonalHero } from "@/components/personal-hero";
 import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
+// Lead with the European business remit; AI hiring at scale follows.
+// This is the homepage's editorial order, separate from career chronology.
+const homeStudies = [
+  ...caseStudies.filter(study => study.slug === "chapter-2"),
+  ...caseStudies.filter(study => study.slug !== "chapter-2"),
+];
+
 /**
  * The operating record — the site's primary content.
  *
@@ -43,7 +50,7 @@ export function WorkIndex() {
 
       <section aria-label="Case studies" className="work-index-group">
         <div className="work-index-list">
-          {caseStudies.map((study, index) => (
+          {homeStudies.map((study, index) => (
             <WorkIndexRow key={study.slug} study={study} index={index} />
           ))}
         </div>

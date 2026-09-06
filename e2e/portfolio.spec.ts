@@ -487,12 +487,15 @@ test("the home route is the six-row evidence index, under the introduction", asy
   await expect(page.locator(".personal-portrait, .personal-monogram")).toHaveCount(0);
   await expect(page.locator(".personal-hero img")).toHaveCount(0);
   await expect(page.locator("[data-work-row]")).toHaveCount(6);
+  await expect(page.locator("[data-work-row] .row-company").nth(0)).toHaveText("Chapter 2");
+  await expect(page.locator("[data-work-row] .row-company").nth(1)).toHaveText("Zalando");
   await expect(page.locator(".row-summary, .work-group-lead")).toHaveCount(0);
   await expect(page.locator(".work-metric-rail")).toContainText("New ARR won / 12 months");
   await expect(page.locator("[data-work-row].is-flagship")).toHaveCount(2);
+  await expect(page.locator("[data-work-row] .row-period")).toHaveCount(0);
   await expect(
     page.locator("[data-work-row]").filter({ hasText: "Zalando" }),
-  ).toContainText("2022 – 2025");
+  ).toHaveAttribute("href", "/work/zalando");
 });
 
 test("Work preserves flagship hierarchy and 48px targets at 390px", async ({ page }) => {
@@ -509,13 +512,18 @@ test("Work preserves flagship hierarchy and 48px targets at 390px", async ({ pag
   expect(flagshipSize / supportingSize).toBeGreaterThanOrEqual(1.25);
   expect(targetHeight).toBeGreaterThanOrEqual(48);
 
-  const [copyBox, periodBox] = await Promise.all([
+  const [copyBox, indexBox, rowBox] = await Promise.all([
     flagship.locator(".row-copy").boundingBox(),
-    flagship.locator(".row-period").boundingBox(),
+    flagship.locator(".row-index").boundingBox(),
+    flagship.boundingBox(),
   ]);
   expect(copyBox).not.toBeNull();
-  expect(periodBox).not.toBeNull();
-  expect(periodBox!.y).toBeGreaterThanOrEqual(copyBox!.y + copyBox!.height - 1);
+  expect(indexBox).not.toBeNull();
+  expect(rowBox).not.toBeNull();
+  expect(copyBox!.x).toBeGreaterThan(indexBox!.x + indexBox!.width);
+  expect(copyBox!.y).toBeGreaterThanOrEqual(rowBox!.y);
+  expect(copyBox!.x + copyBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width + 1);
+  expect(copyBox!.y + copyBox!.height).toBeLessThanOrEqual(rowBox!.y + rowBox!.height + 1);
 });
 
 test("Work hover and keyboard focus resolve the same width state", async ({ page }) => {
