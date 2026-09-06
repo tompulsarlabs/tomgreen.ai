@@ -79,7 +79,7 @@ const aboutBodies = orbit(
 const contactBodies = orbit(
   [
     { id: "email", label: "Email", href: `mailto:${site.email}`, external: true, keepCase: true },
-    { id: "calendly", label: "Calendly", href: site.links.calendly, external: true },
+    { id: "calendly", label: "Calendly", href: site.links.calendly, external: true, keepCase: true },
     { id: "linkedin", label: "LinkedIn", href: site.links.linkedin, external: true },
     { id: "github", label: "GitHub", href: site.links.github, external: true },
   ],
