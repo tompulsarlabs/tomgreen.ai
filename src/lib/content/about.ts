@@ -27,7 +27,7 @@ export const career: CareerStop[] = [
     company: "Chapter 2",
     role: "Managing Director",
     period: "2025 – 2026",
-    note: "Ran the European business. Won €3.3M of new business in twelve months. Then rebuilt how Europe operated.",
+    note: "Ran the European business. Won €3.3M in new ARR over twelve months. Then rebuilt how Europe operated.",
     achievements: [
       "Led recruiting programs across Germany, the US, the UK and India, working with clients including Neura Robotics and Superhuman and directly hiring a Chief Product Officer.",
       "Rebuilt EU People Ops so a Germany-based operator, supported by agents working within clear rules and human oversight, could replace reliance on three UK shared-service roles. The model became the reference for the group’s wider AI transformation.",
@@ -35,7 +35,7 @@ export const career: CareerStop[] = [
     ],
     metrics: [
       { value: "Europe", label: "P&L owned" },
-      { value: "€3.3M", label: "new business won in twelve months" },
+      { value: "€3.3M", label: "new ARR won in twelve months" },
       { value: "4 countries", label: "recruiting programs led" },
       { value: "3 roles", label: "shared-service reliance removed" },
     ],
