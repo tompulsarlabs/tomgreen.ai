@@ -1,6 +1,8 @@
 export type CareerStop = {
   company: string;
   role: string;
+  /** A documented promotion, shown alongside the resulting role. */
+  promotedFrom?: string;
   period: string;
   /** One-line framing of the chapter. */
   note: string;
@@ -61,7 +63,8 @@ export const career: CareerStop[] = [
   },
   {
     company: "Audibene / Hear.com",
-    role: "Talent Acquisition Lead → Product Operations",
+    role: "Product Operations",
+    promotedFrom: "Talent Acquisition Lead",
     period: "2019 – 2022",
     note: "An EQT Ventures-backed HealthTech, scaled toward IPO — then the crossover.",
     achievements: [
