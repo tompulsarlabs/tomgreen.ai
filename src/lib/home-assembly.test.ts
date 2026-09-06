@@ -98,14 +98,16 @@ describe("the home opening reassembles into readable words", () => {
         expect(current.lastArrival - previous.lastArrival).toBeGreaterThan(0);
         expect(current.lastArrival - previous.lastArrival).toBeLessThan(180);
       } else {
-        // Finish the earlier statement before the next one becomes complete.
-        expect(current.firstArrival - previous.lastArrival).toBeGreaterThan(150);
+        // Leave a perceptible readable beat before the next statement lands.
+        expect(current.firstArrival - previous.lastArrival).toBeGreaterThan(450);
       }
     }
   });
 
   it.each(viewports)("begins as faint, small fragments around the edges at $width × $height", viewport => {
     const edges = new Set<string>();
+    const directions = new Set<number>();
+    const corners = new Set<string>();
     for (let word = 0; word < 12; word++) {
       for (let piece = 0; piece < FRAGMENT_CLIPS.length; piece++) {
         const input = geometry(viewport, word, piece);
@@ -120,6 +122,14 @@ describe("the home opening reassembles into readable words", () => {
         expect(sample(path.keyframes, 150 / path.duration).opacity).toBeLessThan(0.04);
         const originX = input.x + initial.x;
         const originY = input.y + initial.y;
+        // Normalise for aspect ratio: a phone and a wide display both need
+        // diagonal approaches as well as the four cardinal directions.
+        const nx = originX / viewport.width - 0.5;
+        const ny = originY / viewport.height - 0.5;
+        directions.add((Math.round(Math.atan2(ny, nx) / (Math.PI / 4)) + 8) % 8);
+        if (Math.abs(nx) > 0.35 && Math.abs(ny) > 0.35) {
+          corners.add(`${Math.sign(nx)},${Math.sign(ny)}`);
+        }
         const touched = [
           originX <= viewport.width * 0.15 ? "left" : null,
           originX >= viewport.width * 0.85 ? "right" : null,
@@ -131,6 +141,8 @@ describe("the home opening reassembles into readable words", () => {
       }
     }
     expect(edges.size).toBe(4);
+    expect(directions.size).toBe(8);
+    expect(corners.size).toBe(4);
   });
 
   it.each(viewports)("keeps valid, continuous motion at $width × $height", viewport => {
