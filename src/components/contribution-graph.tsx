@@ -14,7 +14,15 @@ const RAMP = [
  * GitHub-style contribution record. Weeks are columns, split on Sundays,
  * matching GitHub's own layout.
  */
-export function ContributionGraph({ days }: { days: ContributionDay[] }) {
+export function ContributionGraph({
+  days,
+  label = "GitHub contribution activity, past year",
+  compact = false,
+}: {
+  days: ContributionDay[];
+  label?: string;
+  compact?: boolean;
+}) {
   const weeks: (ContributionDay | null)[][] = [];
   for (const day of days) {
     const dow = new Date(`${day.date}T00:00:00Z`).getUTCDay();
@@ -27,7 +35,7 @@ export function ContributionGraph({ days }: { days: ContributionDay[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex gap-[3px]" role="img" aria-label="GitHub contribution activity, past year">
+      <div className="flex gap-[3px]" role="img" aria-label={label}>
         {weeks.map((week, i) => (
           <div key={i} className="flex flex-col gap-[3px]">
             {week.map((day, j) =>
@@ -35,11 +43,11 @@ export function ContributionGraph({ days }: { days: ContributionDay[] }) {
                 <div
                   key={day.date}
                   title={`${day.date} — activity level ${day.level} of 4`}
-                  className="size-[10px]"
+                  className={compact ? "size-[14px]" : "size-[10px]"}
                   style={{ background: RAMP[day.level] }}
                 />
               ) : (
-                <div key={`pad-${j}`} className="size-[10px]" aria-hidden />
+                <div key={`pad-${j}`} className={compact ? "size-[14px]" : "size-[10px]"} aria-hidden />
               ),
             )}
           </div>

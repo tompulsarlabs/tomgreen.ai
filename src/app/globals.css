@@ -1740,3 +1740,6 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 /* The shot is full-bleed and so is the field, always - see .orbit-portal-field
    above. All that is left for the shot to do is take the chrome's ground out
    of the way with it, which the visibility rule already does. */
+
+/* Reserve the former Lab introduction for a quiet, one-month build record. */
+.lab-build-activity { min-height: 9.25rem; }
