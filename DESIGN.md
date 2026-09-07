@@ -170,6 +170,9 @@ The two repeated slogans, "The problem worth solving" and "Decisions, not theatr
 removed; the plain section labels now serve as their accessible headings.
 Workflow outcome captions and the closing "What changed" summaries share medium-weight
 body typography, slightly larger than ordinary copy, without the condensed bold display face.
+The desktop opening statements use the same capped gutter as the eyebrow and homepage.
+Ordinary key presses leave the reconstruction playing; Escape, pointer/scroll input and
+focus into the page still allow the visitor to move on immediately.
 
 The site is live on Vercel at tomgreen.ai. The document keeps one white editorial ground and one
 linear case-study model. The moon opens the planetary map over a credited Hubble Veil Nebula
