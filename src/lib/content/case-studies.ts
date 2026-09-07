@@ -23,6 +23,8 @@ export type CaseStudy = {
   role: string;
   period: string;
   headline: string;
+  /** Shorter homepage framing when the case-study headline needs more detail. */
+  indexHeadline?: string;
   /** One-line framing used on index cards. */
   summary: string;
   context: string;
@@ -123,6 +125,7 @@ export const caseStudies: CaseStudy[] = [
     company: "Chapter 2",
     role: "Managing Director",
     period: "2025 – 2026",
+    indexHeadline: "Ran the European business with P&L ownership",
     headline:
       "Ran the European business. Won €3.3M in new ARR over twelve months. Then rebuilt how Europe operated.",
     summary:
