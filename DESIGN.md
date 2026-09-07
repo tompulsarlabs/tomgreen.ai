@@ -122,7 +122,8 @@ The Home opening reconstructs all three statements from small, irregular pieces 
 actual letter strokes. Faint ink gathers from all edges and corners through related but
 unequal curved paths. Words become readable late, then return to native HTML without a
 brightness dip. Each statement starts roughly a second after the previous one, with
-overlapping travel over 6.5 seconds and a 1.4-second pause to read the completed composition.
+overlapping travel over 6.5 seconds and a 1.1-second pause to read the completed composition.
+The completed pause was trimmed by 300ms after Tom's desktop review on 7 September 2026.
 Desktop then yields to the portfolio; phones keep the completed opening in normal document
 flow. Input, text enlargement and changed viewport dimensions settle it immediately.
 Reduced motion and no JavaScript show intact text. Queued resize events with unchanged
@@ -141,7 +142,10 @@ Retina and mobile-emulation frame pacing is recorded in the
 unverified.
 
 Home work rows lead with Chapter 2's European business remit, followed by Zalando's AI
-organisation. They show the company and outcome without dates. Employment periods remain
+organisation. Chapter 2's homepage line is "Ran the European business with P&L ownership";
+its ARR and operational results remain in the case study and visual CV. The other rows
+continue to use their existing headlines. Home rows show the company and outcome without
+dates. Employment periods remain
 in the individual case studies and visual CV, where chronology adds context. Contact's
 planet labels use their authored casing, including Calendly.
 

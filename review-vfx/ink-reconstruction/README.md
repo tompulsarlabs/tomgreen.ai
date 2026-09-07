@@ -9,7 +9,7 @@ Small pieces of actual letter strokes gather into readable statements. The inten
 surprise is late recognition: related fragments take unequal curved paths, repair
 strokes in loose groups, and finish as quiet, intact typography. Statement starts
 remain approximately one second apart, with overlapping travel. Total assembly is
-6.5 seconds, followed by 1.4 seconds to read.
+6.5 seconds, followed by 1.1 seconds to read (trimmed from 1.4 seconds after the desktop review).
 
 The renderer measures the loaded font and its real baseline, fractures the ink into
 irregular Voronoi cells, caches small transparent sprites, and paints three canvas

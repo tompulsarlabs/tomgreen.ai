@@ -286,6 +286,7 @@ test("touch reassembly leaves the complete composition readable in document flow
     }))).toBe(true);
     await expectCrispSources(page);
     await expect(page.locator(".home-resolve")).not.toHaveClass(/is-assembling/, { timeout: 12_000 });
+    await expect(page.locator(".home-resolve")).toHaveClass(/is-done/);
     await expect(page.locator(".home-resolve")).toHaveCSS("position", "relative");
     await expect(page.locator(".home-resolve")).toBeVisible();
     const statementCount = await page.locator(".resolve-lines > p").count();

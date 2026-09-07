@@ -12,7 +12,7 @@ export function WorkIndexRow({ study, index }: { study: CaseStudy; index: number
       <span className="record row-index">{String(index + 1).padStart(2, "0")}</span>
       <span className="row-copy">
         <strong className="axis-index row-company" data-travel-name>{study.company}</strong>
-        <span className="row-headline">{study.headline}</span>
+        <span className="row-headline">{study.indexHeadline ?? study.headline}</span>
       </span>
     </Link>
   );
