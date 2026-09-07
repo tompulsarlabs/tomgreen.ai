@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react";
+import { Suspense, type CSSProperties } from "react";
+import { RecentBuildActivity } from "@/components/recent-build-activity";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/reveal";
@@ -14,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Lab",
   description:
-    "Explore Tom Green’s projects, experiments and operating models, plus writing on teams and useful AI.",
+    "Products, experiments and the methods I use to build and run teams.",
 };
 
 export const viewport: Viewport = { themeColor: "#ffffff" };
@@ -95,19 +96,26 @@ export default function Building() {
   return (
     <div className="systems-route flex w-full flex-col gap-20 pb-20">
       <section
-        className="systems-hero w-full"
+        className="systems-hero lab-hero w-full"
         aria-labelledby="systems-title"
       >
         <div className="systems-hero-copy">
-          <p className="record">Lab</p>
           <div className="systems-title-row">
-            <h1 id="systems-title" className="axis-display">
-              Lab.
-            </h1>
-            <p className="systems-lead">
-              Products, practical experiments and the methods I use to build and
-              run teams.
-            </p>
+            <div>
+              <p className="record">Lab</p>
+              <h1 id="systems-title" className="axis-display mt-5">
+                Lab.
+              </h1>
+            </div>
+            <Suspense
+              fallback={
+                <div className="lab-build-activity" aria-label="Loading recent build activity">
+                  <p className="record text-muted">Last 30 days</p>
+                </div>
+              }
+            >
+              <RecentBuildActivity />
+            </Suspense>
           </div>
         </div>
       </section>

@@ -1740,3 +1740,56 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 /* The shot is full-bleed and so is the field, always - see .orbit-portal-field
    above. All that is left for the shot to do is take the chrome's ground out
    of the way with it, which the visibility rule already does. */
+
+/* Reserve the former Lab introduction for a quiet, one-month build record. */
+.lab-build-activity { min-height: 13rem; }
+.lab-hero .systems-title-row { margin-top: 0; }
+
+/* GitHub orientation: weekday rows, week columns advancing left to right.
+   Solid fills carry the data; rough edge slivers and detached motes carry motion. */
+.contribution-energy { padding: 7px; margin: -7px; }
+.contribution-month { display: flex; gap: 7px; }
+.contribution-week { display: flex; flex-direction: column; gap: 7px; }
+.contribution-cell { position: relative; width: 27px; height: 27px; flex: none; }
+.contribution-cell[data-active="true"]::before,
+.contribution-cell[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  animation-delay: var(--spark-delay);
+}
+.contribution-cell[data-active="true"]::before {
+  width: 2px; height: 2px; right: -3px; top: 3px;
+  background: #30a14e;
+  box-shadow: 2px 9px 0 #40c463, -1px 18px 0 #216e39,
+              -12px 25px 0 #40c463, -20px 24px 0 #30a14e;
+  opacity: 0.65;
+  animation: contribution-edge-motes 2.7s linear infinite;
+  animation-delay: var(--spark-delay);
+}
+.contribution-cell[data-active="true"]::after {
+  width: 4px; height: 100%; right: -2px; top: 0;
+  background: #40c463;
+  clip-path: polygon(0 0, 45% 0, 45% 12%, 100% 12%, 100% 20%,
+    25% 20%, 25% 42%, 80% 42%, 80% 51%, 35% 51%, 35% 69%,
+    100% 69%, 100% 77%, 40% 77%, 40% 92%, 70% 92%, 70% 100%, 0 100%);
+  opacity: 0.55;
+  animation: contribution-edge-shear 1.9s steps(3, end) infinite;
+  animation-delay: var(--spark-delay);
+}
+@keyframes contribution-edge-motes {
+  0%, 100% { opacity: 0.25; transform: translate(0, 0); }
+  18% { opacity: 0.72; transform: translate(1px, -1px); }
+  39% { opacity: 0.4; transform: translate(2px, 0); }
+  63% { opacity: 0.66; transform: translate(3px, 1px); }
+  85% { opacity: 0.08; transform: translate(5px, 2px); }
+}
+@keyframes contribution-edge-shear {
+  0%, 100% { opacity: 0.5; transform: translate(0, 0); }
+  35% { opacity: 0.8; transform: translate(0.8px, -0.5px); }
+  70% { opacity: 0.35; transform: translate(-0.5px, 0.5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .contribution-cell[data-active="true"]::before,
+  .contribution-cell[data-active="true"]::after { animation: none; }
+}

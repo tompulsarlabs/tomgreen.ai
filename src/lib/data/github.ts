@@ -43,6 +43,7 @@ export async function getContributions(): Promise<Contributions | null> {
   try {
     const res = await fetch(`https://github.com/users/${USER}/contributions`, {
       next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(5000),
       headers: { "User-Agent": "tomgreen.ai (portfolio; contact tom@tomgreen.ai)" },
     });
     if (!res.ok) return null;
@@ -50,4 +51,22 @@ export async function getContributions(): Promise<Contributions | null> {
   } catch {
     return null;
   }
+}
+
+/** A complete rolling calendar window, including today. Missing data is not zero. */
+export function recentContributionDays(
+  days: ContributionDay[],
+  today: string,
+): ContributionDay[] | null {
+  const end = new Date(`${today}T00:00:00Z`);
+  if (!Number.isFinite(end.getTime()) || end.toISOString().slice(0, 10) !== today) return null;
+  const byDate = new Map(days.map((day) => [day.date, day]));
+  const recent: ContributionDay[] = [];
+  for (let offset = 29; offset >= 0; offset--) {
+    const date = new Date(end.getTime() - offset * 86_400_000).toISOString().slice(0, 10);
+    const day = byDate.get(date);
+    if (!day) return null;
+    recent.push(day);
+  }
+  return recent;
 }
