@@ -129,6 +129,10 @@ Reduced motion and no JavaScript show intact text. Queued resize events with unc
 dimensions do not cancel the reconstruction. The earlier sliced-type opening is retired.
 
 Tom approved publishing this reconstruction to the live site on 7 September 2026.
+PR #38 deployed successfully; all 16 live Chrome/WebKit opening checks passed, including
+mobile. The GitHub runner exposed a unit-test timeout from per-frame matcher overhead.
+The follow-up retains every sampled pose and bound, aggregates extrema, and reports each
+viewport separately; it changes no runtime behavior.
 The renderer uses three canvas layers, cached sprites and at most 2× backing resolution.
 Build, lint, types, 263 unit tests and 29 browser checks passed (one browser-specific skip).
 Desktop and phone recordings are saved in the task's local visualizations folder. Local

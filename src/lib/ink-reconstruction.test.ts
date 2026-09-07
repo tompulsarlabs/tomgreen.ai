@@ -133,29 +133,44 @@ describe("ink reconstruction choreography", () => {
     expect(stillDisplaced).toBeGreaterThan(100);
   });
 
-  it("remains finite, bounded, and brakes into intact type across viewport sizes", () => {
-    for (const viewport of viewports) {
-      for (let id = 0; id < 30; id++) {
-        const input = motionInput(id % 3, id, viewport);
-        const motion = createInkMotion(input);
-        let previous = sampleInkMotion(motion, 0);
-        for (let elapsed = 16; elapsed <= 6528; elapsed += 16) {
-          const pose = sampleInkMotion(motion, elapsed);
-          for (const value of [pose.x, pose.y, pose.rotation, pose.scale, pose.opacity]) expect(Number.isFinite(value)).toBe(true);
-          expect(pose.x).toBeGreaterThan(-viewport.width * 0.6);
-          expect(pose.x).toBeLessThan(viewport.width * 1.6);
-          expect(pose.y).toBeGreaterThan(-viewport.height * 0.6);
-          expect(pose.y).toBeLessThan(viewport.height * 1.6);
-          expect(pose.opacity).toBeGreaterThanOrEqual(0);
-          expect(pose.opacity).toBeLessThanOrEqual(1);
-          expect(pose.scale).toBeGreaterThan(0);
-          expect(pose.scale).toBeLessThanOrEqual(1);
-          expect(Math.hypot(pose.x - previous.x, pose.y - previous.y)).toBeLessThan(Math.hypot(viewport.width, viewport.height) * 0.025);
-          previous = pose;
-        }
-        const before = sampleInkMotion(motion, motion.end - 16);
-        expect(Math.hypot(before.x - input.x, before.y - input.y)).toBeLessThan(0.02);
+  // Sample every frame, but assert the extrema once per viewport. Hundreds of
+  // thousands of matcher calls can exceed the default timeout on CI runners.
+  it.each(viewports)("remains finite, bounded, and brakes into intact type at $width × $height", (viewport) => {
+    let allFinite = true;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    let minOpacity = Infinity, maxOpacity = -Infinity, minScale = Infinity, maxScale = -Infinity;
+    let maxStep = 0, maxArrivalError = 0;
+    for (let id = 0; id < 30; id++) {
+      const input = motionInput(id % 3, id, viewport);
+      const motion = createInkMotion(input);
+      let previous = sampleInkMotion(motion, 0);
+      for (let elapsed = 16; elapsed <= 6528; elapsed += 16) {
+        const pose = sampleInkMotion(motion, elapsed);
+        allFinite = [pose.x, pose.y, pose.rotation, pose.scale, pose.opacity].every(Number.isFinite) && allFinite;
+        minX = Math.min(minX, pose.x);
+        maxX = Math.max(maxX, pose.x);
+        minY = Math.min(minY, pose.y);
+        maxY = Math.max(maxY, pose.y);
+        minOpacity = Math.min(minOpacity, pose.opacity);
+        maxOpacity = Math.max(maxOpacity, pose.opacity);
+        minScale = Math.min(minScale, pose.scale);
+        maxScale = Math.max(maxScale, pose.scale);
+        maxStep = Math.max(maxStep, Math.hypot(pose.x - previous.x, pose.y - previous.y));
+        previous = pose;
       }
+      const before = sampleInkMotion(motion, motion.end - 16);
+      maxArrivalError = Math.max(maxArrivalError, Math.hypot(before.x - input.x, before.y - input.y));
     }
+    expect(allFinite).toBe(true);
+    expect(minX).toBeGreaterThan(-viewport.width * 0.6);
+    expect(maxX).toBeLessThan(viewport.width * 1.6);
+    expect(minY).toBeGreaterThan(-viewport.height * 0.6);
+    expect(maxY).toBeLessThan(viewport.height * 1.6);
+    expect(minOpacity).toBeGreaterThanOrEqual(0);
+    expect(maxOpacity).toBeLessThanOrEqual(1);
+    expect(minScale).toBeGreaterThan(0);
+    expect(maxScale).toBeLessThanOrEqual(1);
+    expect(maxStep).toBeLessThan(Math.hypot(viewport.width, viewport.height) * 0.025);
+    expect(maxArrivalError).toBeLessThan(0.02);
   });
 });
