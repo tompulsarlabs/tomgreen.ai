@@ -17,6 +17,10 @@ visible in this repo. Any box that cannot be ticked must be resolved by
 style), not by re-privating history. The site itself stays `noindex` and
 off the tomgreen.ai domain until this checklist closes.
 
+## Chapter 2 correction — 7 September 2026
+
+Tom confirmed that Chapter 2 client names must not appear on the site and Leo is happy with the displayed numbers. This supersedes the earlier named-client approval below. Public copy removes client names from the case study and About section; the existing metrics remain unchanged.
+
 ## Employers / clients named
 
 - [x] **Zalando** case study — full build-out story: 0→120 FTE AI org, DE/IE/CH/FI,
