@@ -72,8 +72,8 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
               >
                 {displayLabel(study.company)}
               </h1>
-              <p className="case-headline axis-heading mt-8 max-w-4xl">{study.headline}</p>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-secondary">{study.summary}</p>
+              <p className="case-headline axis-heading">{study.headline}</p>
+              <p className="case-summary max-w-2xl text-lg leading-relaxed text-ink-secondary">{study.summary}</p>
             </div>
           </div>
 
@@ -94,20 +94,14 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
 
       <Reveal>
         <section aria-labelledby="mandate-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
-          <div>
-            <p className="record text-muted">01 · The mandate</p>
-            <h2 id="mandate-heading" className="axis-index mt-3 text-3xl">The problem worth solving.</h2>
-          </div>
+          <h2 id="mandate-heading" className="record text-muted">01 · The mandate</h2>
           <p className="max-w-2xl text-lg leading-relaxed text-ink-secondary">{study.context}</p>
         </section>
       </Reveal>
 
       <Reveal>
         <section aria-labelledby="work-built-heading" className="grid gap-8 lg:grid-cols-[0.68fr_1.32fr]">
-          <div>
-            <p className="record text-muted">02 · What I built and led</p>
-            <h2 id="work-built-heading" className="axis-index mt-3 text-3xl">Decisions, not theatre.</h2>
-          </div>
+          <h2 id="work-built-heading" className="record text-muted">02 · What I built and led</h2>
           <div className="flex max-w-2xl flex-col gap-6 text-lg leading-relaxed text-ink-secondary">
             {study.body.map((paragraph, paragraphIndex) => (
               <p key={paragraphIndex}>{paragraph}</p>

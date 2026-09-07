@@ -400,7 +400,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 }
 @keyframes case-headline-resolve {
   from { opacity: 0; transform: translateY(10px); font-variation-settings: "wdth" 62; }
-  to { opacity: 1; transform: none; font-variation-settings: "wdth" 82; }
+  to { opacity: 1; transform: none; font-variation-settings: "wdth" 100; }
 }
 .travelling-name {
   position: fixed;
@@ -719,8 +719,27 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 
 /* Case-study records */
 .case-opening { background: var(--paper); color: var(--ink); border-bottom: 1px solid var(--ink); }
-.case-company { --axis: 106; width: fit-content; max-width: 11ch; }
-.case-headline { --axis: 82; text-transform: none; }
+/* Match the homepage introduction's scale. Case-study supporting copy
+   belongs to the reading hierarchy, not the opening's display treatment. */
+.case-company.axis-display {
+  --axis: 106;
+  width: fit-content;
+  max-width: min(24ch, 100%);
+  font-size: clamp(1.75rem, 1rem + 2.8vw, 4.75rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+.case-headline.axis-heading {
+  --axis: 100;
+  max-width: 44ch;
+  margin-top: 1.5rem;
+  font-size: clamp(1.125rem, 1rem + 0.4vw, 1.5rem);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+.case-summary { margin-top: 1rem; }
 .evidence-mark { color: var(--ink); border-left: 3px solid var(--mark); padding-left: 0.65rem; }
 /* Systems route */
 .systems-route {

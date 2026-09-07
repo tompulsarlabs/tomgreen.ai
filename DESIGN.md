@@ -162,6 +162,13 @@ preview. The Lab alone gains the last 30 days of public GitHub activity, with ac
 weekday rows and week columns. Missing data is shown as unavailable. Its green edge motion
 respects reduced-motion preferences, and its accessible label includes active-day coverage.
 
+Tom then clarified that Home and Lab have the desired proportions and that the case-study
+titles and supporting lines still need correction. The six case-study mastheads now use
+the homepage introduction's exact responsive title size, with smaller, medium-weight
+supporting lines at normal width. Home, Lab and the CV keep their existing typography.
+The two repeated slogans, "The problem worth solving" and "Decisions, not theatre", are
+removed; the plain section labels now serve as their accessible headings.
+
 The site is live on Vercel at tomgreen.ai. The document keeps one white editorial ground and one
 linear case-study model. The moon opens the planetary map over a credited Hubble Veil Nebula
 photograph. Captures use regenerated gas-only media and responsive camera handoffs.
