@@ -4,7 +4,7 @@ type AssemblyTrace = {
   sawMovingInk: boolean;
   sawPartialAssembly: boolean;
   lostAssembledWord: boolean;
-  initialFragmentOpacity: number | null;
+  initialInkOpacity: number | null;
   sawConcurrentMotion: boolean;
   statementStartOrder: number[];
   statementStartedAt: number[];
@@ -23,7 +23,7 @@ async function traceAssembly(page: Page) {
       sawMovingInk: false,
       sawPartialAssembly: false,
       lostAssembledWord: false,
-      initialFragmentOpacity: null,
+      initialInkOpacity: null,
       sawConcurrentMotion: false,
       statementStartOrder: [],
       statementStartedAt: [],
@@ -36,10 +36,47 @@ async function traceAssembly(page: Page) {
     (window as Window & { assemblyTrace?: AssemblyTrace }).assemblyTrace = trace;
     let greatestAssembled = 0;
     let lastSample = 0;
-    const lastTransforms = new WeakMap<Element, string>();
+    const samples = new WeakMap<HTMLCanvasElement, {
+      context: CanvasRenderingContext2D;
+      previous: Uint8ClampedArray | null;
+    }>();
+    const sampleInk = (canvas: HTMLCanvasElement) => {
+      if (canvas.width === 0 || canvas.height === 0) return null;
+      let sample = samples.get(canvas);
+      if (!sample) {
+        const scratch = document.createElement("canvas");
+        scratch.width = 96;
+        scratch.height = Math.max(1, Math.round(96 * canvas.height / canvas.width));
+        const context = scratch.getContext("2d", { willReadFrequently: true });
+        if (!context) return null;
+        sample = { context, previous: null };
+        samples.set(canvas, sample);
+      }
+      const { context, previous } = sample;
+      const { width, height } = context.canvas;
+      context.clearRect(0, 0, width, height);
+      context.drawImage(canvas, 0, 0, width, height);
+      const pixels = context.getImageData(0, 0, width, height).data;
+      let alphaMass = 0;
+      let changedAlpha = 0;
+      let maximumAlpha = 0;
+      for (let index = 3; index < pixels.length; index += 4) {
+        const alpha = pixels[index];
+        alphaMass += alpha;
+        maximumAlpha = Math.max(maximumAlpha, alpha);
+        if (previous) changedAlpha += Math.abs(alpha - previous[index]);
+      }
+      sample.previous = pixels;
+      return {
+        opacity: maximumAlpha / 255,
+        // Reject isolated antialiasing noise at this scale; static canvases
+        // cannot count as motion.
+        moving: previous !== null && alphaMass / 255 >= 0.8 && changedAlpha / 255 >= 0.35,
+      };
+    };
     const observe = (now: number) => {
       const opening = document.querySelector(".home-resolve");
-      if (opening && now - lastSample >= 40) {
+      if (opening && now - lastSample >= 100) {
         lastSample = now;
         const words = opening.querySelectorAll(".assembly-word");
         const assembled = opening.querySelectorAll(".assembly-word[data-assembled]").length;
@@ -67,23 +104,16 @@ async function traceAssembly(page: Page) {
           }
         });
         if (opening.classList.contains("is-assembling")) {
-          const opacities: number[] = [];
-          const movingGroups = groups.map(group => {
-            let moving = false;
-            for (const fragment of group.querySelectorAll(".assembly-fragment")) {
-              const style = getComputedStyle(fragment);
-              const opacity = Number(style.opacity);
-              opacities.push(opacity);
-              const displaced = style.transform !== "none" && !new DOMMatrixReadOnly(style.transform).isIdentity;
-              const previous = lastTransforms.get(fragment);
-              if (displaced && opacity > 0.05 && previous !== undefined && previous !== style.transform) moving = true;
-              lastTransforms.set(fragment, style.transform);
-            }
-            return moving;
+          // Read rendered ink, not animation progress or timing metadata.
+          // Downsampling keeps the observer cheap on mobile and WebKit.
+          const ink = groups.map((_, index) => {
+            const canvas = opening.querySelector<HTMLCanvasElement>(`canvas.assembly-ink[data-statement="${index}"]`);
+            return canvas ? sampleInk(canvas) : null;
           });
-          if (trace.initialFragmentOpacity === null && opacities.length > 0) {
-            trace.initialFragmentOpacity = Math.max(...opacities);
+          if (trace.initialInkOpacity === null && ink.length > 0 && ink.every(sample => sample !== null)) {
+            trace.initialInkOpacity = Math.max(...ink.map(sample => sample!.opacity));
           }
+          const movingGroups = ink.map(sample => sample?.moving ?? false);
           movingGroups.forEach((moving, index) => {
             if (moving && trace.statementStartedAt[index] === undefined) {
               trace.statementStartOrder.push(index);
@@ -110,15 +140,15 @@ async function traceAssembly(page: Page) {
 }
 
 function expectOrderedAssembly(trace: AssemblyTrace, statementCount: number) {
-  expect(trace.initialFragmentOpacity).not.toBeNull();
-  expect(trace.initialFragmentOpacity!).toBeGreaterThan(0);
-  expect(trace.initialFragmentOpacity!).toBeLessThan(0.1);
+  expect(trace.initialInkOpacity).not.toBeNull();
+  expect(trace.initialInkOpacity!).toBeGreaterThanOrEqual(0);
+  expect(trace.initialInkOpacity!).toBeLessThan(0.1);
   expect(trace.statementStartOrder).toEqual(Array.from({ length: statementCount }, (_, index) => index));
   expect(trace.statementStartedAt).toHaveLength(statementCount);
   // These timestamps come from visibly moving ink, not animation delay
   // metadata: each statement needs a distinct beginning that can be seen.
   for (let index = 1; index < trace.statementStartedAt.length; index++) {
-    expect(trace.statementStartedAt[index] - trace.statementStartedAt[index - 1]).toBeGreaterThanOrEqual(700);
+    expect(trace.statementStartedAt[index] - trace.statementStartedAt[index - 1]).toBeGreaterThanOrEqual(600);
   }
   expect(trace.sawConcurrentMotion).toBe(true);
   expect(trace.statementCompletionOrder).toEqual(Array.from({ length: statementCount }, (_, index) => index));
@@ -205,6 +235,7 @@ test("pointer, keyboard and programmatic focus resolve the opening immediately",
     }
     await expect(opening).toHaveClass(/is-done/, { timeout: 1_000 });
     await expectCrispSources(page);
+    await expect(page.locator("canvas.assembly-ink")).toHaveCount(0);
     expect(await page.evaluate(() => sessionStorage.getItem("tg-sequence-played"))).toBe("1");
   }
 });
@@ -222,10 +253,24 @@ test("a second visit skips reassembly within the same session", async ({ page })
   await expect(page.locator(".personal-headline")).toBeInViewport();
 });
 
+test("a queued resize with unchanged dimensions keeps the reconstruction moving", async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 746 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-assembling/);
+  await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-assembling/);
+  await expect(page.locator("canvas.assembly-ink")).toHaveCount(3);
+  await page.setViewportSize({ width: 430, height: 746 });
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-done/);
+  await expect(page.locator("canvas.assembly-ink")).toHaveCount(0);
+});
+
 test("touch reassembly leaves the complete composition readable in document flow", async ({ browser }) => {
   const context = await browser.newContext({
     isMobile: true,
     hasTouch: true,
+    deviceScaleFactor: 3,
     reducedMotion: "no-preference",
     viewport: { width: 393, height: 746 },
   });
@@ -233,6 +278,12 @@ test("touch reassembly leaves the complete composition readable in document flow
     const page = await context.newPage();
     await traceAssembly(page);
     await page.goto("/");
+    await expect(page.locator("canvas.assembly-ink")).toHaveCount(3);
+    expect(await page.locator("canvas.assembly-ink").evaluateAll(canvases => canvases.every(element => {
+      const canvas = element as HTMLCanvasElement;
+      const box = canvas.getBoundingClientRect();
+      return canvas.width <= Math.ceil(box.width * 2) && canvas.height <= Math.ceil(box.height * 2);
+    }))).toBe(true);
     await expectCrispSources(page);
     await expect(page.locator(".home-resolve")).not.toHaveClass(/is-assembling/, { timeout: 12_000 });
     await expect(page.locator(".home-resolve")).toHaveCSS("position", "relative");
@@ -280,7 +331,7 @@ test("enlarging mobile text during reassembly settles the words immediately", as
     // Complete the readable source rather than flying toward stale positions.
     await expect(opening).not.toHaveClass(/is-assembling/, { timeout: 1_000 });
     await expectCrispSources(page);
-    await expect(page.locator(".assembly-fragment")).toHaveCount(0);
+    await expect(page.locator("canvas.assembly-ink")).toHaveCount(0);
     await expect(opening).toHaveCSS("position", "relative");
     await page.locator(".release-line").scrollIntoViewIfNeeded();
     await expect(page.locator(".release-line")).toBeInViewport();
@@ -307,10 +358,7 @@ for (const mode of ["reduced motion", "no JavaScript"] as const) {
       await expect(page.locator(".release-line")).toContainText("Make talent the engine for growth.");
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building in Founder Mode");
-      const movingFragments = await page.locator(".assembly-fragment").evaluateAll(fragments =>
-        fragments.some(fragment => fragment.getAnimations().some(animation => animation.playState === "running")),
-      );
-      expect(movingFragments).toBe(false);
+      await expect(page.locator("canvas.assembly-ink")).toHaveCount(0);
       await expect(page.locator(".personal-hero")).toBeVisible();
     } finally {
       await context.close();

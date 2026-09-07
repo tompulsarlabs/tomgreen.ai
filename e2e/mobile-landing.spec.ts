@@ -123,6 +123,7 @@ test("resizing through the opening breakpoint settles pieces before changing lay
   await page.setViewportSize({ width: 740, height: 800 });
   await page.goto("/");
   await expectCompleteOpening(page);
+  await expect(page.locator(".home-resolve")).toHaveClass(/is-assembling/);
   await page.setViewportSize({ width: 1200, height: 800 });
   await expect(page.locator(".home-resolve")).toHaveCSS("position", "fixed");
   await expect(page.locator(".home-resolve")).toHaveClass(/is-done/);

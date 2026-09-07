@@ -118,14 +118,23 @@ but no special visual object is required to make the work credible.
 
 ## Current implementation status
 
-The Home opening assembles all three statements into one composition. Pieces of the actual
-type start small and almost invisible around all edges and corners, returning along curved
-paths over 6.5 seconds. Each statement starts roughly a second after the previous one,
-with the journeys overlapping as the words form from top to bottom. The completed
-composition holds for 1.4 seconds of still reading time.
+The Home opening reconstructs all three statements from small, irregular pieces of the
+actual letter strokes. Faint ink gathers from all edges and corners through related but
+unequal curved paths. Words become readable late, then return to native HTML without a
+brightness dip. Each statement starts roughly a second after the previous one, with
+overlapping travel over 6.5 seconds and a 1.4-second pause to read the completed composition.
 Desktop then yields to the portfolio; phones keep the completed opening in normal document
-flow. Any input settles it immediately. Reduced motion and no JavaScript show intact text.
-The original sequential width-axis/spring opening is retired.
+flow. Input, text enlargement and changed viewport dimensions settle it immediately.
+Reduced motion and no JavaScript show intact text. Queued resize events with unchanged
+dimensions do not cancel the reconstruction. The earlier sliced-type opening is retired.
+
+Tom approved publishing this reconstruction to the live site on 7 September 2026.
+The renderer uses three canvas layers, cached sprites and at most 2× backing resolution.
+Build, lint, types, 263 unit tests and 29 browser checks passed (one browser-specific skip).
+Desktop and phone recordings are saved in the task's local visualizations folder. Local
+Retina and mobile-emulation frame pacing is recorded in the
+[motion review](review-vfx/ink-reconstruction/README.md); physical-iPhone performance remains
+unverified.
 
 Home work rows lead with Chapter 2's European business remit, followed by Zalando's AI
 organisation. They show the company and outcome without dates. Employment periods remain
