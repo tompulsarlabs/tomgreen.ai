@@ -215,7 +215,40 @@ test("the opening reassembles cumulatively, holds readable type, then hands over
   await expect(page.locator(".personal-headline")).toBeInViewport();
 });
 
-test("pointer, keyboard and programmatic focus resolve the opening immediately", async ({ page }) => {
+test("ordinary keys keep the opening moving until it finishes naturally", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const opening = page.locator(".home-resolve");
+  await expect(opening).toHaveClass(/is-assembling/);
+  for (const key of ["a", "Shift", "Control", "Alt", "Meta", "Enter"]) {
+    await page.keyboard.press(key);
+    await expect(opening).toHaveClass(/is-assembling/);
+    await expect(page.locator("canvas.assembly-ink")).toHaveCount(3);
+    expect(await page.evaluate(() => sessionStorage.getItem("tg-sequence-played"))).toBeNull();
+  }
+  await expect(opening).toHaveClass(/is-done/, { timeout: 12_000 });
+  await expectCrispSources(page);
+  await expect(page.locator(".personal-headline")).toBeInViewport();
+});
+
+test("the desktop opening shares the eyebrow and homepage left edge", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => sessionStorage.removeItem("tg-sequence-played"));
+  for (const width of [1024, 1440, 2560]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await page.evaluate(() => document.fonts.ready);
+    const eyebrow = (await page.locator(".home-eyebrow").boundingBox())!;
+    const home = (await page.locator(".personal-headline").boundingBox())!;
+    expect(eyebrow.x).toBeCloseTo(home.x, 0);
+    for (const statement of await page.locator(".resolve-lines > p").all()) {
+      expect((await statement.boundingBox())!.x).toBeCloseTo(eyebrow.x, 0);
+    }
+  }
+});
+
+test("pointer, Escape and programmatic focus resolve the opening immediately", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   for (const input of ["pointer", "keyboard", "focus"] as const) {

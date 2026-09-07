@@ -65,6 +65,9 @@ export function HomeResolve() {
       const onFocus = (event: FocusEvent) => {
         if (event.target instanceof Element && event.target.closest(".home-overview, .work-index, #main-content")) finish();
       };
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") finish();
+      };
       const initialWidth = innerWidth;
       const initialHeight = innerHeight;
       const onResize = () => {
@@ -72,12 +75,12 @@ export function HomeResolve() {
         // geometry change. Only changed destinations invalidate the drawing.
         if (Math.abs(innerWidth - initialWidth) > 1 || Math.abs(innerHeight - initialHeight) > 1) finish();
       };
-      // Input always wins, including before fonts are ready. Touch retains
-      // its scrolling document; desktop yields the overlay.
+      // Deliberate dismissal and navigation win, even before fonts are
+      // ready. Ordinary typing or modifier keys leave the opening playing.
       section.addEventListener("pointerdown", finish);
       window.addEventListener("wheel", finish, { passive: true });
       window.addEventListener("touchmove", finish, { passive: true });
-      window.addEventListener("keydown", finish);
+      window.addEventListener("keydown", onKeyDown);
       window.addEventListener("resize", onResize);
       document.addEventListener("focusin", onFocus);
       dispose = () => {
@@ -90,7 +93,7 @@ export function HomeResolve() {
         section.removeEventListener("pointerdown", finish);
         window.removeEventListener("wheel", finish);
         window.removeEventListener("touchmove", finish);
-        window.removeEventListener("keydown", finish);
+        window.removeEventListener("keydown", onKeyDown);
         window.removeEventListener("resize", onResize);
         document.removeEventListener("focusin", onFocus);
         words.forEach(word => { delete word.dataset.assembled; });

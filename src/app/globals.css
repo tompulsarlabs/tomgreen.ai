@@ -469,7 +469,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   .js .home-resolve { position: fixed; inset: 0; z-index: 7; background: var(--paper); transition: opacity 550ms var(--ease), visibility 0s 550ms linear; }
   .js .home-resolve.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
   .js .home-resolve-stage { position: relative; height: 100%; padding-top: clamp(2rem, 6vh, 4.5rem); padding-bottom: 2rem; }
-  .js .resolve-lines { position: absolute; inset: 16% max(22px, 6vw) 9%; display: flex; flex-direction: column; justify-content: space-around; gap: 2.5svh; margin: 0; }
+  .js .resolve-lines { position: absolute; inset: 16% var(--page-gutter) 9%; display: flex; flex-direction: column; justify-content: space-around; gap: 2.5svh; margin: 0; }
   .js .resolve-lines .axis-display {
     max-width: none;
     font-size: clamp(2rem, min(5.2vw, 7.6svh), 5rem);
