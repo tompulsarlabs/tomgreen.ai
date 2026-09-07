@@ -740,6 +740,13 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   text-transform: none;
 }
 .case-summary { margin-top: 1rem; }
+.case-outcome {
+  max-width: 48rem;
+  font-size: clamp(1.125rem, 1rem + 0.2vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink-secondary);
+}
 .evidence-mark { color: var(--ink); border-left: 3px solid var(--mark); padding-left: 0.65rem; }
 /* Systems route */
 .systems-route {

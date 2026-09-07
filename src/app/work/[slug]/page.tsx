@@ -148,7 +148,7 @@ export default async function CaseStudyPage({ params }: PageProps<"/work/[slug]"
           <div>
             {/* The diagram's figcaption already carries system.outcome; this
                 section closes with what the work demonstrates instead. */}
-            <p className="axis-index max-w-3xl text-2xl leading-snug md:text-3xl">
+            <p className="case-outcome">
               {study.demonstrates}
             </p>
             {study.evidenceNote && (
