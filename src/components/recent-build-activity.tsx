@@ -18,7 +18,7 @@ export async function RecentBuildActivity() {
       <p className="record text-muted">Last 30 days</p>
       <div className="mt-6 flex flex-col items-start gap-3">
         {days ? (
-          <ContributionGraph days={days} energized label={`GitHub contribution activity, last 30 days, ${days[0].date} to ${days[29].date}`} />
+          <ContributionGraph days={days} energized label={`GitHub contribution activity, last 30 days, ${days[0].date} to ${days[29].date}; activity on ${days.filter(day => day.level > 0).length} of 30 days`} />
         ) : null}
         <div className="flex w-full max-w-[14rem] flex-wrap items-center justify-between gap-x-4 text-xs leading-relaxed text-ink-secondary">
           <p className="tabular-nums">

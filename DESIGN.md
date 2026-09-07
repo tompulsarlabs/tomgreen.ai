@@ -155,6 +155,13 @@ statement on the main left edge, followed closely by its three outcomes. These e
 grouped as the viewport grows; spare screen height follows the outcomes instead of separating
 the label, statement and evidence. Phones retain a single reading column.
 
+On 7 September Tom asked to return to the accepted PR #40 site and retain only the Lab
+activity matrix. The later typography, WeR copy and case-study heading experiments were
+set aside before publication; the separate responsive experiment was also removed from its
+preview. The Lab alone gains the last 30 days of public GitHub activity, with actual dates,
+weekday rows and week columns. Missing data is shown as unavailable. Its green edge motion
+respects reduced-motion preferences, and its accessible label includes active-day coverage.
+
 The site is live on Vercel at tomgreen.ai. The document keeps one white editorial ground and one
 linear case-study model. The moon opens the planetary map over a credited Hubble Veil Nebula
 photograph. Captures use regenerated gas-only media and responsive camera handoffs.
