@@ -74,3 +74,7 @@ The authoritative direction is now one clean editorial flow:
    the story materially clearer; otherwise leave the white space intact.
 
 No merge or production deployment is authorized by this report.
+
+## 7 September 2026 — Chapter 2 client confidentiality
+
+Removed client names from Chapter 2 case-study and About copy, including the consulting engagement. Tom confirmed Leo is happy with the displayed numbers; all metric values and labels remain unchanged. Updated REVIEW.md to supersede the earlier client-name approval.
