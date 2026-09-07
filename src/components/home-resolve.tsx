@@ -2,7 +2,8 @@
 
 import { Fragment, useEffect, useRef } from "react";
 import { site } from "@/lib/content/site";
-import { ASSEMBLY_MS, ASSEMBLY_HOLD_MS, FRAGMENT_CLIPS, assemblyPiece } from "@/lib/home-assembly";
+import { ASSEMBLY_MS, ASSEMBLY_HOLD_MS } from "@/lib/home-assembly";
+import { createInkReconstruction } from "@/lib/ink-reconstruction-canvas";
 import { openingAlreadyPlayed, skipOpening } from "@/lib/opening-sequence";
 
 /** Intact words own layout. Temporary visual pieces never affect reading order. */
@@ -35,11 +36,12 @@ export function HomeResolve() {
       let holdTimer = 0;
       let fontTimer = 0;
       let layoutObserver: ResizeObserver | undefined;
-      const animations: Animation[] = [];
+      let ink: ReturnType<typeof createInkReconstruction> | undefined;
       const words = Array.from(section.querySelectorAll<HTMLElement>(".assembly-word"));
       const clearPieces = () => {
-        animations.forEach(animation => animation.cancel());
-        section.querySelectorAll(".assembly-fragment").forEach(piece => piece.remove());
+        ink?.dispose();
+        ink = undefined;
+        section.querySelectorAll("canvas.assembly-ink").forEach(canvas => canvas.remove());
       };
       const settle = () => {
         layoutObserver?.disconnect();
@@ -63,13 +65,20 @@ export function HomeResolve() {
       const onFocus = (event: FocusEvent) => {
         if (event.target instanceof Element && event.target.closest(".home-overview, .work-index, #main-content")) finish();
       };
+      const initialWidth = innerWidth;
+      const initialHeight = innerHeight;
+      const onResize = () => {
+        // Mobile browsers can deliver a queued startup resize without any
+        // geometry change. Only changed destinations invalidate the drawing.
+        if (Math.abs(innerWidth - initialWidth) > 1 || Math.abs(innerHeight - initialHeight) > 1) finish();
+      };
       // Input always wins, including before fonts are ready. Touch retains
       // its scrolling document; desktop yields the overlay.
       section.addEventListener("pointerdown", finish);
       window.addEventListener("wheel", finish, { passive: true });
       window.addEventListener("touchmove", finish, { passive: true });
       window.addEventListener("keydown", finish);
-      window.addEventListener("resize", finish);
+      window.addEventListener("resize", onResize);
       document.addEventListener("focusin", onFocus);
       dispose = () => {
         cancelled = true;
@@ -82,7 +91,7 @@ export function HomeResolve() {
         window.removeEventListener("wheel", finish);
         window.removeEventListener("touchmove", finish);
         window.removeEventListener("keydown", finish);
-        window.removeEventListener("resize", finish);
+        window.removeEventListener("resize", onResize);
         document.removeEventListener("focusin", onFocus);
         words.forEach(word => { delete word.dataset.assembled; });
         section.classList.remove("is-assembling", "is-done", "is-ready");
@@ -106,10 +115,9 @@ export function HomeResolve() {
           return;
         }
         const compact = window.matchMedia("(max-width: 768px), (hover: none), (pointer: coarse)").matches;
-        const groups = Array.from(section.querySelectorAll(".resolve-lines > p"));
-        const groupWords = groups.map(group => Array.from(group.querySelectorAll(".assembly-word")));
         const destinations = words.map(word => word.getBoundingClientRect());
         try {
+          ink = createInkReconstruction(section, compact);
           // Text enlargement changes destinations without necessarily
           // resizing the viewport. Settle before any measured path goes stale.
           layoutObserver = new ResizeObserver(entries => {
@@ -120,37 +128,12 @@ export function HomeResolve() {
             })) finish();
           });
           words.forEach(word => layoutObserver!.observe(word));
-          words.forEach((word, wordIndex) => {
-            const box = destinations[wordIndex];
-            const group = groups.indexOf(word.closest("p")!);
-            const text = word.textContent;
-            let remaining = FRAGMENT_CLIPS.length;
-            FRAGMENT_CLIPS.forEach((clip, piece) => {
-              const fragment = document.createElement("span");
-              fragment.className = "assembly-fragment";
-              fragment.setAttribute("aria-hidden", "true");
-              fragment.textContent = text;
-              fragment.style.clipPath = clip;
-              word.append(fragment);
-              const path = assemblyPiece({
-                word: wordIndex, wordInGroup: groupWords[group].indexOf(word), piece, group,
-                x: box.x + box.width / 2 - stage.x,
-                y: box.y + box.height / 2 - stage.y,
-                width: stage.width, height: stage.height, compact,
-              });
-              const animation = fragment.animate(path.keyframes, {
-                delay: path.delay, duration: path.duration, fill: "both", easing: "linear",
-              });
-              animation.onfinish = () => {
-                remaining -= 1;
-                if (remaining === 0) word.dataset.assembled = "";
-              };
-              animations.push(animation);
-            });
-          });
+          ink.render(0);
           section.classList.add("is-assembling", "is-ready");
           const start = performance.now();
           const tick = (now: number) => {
+            try { ink?.render(now - start); }
+            catch { finish(); return; }
             const progress = Math.min(1, (now - start) / ASSEMBLY_MS);
             section.style.setProperty("--resolve-progress", String(progress));
             if (progress < 1) frame = requestAnimationFrame(tick);

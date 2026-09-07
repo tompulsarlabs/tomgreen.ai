@@ -36,12 +36,15 @@ labels. Display weight never animates.
 - Document motion uses transform, opacity, colour and `font-variation-settings`.
 - Width changes do not exceed 40 units per 100ms and occur on one display cluster at a time.
 - Route exits compress and rise in 280ms; arrivals resolve in 440ms.
-- Home uses small, initially faint pieces of its own type entering from all edges and corners
+- Home uses small, initially faint pieces of actual letter strokes entering from all edges and corners
   on curved return paths: 6.5 seconds to assemble, then 1.4 seconds to read. Statements start
   roughly a second apart from top to bottom, with overlapping travel and layered word arrivals.
   Intact words replace the pieces at rest,
   preserving crisp edges.
-  Any input or viewport resize settles the opening immediately. It plays once per session.
+  Related paths vary in length and direction, recognition happens late, and the aligned
+  raster retires over 100ms above opaque native ink. Input, text enlargement or changed
+  viewport dimensions settle the opening immediately. Queued startup resize events with
+  unchanged dimensions do not cancel it. It plays once per session.
 - Reduced motion and no-JS render the complete document linearly at `wdth 100`.
 - CV: 2.4-second flights, then a 200ms quiet interval and 400ms reveal. Queued scrolling
   leaves at least 850ms of stillness at each entry. Explicit year selections may skip chapters.

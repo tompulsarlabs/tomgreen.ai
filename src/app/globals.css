@@ -455,9 +455,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 /* Fragment layers are temporary. Intact words keep the font's kerning and
    take over at rest, so the final ink has no clipping seams. */
 .assembly-word { position: relative; display: inline-block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
-.assembly-fragment { display: none; position: absolute; inset: 0; white-space: nowrap; pointer-events: none; transform-origin: center; }
+.assembly-ink { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .home-resolve.is-assembling .assembly-word:not([data-assembled]) .assembly-source { opacity: 0; }
-.home-resolve.is-assembling .assembly-word:not([data-assembled]) .assembly-fragment { display: block; will-change: transform, opacity; }
 .home-resolve-stage { overflow: clip; }
 @media (prefers-reduced-motion: no-preference) {
   /* Font measurement is brief. If the script fails to start, CSS still
