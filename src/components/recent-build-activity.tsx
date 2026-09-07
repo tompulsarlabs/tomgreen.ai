@@ -16,11 +16,11 @@ export async function RecentBuildActivity() {
   return (
     <div className="lab-build-activity" aria-label="Recent build activity">
       <p className="record text-muted">Last 30 days</p>
-      <div className="mt-4 flex items-end gap-6">
+      <div className="mt-4 flex flex-col items-start gap-3">
         {days ? (
-          <ContributionGraph days={days} compact label={`GitHub contribution activity, last 30 days, ${days[0].date} to ${days[29].date}`} />
+          <ContributionGraph days={days} energized label={`GitHub contribution activity, last 30 days, ${days[0].date} to ${days[29].date}`} />
         ) : null}
-        <div className="text-sm leading-relaxed text-ink-secondary">
+        <div className="flex w-full max-w-[14rem] flex-wrap items-center justify-between gap-x-4 text-xs leading-relaxed text-ink-secondary">
           <p className="tabular-nums">
             {days ? `${shortDate(days[0].date)} – ${shortDate(days[29].date)}` : "Activity unavailable"}
           </p>

@@ -1742,4 +1742,41 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    of the way with it, which the visibility rule already does. */
 
 /* Reserve the former Lab introduction for a quiet, one-month build record. */
-.lab-build-activity { min-height: 9.25rem; }
+.lab-build-activity { min-height: 13rem; }
+
+/* A month laid out as calendar weeks. The data stays solid; only the edge
+   fragments move, with sparse, staggered pulses instead of a full-grid flicker. */
+.contribution-energy { padding: 3px; margin: -3px; }
+.contribution-month { display: flex; flex-direction: column; gap: 5px; }
+.contribution-week { display: flex; gap: 5px; }
+.contribution-cell { position: relative; width: 27px; height: 27px; flex: none; }
+.contribution-cell[data-active="true"]::before,
+.contribution-cell[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: #57df82;
+  opacity: 0;
+  animation: contribution-edge-fizz 8.3s linear infinite;
+  animation-delay: var(--spark-delay);
+}
+.contribution-cell[data-active="true"]::before {
+  width: 1px; height: 6px; right: -2px; top: 4px;
+  box-shadow: 2px 10px 0 -0.2px #40c463, 0 0 3px #9be9a8;
+}
+.contribution-cell[data-active="true"]::after {
+  height: 1px; width: 5px; bottom: -2px; left: 5px;
+  box-shadow: 10px 1px 0 -0.2px #40c463, 0 0 3px #9be9a8;
+  animation-direction: reverse;
+}
+@keyframes contribution-edge-fizz {
+  0%, 79%, 83%, 89%, 100% { opacity: 0; transform: translate(0, 0); }
+  80% { opacity: 0.34; transform: translate(0.5px, -0.5px); }
+  82% { opacity: 0.08; transform: translate(1px, 0); }
+  86% { opacity: 0.25; transform: translate(0, 1px); }
+  88% { opacity: 0; transform: translate(2px, 1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .contribution-cell[data-active="true"]::before,
+  .contribution-cell[data-active="true"]::after { animation: none; }
+}

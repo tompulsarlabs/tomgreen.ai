@@ -1,7 +1,7 @@
+import type { CSSProperties } from "react";
 import type { ContributionDay } from "@/lib/data/github";
 
-// Sequential single-hue ramp in ink opacities. The old green heat palette is
-// on the contract cut list; the record survives, the palette does not.
+// Keep the neutral record available; the Lab uses a GitHub-green month view.
 const RAMP = [
   "rgba(16, 20, 16, 0.05)",
   "rgba(16, 20, 16, 0.18)",
@@ -10,18 +10,20 @@ const RAMP = [
   "rgba(16, 20, 16, 1)",
 ];
 
+const GREEN_RAMP = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
+
 /**
- * GitHub-style contribution record. Weeks are columns, split on Sundays,
- * matching GitHub's own layout.
+ * Weeks split on Sundays. The default record uses GitHub-style columns;
+ * the larger Lab month lays those same weeks out as calendar rows.
  */
 export function ContributionGraph({
   days,
   label = "GitHub contribution activity, past year",
-  compact = false,
+  energized = false,
 }: {
   days: ContributionDay[];
   label?: string;
-  compact?: boolean;
+  energized?: boolean;
 }) {
   const weeks: (ContributionDay | null)[][] = [];
   for (const day of days) {
@@ -34,20 +36,24 @@ export function ContributionGraph({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-[3px]" role="img" aria-label={label}>
+    <div className={energized ? "contribution-energy" : "overflow-x-auto"}>
+      <div className={energized ? "contribution-month" : "flex gap-[3px]"} role="img" aria-label={label}>
         {weeks.map((week, i) => (
-          <div key={i} className="flex flex-col gap-[3px]">
+          <div key={i} className={energized ? "contribution-week" : "flex flex-col gap-[3px]"}>
             {week.map((day, j) =>
               day ? (
                 <div
                   key={day.date}
                   title={`${day.date} — activity level ${day.level} of 4`}
-                  className={compact ? "size-[14px]" : "size-[10px]"}
-                  style={{ background: RAMP[day.level] }}
+                  className={energized ? "contribution-cell" : "size-[10px]"}
+                  data-active={energized && day.level > 0 ? "true" : undefined}
+                  style={{
+                    background: (energized ? GREEN_RAMP : RAMP)[day.level],
+                    ...(energized ? { "--spark-delay": `${-((i * 7 + j) * 0.73)}s` } : {}),
+                  } as CSSProperties}
                 />
               ) : (
-                <div key={`pad-${j}`} className={compact ? "size-[14px]" : "size-[10px]"} aria-hidden />
+                <div key={`pad-${j}`} className={energized ? "contribution-cell" : "size-[10px]"} aria-hidden />
               ),
             )}
           </div>
