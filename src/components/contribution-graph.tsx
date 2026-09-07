@@ -13,8 +13,8 @@ const RAMP = [
 const GREEN_RAMP = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
 
 /**
- * Weeks split on Sundays. The default record uses GitHub-style columns;
- * the larger Lab month lays those same weeks out as calendar rows.
+ * Weeks split on Sundays and advance left to right, with weekdays as rows,
+ * matching GitHub in both the default record and the larger Lab view.
  */
 export function ContributionGraph({
   days,

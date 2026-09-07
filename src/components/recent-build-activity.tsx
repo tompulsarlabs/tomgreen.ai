@@ -16,7 +16,7 @@ export async function RecentBuildActivity() {
   return (
     <div className="lab-build-activity" aria-label="Recent build activity">
       <p className="record text-muted">Last 30 days</p>
-      <div className="mt-4 flex flex-col items-start gap-3">
+      <div className="mt-6 flex flex-col items-start gap-3">
         {days ? (
           <ContributionGraph days={days} energized label={`GitHub contribution activity, last 30 days, ${days[0].date} to ${days[29].date}`} />
         ) : null}

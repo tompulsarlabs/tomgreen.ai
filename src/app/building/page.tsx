@@ -96,15 +96,17 @@ export default function Building() {
   return (
     <div className="systems-route flex w-full flex-col gap-20 pb-20">
       <section
-        className="systems-hero w-full"
+        className="systems-hero lab-hero w-full"
         aria-labelledby="systems-title"
       >
         <div className="systems-hero-copy">
-          <p className="record">Lab</p>
           <div className="systems-title-row">
-            <h1 id="systems-title" className="axis-display">
-              Lab.
-            </h1>
+            <div>
+              <p className="record">Lab</p>
+              <h1 id="systems-title" className="axis-display mt-5">
+                Lab.
+              </h1>
+            </div>
             <Suspense
               fallback={
                 <div className="lab-build-activity" aria-label="Loading recent build activity">
