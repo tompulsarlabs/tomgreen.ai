@@ -42,3 +42,18 @@ Production releases merge through GitHub into `main`, which Vercel deploys to
 The [seamless journeys review](review-vfx/seamless-journeys/README.md) covers
 the CV's timed flights and settled chapters, responsive planet handoffs,
 the shorter homepage introduction, and the shared violet hover treatment.
+
+## Product demos
+
+`/demos` is the public launch hub for three curated previews. Talent Radar at
+`/demos/interview` is a fictional coaching example; the live voice beta remains
+invitation-only. `/demos/ivy` embeds the existing public Ivy showcase, with a
+return bar and an alternate direct link. `/demos/sybil` opens the separate
+Google-gated [Sybil showcase](https://sybil-showcase.vercel.app), whose return
+link points to this hub. The original products and their access policies are
+unchanged. No private prompts, customer records or live model calls were added.
+
+Release checks (8 September 2026): production build, lint, 270 unit tests;
+browser checks for coaching feedback, Ivy example switching, and return links.
+Google OAuth configuration and detailed Sybil checks live in the private
+`tompulsarlabs/sybil-showcase` repository's `HANDOFF.md`.

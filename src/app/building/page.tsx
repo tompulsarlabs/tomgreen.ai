@@ -120,6 +120,8 @@ export default function Building() {
         </div>
       </section>
 
+      <Link href="/demos" className="action action-dark self-start">Try the product demos →</Link>
+
       {clusterOrder.map((clusterId, clusterIndex) => {
         const cluster = clusters[clusterId];
         const members = labNodes.filter((node) => node.cluster === clusterId);
