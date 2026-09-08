@@ -4,11 +4,11 @@ import styles from './demos.module.css';
 
 export const metadata: Metadata = {
   title: 'Demos',
-  description: 'Try the AI products I’m building: an executive interview coach, a way to check agentic work, and a team AI fluency platform.',
+  description: 'Try the AI products I’m building: opportunity discovery and candidate fit, a way to check agentic work, and team AI fluency.',
   alternates: { canonical: '/demos' },
 };
 const demos = [
-  { name: 'Radar', category: 'EXECUTIVE RECRUITING', title: 'An AI coach for your next executive interview.', copy: 'See how interview practice can turn a broad answer into a clearer account of your own decisions and impact.', href: '/demos/interview', action: 'Try the coaching preview', note: 'Interactive example · Live voice beta by invitation', tone: 'radar' },
+  { name: 'Radar', category: 'EXECUTIVE RECRUITING', title: 'Find the roles you’re missing.', copy: 'Radar combines market signals with candidate context to find high-fit opportunities and curate every step from outreach to interview.', href: '/demos/interview', action: 'Explore Radar', note: 'Overview + coaching preview · Voice beta by invitation', tone: 'radar' },
   { name: 'Ivy', category: 'AGENTIC WORK', title: 'Give nontechnical teams a clearer way to check agentic work.', copy: 'Compare two example agent changes, inspect the evidence, and see why a cheaper run is not always a better result.', href: '/demos/ivy', action: 'Explore Ivy', note: 'Interactive showcase · Fictional evaluation results', tone: 'ivy' },
   { name: 'Sybil', category: 'AI FLUENCY', title: 'See where a team stands with AI—and what to improve.', copy: 'Explore an assessment conversation, capability profile, learning plan, team insights and a progress readout.', href: '/demos/sybil', action: 'Explore Sybil', note: '7 feature stops · Google sign-in · Fictional data', tone: 'sybil' },
 ];

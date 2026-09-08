@@ -46,9 +46,10 @@ the shorter homepage introduction, and the shared violet hover treatment.
 ## Product demos
 
 `/demos` is the public launch hub for three curated previews. Radar at
-`/demos/interview` is a fictional coaching example; the live voice beta remains
-invitation-only. `/demos/ivy` embeds the existing public Ivy showcase, with a
-return bar and an alternate direct link. `/demos/sybil` opens the separate
+`/demos/interview` introduces opportunity discovery, market signals, candidate
+fit and a curated candidate journey, with a fictional coaching preview. The live
+voice beta remains invitation-only. `/demos/ivy` embeds the existing public Ivy
+showcase, with a return bar and an alternate direct link. `/demos/sybil` opens the separate
 Google-gated [Sybil showcase](https://sybil-showcase.vercel.app), whose return
 link points to this hub. The original products and their access policies are
 unchanged. No private prompts, customer records or live model calls were added.
