@@ -45,16 +45,21 @@ the shorter homepage introduction, and the shared violet hover treatment.
 
 ## Product demos
 
-`/demos` is the public launch hub for three curated previews. Radar at
-`/demos/interview` introduces opportunity discovery, market signals, candidate
-fit and a curated candidate journey, with a fictional coaching preview. The live
-voice beta remains invitation-only. `/demos/ivy` embeds the existing public Ivy
-showcase, with a return bar and an alternate direct link. `/demos/sybil` opens the separate
-Google-gated [Sybil showcase](https://sybil-showcase.vercel.app), whose return
-link points to this hub. The original products and their access policies are
-unchanged. No private prompts, customer records or live model calls were added.
+`/demos` is the public launch hub. Radar at `/demos/interview` now follows
+six stops: sample background/company intake, Sybil's scripted conversation,
+candidate context and spikes, fictional market signals and fit, a curated
+approach, and interview practice. The selector, browser history and restart
+support exploring the complete journey. All candidate/company/role examples
+are fictional; no personal input, model calls, scoring implementation or private
+product data is included. The separate live voice beta remains invitation-only.
 
-Release checks (8 September 2026): production build, lint, 270 unit tests;
-browser checks for coaching feedback, Ivy example switching, and return links.
+`/demos/ivy` embeds the existing public Ivy showcase. `/demos/sybil` opens the
+Google-gated Sybil showcase, with a return link to this hub.
+
+Radar journey checks (8 September 2026): production build/TypeScript passed;
+local browser walkthrough covered intake, conversation, context, discovery,
+warm-route handling, coaching and restart. The 390px view had no document
+overflow. These checks do not establish private-product model quality.
+
 Google OAuth configuration and detailed Sybil checks live in the private
 `tompulsarlabs/sybil-showcase` repository's `HANDOFF.md`.
