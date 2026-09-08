@@ -53,8 +53,11 @@ support exploring the complete journey. All candidate/company/role examples
 are fictional; no personal input, model calls, scoring implementation or private
 product data is included. The separate live voice beta remains invitation-only.
 
-`/demos/ivy` embeds the existing public Ivy showcase. `/demos/sybil` opens the
-Google-gated Sybil showcase, with a return link to this hub.
+`/demos/ivy` is an offline notice, and the hub has no Ivy launch link. Tom
+requested that the public Ivy demo be taken offline on 8 September 2026. Its
+Sites copy is restricted to the owner and the Vercel project is paused. Do not
+restore public access without a new instruction from Tom. `/demos/sybil` opens
+the Google-gated Sybil showcase, with a return link to this hub.
 
 Radar journey checks (8 September 2026): production build/TypeScript passed;
 local browser walkthrough covered intake, conversation, context, discovery,
