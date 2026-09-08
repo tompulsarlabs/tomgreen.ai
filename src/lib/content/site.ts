@@ -23,6 +23,7 @@ export const site = {
     // not a second destination in the row.
     { href: "/", label: "Home" },
     { href: "/building", label: "Lab" },
+    { href: "/demos", label: "Demos" },
     { href: "/voices", label: "Voices" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
