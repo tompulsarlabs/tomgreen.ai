@@ -45,7 +45,7 @@ the shorter homepage introduction, and the shared violet hover treatment.
 
 ## Product demos
 
-`/demos` is the public launch hub for three curated previews. Talent Radar at
+`/demos` is the public launch hub for three curated previews. Radar at
 `/demos/interview` is a fictional coaching example; the live voice beta remains
 invitation-only. `/demos/ivy` embeds the existing public Ivy showcase, with a
 return bar and an alternate direct link. `/demos/sybil` opens the separate
