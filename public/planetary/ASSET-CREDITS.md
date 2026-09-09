@@ -7,8 +7,10 @@ Lunar imagery and elevation: NASA's Scientific Visualization Studio,
 - `lola-elevation-1k.jpg` — LOLA elevation preview, 1024 × 512. [Original image](https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_3_8bit.jpg).
 
 These files are unchanged copies of the assets used in the approved moon study.
-The map's fictional planets reuse their fine surface detail with individual
-orientation, mineral colour and procedural geology. These are illustrative
-worlds, not astronomical representations of named planets.
+The lunar surface family uses these maps. The iron, gas, ice and ocean families
+use original procedural terrain, weather and surface shaders. These are
+illustrative worlds, not astronomical representations of named planets.
 
-Both files are served locally and shared by all planetary materials.
+Both files are served locally through shared samplers. The distant background
+uses the locally hosted Veil Nebula photograph; see its
+[source and licence](../images/nebula/README.md).

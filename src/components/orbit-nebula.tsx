@@ -1,14 +1,14 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Flare } from "@/components/orbit-flare";
 import { BURST_LIFE, lightCurve, thermal } from "@/lib/supernova";
 import { goldenBurstTime, goldenIsRunning, goldenRenderTime, goldenShotTime, goldenTakesChildren } from "@/lib/golden-path-store";
 import { captureSkyOpacity } from "@/lib/capture-continuity";
 
-/** A quiet, layered space field. Capture light uses the existing shot clock. */
+/** A slate field with a distant Veil filament. Capture keeps its shot clock. */
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -25,6 +25,9 @@ const fragmentShader = /* glsl */ `
   varying vec2 vUv;
   uniform vec2 uResolution;
   uniform vec2 uParallax;
+  uniform sampler2D uDistantSky;
+  uniform float uDistantSkyReady;
+  uniform float uDistantSkyAspect;
   uniform float uOpacity;
   uniform float uEcho;
   uniform float uEchoRadius;
@@ -48,6 +51,29 @@ const fragmentShader = /* glsl */ `
     float afterglow = uGlow / (1.0 + 6.0 * dot(p, p));
     float gas = smoothstep(0.015, 0.25, dot(sky, vec3(0.2126, 0.7152, 0.0722)));
     sky += (uEchoColor * echo + uGlowColor * afterglow) * (0.3 + 0.7 * gas);
+    if (uDistantSkyReady > 0.5) {
+      // A coarse mip removes the photograph's pin-sharp stars. Layered
+      // filaments frame the right and lower edges, leaving the core clear.
+      vec2 cover = vec2(min(1.0, aspect / uDistantSkyAspect),
+                        min(1.0, uDistantSkyAspect / aspect));
+      vec2 uv = (vUv - 0.5) * cover * 0.82 + vec2(0.50, 0.47);
+      uv += clamp(uParallax, vec2(-1.0), vec2(1.0)) * 0.004;
+      vec3 distant = texture2D(uDistantSky, uv, 3.0).rgb;
+      float luminance = dot(distant, vec3(0.2126, 0.7152, 0.0722));
+      distant = mix(vec3(luminance), distant, 0.06) * vec3(0.72, 0.82, 0.94);
+      float rightEdge = smoothstep(0.30, 0.88, vUv.x) *
+        exp(-pow((vUv.y - 0.38) / 0.39, 2.0));
+      float lowerEdge = smoothstep(0.12, 0.72, vUv.x) *
+        exp(-pow((vUv.y - 0.21) / 0.18, 2.0)) * 0.55;
+      vec2 coreDistance = (vUv - vec2(0.48, 0.49)) / vec2(0.24, 0.22);
+      float clearCore = 1.0 - 0.88 * exp(-dot(coreDistance, coreDistance) * 1.4);
+      float edge = max(rightEdge, lowerEdge) * clearCore;
+      edge *= smoothstep(0.03, 0.17, vUv.y) *
+        (1.0 - smoothstep(0.68, 0.88, vUv.y));
+      // Added after the echo calculation, so its existing gas response
+      // stays unchanged. The shared opacity still conducts the whole sky.
+      sky += distant * edge * 0.24;
+    }
     gl_FragColor = vec4(ground + sky * uOpacity, 1.0);
   }
 `;
@@ -80,9 +106,11 @@ export function OrbitNebula({
 
   const uniforms = useMemo(
     () => ({
-
       uResolution: { value: new THREE.Vector2(1, 1) },
       uParallax: { value: new THREE.Vector2(0, 0) },
+      uDistantSky: { value: null as THREE.Texture | null },
+      uDistantSkyReady: { value: 0 },
+      uDistantSkyAspect: { value: 1 },
       uOpacity: { value: 0 },
       uEcho: { value: 0 },
       uEchoRadius: { value: 0 },
@@ -92,6 +120,36 @@ export function OrbitNebula({
     }),
     [],
   );
+
+  useEffect(() => {
+    const u = materialRef.current?.uniforms;
+    if (!u) return;
+    let cancelled = false;
+    // One local image for this canvas lifetime. A breakpoint changes only
+    // the cover coordinates; it never reloads, resets a fade, or disposes.
+    const texture = new THREE.TextureLoader().load(
+      "/images/nebula/veil-1280.webp",
+      (loaded) => {
+        if (cancelled) return;
+        u.uDistantSky.value = loaded;
+        u.uDistantSkyAspect.value = loaded.image.width / loaded.image.height;
+        u.uDistantSkyReady.value = 1;
+      },
+      undefined,
+      () => { /* The slate field is complete without the optional image. */ },
+    );
+    // The un-tonemapped backdrop works in display RGB, as before.
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+    return () => {
+      cancelled = true;
+      u.uDistantSky.value = null;
+      u.uDistantSkyReady.value = 0;
+      texture.dispose();
+    };
+  }, []);
 
   useFrame((state, delta) => {
     const material = materialRef.current;
@@ -117,6 +175,8 @@ export function OrbitNebula({
         : (performance.now() - flare.at) / 1000
       : -1;
     const remount = flare && burst < BURST_LIFE;
+    // This finite opening fade reaches exactly one. The filament has no
+    // separate clock or fade, so a settled pause also holds its pixels.
     fade.current = remount ? 1 : Math.min(1, fade.current + delta * 0.8);
     // The photographic sky joins the capture from rest and returns with
     // the incoming system. The old 0.55 -> 1 handoff was a brightness cut.

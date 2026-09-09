@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 import {
   anchorRect,
+  hitsOtherBody,
   placeLabels,
   rectsOverlap,
   type Anchor,
@@ -20,6 +21,7 @@ import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { createGravityDust, wavePacketGLSL } from "@/lib/gravitational-field";
 import { OrbitNebula } from "@/components/orbit-nebula";
+import { OrbitGravityCore } from "@/components/orbit-gravity-core";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
 import { GoldenPathLayer } from "@/components/golden-path-layer";
 import {
@@ -106,7 +108,7 @@ const WELL = { drop: 1.35, shoulder: 0.55, power: 1.6, radius: 5 };
 const wellDepth = (r: number) =>
   -WELL.drop * Math.pow(WELL.shoulder / (WELL.shoulder + r), WELL.power);
 
-const CORE_RADIUS = 0.34;
+const CORE_RADIUS = 0.52;
 /** How many nameplates a narrow layout carries at once. */
 const NARROW_LABELS = 5;
 const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
@@ -175,7 +177,7 @@ const FILAMENT_POINTS: [number, number, number][] = [
 /** How long the scene takes to come home from an interrupted shot. */
 const RECOVER_SECONDS = 0.45;
 
-const ASSEMBLY_SECONDS = 1.45;
+const ASSEMBLY_SECONDS = 2.1;
 
 /**
  * Trails.
@@ -218,6 +220,61 @@ function orbitPoint(
   const cosN = Math.cos(el.node);
   const sinN = Math.sin(el.node);
   return out.set(px * cosN - pz2 * sinN, py, px * sinN + pz2 * cosN);
+}
+
+/** Fit every sampled orbit at every yaw, while retaining the visitor's tilt. */
+function desktopOrbitDistance(
+  samples: Float64Array,
+  polar: number,
+  horizontalTan: number,
+  topTan: number,
+  bottomTan: number,
+): number {
+  const horizontalCot = 1 / horizontalTan;
+  const topCot = 1 / topTan;
+  const bottomCot = 1 / bottomTan;
+  const horizontalCsc = Math.hypot(1, horizontalCot);
+  const topCsc = Math.hypot(1, topCot);
+  const bottomCsc = Math.hypot(1, bottomCot);
+  const polarSin = Math.sin(polar);
+  const polarCos = Math.cos(polar);
+  let upper = 0;
+  for (let index = 0; index < samples.length; index += 3) {
+    upper = Math.max(upper, Math.hypot(samples[index], samples[index + 1]) + samples[index + 2]);
+  }
+  upper *= Math.max(horizontalCsc, topCsc, bottomCsc);
+  let lower = 0.1;
+  // The look target is below the camera's orbital origin, so its actual
+  // view angle and distance must be recomputed for each candidate distance.
+  for (let step = 0; step < 16; step += 1) {
+    const distance = (lower + upper) / 2;
+    const horizontal = distance * polarSin;
+    const vertical = distance * polarCos + 0.42;
+    const toTarget = Math.hypot(horizontal, vertical);
+    const sin = horizontal / toTarget;
+    const cos = vertical / toTarget;
+    const horizontalRadius = Math.hypot(sin, horizontalCot);
+    const topRadius = Math.abs(sin - cos * topCot);
+    const topHeight = cos + sin * topCot;
+    const bottomRadius = Math.abs(sin + cos * bottomCot);
+    const bottomHeight = cos - sin * bottomCot;
+    let required = 0;
+    for (let index = 0; index < samples.length; index += 3) {
+      const radius = samples[index];
+      const height = samples[index + 1];
+      const bodyRadius = samples[index + 2];
+      // Maximise each frustum-plane constraint analytically over yaw.
+      required = Math.max(
+        required,
+        radius * horizontalRadius + height * cos + bodyRadius * horizontalCsc,
+        radius * topRadius + height * topHeight + bodyRadius * topCsc,
+        radius * bottomRadius + height * bottomHeight + bodyRadius * bottomCsc,
+      );
+    }
+    if (toTarget >= required) upper = distance;
+    else lower = distance;
+  }
+  return upper + 0.01;
 }
 
 const MEMBRANE_VERTEX = /* glsl */ `
@@ -312,8 +369,8 @@ void main() {
   }
   float theta = abs(atan(sin(vTheta-uHoverTheta),cos(vTheta-uHoverTheta)));
   float hover = uHoverStrength*exp(-pow(theta/0.28,2.0));
-  float alpha = lattice*(0.07+vCrest*0.19+vPacket*0.25+hover*0.12+min(contact,1.0)*0.06);
-  alpha += vCrest*0.052 + vPacket*0.12;
+  float alpha = lattice*(0.045+vCrest*0.17+vPacket*0.25+hover*0.12+min(contact,1.0)*0.06);
+  alpha += vCrest*0.085 + vPacket*0.14;
   alpha += lattice*(vRing*uRingLight*0.5 + uThroat*0.18*exp(-vR*vR));
   alpha *= fade * uOpacity * (1.0+uWake*0.25);
   vec3 ink = mix(vec3(0.48,0.56,0.67),uInk,clamp(vPacket+vRing*uRingLight,0.0,1.0));
@@ -398,7 +455,7 @@ function OrbitScene({
   flare,
   handoff,
 }: SceneProps) {
-  const { camera, gl, size } = useThree();
+  const { camera, gl, size, invalidate } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
   const router = useRouter();
   const elements = useMemo(
@@ -409,6 +466,45 @@ function OrbitScene({
     () => new Map(bodies.map((body) => [body.id, body])),
     [bodies],
   );
+  const bodyMagnification = narrow ? 1.95 : 1;
+  const orbitEnvelope = useMemo(() => {
+    let radius = CORE_RADIUS;
+    const point = new THREE.Vector3();
+    bodies.forEach((body, index) => {
+      for (let sample = 0; sample < 96; sample += 1) {
+        orbitPoint(elements[index], sample / 96 * Math.PI * 2, point);
+        point.y = Math.max(point.y, wellDepth(Math.hypot(point.x, point.z)) + body.size * 1.9 + 0.08);
+        point.y += 0.42;
+        radius = Math.max(radius, point.length() + body.size * bodyMagnification * 1.14);
+      }
+    });
+    // Measure around the camera's look-at point. The envelope covers a complete
+    // orbit, so fitting never breathes as a planet crosses the foreground.
+    return radius + 0.16;
+  }, [bodies, elements, bodyMagnification]);
+  const desktopFitSamples = useMemo(() => {
+    const count = 512;
+    const samples = new Float64Array((bodies.length * count + 1) * 3);
+    const point = new THREE.Vector3();
+    let offset = 0;
+    bodies.forEach((body, index) => {
+      const el = elements[index];
+      // Cover the heave/recoil and the gap to the nearest phase sample.
+      const padding = 0.135 + el.a * Math.PI / count * 1.1 + 0.005;
+      for (let sample = 0; sample < count; sample += 1) {
+        orbitPoint(el, sample / count * Math.PI * 2, point);
+        const radius = Math.hypot(point.x, point.z);
+        samples[offset++] = radius;
+        samples[offset++] = Math.max(point.y, wellDepth(radius) + body.size * 1.9 + 0.08) + 0.42;
+        samples[offset++] = body.size * bodyMagnification * 1.14 + padding;
+      }
+    });
+    samples[offset++] = 0;
+    samples[offset++] = CORE_Y + 0.42;
+    samples[offset] = CORE_RADIUS;
+    return samples;
+  }, [bodies, elements, bodyMagnification]);
+  const desktopFit = useRef({ samples: null as Float64Array | null, polar: NaN, distance: 7.4 });
 
   // Route destinations warm up while the visitor is still orbiting, so
   // the travel after a capture is immediate.
@@ -545,6 +641,7 @@ function OrbitScene({
     >(),
   );
   const coreRef = useRef<THREE.Mesh>(null);
+  const keyLightRef = useRef<THREE.DirectionalLight>(null);
   const coreMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
   const pathMaterials = useRef<{ opacity: number }[]>([]);
   /** The body set the scene is currently holding state for. */
@@ -557,9 +654,14 @@ function OrbitScene({
     hoverEase: new Map<string, number>(),
     coreWake: 0,
     time: 0,
+    /** Body motion follows capture time; the membrane keeps its scene clock. */
+    poseTime: 0,
+    posePulses: new THREE.Vector2(-100, -100),
     viewportWidth: 0,
     viewportHeight: 0,
     viewportNarrow: narrow,
+    contentTop: 16,
+    contentBottom: 16,
     capture: null as Capture | null,
     /** Where a pointer went down, before it is known to be a drag. */
     pressOrigin: null as { x: number; y: number; id: number } | null,
@@ -780,9 +882,20 @@ function OrbitScene({
     // cached too narrow makes the collision check believe two names
     // clear each other when on screen they do not. Re-measure when that
     // can have changed, rather than asking every frame whether it has.
-    const remeasure = () => s.measured.clear();
+    const remeasure = () => {
+      s.measured.clear();
+      s.viewportWidth = 0;
+      invalidate();
+    };
     window.addEventListener("resize", remeasure);
     removers.push(() => window.removeEventListener("resize", remeasure));
+    // Chrome can grow after the canvas is ready or its text wraps without
+    // resizing the canvas. Refresh its safe area and snap paused labels too.
+    const chromeObserver = new ResizeObserver(remeasure);
+    field.closest(".orbit-portal")
+      ?.querySelectorAll(".orbit-portal-chrome, .orbit-portal-footer")
+      .forEach((element) => chromeObserver.observe(element, { box: "border-box" }));
+    removers.push(() => chromeObserver.disconnect());
     let watchingFonts = true;
     document.fonts?.ready.then(() => {
       if (watchingFonts) remeasure();
@@ -926,6 +1039,7 @@ function OrbitScene({
       if (s.capture || goldenIsRunning()) return;
       field.dispatchEvent(new Event("orbit-resume", { bubbles: true }));
       pulses.value.set(pulses.value.y, s.time);
+      s.posePulses.set(s.posePulses.y, s.poseTime);
     };
     field.addEventListener("orbit-pulse", pulse);
     const endPress = (complete: boolean) => {
@@ -978,7 +1092,7 @@ function OrbitScene({
         label.style.opacity = "0";
       });
     };
-  }, [field, gl, bodies, elements, setFrameloop, pulses]);
+  }, [field, gl, bodies, elements, setFrameloop, pulses, invalidate]);
 
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const groundPlane = useMemo(
@@ -1036,7 +1150,9 @@ function OrbitScene({
     if (heldBodies.current === bodies) return;
     heldBodies.current = bodies;
 
-    const live = new Set(bodies.map((body) => body.id));
+    // The core persists across every system. Keep its DOM label and
+    // measured box even when adoption precedes the next passive effect.
+    const live = new Set([...bodies.map((body) => body.id), NUCLEUS_ID]);
     const s = state.current;
 
     // Every id-keyed store, pruned against the set that is actually here.
@@ -1112,6 +1228,7 @@ function OrbitScene({
     s.assembly = 0;
     s.assemblyWas = 0;
     s.assemblyRate = 1 / ASSEMBLY_SECONDS;
+    s.viewportWidth = 0;
   };
 
   useFrame((rootState, rawDelta) => {
@@ -1127,6 +1244,10 @@ function OrbitScene({
       s.labelAt.clear();
       s.pending.clear();
       s.lockedUntil.clear();
+      const portal = field.closest(".orbit-portal");
+      s.contentTop = portal?.querySelector(".orbit-portal-chrome")?.getBoundingClientRect().bottom ?? 16;
+      const footerTop = portal?.querySelector(".orbit-portal-footer")?.getBoundingClientRect().top;
+      s.contentBottom = footerTop === undefined ? 16 : Math.max(16, size.height - footerTop);
     }
     const paused = field.closest<HTMLElement>(".orbit-portal-field")?.dataset.paused === "true";
     const dt = paused && !s.capture && !goldenIsRunning() && s.assembly >= 1 && !s.dragging
@@ -1163,6 +1284,9 @@ function OrbitScene({
       shotNow !== null && s.shotWas !== null ? Math.max(0, shotNow - s.shotWas) : 0;
     s.shotWas = shotNow;
     const motionDt = shotNow !== null ? shotStep : dt;
+    const previousPoseTime = s.poseTime;
+    s.poseTime += motionDt;
+    const poseTime = s.poseTime;
 
     // A scene that mounts into a live burst is a remount, not a first
     // open. It skips the entry choreography — the dolly in, the well
@@ -1304,49 +1428,61 @@ function OrbitScene({
       }
     }
 
-    // Camera: the slow idle drift carries underneath; a drag adds a
-    // sprung offset with inertia and a clamped vertical range; after
-    // four quiet seconds the offset eases home and the drift resumes.
-    s.drift += dt * 0.02;
+    // The camera breathes around the composition, rather than endlessly
+    // panning it. Integrating the bounded drift preserves a live handoff.
+    s.drift += dt * 0.0042 * Math.cos(now * 0.12);
     if (!s.dragging && !paused) {
-      s.targetOffsetAzimuth += s.azimuthVelocity;
-      s.targetOffsetPolar += s.polarVelocity;
-      s.azimuthVelocity *= 0.9;
-      s.polarVelocity *= 0.9;
-      const quiet = performance.now() / 1000 - s.lastInteraction > 4;
-      if (quiet) {
-        s.targetOffsetAzimuth += (0 - s.targetOffsetAzimuth) * lerpIn(0.3);
-        s.targetOffsetPolar += (0 - s.targetOffsetPolar) * lerpIn(0.3);
-      }
+      // Keep a short, frame-rate-independent coast and retain the view
+      // the visitor chose, as in the moon study.
+      s.targetOffsetAzimuth += s.azimuthVelocity * dt * 30;
+      s.targetOffsetPolar += s.polarVelocity * dt * 30;
+      s.azimuthVelocity *= Math.exp(-dt * 9);
+      s.polarVelocity *= Math.exp(-dt * 9);
     }
     s.targetOffsetPolar = THREE.MathUtils.clamp(
       s.targetOffsetPolar,
       -0.22,
       0.22,
     );
-    s.offsetAzimuth += (s.targetOffsetAzimuth - s.offsetAzimuth) * lerpIn(7);
-    s.offsetPolar += (s.targetOffsetPolar - s.offsetPolar) * lerpIn(7);
+    s.offsetAzimuth += (s.targetOffsetAzimuth - s.offsetAzimuth) * lerpIn(2.8);
+    s.offsetPolar += (s.targetOffsetPolar - s.offsetPolar) * lerpIn(2.8);
     s.parallaxYaw += (s.parallaxYawTarget - s.parallaxYaw) * lerpIn(3);
     s.parallaxPitch += (s.parallaxPitchTarget - s.parallaxPitch) * lerpIn(3);
 
     // Fit the same system to the actual canvas aspect. A fixed phone
     // distance cropped the outer planets on tall portrait screens.
     // This also responds immediately to rotation and window resizing.
-    const aspect = size.width / Math.max(size.height, 1);
-    const distance = 7.4 * Math.max(1, (narrow ? 0.97 : 1.45) / aspect) + (1 - s.reveal) * 1.1;
+    const compact = narrow || size.height < 540;
+    const safeHalfWidth = Math.max(48, size.width / 2 - 26);
+    const safeHalfHeight = Math.max(48, Math.min(size.height / 2 - s.contentTop - 18, size.height / 2 - s.contentBottom - 18));
+    const halfAngle = Math.atan(Math.min(safeHalfWidth, safeHalfHeight) / (size.height / 2) * Math.tan(20 * Math.PI / 180));
+    const fittedDistance = orbitEnvelope / Math.sin(halfAngle);
     const azimuth = s.drift + s.offsetAzimuth + s.parallaxYaw;
     const polar = THREE.MathUtils.clamp(
       1.1 + s.offsetPolar + s.parallaxPitch,
       0.84,
       1.36,
     );
+    const fit = desktopFit.current;
+    if (!compact && (layoutChanged || fit.samples !== desktopFitSamples || fit.polar !== polar)) {
+      const focalLength = size.height / 2 / Math.tan(20 * Math.PI / 180);
+      fit.distance = desktopOrbitDistance(
+        desktopFitSamples,
+        polar,
+        safeHalfWidth / focalLength,
+        Math.max(1, size.height / 2 - s.contentTop - 18) / focalLength,
+        Math.max(1, size.height / 2 - s.contentBottom - 18) / focalLength,
+      );
+      fit.samples = desktopFitSamples;
+      fit.polar = polar;
+    }
+    const distance = (compact ? fittedDistance : fit.distance) + (1 - s.reveal) * 1.1;
     camera.position.set(
       distance * Math.sin(polar) * Math.sin(azimuth),
       distance * Math.cos(polar),
       distance * Math.sin(polar) * Math.cos(azimuth),
     );
     camera.lookAt(0, -0.42, 0);
-    if (narrow) camera.rotateZ(-Math.PI / 2);
 
     /* THE APPROVED CAMERA.
      *
@@ -1392,7 +1528,6 @@ function OrbitScene({
         camDistance * Math.sin(polar) * Math.cos(azimuth),
       );
       camera.lookAt(0, -0.42, 0);
-      if (narrow) camera.rotateZ(-Math.PI / 2);
       camera.translateX(g.camSlide[0] * (1 - back));
       camera.translateY(g.camSlide[1] * (1 - back));
       camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg * (1 - back)));
@@ -1425,6 +1560,9 @@ function OrbitScene({
     // Projection must see this frame's camera, especially on a paused
     // resize: Three normally refreshes the view matrix later, at render.
     camera.updateMatrixWorld();
+    // Keep the broad lunar key above-left in the visitor's view. The
+    // cratered faces remain readable as the camera orbits the system.
+    keyLightRef.current?.position.set(-4, 5, 7).applyQuaternion(camera.quaternion);
 
     // Membrane uniforms.
     dust.uniforms.uTime.value = now;
@@ -1533,9 +1671,19 @@ function OrbitScene({
       const suction = captured ? captureEased : 0;
       // The spiral: as the planet falls it also runs faster around.
       const speedBoost = captured ? 1 + 9 * (s.capture?.progress ?? 0) : 1;
-      const angle =
-        (s.angles.get(body.id) ?? 0) +
-        motionDt * el.speed * (1 - 0.4 * nextEase) * speedBoost;
+      // Keep the authored arrangement: the worlds wander gently around
+      // their places rather than eventually bunching at one side of a
+      // full orbit. Exact sine differences are independent of frame rate.
+      // Accumulating into the existing angle preserves capture/abort poses.
+      const driftPhase = index * 1.71;
+      const driftStep =
+        0.10 * (Math.sin(poseTime * 0.16 + driftPhase) - Math.sin(previousPoseTime * 0.16 + driftPhase)) +
+        0.035 * (Math.sin(poseTime * 0.29 + driftPhase * 1.3) - Math.sin(previousPoseTime * 0.29 + driftPhase * 1.3));
+      const angularVelocity = captured ? el.speed * speedBoost :
+        (0.016 * Math.cos(poseTime * 0.16 + driftPhase) +
+         0.01015 * Math.cos(poseTime * 0.29 + driftPhase * 1.3)) * (1 - 0.4 * nextEase);
+      const angle = (s.angles.get(body.id) ?? 0) +
+        (captured ? motionDt * angularVelocity : driftStep * (1 - 0.4 * nextEase));
       s.angles.set(body.id, angle);
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
@@ -1552,6 +1700,25 @@ function OrbitScene({
       const groundR = Math.hypot(scratch.v1.x, scratch.v1.z);
       const clearance = body.size * 1.9 + 0.08;
       scratch.v1.y = Math.max(scratch.v1.y, wellDepth(groundR) + clearance);
+
+      // The study's suspended weight: a small heave and a damped recoil
+      // when a pulse reaches this orbit. Pose time freezes with a held
+      // capture and contributes to the live arrival destination. Its pulse
+      // timestamps are recorded on that same clock, even after a capture.
+      const posePhase = index * 1.71;
+      let recoil = 0;
+      for (const pulse of [s.posePulses.x, s.posePulses.y]) {
+        const age = poseTime - pulse - Math.max(0, groundR - 0.5) / 0.91;
+        if (age > 0 && age < 12) recoil += 0.17 * Math.exp(-age * 1.4) * Math.sin(age * 2.45);
+      }
+      recoil = THREE.MathUtils.clamp(recoil, -0.04, 0.1);
+      scratch.v1.y += Math.sin(poseTime * 0.37 + posePhase) * 0.035 + recoil;
+      const globe = group.children[0];
+      if (globe) globe.rotation.set(
+        Math.sin(poseTime * 0.17 + posePhase) * 0.05 + recoil * 0.3,
+        Math.sin(poseTime * 0.14 + posePhase * 0.7) * 0.14 + recoil * 0.25,
+        Math.sin(poseTime * 0.21 + posePhase * 1.3) * 0.03,
+      );
 
       /**
        * THE ARRIVAL. A system does not appear: it comes out of the core.
@@ -1579,7 +1746,7 @@ function OrbitScene({
           scratch.settled,
           scratch.tangent,
           scratch.normal,
-          orbitRate * el.speed,
+          orbitRate * angularVelocity,
           arrivalSeconds * flight,
           scratch.v1,
           scratch.hermite,
@@ -1633,13 +1800,13 @@ function OrbitScene({
        */
       const pathMaterial = pathMaterials.current[index];
       if (pathMaterial)
-        pathMaterial.opacity = 0.038 * s.reveal * smoothstep(0.45, 1, arrived);
+        pathMaterial.opacity = 0.019 * s.reveal * smoothstep(0.45, 1, arrived);
       // Feed the membrane's contact shading (first ten bodies).
       if (index < MAX_CONTACT_BODIES)
         membraneUniforms.uBodies.value[index].copy(scratch.v1);
       const pressBump = s.pendingPress?.id === body.id ? 1 : 0;
       const swell =
-        (1 + 0.08 * nextEase + 0.06 * pressBump) *
+        bodyMagnification * (1 + 0.045 * nextEase + 0.025 * pressBump) *
         (0.35 + 0.65 * s.reveal) *
         // A captured planet is the subject of the shot until the core has
         // it. It used to be down to a seventh of itself half way through the
@@ -1809,15 +1976,28 @@ function OrbitScene({
         (CORE_RADIUS * 1.2 * (height / 2)) /
         (Math.tan((40 * Math.PI) / 360) * cameraToCore);
 
+      // Choose the phone's readable set before reserving label space.
+      // Every planet remains an obstacle and a hit target either way.
+      const visibleLabelIds = new Set(
+        (narrow ? [...s.items].sort((a, b) =>
+          (s.baseOpacity.get(b.id) ?? 0) - (s.baseOpacity.get(a.id) ?? 0),
+        ).slice(0, NARROW_LABELS) : s.items).map((item) => item.id),
+      );
+      for (const item of s.items) {
+        if (item.active || s.labels.get(item.id) === document.activeElement)
+          visibleLabelIds.add(item.id);
+      }
+      const placementItems = s.items.filter((item) => visibleLabelIds.has(item.id));
+
       if (layoutChanged || now - s.placeAt > 0.14) {
         s.placeAt = now;
-        const portal = field.closest(".orbit-portal");
-        const top = portal?.querySelector(".orbit-portal-chrome")?.getBoundingClientRect().bottom ?? 16;
-        const bottom = portal ? (narrow ? 115 : 85) : 16;
-        const chosen = placeLabels(s.items.map((item) => ({ ...item, y: item.y - top })), {
+        const top = s.contentTop;
+        const bottom = s.contentBottom;
+        const chosen = placeLabels(placementItems.map((item) => ({ ...item, y: item.y - top })), {
           width,
           height: height - top - bottom,
           core: { x: coreScreenX, y: coreScreenY - top, radius: coreScreenPx },
+          bodies: s.items.map((item) => ({ ...item, y: item.y - top })),
           previous: s.anchors,
         });
         // Which labels are covering another one right now. The dwell
@@ -1826,7 +2006,7 @@ function OrbitScene({
         // waiting it out is exactly how two names end up printed over
         // each other while the system turns.
         const held = new Map<string, ReturnType<typeof anchorRect>>();
-        for (const item of s.items) {
+        for (const item of placementItems) {
           const anchor = s.anchors.get(item.id);
           if (anchor)
             held.set(
@@ -1901,6 +2081,8 @@ function OrbitScene({
         // styling and for tests, without a DOM write every frame.
         if (label.dataset.anchor !== anchor) label.dataset.anchor = anchor;
         const rect = anchorRect(item, anchor, s.gaps.get(item.id) ?? 14);
+        rect.x = THREE.MathUtils.clamp(rect.x, 16, Math.max(16, width - item.width - 16));
+        rect.y = THREE.MathUtils.clamp(rect.y, s.contentTop + 12, Math.max(s.contentTop + 12, height - s.contentBottom - item.height - 12));
         const at = s.labelAt.get(item.id) ?? { x: rect.x, y: rect.y };
         at.x += (rect.x - at.x) * ease;
         at.y += (rect.y - at.y) * ease;
@@ -1919,24 +2101,20 @@ function OrbitScene({
       // the system turns far enough to make room. Two names printed
       // across each other lose both.
       const withdraw = new Set<string>();
-      // A phone is not a wall. Eight nameplates cannot share 390px
-      // without the collision pass fighting itself every frame, so the
-      // narrow layout carries only the nearest few and lets the rest go
-      // — the planets all remain, and tapping one still travels.
-      if (narrow && drawn.length > NARROW_LABELS) {
-        const byDepth = [...drawn].sort(
-          (a, b) =>
-            (s.baseOpacity.get(b.item.id) ?? 0) -
-            (s.baseOpacity.get(a.item.id) ?? 0),
-        );
-        for (const { item } of byDepth.slice(NARROW_LABELS)) {
-          if (!item.active) withdraw.add(item.id);
-        }
+      for (const { item } of drawn) {
+        if (!visibleLabelIds.has(item.id)) withdraw.add(item.id);
+      }
+      // Clamping and gliding can carry a placed label across a planet.
+      // Its sphere remains an obstacle even when its own label withdrew.
+      for (const { item, label, box } of drawn) {
+        if (!item.active && label !== document.activeElement &&
+          hitsOtherBody(box, item.id, s.items)) withdraw.add(item.id);
       }
       for (let i = 0; i < drawn.length; i += 1) {
         for (let j = i + 1; j < drawn.length; j += 1) {
           const a = drawn[i];
           const b = drawn[j];
+          if (!visibleLabelIds.has(a.item.id) || !visibleLabelIds.has(b.item.id)) continue;
           if (!rectsOverlap(a.box, b.box)) continue;
           if (a.item.active) withdraw.add(b.item.id);
           else if (b.item.active) withdraw.add(a.item.id);
@@ -1994,7 +2172,8 @@ function OrbitScene({
     membraneUniforms.uHoverTheta.value = hoverTheta;
     membraneUniforms.uHoverStrength.value = hoverStrength;
 
-    // The core's nameplate rides its projection too, clear of the glass.
+    // Keep the core's name beneath its silhouette, leaving the sides for
+    // the surrounding worlds and their destination labels.
     scratch.v2.copy(scratch.core).project(camera);
     const coreX = ((scratch.v2.x + 1) / 2) * width;
     const coreY = ((1 - scratch.v2.y) / 2) * height;
@@ -2003,7 +2182,12 @@ function OrbitScene({
       (Math.tan((40 * Math.PI) / 360) * cameraToCore);
     const coreLabel = s.labels.get(NUCLEUS_ID);
     if (coreLabel) {
-      coreLabel.style.transform = `translate3d(${(coreX + corePx + 10).toFixed(1)}px, ${(coreY - 6).toFixed(1)}px, 0)`;
+      let coreBox = s.measured.get(NUCLEUS_ID);
+      if (!coreBox) {
+        coreBox = { width: coreLabel.offsetWidth, height: coreLabel.offsetHeight };
+        s.measured.set(NUCLEUS_ID, coreBox);
+      }
+      coreLabel.style.transform = `translate3d(${(coreX - coreBox.width / 2).toFixed(1)}px, ${(coreY + corePx + 10).toFixed(1)}px, 0)`;
       const opacity = (
         (0.9 + 0.1 * membraneUniforms.uWake.value) *
         s.reveal
@@ -2085,8 +2269,8 @@ function OrbitScene({
           color="#ffffff"
         />
       </Environment>
-      <directionalLight position={[-4, 7, 5]} intensity={2.8} />
-      <ambientLight intensity={0.18} />
+      <directionalLight ref={keyLightRef} position={[-4, 5, 7]} intensity={3} />
+      <ambientLight intensity={0.12} />
 
       {/* The deep field. Renders first, with depth off, so it is a
           backdrop rather than an object: it occludes nothing, receives
@@ -2119,8 +2303,8 @@ function OrbitScene({
         <primitive object={membraneMaterial} attach="material" />
       </mesh>
 
-      {/* The core: polished obsidian, dense and materially real. The
-          black hole is the destination, not a control — no click. */}
+      {/* Keep the core's physical hover model. Its visible surface is a
+          light-absorbing silhouette and photon edge, not a glossy ball. */}
       <mesh
         ref={coreRef}
         position={[0, CORE_Y, 0]}
@@ -2134,14 +2318,17 @@ function OrbitScene({
         <meshPhysicalMaterial
           ref={coreMaterialRef}
           color={CORE_COLOR}
-          roughness={0.52}
-          metalness={0.12}
-          clearcoat={0.25}
-          clearcoatRoughness={0.22}
-          envMapIntensity={0.55}
+          colorWrite={false}
+          depthWrite={false}
           transparent
         />
       </mesh>
+      <OrbitGravityCore
+        center={[0, CORE_Y, 0]}
+        radius={CORE_RADIUS}
+        opacity={coreMaterialRef}
+        clock={membraneUniforms.uTime}
+      />
       {/* Every comet trail in the scene: one geometry, one program, one
           draw call, written into by the frame loop. Never culled, because
           its bounding box is whatever the trails happen to span this frame
@@ -2235,7 +2422,7 @@ function OrbitScene({
               metalness={0}
               clearcoat={0.025}
               clearcoatRoughness={0.85}
-              envMapIntensity={0.3}
+              envMapIntensity={0.22}
               transparent
             />
           </mesh>

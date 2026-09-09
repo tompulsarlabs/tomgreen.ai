@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anchorRect, placeLabels, placementOrder, rectsOverlap, type LabelItem } from "./label-placement";
+import { anchorRect, hitsOtherBody, placeLabels, placementOrder, rectsOverlap, type LabelItem } from "./label-placement";
 
 const VIEW = { width: 1200, height: 700, core: { x: 600, y: 350, radius: 60 } };
 
@@ -106,6 +106,24 @@ describe("placeLabels", () => {
     expect(placeLabels(ring(7), VIEW)).toEqual(placeLabels(ring(7), VIEW));
   });
 
+  it("reserves no space for hidden label rectangles while retaining their planet obstacles", () => {
+    const view = { width: 393, height: 500, core: { x: 196, y: 250, radius: 28 } };
+    const shown: LabelItem = { id: "shown", x: 108, y: 180, radius: 16, width: 48, height: 14 };
+    const hidden: LabelItem = { id: "hidden", x: 50, y: 155, radius: 18, width: 100, height: 14 };
+    const bodies = [shown, hidden];
+    const selected = placeLabels([shown], { ...view, bodies });
+    const crowded = placeLabels(bodies, view).find((placement) => placement.id === shown.id)!;
+    const withoutObstacle = placeLabels([shown], view)[0];
+    const box = (placement: typeof crowded) => ({ ...placement, width: shown.width, height: shown.height });
+
+    expect(selected.map((placement) => placement.id)).toEqual([shown.id]);
+    expect(selected[0].gap).toBeLessThan(crowded.gap);
+    const widerHidden = { ...hidden, width: 1_000, height: 200 };
+    expect(placeLabels([shown], { ...view, bodies: [shown, widerHidden] })).toEqual(selected);
+    expect(hitsOtherBody(box(withoutObstacle), shown.id, bodies)).toBe(true);
+    expect(hitsOtherBody(box(selected[0]), shown.id, bodies)).toBe(false);
+  });
+
   it("prefers the anchor it already had when the cost is close", () => {
     const items = ring(6);
     const first = placeLabels(items, VIEW);
@@ -123,5 +141,21 @@ describe("rectsOverlap", () => {
     expect(rectsOverlap(a, { x: 10, y: 0, width: 10, height: 10 })).toBe(false);
     expect(rectsOverlap(a, { x: 0, y: 10, width: 10, height: 10 })).toBe(false);
     expect(rectsOverlap(a, { x: 40, y: 40, width: 10, height: 10 })).toBe(false);
+  });
+});
+
+describe("the final nameplate/body guard", () => {
+  it("keeps a planet whose label is hidden as an obstacle, excluding the label's own planet", () => {
+    const sybil: LabelItem = { id: "sybil", x: 108, y: 180, radius: 16, width: 48, height: 14 };
+    const neighbour: LabelItem = { id: "neighbour", x: 50, y: 180, radius: 18, width: 70, height: 14 };
+    const bodies = [sybil, neighbour];
+    const hiddenLabels = new Set([neighbour.id]);
+    const visibleLabels = bodies.filter((body) => !hiddenLabels.has(body.id));
+    const drawnBox = anchorRect(sybil, "left", 14);
+
+    // A check against only labelled bodies misses the observed collision.
+    expect(hitsOtherBody(drawnBox, sybil.id, visibleLabels)).toBe(false);
+    expect(hitsOtherBody(drawnBox, sybil.id, bodies)).toBe(true);
+    expect(hitsOtherBody({ x: 100, y: 174, width: 16, height: 12 }, sybil.id, bodies)).toBe(false);
   });
 });

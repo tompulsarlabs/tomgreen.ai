@@ -15,13 +15,24 @@ The approved moon study is being carried into the planetary navigation on
 `codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;
 the editorial Home, Lab, case studies, CV and demos keep their content and structure.
 
-- Larger, matte geological bodies use two locally hosted NASA LROC/LOLA maps with
-  subtle mineral variation. Attribution is in `public/planetary/ASSET-CREDITS.md`.
-- The photographic nebula is replaced by a quiet slate field, curved spacetime
-  lines, travelling waves and silver fragments. Empty-space clicks and Pulse send
-  the same impulse through the field. Pause holds the scene while navigation stays usable.
-- Portrait screens use a taller camera composition. Labels clear the map controls;
-  layout can update while the animation clock is paused.
+- Five distinct planetary families replace the repeated lunar treatment: iron
+  terrain, lunar highlands, gas belts, fractured ice and ocean/cloud worlds. Only
+  the lunar family uses the locally hosted NASA LROC/LOLA maps. Attribution is in
+  `public/planetary/ASSET-CREDITS.md`.
+- The central core absorbs light, with a thin asymmetric photon edge rather than
+  glossy reflections. A restrained, desaturated portion of the original Veil
+  Nebula returns around the slate field's edges, with visible source attribution.
+- The approved moon study guides the motion: bounded wandering around composed
+  positions, surface libration, and a small damped recoil as each pulse reaches a
+  planet. Drag settles where the visitor leaves it. Travelling light reveals the
+  curved field; silver fragments scatter with the same pulse. Pause holds the
+  rendered scene exactly; body poses also respect the cinematic's held clock.
+  Navigation remains usable while paused.
+- Portrait screens keep an upright orbital plane and fit it to the available
+  space. Phone bodies have more presence; labels clear the controls. Chrome/footer
+  resize and font completion refresh the fit even while the scene is paused.
+  Only visible names reserve label space; all spheres remain obstacles. The core's
+  name persists when moving between systems.
 - The map includes Home, Lab, Demos, About and Contact. Demos shares its catalogue
   with the actual hub; Lab includes every published record. Stable existing body IDs,
   capture timings, real links and browser-history behaviour are preserved.
@@ -29,11 +40,17 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
   context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
   The decorative core label cannot pass clicks through to a nearby planet.
 
-Local validation: 287 unit tests, ESLint, TypeScript and the production build pass.
-All five map-to-content-to-Back journeys and both static fallbacks pass. Actual
-WebGL context loss, paused pixels, paused phone/desktop resize and Pulse resume
-pass. The content guard retains all 12 existing routes. Protected-branch CI and
-Vercel deployment results are recorded in [PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
+Local verification of this revision: 289 unit tests, lint, TypeScript, production
+webpack build, the 12-route content guard and all 20 planetary/capture E2E tests
+passed. Browser review covered the root map and dense Lab system on desktop and
+at 393px. Phone rotation returned the paused composition upright, and all three
+paused-frame comparisons were pixel-identical. Physical iOS-device rendering is
+still for Tom to review; these checks used Chromium.
+
+The previous branch head `7600a43` passed protected-branch CI (115 E2E tests).
+Tom's subsequent iOS and design feedback reopened this pass; the revised design
+is for preview review and the live release is held. Current CI is recorded in
+[PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
 The earlier design-scoping record follows as historical context.
 
 ## 1. Why this handoff exists

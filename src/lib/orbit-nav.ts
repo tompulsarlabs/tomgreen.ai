@@ -107,23 +107,42 @@ function hash(seed: number): number {
 }
 
 /**
+ * Composed starting poses for the published systems. These are ellipse
+ * parameters, not world azimuths: each body's node is already accounted for.
+ * The stagger preserves space around the core and between neighbouring
+ * silhouettes at the resting camera angle, including their bounded motion.
+ */
+const SYSTEM_PHASES: Readonly<Record<number, readonly number[]>> = {
+  3: [144, 188, 328],
+  4: [196, 116, 204, 288],
+  5: [256, 204, 196, 148, 104],
+  6: [240, 212, 172, 120, 120, 160],
+  8: [256, 192, 172, 124, 96, 164, 88, 64],
+  10: [212, 116, 176, 108, 116, 16, 96, 232, 128, 180],
+};
+
+/**
  * Orbital elements for body `index` of `count`: each planet owns its
  * ellipse — distinct radius, eccentricity, inclination, node and speed,
  * inner orbits faster, spread so no two planets crowd one plane.
  */
 export function navOrbitElements(index: number, count: number): OrbitElements {
   const spread = count <= 1 ? 0.5 : index / (count - 1);
-  const a = 1.35 + 1.7 * spread + 0.12 * (hash(index * 3 + 1) - 0.5);
+  // Small systems have room to breathe around the core; dense systems
+  // retain the wider radial spread so their orbits remain distinguishable.
+  const inner = count <= 5 ? 1.95 : 1.35;
+  const a = inner + (3.05 - inner) * spread + 0.12 * (hash(index * 3 + 1) - 0.5);
+  const node = ((index * 2.4) % (Math.PI * 2)) + 0.35 * hash(index * 11 + 4);
+  const composedPhase = SYSTEM_PHASES[count]?.[index];
   return {
     a,
     e: 0.08 + 0.16 * hash(index * 5 + 2),
     incl: 0.26 + 0.34 * hash(index * 7 + 3),
-    node: ((index * 2.4) % (Math.PI * 2)) + 0.35 * hash(index * 11 + 4),
-    speed: 0.46 / Math.pow(a, 1.2),
-    // The golden angle, so no two bodies start near each other however
-    // many there are. A random phase bunches them, and bunched planets
-    // are what leaves their nameplates fighting for the same space.
-    phase: index * 2.39996323 + 0.4 * hash(index * 13 + 5),
+    node,
+    speed: 0.12 / Math.pow(a, 1.2),
+    phase: composedPhase === undefined
+      ? index / Math.max(count, 1) * Math.PI * 2 - node - 0.45
+      : composedPhase * Math.PI / 180,
   };
 }
 

@@ -813,7 +813,11 @@ export function OrbitPortal() {
           </button>
         </div>
         <p className="orbit-portal-credit">
-          Lunar surface data · <a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noreferrer">NASA</a>
+          <a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noreferrer">NASA lunar data</a>
+          {" · "}
+          <a href="https://esahubble.org/images/potw2113a/" target="_blank" rel="noreferrer">Veil: ESA/Hubble &amp; NASA, Z. Levay</a>
+          {" · "}
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
         </p>
       </div>
     </div>

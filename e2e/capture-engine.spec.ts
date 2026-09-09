@@ -258,9 +258,22 @@ test("one canvas and one system, however many times the hierarchy is walked", as
   const canvases = async () => page.evaluate(() => document.querySelectorAll("canvas").length);
   const before = await canvases();
   expect(before).toBeGreaterThan(0);
+  const coreLabel = portal.locator('.orbit-label[data-body="talent"]');
+  const expectCoreLabel = async () => {
+    await expect.poll(() => coreLabel.evaluate((label) =>
+      Number(getComputedStyle(label).opacity)), { timeout: 30_000 }).toBeGreaterThan(0.5);
+    const box = await coreLabel.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+  };
 
   for (const round of [1, 2, 3]) {
     await descend(portal, "contact");
+    await expectCoreLabel();
     expect(await canvases(), `descent ${round}`).toBe(before);
     // Decoders are texture sources rather than page elements, so a package
     // rebuilt per capture would show up here as an element that should not
@@ -269,6 +282,7 @@ test("one canvas and one system, however many times the hierarchy is walked", as
 
     await page.goBack();
     await expect(portal).toHaveAttribute("data-view", "map", { timeout: 60_000 });
+    await expectCoreLabel();
     expect(await canvases(), `return ${round}`).toBe(before);
     // The map came back whole, not as the residue of the system it left.
     const bodies = await portal
