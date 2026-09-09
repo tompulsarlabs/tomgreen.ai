@@ -305,6 +305,7 @@ test.describe("live scene resilience", () => {
   });
 
   test("Pause holds rendered pixels and Pulse resumes visible motion", async ({ page }, testInfo) => {
+    test.setTimeout(240_000);
     await page.goto(originPage);
     const portal = await openMap(page);
     await readyPlanet(portal, "work");
@@ -318,7 +319,7 @@ test.describe("live scene resilience", () => {
     // Pause lets the initial arrival complete. Once settled, two actual
     // canvas captures separated in time must be pixel-identical; checking
     // a button label or a frozen JS clock alone would not prove this.
-    const stillCanvas = async () => {
+    const stillCanvas = async (timeout = 15_000) => {
       let image: Buffer | undefined;
       await expect.poll(async () => {
         const before = await canvas.screenshot();
@@ -326,10 +327,13 @@ test.describe("live scene resilience", () => {
         const after = await canvas.screenshot();
         image = after;
         return before.equals(after);
-      }, { timeout: 15_000, intervals: [350] }).toBe(true);
+      }, { timeout, intervals: [350] }).toBe(true);
       return image!;
     };
-    let pausedImage = await stillCanvas();
+    // Work's label can be ready before the last planet has arrived. The
+    // software renderer needs the same arrival allowance as other live
+    // journeys; once assembled, resizing retains the shorter deadline.
+    let pausedImage = await stillCanvas(sceneTimeout);
     await testInfo.attach("paused-canvas", { body: pausedImage, contentType: "image/png" });
 
     // A paused clock must not freeze layout: the phone rotates the scene
