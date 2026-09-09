@@ -32,7 +32,7 @@ Local validation: 287 unit tests, ESLint, TypeScript and the production build pa
 All five map-to-content-to-Back journeys and both static fallbacks pass. Actual
 WebGL context loss, paused pixels, paused phone/desktop resize and Pulse resume
 pass. The content guard retains all 12 existing routes. Protected-branch CI and
-Vercel deployment verification remain pending.
+Vercel production verification remain pending in [PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
 The earlier design-scoping record follows as historical context.
 
 ## 1. Why this handoff exists

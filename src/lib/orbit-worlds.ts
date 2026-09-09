@@ -37,6 +37,7 @@ function orbit(
   items: { id: string; label: string; href: string; external?: boolean; keepCase?: boolean }[],
   paletteOffset: number,
 ): OrbitBody[] {
+  const densityScale = Math.min(1, Math.sqrt(6 / items.length));
   return items.map((item, index) => ({
     id: item.id,
     label: item.label,
@@ -44,7 +45,7 @@ function orbit(
     target: item.external
       ? { kind: "link", href: item.href, external: true }
       : { kind: "route", href: item.href },
-    size: defaultBodySize(index),
+    size: defaultBodySize(index) * densityScale,
     ...(item.keepCase ? { keepCase: true } : {}),
   }));
 }
@@ -135,7 +136,7 @@ export const orbitWorlds: OrbitWorld[] = [
     id: "demos",
     label: "Demos",
     href: "/demos",
-    note: "Product experiences with curated examples and fictional data.",
+    note: "Open a demo and explore.",
     bodies: demoBodies,
   },
   ...(hasTestimonials
