@@ -20,18 +20,23 @@ export type OrbitGravityCoreProps = {
   /** Optional. With no clock the lens is entirely static. Never wall time. */
   clock?: GravityCoreSignal;
   activity?: GravityCoreSignal;
+  capture?: GravityCoreSignal;
 };
 
 const vertexShader = /* glsl */ `
   varying vec2 vLens;
   uniform float uRadius;
+  uniform float uCapture;
 
   void main() {
     // A real inclined basin in world space: drag reveals its depth.
     vLens = position.xz;
     float r = length(vLens);
     vec3 p = position;
+    float compress = smoothstep(0.0, 0.45, uCapture) * (1.0 - smoothstep(0.6, 2.0, uCapture));
     p.y = 1.05 * (1.0 - exp(-r * r * 0.55));
+    p.y -= compress * 0.24 * exp(-r * r * 0.5);
+    p.xz *= 1.0 - compress * 0.08 * exp(-r * r * 0.2);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p * uRadius, 1.0);
   }
 `;
@@ -42,6 +47,7 @@ const fragmentShader = /* glsl */ `
   uniform float uOpacity;
   uniform float uTime;
   uniform float uActivity;
+  uniform float uCapture;
 
   float gaussian(float distance, float width) {
     float x = distance / width;
@@ -65,7 +71,16 @@ const fragmentShader = /* glsl */ `
     float critical = gaussian(r - 0.73, max(0.024, footprint)) * 0.22;
     float innerWall = gaussian(r - 0.97, 0.24) * 0.12;
     float bloom = gaussian(r - 1.45, 0.9) * 0.055 * (1.0 - shadow);
-    float light = (disk * 0.95 + critical + innerWall) * (1.0 + uActivity * 0.85);
+    float captureAge = max(0.0, uCapture);
+    float energy = smoothstep(0.0, 0.38, captureAge) * (1.0 - smoothstep(0.85, 3.0, captureAge));
+    // Fine caustic threads tighten at the throat, then travel up the wall.
+    // Their depth, occlusion and perspective are the basin's own.
+    float front = 0.76 + max(0.0, captureAge - 0.45) * 1.65;
+    float wave = gaussian(r - front, 0.085 + captureAge * 0.035) * energy;
+    float winding = pow(0.5 + 0.5 * sin(angle * 5.0 + log(max(r, 0.4)) * 19.0 - captureAge * 4.0), 10.0);
+    float feed = winding * gaussian(r - 1.12, 0.5) * energy;
+    float light = (disk * 0.95 + critical + innerWall) * (1.0 + uActivity * 0.5);
+    light += wave * 0.55 + feed * 0.48;
     float coverage = max(shadow, clamp(light + bloom, 0.0, 0.98));
     if (coverage * uOpacity < 0.001) discard;
     vec3 silver = vec3(0.89, 0.94, 1.0);
@@ -101,7 +116,7 @@ function clockValue(source: GravityCoreSignal | undefined): number {
  * own frame/capture clock. This avoids an extra useFrame ordering contract
  * and keeps the last paused frame stable across a viewport resize.
  */
-export function OrbitGravityCore({ center, radius, opacity, clock, activity }: OrbitGravityCoreProps) {
+export function OrbitGravityCore({ center, radius, opacity, clock, activity, capture }: OrbitGravityCoreProps) {
   const material = useMemo(() => new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -110,6 +125,7 @@ export function OrbitGravityCore({ center, radius, opacity, clock, activity }: O
       uOpacity: { value: 0 },
       uTime: { value: 0 },
       uActivity: { value: 0 },
+      uCapture: { value: -1 },
     },
     transparent: true,
     premultipliedAlpha: true,
@@ -158,6 +174,7 @@ export function OrbitGravityCore({ center, radius, opacity, clock, activity }: O
         material.uniforms.uOpacity.value = opacityValue(opacity);
         material.uniforms.uTime.value = clockValue(clock);
         material.uniforms.uActivity.value = clockValue(activity);
+        material.uniforms.uCapture.value = capture ? clockValue(capture) : -1;
       }}
     />
   );

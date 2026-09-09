@@ -49,6 +49,12 @@ async function descend(portal: Locator, id: string) {
 test("a parent resolves into its own system, inside the portal, off one event", async ({
   page,
 }) => {
+  // The live capture must work without requesting either retired video plate.
+  const retiredMedia: string[] = [];
+  page.on("request", (request) => {
+    if (/\/golden-path\/.*\.(mp4|webm)/.test(request.url())) retiredMedia.push(request.url());
+  });
+  await page.route("**/golden-path/*", (route) => route.abort());
   const portal = await openPortal(page);
   await expect(portal).toHaveAttribute("data-view", "map");
 
@@ -65,6 +71,7 @@ test("a parent resolves into its own system, inside the portal, off one event", 
   await expect(page).toHaveURL("/building");
   await expect(portal).not.toHaveAttribute("data-golden-labels", "held");
   await expect(portal).not.toHaveAttribute("data-golden", "true", { timeout: 90_000 });
+  expect(retiredMedia).toEqual([]);
 });
 
 test("the released system arrives complete: every child named, and pressable", async ({

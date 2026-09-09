@@ -27,17 +27,14 @@ import { GoldenPathLayer } from "@/components/golden-path-layer";
 import {
   CAPTURE_START as GOLDEN_CAPTURE_START,
   clampUnit,
-  goldenMotionAt,
   smoothstep,
 } from "@/lib/golden-path";
 import { captureReleaseAt } from "@/lib/capture-release";
-import { captureEntryValue } from "@/lib/capture-continuity";
-import { CORE_IN, coreHandover } from "@/lib/capture-core";
+import { CORE_IN } from "@/lib/capture-core";
 import { CAPTURE_APPROACH_SECONDS } from "@/lib/capture-timing";
 import {
   goldenIsBody,
   goldenIsRunning,
-  goldenMotionNow,
   goldenBurstTime,
   goldenRenderTime,
   goldenShotTime,
@@ -62,12 +59,8 @@ import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
 import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 
-/** The core event's share of the screen, read per frame from the shot clock. */
-const goldenCoreHandover = () => coreHandover(goldenShotTime());
-
 /** The scene's exposure at rest. The golden path scales it and hands it back. */
 const BASE_EXPOSURE = 1.05;
-const SHOT_AT_PRESS = goldenMotionAt(GOLDEN_CAPTURE_START);
 
 /** A body as one frame drew it: centre, radius, and its nameplate's box. */
 type DrawnSpot = {
@@ -550,6 +543,7 @@ function OrbitScene({
 
   useEffect(() => () => membraneGeometry.dispose(), [membraneGeometry]);
 
+  const captureSignal = useMemo(() => ({ value: -1 }), []);
   const pulses = useMemo(() => ({ value: new THREE.Vector2(-100, -100) }), []);
   const dust = useMemo(() => createGravityDust(pulses), [pulses]);
   useEffect(() => () => dust.dispose(), [dust]);
@@ -1490,64 +1484,21 @@ function OrbitScene({
     );
     camera.lookAt(0, -0.42, 0);
 
-    /* THE APPROVED CAMERA.
-     *
-     * Distance, roll and slide are the render's own, sampled per frame from
-     * the tables in golden-path.ts; azimuth and polar stay the visitor's,
-     * because the breakout is screen-space authored and snapping the angle
-     * at the press would be a jump. The dive is the whole shot: 7.62 units
-     * out to 2.00 at the core, rolling to -2.5 degrees and sliding laterally
-     * through the passage.
-     *
-     * And the map dims as it did in the render - which is not a mood, it is
-     * arithmetic. The plate is difference-matted against the map the render
-     * drew, so P + (1 - M) * B reproduces the approved frame only where the
-     * live map IS that B. At the detonation the matte leaves 98% of the
-     * frame to the live map; a map at full brightness there is not the
-     * approved image at all. Exposure falls 1.4 EV as the planet spirals in,
-     * then the map takes a further 0.45x as the event breaks out.
-     */
+    // Keep the field and the falling planet in context. A modest dolly
+    // follows compression; the arriving system returns to the fitted view.
     if (goldenIsRunning()) {
-      const g = goldenMotionNow();
-      /*
-       * ...and then, for a parent, it comes back. The approved shot ends
-       * parked 2.00 units from the core, rolled and slid, with the map at
-       * 0.45 x 2^-1.4 of its own exposure - all of which is right, because
-       * paper is about to take the frame and none of it will be seen again.
-       * A released system has to be seen. Its orbits span roughly 1.29 to
-       * 3.11 units, so a camera left at 2.00 stands INSIDE the shell it is
-       * revealing with half the system behind it, and a map left at a sixth
-       * of its brightness would assemble dark and then snap 5.9x on the frame
-       * the shot ended. Both ease home across the assembly instead, and both
-       * land on the map's own values rather than on remembered ones: the
-       * distance is the same expression the resting camera just used, so
-       * there is nothing to disagree with when the shot lets go.
-       */
       const back = release?.cameraReturn ?? 0;
-      const entryDistance = captureEntryValue(
-        g.camDistance, SHOT_AT_PRESS.camDistance, s.entryDistance, goldenShotTime(),
-      );
-      const camDistance = entryDistance + (distance - entryDistance) * back;
+      const approach = smoothstep(GOLDEN_CAPTURE_START, CORE_IN + 0.4, goldenShotTime());
+      const inward = s.entryDistance * (1 - 0.16 * approach);
+      const camDistance = inward + (distance - inward) * back;
       camera.position.set(
         camDistance * Math.sin(polar) * Math.sin(azimuth),
         camDistance * Math.cos(polar),
         camDistance * Math.sin(polar) * Math.cos(azimuth),
       );
       camera.lookAt(0, -0.42, 0);
-      camera.translateX(g.camSlide[0] * (1 - back));
-      camera.translateY(g.camSlide[1] * (1 - back));
-      camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg * (1 - back)));
-      const shot = captureEntryValue(
-        BASE_EXPOSURE * Math.pow(2, g.mapExposureEv) * g.mapDim,
-        BASE_EXPOSURE * Math.pow(2, SHOT_AT_PRESS.mapExposureEv) * SHOT_AT_PRESS.mapDim,
-        s.entryExposure, goldenShotTime(),
-      );
-      const light = release?.lightReturn ?? 0;
-      gl.toneMappingExposure = shot + (BASE_EXPOSURE - shot) * light;
-      // Remembered every frame, so an interruption always has somewhere to
-      // come back FROM. A shot that runs to its own end is already home - the
-      // release schedule lands both channels at base by 4.30 s - so this costs
-      // that case nothing and saves every other one.
+      const shotExposure = s.entryExposure * (1 - 0.18 * approach);
+      gl.toneMappingExposure = shotExposure + (BASE_EXPOSURE - shotExposure) * back;
       s.shotPosition.copy(camera.position);
       s.shotQuaternion.copy(camera.quaternion);
       s.shotExposure = gl.toneMappingExposure;
@@ -1584,15 +1535,17 @@ function OrbitScene({
     // still glowing — and sends the crest across it, trailing the blast
     // front the way a surface wave trails the light. A capture is the
     // stronger impulse, carried over the ambient spacetime motion.
-    const burstT = flare ? (performance.now() - flare.at) / 1000 : -1;
+    const burstT = flare ? (flare.conducted ? (goldenIsRunning() ? goldenBurstTime() : -1) : (performance.now() - flare.at) / 1000) : -1;
     const burstLive = burstT > 0 && burstT < BURST_LIFE;
-    const burstLight = burstLive ? lightCurve(burstT) : 0;
+    const burstLight = burstLive
+      ? (flare?.conducted ? smoothstep(0, 0.45, burstT) * (1 - smoothstep(0.8, 3.2, burstT)) : lightCurve(burstT)) : 0;
+    captureSignal.value = burstLive ? burstT : -1;
     membraneUniforms.uWake.value = Math.min(
       1,
       Math.max(s.coreWake, captureEased, 1.2 * burstLight),
     );
     if (burstLive) {
-      const shockR = 0.34 + 0.95 * burstT;
+      const shockR = 0.50 + 1.25 * burstT;
       const window = 1 - burstStep(3.6, 4.6, burstT);
       membraneUniforms.uShockR.value = shockR;
       // 1/sqrt(r): energy conservation for a wave on a membrane.
@@ -1601,9 +1554,9 @@ function OrbitScene({
         Math.min(1, burstT / 0.12) *
         Math.sqrt(0.6 / Math.max(shockR, 0.6)) *
         window;
-      membraneUniforms.uRingLight.value = Math.min(1, burstT / 0.12) * window;
+      membraneUniforms.uRingLight.value = Math.min(1, burstT / 0.3) * window * 0.55;
       membraneUniforms.uThroat.value = 0.9 * burstLight;
-      const heat = thermal(burstT);
+      const heat = flare?.conducted ? [0.90, 0.94, 1] : thermal(burstT);
       membraneUniforms.uBurstColor.value.setRGB(heat[0], heat[1], heat[2]);
     } else {
       membraneUniforms.uShockA.value = 0;
@@ -1850,12 +1803,13 @@ function OrbitScene({
         group.scale.setScalar(Math.max(swell, 0.001));
       }
       const material = bodyMaterials.current.get(body.id);
-      if (material) material.opacity = s.reveal * emerged;
+      const consumed = captured ? smoothstep(0.93, 1, progress) : 0;
+      if (material) material.opacity = s.reveal * emerged * (1 - consumed);
 
       // Filament to the core: surfacing on hover, taut during capture.
       const filament = filamentRefs.current.get(body.id);
       if (filament) {
-        const strength = Math.max(nextEase * 0.32, suction * 0.5) * s.reveal;
+        const strength = Math.max(nextEase * 0.32, suction * 0.5) * s.reveal * (1 - consumed);
         filament.material.opacity = strength;
         filament.line.visible = strength > 0.006;
         if (filament.line.visible) {
@@ -2290,23 +2244,10 @@ function OrbitScene({
       <OrbitNebula narrow={narrow} flare={flare ?? null} clock={membraneUniforms.uTime} pulses={pulses} activity={membraneUniforms.uWake} />
       <points geometry={dust.geometry} material={dust.material} frustumCulled={false} renderOrder={3} raycast={() => null} />
 
-      {/* The burst at the core. Mounted last so it draws over the
-          system it just tore a planet out of.
-
-          The shared capture engine does not stand this down - it CONDUCTS it.
-          The baked V3 material is the release and the aftermath; this is the
-          cause, and without it a capture reads as a planet vanishing into gas.
-          Under the engine it runs on the one shot clock rather than the wall,
-          so it compresses with everything else at the compact speed, and it
-          hands the screen over once the volumetric breakout has taken it.
-          Every other capture on the site keeps it exactly as it was. */}
-      <OrbitFlare
-        flare={flare ?? null}
-        origin={[0, CORE_Y, 0]}
-        narrow={narrow}
-        clock={flare?.conducted ? goldenBurstTime : null}
-        gain={flare?.conducted ? goldenCoreHandover : null}
-      />
+      {/* Legacy non-conducted departures retain their fallback. Live captures
+          compress the well and send light through its own geometry. */}
+      {!flare?.conducted && <OrbitFlare flare={flare ?? null}
+        origin={[0, CORE_Y, 0]} narrow={narrow} />}
       <GoldenPathLayer />
 
       {/* The spacetime membrane: displaced funnel geometry rendered as a
@@ -2341,6 +2282,7 @@ function OrbitScene({
         opacity={coreMaterialRef}
         clock={membraneUniforms.uTime}
         activity={membraneUniforms.uWake}
+        capture={captureSignal}
       />
       {/* Every comet trail in the scene: one geometry, one program, one
           draw call, written into by the frame loop. Never culled, because

@@ -28,6 +28,12 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
   until late tidal stretching. The first approach lasts 1.4 seconds (0.9 on repeat
   journeys); later cinematic beats keep their pace. Full/compact sequences are
   5.88/3.81 seconds. Core light and nearby gas respond during the fall.
+- The former blue volumetric/video release is replaced by a live field response:
+  compression at the throat, winding silver caustics, then an outward wave on
+  the actual membrane. The camera makes a restrained 16% inward move with mild
+  exposure change; it keeps the planet and surrounding system in context.
+  Captures no longer request video plates or depend on decoder readiness. A
+  clock-driven soft dissolve reveals the real document on page destinations.
 - The approved moon study guides the motion: bounded wandering around composed
   positions, surface libration, and a small damped recoil as each pulse reaches a
   planet. Drag settles where the visitor leaves it. Travelling light reveals the
@@ -47,8 +53,9 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
   The decorative core label cannot pass clicks through to a nearby planet.
 
 Local verification of this revision: 289 unit tests, lint, TypeScript, production
-webpack build, the 12-route content guard and all 20 planetary/capture E2E tests
-passed. Browser review covered the root map and dense Lab system on desktop and
+webpack build, the 12-route content guard and all 26 planetary/capture/page-arrival E2E tests
+passed. The final remnant fade was then rebuilt and rechecked through parent
+arrival, page arrival and exact paused pixels. Browser review covered the root map and dense Lab system on desktop and
 at 393px. Phone rotation returned the paused composition upright, and all three
 paused-frame comparisons were pixel-identical. Physical iOS-device rendering is
 still for Tom to review; these checks used Chromium.

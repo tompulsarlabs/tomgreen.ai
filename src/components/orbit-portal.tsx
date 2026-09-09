@@ -4,12 +4,7 @@ import { useRouter } from "next/navigation";
 import { ROUTE_AT, STILL_AT, TYPO_IN } from "@/lib/golden-path";
 import { SWAP_AT } from "@/lib/capture-release";
 import { SHOT_END } from "@/lib/capture-core";
-import {
-  getGoldenAssets,
-  goldenAssetsReady,
-  prefetchGoldenPath,
-  releaseGoldenAssets,
-} from "@/lib/golden-path-assets";
+import { resolveTier } from "@/lib/golden-path-assets";
 import {
   abortGoldenPath,
   armGoldenPath,
@@ -187,9 +182,6 @@ export function OrbitPortal() {
       setView({ kind: "map" });
       viewRef.current = { kind: "map" };
       pushPortalStep({ kind: "map" });
-      // The map has opened: start paying for the decode now, so the press
-      // that may come in a few seconds does not have to.
-      prefetchGoldenPath();
     });
   }, [pushPortalStep]);
 
@@ -203,11 +195,6 @@ export function OrbitPortal() {
       if (getGoldenState().pushed) finishGoldenPath();
       else abortGoldenPath("escape");
     }
-    // The package belongs to the open portal, not to a capture. One decode
-    // pays for every capture at every level of the hierarchy, and it is
-    // returned here - the one moment there is certainly no next capture -
-    // rather than at the end of a shot that a nested one is about to follow.
-    releaseGoldenAssets();
     // The clock goes back to rest: left in "done" it answers T_END for the
     // shot's whole absence, which is a trap for anything that reads it
     // without first asking whether a shot is running.
@@ -318,9 +305,6 @@ export function OrbitPortal() {
       viewRef.current = restored;
       setOpen(true);
       setView(restored);
-      // Reopened from history: the package was handed back when the portal
-      // closed, so the next capture needs it fetched again.
-      prefetchGoldenPath();
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -538,11 +522,9 @@ export function OrbitPortal() {
   }, [bodies]);
 
   /**
-   * A press the scene accepted. The capture engine arms here and nowhere else,
-   * and only if it can be drawn this instant: arming is a synchronous decision
-   * from what is already decoded, so a press never waits on media. Anything
-   * unready, and this returns silently and the site's existing procedural
-   * transition runs untouched.
+   * The live field is ready as soon as its planet can be pressed. There is
+   * no media gate or decoder to wait for; reduced-motion and Save-Data keep
+   * their existing static path.
    *
    * WHICH bodies it arms for is not a decision this file makes. It asks the
    * planet model how the node resolves and plays the event for the two
@@ -551,7 +533,8 @@ export function OrbitPortal() {
    * change to this function.
    */
   const onPress = useCallback((id: string) => {
-    if (!goldenAssetsReady()) return;
+    const tier = resolveTier();
+    if (tier === "none") return;
     const ending = captureEndingFor(id);
     // An external leaf is a departure rather than a capture, and a
     // non-interactive body is not a control. Neither arms.
@@ -560,7 +543,7 @@ export function OrbitPortal() {
       bodyId: id,
       href: ending.kind === "paper" ? ending.href : null,
       fromPath: window.location.pathname,
-      tier: getGoldenAssets().tier,
+      tier,
       ending: ending.kind,
       // The full event is the first one of a session; every nested capture
       // after it plays the same event on the compact clock.
@@ -593,17 +576,9 @@ export function OrbitPortal() {
         return;
       }
 
-      // DETONATE FIRST, whatever happens next, and for every capture the site
-      // takes. This is the cause: the core has the planet, and what follows is
-      // the core's answer to it. The engine does not stand this down and
-      // replace it with baked gas - the baked material is the release and the
-      // aftermath, and playing it instead of this is what turns a capture into
-      // a planet vanishing into fog. The engine only takes over its clock.
-      //
-      // The flare is state here rather than inside the scene because a capture
-      // that travels replaces the scene outright — the burst has to belong to
-      // the thing that survives, so the tear-down happens inside its
-      // brightest frame.
+      // The event belongs to the portal so the outgoing and arriving
+      // systems share one clock. Conducted captures feed the live well;
+      // legacy captures retain their fallback response.
       const conducted = goldenIsBody(id);
       const at = performance.now();
       // The plane the planet fell from, from the same elements the
@@ -793,7 +768,7 @@ export function OrbitPortal() {
                 its first frame. The brightest sixty milliseconds of the
                 event would fall into that gap; a compositor animation
                 cannot. Keyed by the detonation, so a new burst restarts it. */}
-        {flare ? (
+        {flare && !flare.conducted ? (
           <div
             key={flare.at}
             className="orbit-portal-breakout"
