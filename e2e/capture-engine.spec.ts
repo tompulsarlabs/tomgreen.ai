@@ -218,6 +218,7 @@ test("a decorative body is not a control, however hard it is pressed", async ({ 
   await expect(portal.locator('a.orbit-label[data-body="talent"]')).toHaveCount(0);
   const plate = portal.locator('.orbit-label[data-body="talent"]');
   await expect(plate).toHaveCount(1);
+  await expect(plate).toHaveCSS("pointer-events", "auto");
 
   const settled = async () => {
     await page.waitForTimeout(1_500);
@@ -235,7 +236,7 @@ test("a decorative body is not a control, however hard it is pressed", async ({ 
   // press lands on a planet that is plainly the frontmost thing under the
   // cursor and capturing it is right - so a test clicking there was asserting
   // orbital phase, and was one arrival's worth of timing away from failing.
-  await plate.click({ force: true });
+  await plate.click();
   await settled();
 
   // And empty space: the corner of the field, outside every orbit, where

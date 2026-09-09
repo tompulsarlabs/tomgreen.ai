@@ -27,6 +27,7 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
   capture timings, real links and browser-history behaviour are preserved.
 - The static destination list remains until the canvas is ready, and returns on
   context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
+  The decorative core label cannot pass clicks through to a nearby planet.
 
 Local validation: 287 unit tests, ESLint, TypeScript and the production build pass.
 All five map-to-content-to-Back journeys and both static fallbacks pass. Actual

@@ -820,7 +820,9 @@ function OrbitScene({
     const bodyAt = (event: PointerEvent): string | null => {
       const target = event.target instanceof Element ? event.target : null;
       const plate = target?.closest<HTMLElement>(".orbit-label")?.dataset.body;
-      if (plate && isInteractive(plate)) return plate;
+      // Descriptive labels end picking too: a planet passing behind the
+      // nucleus's name must not turn that name into a navigation control.
+      if (plate) return isInteractive(plate) ? plate : null;
       const rect = field.getBoundingClientRect();
       const px = event.clientX - rect.left;
       const py = event.clientY - rect.top;
@@ -2002,10 +2004,12 @@ function OrbitScene({
     const coreLabel = s.labels.get(NUCLEUS_ID);
     if (coreLabel) {
       coreLabel.style.transform = `translate3d(${(coreX + corePx + 10).toFixed(1)}px, ${(coreY - 6).toFixed(1)}px, 0)`;
-      coreLabel.style.opacity = (
+      const opacity = (
         (0.9 + 0.1 * membraneUniforms.uWake.value) *
         s.reveal
-      ).toFixed(3);
+      );
+      coreLabel.style.opacity = opacity.toFixed(3);
+      coreLabel.style.pointerEvents = opacity > 0.02 ? "auto" : "none";
     }
 
 
