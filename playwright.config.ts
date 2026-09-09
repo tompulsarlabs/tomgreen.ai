@@ -18,7 +18,7 @@ export default defineConfig({
   // single assertion.
   timeout: 120_000,
   use: {
-    baseURL: "http://localhost:3100",
+    baseURL: process.env.BASE_URL ?? "http://localhost:3100",
     screenshot: "only-on-failure",
     trace: "on-first-retry",
     launchOptions: chromiumExecutable
@@ -31,7 +31,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
+  webServer: process.env.BASE_URL ? undefined : {
     // CI builds first, then exercises the production server. Local runs
     // reuse a developer's port 3100 server when one already exists.
     command: isCI

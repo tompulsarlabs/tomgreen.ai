@@ -9,6 +9,32 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Current implementation — 9 September 2026
+
+The approved moon study is being carried into the planetary navigation on
+`codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;
+the editorial Home, Lab, case studies, CV and demos keep their content and structure.
+
+- Larger, matte geological bodies use two locally hosted NASA LROC/LOLA maps with
+  subtle mineral variation. Attribution is in `public/planetary/ASSET-CREDITS.md`.
+- The photographic nebula is replaced by a quiet slate field, curved spacetime
+  lines, travelling waves and silver fragments. Empty-space clicks and Pulse send
+  the same impulse through the field. Pause holds the scene while navigation stays usable.
+- Portrait screens use a taller camera composition. Labels clear the map controls;
+  layout can update while the animation clock is paused.
+- The map includes Home, Lab, Demos, About and Contact. Demos shares its catalogue
+  with the actual hub; Lab includes every published record. Stable existing body IDs,
+  capture timings, real links and browser-history behaviour are preserved.
+- The static destination list remains until the canvas is ready, and returns on
+  context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
+
+Local validation: 287 unit tests, ESLint, TypeScript and the production build pass.
+All five map-to-content-to-Back journeys and both static fallbacks pass. Actual
+WebGL context loss, paused pixels, paused phone/desktop resize and Pulse resume
+pass. The content guard retains all 12 existing routes. Protected-branch CI and
+Vercel deployment verification remain pending.
+The earlier design-scoping record follows as historical context.
+
 ## 1. Why this handoff exists
 
 This document gives Fable 5 the complete context from the last 24 hours so it can run a

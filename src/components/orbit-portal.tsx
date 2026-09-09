@@ -93,6 +93,7 @@ export function OrbitPortal() {
   const [flare, setFlare] = useState<Flare | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [departing, setDeparting] = useState(false);
+  const [paused, setPaused] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const travelTimer = useRef(0);
   const leaveTimer = useRef(0);
@@ -472,7 +473,38 @@ export function OrbitPortal() {
   }, [open]);
 
   useEffect(() => {
-    if (open) dialogRef.current?.focus();
+    if (!open) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.focus();
+    // aria-modal alone doesn't stop keyboard focus reaching the page.
+    // Derive the current controls each press: systems and visibility change.
+    const containFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex="0"]',
+      )).filter((element) => {
+        const style = getComputedStyle(element);
+        return element.tabIndex >= 0 && element.getClientRects().length > 0 &&
+          style.visibility !== "hidden" && Number(style.opacity) > 0.1 && !element.closest('[inert]');
+      });
+      const first = controls[0];
+      const last = controls[controls.length-1];
+      if (!first || !last) { event.preventDefault(); dialog.focus(); return; }
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === dialog || !dialog.contains(active))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (active === last || active === dialog || !dialog.contains(active))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    const resume = () => setPaused(false);
+    dialog.addEventListener("orbit-resume", resume);
+    dialog.addEventListener("keydown", containFocus);
+    return () => {
+      dialog.removeEventListener("orbit-resume", resume);
+      dialog.removeEventListener("keydown", containFocus);
+    };
   }, [open]);
 
   // A pending travel must not outlive the portal: closing by Escape or
@@ -724,6 +756,7 @@ export function OrbitPortal() {
         // before its canvas exists; under a live burst that frame is grey
         // planets beneath a white flash. Hidden while the burst is live.
         data-burst={flare ? "true" : undefined}
+        data-paused={paused ? "true" : undefined}
         // A nameplate is a real link, because the poster fallback
         // needs it to be. But on the map inside the portal a click
         // must descend, never travel — and the WebGL scene that
@@ -768,10 +801,21 @@ export function OrbitPortal() {
           />
         ) : null}
       </div>
-      <p className="orbit-portal-credit">
-        Veil Nebula · <a href="https://esahubble.org/images/potw2113a/" target="_blank" rel="noreferrer">ESA/Hubble &amp; NASA, Z. Levay</a>
-        {" · "}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
-      </p>
+      <div className="orbit-portal-footer" inert={goldenLive} aria-hidden={goldenLive || undefined}>
+        <p className="orbit-portal-hint">Drag to explore. Choose a planet.</p>
+        <div className="orbit-portal-motion">
+          <button type="button" onClick={() => {
+            setPaused(false);
+            dialogRef.current?.querySelector(".orbit-field")?.dispatchEvent(new Event("orbit-pulse"));
+          }}>Pulse ↗</button>
+          <button type="button" aria-pressed={paused} onClick={() => setPaused((value) => !value)}>
+            {paused ? "Resume motion" : "Pause motion"}
+          </button>
+        </div>
+        <p className="orbit-portal-credit">
+          Lunar surface data · <a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noreferrer">NASA</a>
+        </p>
+      </div>
     </div>
   );
 }

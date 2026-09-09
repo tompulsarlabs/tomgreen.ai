@@ -18,6 +18,7 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
+import { createGravityDust, wavePacketGLSL } from "@/lib/gravitational-field";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
 import { GoldenPathLayer } from "@/components/golden-path-layer";
@@ -107,7 +108,7 @@ const wellDepth = (r: number) =>
 
 const CORE_RADIUS = 0.34;
 /** How many nameplates a narrow layout carries at once. */
-const NARROW_LABELS = 4;
+const NARROW_LABELS = 5;
 const CORE_Y = wellDepth(0.32) + CORE_RADIUS * 0.35;
 
 /**
@@ -226,6 +227,10 @@ uniform vec3 uPointer;
 uniform float uPointerStrength;
 uniform float uShockR;
 uniform float uShockA;
+uniform vec2 uPulses;
+varying float vCrest;
+varying float vPacket;
+${wavePacketGLSL}
 varying float vR;
 varying float vTheta;
 varying float vViewDist;
@@ -244,9 +249,15 @@ void main() {
   vTheta = atan(p.z, p.x);
   vXZ = p.xz;
   // The well collapses in with the reveal; the fabric holds a faint
-  // physical tension — low-amplitude, slow, never a ripple.
+  // physical tension and slow travelling gravitational crests.
   float depth = -DROP * pow(SHOULDER / (SHOULDER + r), POWER) * uReveal;
-  float tension = 0.012 * sin(uTime * 0.4 + r * 2.1) * smoothstep(0.4, 2.2, r);
+  float waveR = r + 0.09 * sin(vTheta * 2.0 + 0.4) * smoothstep(0.7, 3.0, r);
+  float phase = waveR * 3.5 - uTime * 0.84;
+  vec2 first = gravityPacket(waveR, uTime, uPulses.x);
+  vec2 second = gravityPacket(waveR, uTime, uPulses.y);
+  float tension = (0.035 * sin(phase) * exp(-r * 0.12) + 0.065 * (first.x + second.x)) * smoothstep(0.4, 1.0, r);
+  vCrest = pow(max(0.0, cos(phase)), 9.0);
+  vPacket = max(first.y, second.y);
   // Pointer proximity dents the fabric slightly, like touched material.
   float dent = -0.05 * uPointerStrength * exp(-pow(distance(p.xz, uPointer.xz) / 0.55, 2.0));
   p.y = depth + tension + dent;
@@ -281,69 +292,34 @@ varying float vViewDist;
 varying vec2 vXZ;
 varying float vY;
 varying float vRing;
-
-const float R_MAX = ${WELL.radius.toFixed(1)};
-
-/**
- * Screen-space-stable line: widthPx is the half-width in pixels, so the
- * lattice reads as constant monofilament at any distance or zoom, with
- * sub-pixel anti-aliasing; where cells compress below the pixel grid the
- * line dissolves smoothly instead of shimmering into moiré.
- */
-float lineMask(float coord, float widthPx) {
-  float w = max(fwidth(coord), 1e-4);
-  float px = (0.5 - abs(fract(coord) - 0.5)) / w;
-  float m = 1.0 - smoothstep(widthPx - 0.7, widthPx + 0.7, px);
-  return m * clamp(1.6 - 2.2 * w, 0.0, 1.0);
+varying float vCrest;
+varying float vPacket;
+float lineMask(float coord) {
+  float w = max(fwidth(coord), 0.0001);
+  float px = (0.5-abs(fract(coord)-0.5))/w;
+  return (1.0-smoothstep(0.05,1.15,px))*clamp(1.6-2.2*w,0.0,1.0);
 }
-
 void main() {
-  // Contours compress toward the throat: sample radius through a power
-  // curve so rings tighten where gravity steepens. A major line every
-  // fifth ring gives the lattice a drawn, instrument-like rhythm.
-  float rn = pow(vR / R_MAX, 0.62);
-  float cIdx = rn * 26.0;
-  float contour = max(
-    lineMask(cIdx, 0.5 + 0.4 * (1.0 - rn)) * 0.8,
-    lineMask(cIdx / 5.0, 0.8 + 0.5 * (1.0 - rn)));
-  // Radial filaments — the pull lines — converge into the centre, with
-  // a stronger filament every sixth.
-  float fIdx = (vTheta / 6.2831853) * 48.0;
-  float filament = max(lineMask(fIdx, 0.5) * 0.75, lineMask(fIdx / 6.0, 0.7));
-  // Hover: the filament nearest the woken body strengthens.
-  float dTheta = abs(atan(sin(vTheta - uHoverTheta), cos(vTheta - uHoverTheta)));
-  float hoverBoost = uHoverStrength * exp(-pow(dTheta / 0.35, 2.0)) * filament;
-
-  float lattice = max(contour * (0.95 + 0.3 * (1.0 - rn)), filament * 0.75);
-  // The fabric dissolves before its geometric rim, and recedes with
-  // distance — the far side softens, the near side stays present.
-  float rimFade = smoothstep(R_MAX * 0.98, R_MAX * 0.52, vR);
-  float innerFade = smoothstep(0.16, 0.34, vR);
-  float distanceFade = mix(1.0, 0.5, smoothstep(4.5, 9.5, vViewDist));
-  // Contact shading: the throat holds a little more ink where the core
-  // presses into the fabric, and each body prints a soft shadow onto
-  // the lattice as it passes close to the surface.
-  float throat = 1.0 + 0.5 * (1.0 - smoothstep(0.3, 1.3, vR));
+  // Broad cartesian cells bend with the actual displaced surface. The
+  // travelling crests reveal the fabric without filling it like water.
+  vec2 grid = vXZ / 0.68;
+  float lattice = max(lineMask(grid.x), lineMask(grid.y));
+  float fade = (1.0-smoothstep(2.7,4.95,vR))*smoothstep(0.25,0.65,vR);
+  fade *= mix(1.0,0.65,smoothstep(5.5,12.0,vViewDist));
   float contact = 0.0;
-  for (int i = 0; i < 10; i += 1) {
-    float horizontal = exp(-pow(distance(vXZ, uBodies[i].xz) / 0.5, 2.0));
-    float vertical = clamp(1.0 - abs(uBodies[i].y - vY) / 1.1, 0.0, 1.0);
-    contact += horizontal * vertical;
+  for (int i=0; i<10; i++) {
+    contact += exp(-pow(distance(vXZ,uBodies[i].xz)/0.45,2.0)) * clamp(1.0-abs(uBodies[i].y-vY)/0.7,0.0,1.0);
   }
-  contact = min(contact, 0.6);
-
-  float alpha = lattice * rimFade * innerFade * distanceFade * throat * (1.0 + 0.8 * contact)
-    * (0.34 + 0.12 * uWake) * uOpacity + hoverBoost * 0.3 * uOpacity;
-  // The lines glow along the crest and in the throat while the burst is
-  // live. Line-masked, so it lights the lattice itself and never a disc;
-  // pulled at most halfway toward the event's colour, so the graphite
-  // reads as lit rather than tinted.
-  float glow = lattice * rimFade * innerFade * distanceFade
-    * (0.5 * vRing * uRingLight + 0.35 * uThroat * exp(-pow(vR / 1.1, 2.0)));
-  alpha += glow;
-  vec3 ink = mix(uInk, uBurstColor, min(0.5, 0.6 * (vRing * uRingLight + uThroat)));
-  if (alpha < 0.004) discard;
-  gl_FragColor = vec4(ink, alpha);
+  float theta = abs(atan(sin(vTheta-uHoverTheta),cos(vTheta-uHoverTheta)));
+  float hover = uHoverStrength*exp(-pow(theta/0.28,2.0));
+  float alpha = lattice*(0.07+vCrest*0.19+vPacket*0.25+hover*0.12+min(contact,1.0)*0.06);
+  alpha += vCrest*0.052 + vPacket*0.12;
+  alpha += lattice*(vRing*uRingLight*0.5 + uThroat*0.18*exp(-vR*vR));
+  alpha *= fade * uOpacity * (1.0+uWake*0.25);
+  vec3 ink = mix(vec3(0.48,0.56,0.67),uInk,clamp(vPacket+vRing*uRingLight,0.0,1.0));
+  ink = mix(ink,uBurstColor,min(0.3,uThroat*0.4));
+  if (alpha<0.004) discard;
+  gl_FragColor = vec4(ink,alpha);
 }
 `;
 
@@ -380,6 +356,8 @@ type SceneProps = {
    * jumped. Written every frame, read once, only under a live burst.
    */
   handoff?: MutableRefObject<SceneHandoff | null>;
+  onReady?: () => void;
+  onFailure?: () => void;
 };
 
 export type SceneHandoff = {
@@ -469,9 +447,16 @@ function OrbitScene({
     return geometry;
   }, [narrow]);
 
+  useEffect(() => () => membraneGeometry.dispose(), [membraneGeometry]);
+
+  const pulses = useMemo(() => ({ value: new THREE.Vector2(-100, -100) }), []);
+  const dust = useMemo(() => createGravityDust(pulses), [pulses]);
+  useEffect(() => () => dust.dispose(), [dust]);
+
   const membraneUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
+      uPulses: pulses,
       uReveal: { value: 0 },
       uPointer: { value: new THREE.Vector3(99, 0, 99) },
       uPointerStrength: { value: 0 },
@@ -489,7 +474,7 @@ function OrbitScene({
         value: Array.from({ length: 10 }, () => new THREE.Vector3(99, 0, 99)),
       },
     }),
-    [],
+    [pulses],
   );
 
   const membraneMaterial = useMemo(
@@ -504,6 +489,8 @@ function OrbitScene({
       }),
     [membraneUniforms],
   );
+
+  useEffect(() => () => membraneMaterial.dispose(), [membraneMaterial]);
 
   const orbitPaths = useMemo(
     () =>
@@ -569,6 +556,10 @@ function OrbitScene({
     hover: null as string | null,
     hoverEase: new Map<string, number>(),
     coreWake: 0,
+    time: 0,
+    viewportWidth: 0,
+    viewportHeight: 0,
+    viewportNarrow: narrow,
     capture: null as Capture | null,
     /** Where a pointer went down, before it is known to be a drag. */
     pressOrigin: null as { x: number; y: number; id: number } | null,
@@ -929,6 +920,12 @@ function OrbitScene({
         s.lastInteraction = performance.now() / 1000;
       }
     };
+    const pulse = () => {
+      if (s.capture || goldenIsRunning()) return;
+      field.dispatchEvent(new Event("orbit-resume", { bubbles: true }));
+      pulses.value.set(pulses.value.y, s.time);
+    };
+    field.addEventListener("orbit-pulse", pulse);
     const endPress = (complete: boolean) => {
       // A press is a click on whichever planet it landed on when it
       // went down. The planet keeps orbiting between press and release,
@@ -941,6 +938,7 @@ function OrbitScene({
       const nervous = s.pressTravel < CLICK_SLOP_PX && held < CLICK_MAX_MS;
       // No upper limit on how long a press is held: a slow, still press
       // is a deliberate one. Only a drag that stayed a drag is not a click.
+      if (complete && s.pressTravel < CLICK_SLOP_PX && !press && !s.capture && !goldenIsRunning()) pulse();
       if (complete && press && (!s.dragging || nervous)) {
         startCaptureRef.current(press.id);
       }
@@ -965,6 +963,7 @@ function OrbitScene({
     field.addEventListener("pointercancel", onPointerCancel);
     field.addEventListener("pointerleave", onPointerLeave);
     return () => {
+      field.removeEventListener("orbit-pulse", pulse);
       observer.disconnect();
       for (const remove of removers) remove();
       field.removeEventListener("pointerdown", onPointerDown, true);
@@ -977,7 +976,7 @@ function OrbitScene({
         label.style.opacity = "0";
       });
     };
-  }, [field, gl, bodies, elements, setFrameloop]);
+  }, [field, gl, bodies, elements, setFrameloop, pulses]);
 
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const groundPlane = useMemo(
@@ -1116,8 +1115,22 @@ function OrbitScene({
   useFrame((rootState, rawDelta) => {
     adoptBodies();
     const s = state.current;
-    const dt = Math.min(rawDelta, 0.05);
-    const now = rootState.clock.elapsedTime;
+    const layoutChanged = s.viewportWidth !== size.width || s.viewportHeight !== size.height || s.viewportNarrow !== narrow;
+    if (layoutChanged) {
+      s.viewportWidth = size.width;
+      s.viewportHeight = size.height;
+      s.viewportNarrow = narrow;
+      s.measured.clear();
+      s.anchors.clear();
+      s.labelAt.clear();
+      s.pending.clear();
+      s.lockedUntil.clear();
+    }
+    const paused = field.closest<HTMLElement>(".orbit-portal-field")?.dataset.paused === "true";
+    const dt = paused && !s.capture && !goldenIsRunning() && s.assembly >= 1 && !s.dragging
+      ? 0 : Math.min(rawDelta, 0.05);
+    s.time += dt;
+    const now = s.time;
     const lerpIn = (rate: number) => Math.min(1, dt * rate);
 
     /**
@@ -1293,7 +1306,7 @@ function OrbitScene({
     // sprung offset with inertia and a clamped vertical range; after
     // four quiet seconds the offset eases home and the drift resumes.
     s.drift += dt * 0.02;
-    if (!s.dragging) {
+    if (!s.dragging && !paused) {
       s.targetOffsetAzimuth += s.azimuthVelocity;
       s.targetOffsetPolar += s.polarVelocity;
       s.azimuthVelocity *= 0.9;
@@ -1318,7 +1331,7 @@ function OrbitScene({
     // distance cropped the outer planets on tall portrait screens.
     // This also responds immediately to rotation and window resizing.
     const aspect = size.width / Math.max(size.height, 1);
-    const distance = 7.4 * Math.max(1, 1.45 / aspect) + (1 - s.reveal) * 1.1;
+    const distance = 7.4 * Math.max(1, (narrow ? 0.97 : 1.45) / aspect) + (1 - s.reveal) * 1.1;
     const azimuth = s.drift + s.offsetAzimuth + s.parallaxYaw;
     const polar = THREE.MathUtils.clamp(
       1.1 + s.offsetPolar + s.parallaxPitch,
@@ -1331,6 +1344,7 @@ function OrbitScene({
       distance * Math.sin(polar) * Math.cos(azimuth),
     );
     camera.lookAt(0, -0.42, 0);
+    if (narrow) camera.rotateZ(-Math.PI / 2);
 
     /* THE APPROVED CAMERA.
      *
@@ -1376,6 +1390,7 @@ function OrbitScene({
         camDistance * Math.sin(polar) * Math.cos(azimuth),
       );
       camera.lookAt(0, -0.42, 0);
+      if (narrow) camera.rotateZ(-Math.PI / 2);
       camera.translateX(g.camSlide[0] * (1 - back));
       camera.translateY(g.camSlide[1] * (1 - back));
       camera.rotateZ(THREE.MathUtils.degToRad(g.camRollDeg * (1 - back)));
@@ -1405,7 +1420,14 @@ function OrbitScene({
       gl.toneMappingExposure = BASE_EXPOSURE;
     }
 
+    // Projection must see this frame's camera, especially on a paused
+    // resize: Three normally refreshes the view matrix later, at render.
+    camera.updateMatrixWorld();
+
     // Membrane uniforms.
+    dust.uniforms.uTime.value = now;
+    dust.uniforms.uReveal.value = s.reveal * (goldenIsRunning() ? 0.15 : 1);
+    dust.uniforms.uPixelRatio.value = gl.getPixelRatio();
     membraneUniforms.uTime.value = now;
     membraneUniforms.uReveal.value = 1 - Math.pow(1 - s.reveal, 3);
     membraneUniforms.uOpacity.value = s.reveal;
@@ -1415,7 +1437,7 @@ function OrbitScene({
     // curve — so the section's system arrives on a membrane that is
     // still glowing — and sends the crest across it, trailing the blast
     // front the way a surface wave trails the light. A capture is the
-    // one event that moves spacetime here.
+    // stronger impulse, carried over the ambient spacetime motion.
     const burstT = flare ? (performance.now() - flare.at) / 1000 : -1;
     const burstLive = burstT > 0 && burstT < BURST_LIFE;
     const burstLight = burstLive ? lightCurve(burstT) : 0;
@@ -1609,7 +1631,7 @@ function OrbitScene({
        */
       const pathMaterial = pathMaterials.current[index];
       if (pathMaterial)
-        pathMaterial.opacity = 0.1 * s.reveal * smoothstep(0.45, 1, arrived);
+        pathMaterial.opacity = 0.038 * s.reveal * smoothstep(0.45, 1, arrived);
       // Feed the membrane's contact shading (first ten bodies).
       if (index < MAX_CONTACT_BODIES)
         membraneUniforms.uBodies.value[index].copy(scratch.v1);
@@ -1785,12 +1807,15 @@ function OrbitScene({
         (CORE_RADIUS * 1.2 * (height / 2)) /
         (Math.tan((40 * Math.PI) / 360) * cameraToCore);
 
-      if (now - s.placeAt > 0.14) {
+      if (layoutChanged || now - s.placeAt > 0.14) {
         s.placeAt = now;
-        const chosen = placeLabels(s.items, {
+        const portal = field.closest(".orbit-portal");
+        const top = portal?.querySelector(".orbit-portal-chrome")?.getBoundingClientRect().bottom ?? 16;
+        const bottom = portal ? (narrow ? 115 : 85) : 16;
+        const chosen = placeLabels(s.items.map((item) => ({ ...item, y: item.y - top })), {
           width,
-          height,
-          core: { x: coreScreenX, y: coreScreenY, radius: coreScreenPx },
+          height: height - top - bottom,
+          core: { x: coreScreenX, y: coreScreenY - top, radius: coreScreenPx },
           previous: s.anchors,
         });
         // Which labels are covering another one right now. The dwell
@@ -1859,7 +1884,7 @@ function OrbitScene({
       // Targets follow the anchor each label actually holds, recomputed
       // from its live position so a label tracks its planet continuously
       // between placement passes.
-      const ease = lerpIn(9);
+      const ease = layoutChanged ? 1 : lerpIn(9);
       // Move every nameplate first. What matters for legibility is where
       // the boxes actually are this frame, not where the placement pass
       // scored them a seventh of a second ago — the planets have moved
@@ -1921,7 +1946,7 @@ function OrbitScene({
         }
       }
 
-      const fade = lerpIn(5);
+      const fade = layoutChanged ? 1 : lerpIn(5);
       // What this frame drew, for the press model: each body's centre
       // and reach, and its nameplate's box unless the nameplate has
       // withdrawn — a name that is not on screen cannot be pressed.
@@ -2056,13 +2081,14 @@ function OrbitScene({
           color="#ffffff"
         />
       </Environment>
-      <directionalLight position={[-4, 7, 5]} intensity={1.5} />
-      <ambientLight intensity={0.55} />
+      <directionalLight position={[-4, 7, 5]} intensity={2.8} />
+      <ambientLight intensity={0.18} />
 
       {/* The deep field. Renders first, with depth off, so it is a
           backdrop rather than an object: it occludes nothing, receives
           nothing, and never enters the raycaster. */}
       <OrbitNebula narrow={narrow} flare={flare ?? null} />
+      <points geometry={dust.geometry} material={dust.material} frustumCulled={false} renderOrder={3} raycast={() => null} />
 
       {/* The burst at the core. Mounted last so it draws over the
           system it just tore a planet out of.
@@ -2104,31 +2130,14 @@ function OrbitScene({
         <meshPhysicalMaterial
           ref={coreMaterialRef}
           color={CORE_COLOR}
-          roughness={0.32}
+          roughness={0.52}
           metalness={0.12}
-          clearcoat={1}
+          clearcoat={0.25}
           clearcoatRoughness={0.22}
-          envMapIntensity={1.1}
+          envMapIntensity={0.55}
           transparent
         />
       </mesh>
-      {/* A whisper of smoked glass hugging the core: the lensing edge. */}
-      {!narrow && (
-        <mesh position={[0, CORE_Y, 0]} renderOrder={3} raycast={() => null}>
-          <sphereGeometry args={[CORE_RADIUS * 1.12, 48, 48]} />
-          <meshPhysicalMaterial
-            color="#ffffff"
-            transmission={1}
-            thickness={0.45}
-            ior={1.5}
-            roughness={0.1}
-            transparent
-            opacity={0.38}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
-
       {/* Every comet trail in the scene: one geometry, one program, one
           draw call, written into by the frame loop. Never culled, because
           its bounding box is whatever the trails happen to span this frame
@@ -2218,11 +2227,11 @@ function OrbitScene({
                 bodyHeat.current.set(body.id, surface.uniforms.uHeat);
               }}
               color={body.color}
-              roughness={0.42}
-              metalness={0.05}
-              clearcoat={0.55}
-              clearcoatRoughness={0.35}
-              envMapIntensity={0.85}
+              roughness={0.88}
+              metalness={0}
+              clearcoat={0.025}
+              clearcoatRoughness={0.85}
+              envMapIntensity={0.3}
               transparent
             />
           </mesh>
@@ -2268,11 +2277,11 @@ function OrbitScene({
             if (material) applyPlanetSurface(material, planetSeed("keeper"));
           }}
           color="#000000"
-          roughness={0.42}
-          metalness={0.05}
-          clearcoat={0.55}
-          clearcoatRoughness={0.35}
-          envMapIntensity={0.85}
+          roughness={0.88}
+          metalness={0}
+          clearcoat={0.025}
+          clearcoatRoughness={0.85}
+          envMapIntensity={0.3}
           transparent
           opacity={0}
           depthWrite={false}
@@ -2283,7 +2292,30 @@ function OrbitScene({
   );
 }
 
+function CanvasLifecycle({ onReady, onFailure }: Pick<SceneProps, "onReady" | "onFailure">) {
+  const { gl } = useThree();
+  const ready = useRef(false);
+  const frame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useFrame(() => {
+    if (!ready.current) {
+      ready.current = true;
+      // The following animation frame runs after this frame has painted.
+      frame.current = requestAnimationFrame(() => onReady?.());
+    }
+  });
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const lost = (event: Event) => { event.preventDefault(); onFailure?.(); };
+    canvas.addEventListener("webglcontextlost", lost);
+    return () => canvas.removeEventListener("webglcontextlost", lost);
+  }, [gl, onFailure]);
+  return null;
+}
+
 export function OperatingOrbit3D({
+  onReady,
+  onFailure,
   field,
   narrow,
   bodies,
@@ -2313,6 +2345,7 @@ export function OperatingOrbit3D({
           (distance fading and line dissolve) instead, and bloom is a
           no-op on white paper — additive highlights cannot exceed the
           page. */}
+      <CanvasLifecycle onReady={onReady} onFailure={onFailure} />
       <OrbitScene
         field={field}
         narrow={narrow}

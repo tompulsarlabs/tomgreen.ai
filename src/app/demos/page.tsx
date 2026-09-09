@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { demos } from '@/lib/content/demos';
 import styles from './demos.module.css';
 
 export const metadata: Metadata = {
@@ -7,11 +8,6 @@ export const metadata: Metadata = {
   description: 'Try the AI products I’m building: opportunity discovery and candidate fit, a way to check agentic work, and team AI fluency.',
   alternates: { canonical: '/demos' },
 };
-const demos = [
-  { name: 'Radar', category: 'EXECUTIVE RECRUITING', title: 'Find the roles you’re missing.', copy: 'Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.', href: '/demos/interview', action: 'Explore Radar', note: '6-step guided journey · Fictional candidate', tone: 'radar' },
-  { name: 'Ivy', category: 'AGENTIC WORK', title: 'Give nontechnical teams a clearer way to check agentic work.', copy: 'Compare two example agent changes, inspect the evidence, and see why a cheaper run is not always a better result.', href: '/demos/ivy', action: 'Explore Ivy', note: 'Interactive showcase · Fictional evaluation results', tone: 'ivy' },
-  { name: 'Sybil', category: 'AI FLUENCY', title: 'See where a team stands with AI—and what to improve.', copy: 'Explore an assessment conversation, capability profile, learning plan, team insights and a progress readout.', href: '/demos/sybil', action: 'Explore Sybil', note: '7 feature stops · Google sign-in · Fictional data', tone: 'sybil' },
-];
 export default function DemosPage() {
   return <div className={styles.hub}>
     <Link href="/" className={styles.back}>← Back to tomgreen.ai</Link>

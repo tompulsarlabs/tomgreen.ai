@@ -32,16 +32,16 @@ export type OrbitBody = {
 
 /** Mineral planet tones, cycled across a page's headers. */
 export const PLANET_PALETTE = [
-  "#d4b26a", // saturn gold
-  "#c1653f", // mars rust
-  "#5b8bc9", // earth blue
-  "#7ba36a", // terrestrial green
-  "#6fb0b8", // ice
-  "#c9b489", // venus ivory
-  "#7f8c9a", // slate
-  "#a4714e", // sandstone
-  "#8a8378", // lunar basalt
-  "#7d8894", // iron
+  "#e5e3dc", // lunar chalk
+  "#b9937c", // oxidised stone
+  "#adc3d0", // glacial slate
+  "#b2b1a0", // pale olivine
+  "#ced9dc", // ice
+  "#cbbca5", // sandstone
+  "#b4bbc2", // silver basalt
+  "#ae9181", // ironstone
+  "#a3a098", // volcanic ash
+  "#bdc4cd", // pale iron
 ];
 
 export function planetColor(index: number): string {
@@ -71,7 +71,7 @@ export function displayLabel(label: string, keepCase = false): string {
  * planets read as one size with noise.
  */
 export function defaultBodySize(index: number): number {
-  return 0.104 + 0.05 * hash(index * 17 + 7);
+  return 0.22 + 0.105 * hash(index * 17 + 7);
 }
 
 /**

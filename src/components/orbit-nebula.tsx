@@ -1,20 +1,14 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Flare } from "@/components/orbit-flare";
 import { BURST_LIFE, lightCurve, thermal } from "@/lib/supernova";
 import { goldenBurstTime, goldenIsRunning, goldenRenderTime, goldenShotTime, goldenTakesChildren } from "@/lib/golden-path-store";
 import { captureSkyOpacity } from "@/lib/capture-continuity";
 
-/**
- * Hubble's Veil Nebula behind the planetary map. The photograph supplies
- * the gas, dust and stars; the scene supplies restrained camera parallax
- * and the capture's light echo. Source and CC BY 4.0 credit are recorded
- * in public/images/nebula/README.md and displayed inside the portal.
- * One texture sample replaces the old full-screen noise field.
- */
+/** A quiet, layered space field. Capture light uses the existing shot clock. */
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -29,9 +23,6 @@ const vertexShader = /* glsl */ `
 const fragmentShader = /* glsl */ `
   precision highp float;
   varying vec2 vUv;
-  uniform sampler2D uSky;
-  uniform float uImageReady;
-  uniform float uImageAspect;
   uniform vec2 uResolution;
   uniform vec2 uParallax;
   uniform float uOpacity;
@@ -44,24 +35,14 @@ const fragmentShader = /* glsl */ `
   void main() {
     float aspect = uResolution.x / max(uResolution.y, 1.0);
     vec2 p = (vUv - 0.5) * vec2(aspect, 1.0);
-    vec3 ground = vec3(0.020, 0.027, 0.051);
-    vec3 sky = vec3(0.0);
-    if (uImageReady > 0.5) {
-      // Cover, never stretch. A little overscan leaves room for the
-      // camera to drift without exposing or repeating an image edge.
-      vec2 cover = vec2(min(1.0, aspect / uImageAspect),
-                        min(1.0, uImageAspect / aspect));
-      vec2 uv = (vUv - 0.5) * cover * 0.96 + 0.5;
-      uv += clamp(uParallax, vec2(-1.0), vec2(1.0)) * 0.012;
-      sky = texture2D(uSky, uv).rgb;
-      // Keep the photograph's colour relationships and fine filaments.
-      // The core gets breathing room; the edges carry the richer detail.
-      sky = pow(sky, vec3(1.12)) * 0.68;
-      float centre = 1.0 - smoothstep(0.10, 0.66, length(p));
-      sky *= mix(1.0, 0.34, centre);
-      // A soft top falloff lets the controls sit over the same sky.
-      sky *= 1.0 - 0.60 * smoothstep(0.76, 1.0, vUv.y);
-    }
+    // Soft directional depth, with no visible image boundary or coloured
+    // nebula competing with the geological surfaces and navigation.
+    vec2 centre = vec2(0.17, 0.10) + uParallax * 0.006;
+    float haze = exp(-dot(p-centre, p-centre) * 1.8);
+    float shoulder = exp(-pow((p.y + p.x*0.12 + 0.22)/0.55, 2.0));
+    vec3 ground = vec3(0.023, 0.029, 0.037);
+    vec3 sky = vec3(0.052, 0.061, 0.074) * haze + vec3(0.010,0.012,0.016) * shoulder;
+    sky *= 1.0 - 0.3 * smoothstep(0.72, 1.0, vUv.y);
 
     float echo = uEcho * exp(-pow((length(p) - uEchoRadius) / 0.16, 2.0));
     float afterglow = uGlow / (1.0 + 6.0 * dot(p, p));
@@ -78,7 +59,6 @@ const smoothstep = (a: number, b: number, x: number) => {
 };
 
 export function OrbitNebula({
-  narrow,
   flare,
 }: {
   narrow: boolean;
@@ -100,9 +80,7 @@ export function OrbitNebula({
 
   const uniforms = useMemo(
     () => ({
-      uSky: { value: null as THREE.Texture | null },
-      uImageReady: { value: 0 },
-      uImageAspect: { value: 1 },
+
       uResolution: { value: new THREE.Vector2(1, 1) },
       uParallax: { value: new THREE.Vector2(0, 0) },
       uOpacity: { value: 0 },
@@ -114,35 +92,6 @@ export function OrbitNebula({
     }),
     [],
   );
-
-  useEffect(() => {
-    const material = materialRef.current;
-    if (!material) return;
-    const u = material.uniforms;
-    let cancelled = false;
-    u.uImageReady.value = 0;
-    fade.current = 0;
-    const texture = new THREE.TextureLoader().load(
-      `/images/nebula/veil-${narrow ? 1280 : 2560}.webp`,
-      (loaded) => {
-        if (cancelled) return;
-        // This un-tonemapped shader works directly in display RGB,
-        // matching the existing deep ground and burst compositing.
-        loaded.colorSpace = THREE.NoColorSpace;
-        u.uSky.value = loaded;
-        u.uImageAspect.value = loaded.image.width / loaded.image.height;
-        u.uImageReady.value = 1;
-      },
-      undefined,
-      () => { /* An unavailable image leaves the deep ground and planets intact. */ },
-    );
-    return () => {
-      cancelled = true;
-      u.uSky.value = null;
-      u.uImageReady.value = 0;
-      texture.dispose();
-    };
-  }, [narrow]);
 
   useFrame((state, delta) => {
     const material = materialRef.current;
@@ -168,7 +117,7 @@ export function OrbitNebula({
         : (performance.now() - flare.at) / 1000
       : -1;
     const remount = flare && burst < BURST_LIFE;
-    fade.current = remount ? 1 : Math.min(1, fade.current + (u.uImageReady.value ? delta * 0.55 : 0));
+    fade.current = remount ? 1 : Math.min(1, fade.current + delta * 0.8);
     // The photographic sky joins the capture from rest and returns with
     // the incoming system. The old 0.55 -> 1 handoff was a brightness cut.
     // Interrupted captures also recover gently from their last value.

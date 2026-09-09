@@ -1,56 +1,45 @@
 import * as THREE from "three";
 
 /**
- * Surface for the planets.
+ * Shared lunar microstructure, with independently seeded mineral geology.
+ * Local mipmapped LROC / LOLA maps retain real craters at small screen sizes.
+ * Five surface families give worlds different large-scale structure: lunar
+ * highlands, basalt, weathered sediment, frosted ice, and chalk basins.
  *
- * They were perfect spheres of one flat colour — snooker balls, not
- * worlds. The moon in the navigation island solves the same problem by
- * baking a full crater terrain into an octahedral map, which is right
- * for one object that is always on screen at a known size and wrong for
- * ten small bodies that are mostly a few dozen pixels across.
- *
- * So this patches the material rather than replacing it. The planets
- * keep their physically-based lighting, their environment reflections
- * and their clearcoat — all the things that make them read as solid —
- * and gain three things on top, computed procedurally on the unit
- * sphere in object space, so the surface turns with the body instead of
- * swimming across it:
- *
- *   ALBEDO. Mare and highland, modulating the mineral colour the body
- *   already carries rather than replacing it, so the palette is
- *   untouched.
- *
- *   RELIEF. The same height field bends the normal. There are no
- *   tangents on these spheres and no normal map to sample, so the
- *   gradient is taken from screen-space derivatives.
- *
- *   ROUGHNESS. Highlands scatter, lowlands hold a tighter highlight. A
- *   single roughness across a sphere is most of why an untextured
- *   planet reads as plastic: the specular stays a perfect disc.
- *
- * The one thing that decides whether this reads as terrain or as noise
- * is DETAIL AGAINST SIZE. A planet here spans roughly fifty pixels, so
- * a fixed set of octaves puts the finest one at about a pixel and a
- * half — under Nyquist, where a height field stops being a landscape
- * and becomes static that crawls as the body turns. So the pixel
- * footprint is measured on the unit sphere and the octave count is
- * derived from it, holding the finest feature at about four pixels
- * whatever the body's size or distance. Bodies far from the camera
- * quietly lose their fine grain and keep their continents.
- *
- * The relief is likewise expressed as a fraction of each body's own
- * radius rather than in view units, so a small planet is as rugged as a
- * large one instead of flattening out with distance.
- *
- * Each body passes its own seed, so no two planets share a surface. The
- * seed is a uniform rather than compiled in, so all ten share a single
- * compiled program.
+ * This remains a physical-material patch: the scene owns light and mineral
+ * colour, and capture owns uHeat. All bodies use the same compiled program.
  */
+let surfaceTextures:
+  | { albedo: THREE.Texture; elevation: THREE.Texture }
+  | undefined;
+
+function getSurfaceTextures() {
+  if (surfaceTextures) return surfaceTextures;
+
+  const loader = new THREE.TextureLoader();
+  const albedo = loader.load("/planetary/lroc-color-2k.jpg");
+  const elevation = loader.load("/planetary/lola-elevation-1k.jpg");
+  // Shared sampler uniforms, not material-owned maps. Keep this pair alive
+  // across world changes to avoid image decoding and repeated GPU uploads.
+  for (const texture of [albedo, elevation]) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = 4;
+  }
+  albedo.colorSpace = THREE.SRGBColorSpace;
+  elevation.colorSpace = THREE.NoColorSpace;
+  surfaceTextures = { albedo, elevation };
+  return surfaceTextures;
+}
 
 const PLANET_PARS = /* glsl */ `
   varying vec3 vPlanetObj;
   uniform float uSeed;
   uniform float uHeat;
+  uniform sampler2D uPlanetAlbedo;
+  uniform sampler2D uPlanetElevation;
 
   float pHash(vec3 p) {
     p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
@@ -70,50 +59,49 @@ const PLANET_PARS = /* glsl */ `
       f.z);
   }
 
-  /**
-   * fbm with a fractional octave count. The last octave fades in rather
-   * than appearing whole, so a planet drifting toward the camera gains
-   * detail continuously instead of popping.
-   */
+  // The final octave fades with pixel footprint, avoiding crawling grain.
   float pFbm(vec3 p, float octaves) {
     float sum = 0.0;
     float amp = 0.5;
     float norm = 0.0;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 4; i++) {
       float w = clamp(octaves - float(i), 0.0, 1.0);
-      if (w <= 0.0) break;
       sum += amp * w * pNoise(p);
       norm += amp * w;
-      p *= 2.07;   // off 2.0, so octaves never align into a grid
+      p = p.yzx * 2.07 + vec3(3.7, 1.9, 5.1);
       amp *= 0.5;
     }
-    return norm > 0.0 ? sum / norm : 0.0;
+    return sum / max(norm, 0.0001);
   }
 
-  /** Height in [0,1]: continents, with regolith on top while it resolves. */
-  float planetHeight(vec3 p, float octaves) {
-    vec3 q = p * 2.2 + vec3(uSeed, uSeed * 1.7, uSeed * 0.3);
-    float land = pFbm(q, octaves);
-    float grain = pFbm(q * 4.3, max(octaves - 2.0, 0.0));
-    return clamp(land * 0.80 + grain * 0.20, 0.0, 1.0);
+  vec3 planetDirection(vec3 p) {
+    // Rotation keeps poles and crater shapes intact, while giving each
+    // world its own orientation of the familiar lunar maria.
+    float a = uSeed * 1.618;
+    float b = uSeed * 0.723;
+    p.xz = mat2(cos(a), -sin(a), sin(a), cos(a)) * p.xz;
+    p.xy = mat2(cos(b), -sin(b), sin(b), cos(b)) * p.xy;
+    return p;
+  }
+
+  vec2 planetUv(vec3 p) {
+    return vec2(atan(p.z, p.x) / 6.28318530718 + 0.5,
+                asin(clamp(p.y, -1.0, 1.0)) / 3.14159265359 + 0.5);
+  }
+
+  // Correct longitude derivatives at the seam before choosing a mip.
+  // WebGL2 is required by the installed Three renderer.
+  vec2 planetUvGradient(vec2 gradient) {
+    gradient.x -= floor(gradient.x + 0.5);
+    return gradient;
   }
 `;
-
-/**
- * Relief as a fraction of the body's radius. Real cratered bodies sit
- * around a couple of per cent; this is higher because the planets are
- * small on screen and the light is soft.
- */
-const RELIEF = 0.22;
 
 export type PlanetSurfaceHandle = {
   uniforms: { uSeed: { value: number }; uHeat: { value: number } };
 };
 
-/**
- * Give one material a surface. Returns the handle holding its seed
- * uniform; calling twice on the same material returns the first one.
- */
+/** Idempotent: a ref reattachment retains the heat uniform being animated. */
 export function applyPlanetSurface(
   material: THREE.MeshPhysicalMaterial,
   seed: number,
@@ -130,8 +118,13 @@ export function applyPlanetSurface(
   const uniforms = { uSeed: { value: seed }, uHeat: { value: 0 } };
 
   material.onBeforeCompile = (shader) => {
+    // Compilation happens on the browser's renderer. Importing or applying
+    // the helper on the server never requests images or accesses the DOM.
+    const textures = getSurfaceTextures();
     shader.uniforms.uSeed = uniforms.uSeed;
     shader.uniforms.uHeat = uniforms.uHeat;
+    shader.uniforms.uPlanetAlbedo = { value: textures.albedo };
+    shader.uniforms.uPlanetElevation = { value: textures.elevation };
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -145,37 +138,73 @@ export function applyPlanetSurface(
 
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${PLANET_PARS}`)
-      // Albedo: modulate the body's own colour, never replace it. The
-      // footprint and octave count computed here are reused below —
-      // this chunk runs before both of the others.
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
          vec3 pN = normalize(vPlanetObj);
-         // Pixel footprint on the unit sphere, and the octave count that
-         // keeps the finest feature about four pixels across.
+         vec3 pDirection = planetDirection(pN);
          float pFootprint = max(length(dFdx(pN)), length(dFdy(pN)));
-         float pOctaves = clamp(log2(0.11 / max(pFootprint, 1e-4)), 1.0, 5.0);
-         float pH = planetHeight(pN, pOctaves);
-         // Mare are darker and slightly cooler; highlands lift a little.
-         float pMare = smoothstep(0.60, 0.32, pH);
-         diffuseColor.rgb *= mix(1.12, 0.70, pMare);
-         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.88, 0.92, 1.06), pMare * 0.5);`,
+         float pOctaves = clamp(log2(0.16 / max(pFootprint, 0.0001)), 1.0, 4.0);
+         vec2 pUv = planetUv(pDirection);
+         vec2 pUvDx = planetUvGradient(dFdx(pUv));
+         vec2 pUvDy = planetUvGradient(dFdy(pUv));
+         vec3 pMap = textureGrad(uPlanetAlbedo, pUv, pUvDx, pUvDy).rgb;
+         float pElevation = textureGrad(uPlanetElevation, pUv, pUvDx, pUvDy).r;
+         float pGrey = dot(pMap, vec3(0.2126, 0.7152, 0.0722));
+         float pLunar = clamp(0.16 + pGrey * 1.25, 0.22, 1.0);
+         vec3 pQ = pDirection * 2.7 + vec3(uSeed * 0.31, uSeed, uSeed * 0.17);
+         float pLand = pFbm(pQ, pOctaves);
+         float pFine = pFbm(pQ * 2.6, max(pOctaves - 1.0, 1.0));
+         float pFamily = floor(mod(uSeed * 15.0, 5.0));
+         float pH = pElevation;
+         float pReflectance = pLunar;
+         float pRoughness = 0.87;
+         vec3 pMineral = mix(vec3(0.86, 0.87, 0.88), diffuseColor.rgb, 0.60);
+
+         if (pFamily < 0.5) {
+           // Pale highlands, dark maria and bright impact rays.
+           pReflectance = pLunar * (0.94 + 0.12 * pLand);
+           pH = pElevation * 0.9 + pFine * 0.1;
+           pRoughness = 0.83 + 0.12 * pLunar;
+         } else if (pFamily < 1.5) {
+           // Basalt plains with lighter weathered mineral seams.
+           float pSeam = 1.0 - smoothstep(0.025, 0.08, abs(pLand - 0.48));
+           pReflectance = 0.38 + pLand * 0.28 + pLunar * 0.22 + pSeam * 0.10;
+           pH = pElevation * 0.45 + pLand * 0.25 + pSeam * 0.06;
+           pRoughness = 0.82 + 0.13 * pFine;
+           pMineral *= vec3(0.91, 0.95, 0.99);
+         } else if (pFamily < 2.5) {
+           // Stretched, nonperiodic mineral variation suggests sediment.
+           // It barely affects relief: real crater rims carry the form.
+           float pStrata = pFbm(pQ * vec3(0.65, 2.4, 0.65), pOctaves);
+           pReflectance = 0.25 + pLunar * 0.72 + (pStrata - 0.5) * 0.10;
+           pH = pElevation * 0.88 + pFine * 0.035 + pStrata * 0.01;
+           pRoughness = 0.88 + pStrata * 0.06;
+           pMineral *= mix(vec3(0.99, 0.96, 0.90), vec3(1.0), pLand);
+         } else if (pFamily < 3.5) {
+           // Frost softens highlands. Sparse darker depressions follow the
+           // actual height map instead of drawing noise-contour outlines.
+           float pFrost = smoothstep(0.28, 0.74, pFine * 0.35 + pLand * 0.65);
+           float pFissure = (1.0 - smoothstep(0.28, 0.48, pElevation)) *
+             smoothstep(0.51, 0.68, pFine);
+           pReflectance = 0.36 + pLunar * 0.60 + pFrost * 0.04 - pFissure * 0.035;
+           pH = pElevation * 0.60 + pFine * 0.025 - pFissure * 0.01;
+           pRoughness = 0.80 + pFrost * 0.09;
+           pMineral = mix(pMineral, vec3(0.80, 0.88, 0.95), 0.4);
+         } else {
+           // Chalk basins form a different continental structure to maria.
+           float pBasin = smoothstep(0.40, 0.62, pLand);
+           pReflectance = 0.55 + pLunar * 0.30 + pBasin * 0.15;
+           pH = pElevation * 0.62 + pBasin * 0.11 + pFine * 0.1;
+           pRoughness = 0.89 + pBasin * 0.08;
+         }
+         diffuseColor.rgb = pMineral * pReflectance;`,
       )
-      // Roughness: highlands scatter, lowlands hold a tighter highlight.
       .replace(
         "#include <roughnessmap_fragment>",
         `#include <roughnessmap_fragment>
-         roughnessFactor = clamp(roughnessFactor * (0.78 + 0.55 * pH), 0.05, 1.0);`,
+         roughnessFactor = clamp(mix(roughnessFactor, pRoughness, 0.82), 0.65, 1.0);`,
       )
-      // HEAT. A body falling into the core, or thrown back out of one, is
-      // hot - and a hot body glows at its limb first, where the line of
-      // sight grazes the surface and passes through the most of it. So the
-      // heat is added as emission rather than painted over the albedo, and
-      // weighted to the rim: the mineral colour stays readable underneath
-      // at every temperature, and the shape stays a lit sphere rather than
-      // becoming a white disc. Nothing changes at uHeat 0, which is where
-      // every planet sits for all but two seconds of its life.
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
@@ -186,30 +215,27 @@ export function applyPlanetSurface(
            totalEmissiveRadiance += pHot * uHeat * (0.28 + 1.6 * pRim);
          }`,
       )
-      // Relief. The tangent frame is three's own construction from the
-      // view position; the slope fed into it is the height gradient per
-      // unit of sphere radius, which is what makes the relief the same
-      // depth on a near body and a far one.
       .replace(
         "#include <normal_fragment_maps>",
         `#include <normal_fragment_maps>
          {
-           vec3 pSurf = - vViewPosition;
-           vec3 pSigmaX = normalize(dFdx(pSurf));
-           vec3 pSigmaY = normalize(dFdy(pSurf));
+           vec3 pSurf = -vViewPosition;
+           vec3 pSigmaX = dFdx(pSurf);
+           vec3 pSigmaY = dFdy(pSurf);
            vec3 pR1 = cross(pSigmaY, normal);
            vec3 pR2 = cross(normal, pSigmaX);
            float pDet = dot(pSigmaX, pR1);
-           vec2 pSlope = vec2(dFdx(pH), dFdy(pH)) / max(pFootprint, 1e-4) * ${RELIEF};
+           // Measured radius includes capture scaling. Relief is 1.8% of
+           // the sphere rather than amplifying into melted, noisy lobes.
+           float pRadius = (length(pSigmaX) + length(pSigmaY)) /
+             max(length(dFdx(pN)) + length(dFdy(pN)), 0.0001);
+           vec2 pSlope = vec2(dFdx(pH), dFdy(pH)) * pRadius * 0.018;
            vec3 pGrad = sign(pDet) * (pSlope.x * pR1 + pSlope.y * pR2);
            normal = normalize(abs(pDet) * normal - pGrad);
          }`,
       );
   };
-  // One key for every planet: the seed lives in a uniform, so the ten
-  // bodies share a single compiled program rather than forcing ten
-  // compiles of a full physical shader at scene mount.
-  material.customProgramCacheKey = () => "planet-surface";
+  material.customProgramCacheKey = () => "planet-surface-geology-v2";
   material.needsUpdate = true;
 
   const handle: PlanetSurfaceHandle = { uniforms };

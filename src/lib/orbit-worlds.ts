@@ -1,6 +1,7 @@
-import { projects } from "@/lib/content/building";
 import { career } from "@/lib/content/about";
 import { workProjects } from "@/lib/content/case-studies";
+import { demos } from "@/lib/content/demos";
+import { graphNodes, labNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { hasTestimonials, testimonials } from "@/lib/content/testimonials";
 import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
@@ -12,13 +13,12 @@ import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
  * only by clicking the moon, and it is the one place the whole system is
  * visible at once. So it earns a second level. Each planet is a section,
  * and inside each section its own bodies orbit that section's centre —
- * the projects inside Work, the builds inside the Lab, the chapters
+ * the projects inside Home, the records inside the Lab, the chapters
  * inside About, the channels inside Contact.
  *
- * Every body here is derived from content that already exists and is
- * already published elsewhere on the site. Nothing is authored twice: if
- * a case study is renamed in case-studies.ts, its moon here is renamed
- * with it, and there is exactly one place to fix it.
+ * Every body here points to content already published elsewhere on the
+ * site. Shared content supplies the records and their labels; destination
+ * tests compare the map with the pages and anchors the site renders.
  */
 
 export type OrbitWorld = {
@@ -58,13 +58,27 @@ const workBodies = orbit(
   0,
 );
 
+const labIds = new Set<string>(labNodeIds);
 const labBodies = orbit(
-  projects.map((project) => ({
-    id: `lab-${project.slug}`,
-    label: project.name,
-    href: `/building#${project.slug}`,
-  })),
+  graphNodes
+    .filter((node) => labIds.has(node.id))
+    .map((node) => ({
+      id: `lab-${node.id}`,
+      label: node.label,
+      href: `/building#${node.id}`,
+    })),
   2,
+);
+
+const demoBodies = orbit(
+  demos.map((demo) => ({
+    id: `demo-${demo.id}`,
+    label: demo.name,
+    href: demo.href,
+    external: demo.external,
+    keepCase: true,
+  })),
+  3,
 );
 
 const aboutBodies = orbit(
@@ -103,8 +117,9 @@ const voicesBodies = orbit(
  */
 export const orbitWorlds: OrbitWorld[] = [
   {
+    // Preserve the map/history identity while matching the site's Home label.
     id: "work",
-    label: "Work",
+    label: "Home",
     href: "/",
     note: "Operating records — the mandate, the system, the evidence.",
     bodies: workBodies,
@@ -113,8 +128,15 @@ export const orbitWorlds: OrbitWorld[] = [
     id: "lab",
     label: "Lab",
     href: "/building",
-    note: "What is being built right now, in public.",
+    note: "Products, operating methods and writing, in public.",
     bodies: labBodies,
+  },
+  {
+    id: "demos",
+    label: "Demos",
+    href: "/demos",
+    note: "Product experiences with curated examples and fictional data.",
+    bodies: demoBodies,
   },
   ...(hasTestimonials
     ? [

@@ -48,9 +48,9 @@ const BODY_PX = 38;
  * The solar system as navigation — every section lands here. The page's
  * headers are the planets, each on its own inclined ellipse around the
  * black hole: talent, the centre of gravity. The server renders the
- * system at rest as inline SVG whose labels are real links, so no-JS,
- * reduced-motion and Save-Data visitors navigate the same sky with zero
- * script; the WebGL scene replaces it only when motion is allowed, and
+ * system at rest with an inline SVG and readable destination links, so
+ * no-JS, reduced-motion and Save-Data visitors can navigate every route.
+ * The WebGL scene replaces it only after it is ready, and
  * clicking a planet there pulls it into the core before the site
  * travels. Bodies come from the page: each declares its own headers.
  */
@@ -165,7 +165,7 @@ export function OperatingOrbit({
     placed
       .filter(({ projected }) => projected.depth > nucleus.depth === behind)
       .map(({ body, projected, radius }) => (
-        <a key={body.id} href={targetHref(body.target)} aria-label={body.label}>
+        <a key={body.id} href={targetHref(body.target)} tabIndex={-1}>
           <g opacity={depthAlpha(projected.depth, 1, 0.38).toFixed(3)}>
             <circle
               cx={cx + projected.x}
@@ -190,10 +190,13 @@ export function OperatingOrbit({
 
   return (
     <nav className="orbit-field" aria-label="Orbit navigation">
+      <div className="orbit-fallback">
       <svg
         className="orbit-poster"
         viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
         preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
       >
         <defs>
           {/* Planetary sphere shading: a lit specular core into each
@@ -259,9 +262,26 @@ export function OperatingOrbit({
         </g>
         {planets(false)}
       </svg>
-      {/* The live scene hides the SVG and takes over these labels — the
+        <div className="orbit-fallback-menu">
+          <p className="orbit-fallback-heading">Choose a destination.</p>
+          <ul className="orbit-destinations">
+            {bodies.map((body) => (
+              <li key={body.id}>
+                <a
+                  className="orbit-destination"
+                  data-body={body.id}
+                  href={targetHref(body.target)}
+                >
+                  {displayLabel(body.label, body.keepCase)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      {/* The live scene hides the fallback and takes over these labels — the
           same links, repositioned by projection every frame. Hidden (and
-          out of the tab order) until the scene mounts. */}
+          out of the tab order) until the scene is ready. */}
       <div className="orbit-labels">
         {bodies.map((body) => (
           <a
@@ -283,7 +303,7 @@ export function OperatingOrbit({
       <OperatingOrbitLive
         bodies={bodies}
         onCapture={onCapture}
-      onPress={onPress}
+        onPress={onPress}
         flare={flare}
         handoff={handoff}
       />
