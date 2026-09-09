@@ -305,7 +305,7 @@ test.describe("live scene resilience", () => {
   });
 
   test("Pause holds rendered pixels and Pulse resumes visible motion", async ({ page }, testInfo) => {
-    test.setTimeout(240_000);
+    test.setTimeout(sceneTimeout * 5);
     await page.goto(originPage);
     const portal = await openMap(page);
     await readyPlanet(portal, "work");
@@ -319,21 +319,35 @@ test.describe("live scene resilience", () => {
     // Pause lets the initial arrival complete. Once settled, two actual
     // canvas captures separated in time must be pixel-identical; checking
     // a button label or a frozen JS clock alone would not prove this.
-    const stillCanvas = async (timeout = 15_000) => {
+    const stillCanvas = async (stage: string) => {
       let image: Buffer | undefined;
       await expect.poll(async () => {
-        const before = await canvas.screenshot();
+        const started = Date.now();
+        console.log(`${stage}: first capture started`);
+        const before = await canvas.screenshot({ timeout: sceneTimeout });
+        const captured = Date.now();
+        console.log(`${stage}: first capture completed in ${captured - started}ms`);
         await page.waitForTimeout(350);
-        const after = await canvas.screenshot();
+        // The live canvas renders every animation frame. On a software
+        // GPU, 350ms alone can photograph the same unfinished frame twice.
+        await page.evaluate(() => new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }));
+        console.log(`${stage}: second capture started`);
+        const after = await canvas.screenshot({ timeout: sceneTimeout });
         image = after;
-        return before.equals(after);
-      }, { timeout, intervals: [350] }).toBe(true);
+        const equal = before.equals(after);
+        console.log(`${stage}: first capture ${captured - started}ms; frame pair ${Date.now() - started}ms; identical=${equal}`);
+        return equal;
+      }, { timeout: sceneTimeout, intervals: [350] }).toBe(true);
       return image!;
     };
     // Work's label can be ready before the last planet has arrived. The
-    // software renderer needs the same arrival allowance as other live
-    // journeys; once assembled, resizing retains the shorter deadline.
-    let pausedImage = await stillCanvas(sceneTimeout);
+    // software renderer needs the same allowance as other live journeys.
+    // A resize also rebuilds the GPU surface: CI exhausted the old 15s
+    // deadline before even one screenshot pair could finish, rather than
+    // reporting differing pixels. Every phase keeps exact pixel equality.
+    let pausedImage = await stillCanvas("initial paused map");
     await testInfo.attach("paused-canvas", { body: pausedImage, contentType: "image/png" });
 
     // A paused clock must not freeze layout: the phone rotates the scene
@@ -370,7 +384,7 @@ test.describe("live scene resilience", () => {
         return errors;
       }, viewport);
       await expect.poll(labelErrors, { timeout: 10_000, intervals: [250] }).toEqual([]);
-      pausedImage = await stillCanvas();
+      pausedImage = await stillCanvas(`paused ${viewport.width}x${viewport.height}`);
       // Verify again after the resize has produced a stable frame: the
       // media-query orientation update may follow the canvas size update.
       await expect.poll(labelErrors, { timeout: 10_000, intervals: [250] }).toEqual([]);
@@ -386,7 +400,7 @@ test.describe("live scene resilience", () => {
     await expect.poll(async () => {
       const moving = await canvas.screenshot();
       return pausedImage.equals(moving);
-    }, { timeout: 5_000, intervals: [250] }).toBe(false);
+    }, { timeout: sceneTimeout, intervals: [250] }).toBe(false);
     await testInfo.attach("after-pulse-canvas", { body: await canvas.screenshot(), contentType: "image/png" });
     await portal.getByRole("button", { name: closeName }).click();
     await expectDismissed(page);
