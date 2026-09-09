@@ -19,9 +19,15 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
   terrain, lunar highlands, gas belts, fractured ice and ocean/cloud worlds. Only
   the lunar family uses the locally hosted NASA LROC/LOLA maps. Attribution is in
   `public/planetary/ASSET-CREDITS.md`.
-- The central core absorbs light, with a thin asymmetric photon edge rather than
-  glossy reflections. A restrained, desaturated portion of the original Veil
-  Nebula returns around the slate field's edges, with visible source attribution.
+- The central event horizon sits at the bottom of a real curved 3D basin, with
+  silver filaments winding down its walls. The surrounding membrane has a deeper
+  throat and illuminated contours; camera drag reveals the actual perspective. A visible white
+  Veil Nebula flows slowly behind the field and responds to pulses and capture,
+  using the shared paused scene clock. Source attribution remains visible.
+- Selected planets sweep inward on an accelerating curve, retaining their surface
+  until late tidal stretching. The first approach lasts 1.4 seconds (0.9 on repeat
+  journeys); later cinematic beats keep their pace. Full/compact sequences are
+  5.88/3.81 seconds. Core light and nearby gas respond during the fall.
 - The approved moon study guides the motion: bounded wandering around composed
   positions, surface libration, and a small damped recoil as each pulse reaches a
   planet. Drag settles where the visitor leaves it. Travelling light reveals the
@@ -35,7 +41,7 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
   name persists when moving between systems.
 - The map includes Home, Lab, Demos, About and Contact. Demos shares its catalogue
   with the actual hub; Lab includes every published record. Stable existing body IDs,
-  capture timings, real links and browser-history behaviour are preserved.
+  real links and browser-history behaviour are preserved.
 - The static destination list remains until the canvas is ready, and returns on
   context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
   The decorative core label cannot pass clicks through to a nearby planet.
@@ -47,7 +53,7 @@ at 393px. Phone rotation returned the paused composition upright, and all three
 paused-frame comparisons were pixel-identical. Physical iOS-device rendering is
 still for Tom to review; these checks used Chromium.
 
-The previous branch head `7600a43` passed protected-branch CI (115 E2E tests).
+The previous branch head `985da09` passed protected-branch CI.
 Tom's subsequent iOS and design feedback reopened this pass; the revised design
 is for preview review and the live release is held. Current CI is recorded in
 [PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).

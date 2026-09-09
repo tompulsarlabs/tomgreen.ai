@@ -25,6 +25,9 @@ const fragmentShader = /* glsl */ `
   varying vec2 vUv;
   uniform vec2 uResolution;
   uniform vec2 uParallax;
+  uniform float uTime;
+  uniform float uActivity;
+  uniform vec2 uPulses;
   uniform sampler2D uDistantSky;
   uniform float uDistantSkyReady;
   uniform float uDistantSkyAspect;
@@ -58,21 +61,37 @@ const fragmentShader = /* glsl */ `
                         min(1.0, uDistantSkyAspect / aspect));
       vec2 uv = (vUv - 0.5) * cover * 0.82 + vec2(0.50, 0.47);
       uv += clamp(uParallax, vec2(-1.0), vec2(1.0)) * 0.004;
-      vec3 distant = texture2D(uDistantSky, uv, 3.0).rgb;
+      // Silver gas drifts in layers; a pulse travels through the same field.
+      float pulse = 0.0;
+      for (int i = 0; i < 2; i++) {
+        float age = uTime - uPulses[i];
+        if (age > 0.0 && age < 8.0) {
+          float front = length(p) - age * 0.19;
+          pulse += sin(front * 26.0) * exp(-front * front * 48.0) * exp(-age * 0.3);
+        }
+      }
+      vec2 flow = vec2(sin(p.y * 5.0 + uTime * 0.09),
+                       cos(p.x * 4.0 - uTime * 0.07)) * 0.012;
+      flow += normalize(p + vec2(0.001)) * (pulse * 0.009 - uActivity * 0.018);
+      vec3 distant = texture2D(uDistantSky, uv + flow, 1.5).rgb;
+      vec3 farGas = texture2D(uDistantSky, uv * 0.73 + vec2(0.15, 0.12) - flow * 0.6, 2.5).rgb;
       float luminance = dot(distant, vec3(0.2126, 0.7152, 0.0722));
-      distant = mix(vec3(luminance), distant, 0.06) * vec3(0.72, 0.82, 0.94);
+      float farLight = dot(farGas, vec3(0.2126, 0.7152, 0.0722));
+      distant = vec3(0.96, 0.98, 1.0) *
+        (pow(luminance, 0.82) * 0.78 + farLight * 0.22);
       float rightEdge = smoothstep(0.30, 0.88, vUv.x) *
         exp(-pow((vUv.y - 0.38) / 0.39, 2.0));
       float lowerEdge = smoothstep(0.12, 0.72, vUv.x) *
         exp(-pow((vUv.y - 0.21) / 0.18, 2.0)) * 0.55;
       vec2 coreDistance = (vUv - vec2(0.48, 0.49)) / vec2(0.24, 0.22);
       float clearCore = 1.0 - 0.88 * exp(-dot(coreDistance, coreDistance) * 1.4);
-      float edge = max(rightEdge, lowerEdge) * clearCore;
+      float leftVeil = exp(-pow((p.y - p.x * 0.35 + 0.10) / 0.23, 2.0)) * 0.38;
+      float edge = max(max(rightEdge, lowerEdge), leftVeil) * clearCore;
       edge *= smoothstep(0.03, 0.17, vUv.y) *
         (1.0 - smoothstep(0.68, 0.88, vUv.y));
       // Added after the echo calculation, so its existing gas response
       // stays unchanged. The shared opacity still conducts the whole sky.
-      sky += distant * edge * 0.24;
+      sky += distant * edge * (0.78 + pulse * 0.10);
     }
     gl_FragColor = vec4(ground + sky * uOpacity, 1.0);
   }
@@ -86,8 +105,14 @@ const smoothstep = (a: number, b: number, x: number) => {
 
 export function OrbitNebula({
   flare,
+  clock,
+  pulses,
+  activity,
 }: {
   narrow: boolean;
+  clock: { value: number };
+  activity: { value: number };
+  pulses: { value: THREE.Vector2 };
   /** The live burst, if any: the field carries its light echo. */
   flare: Flare | null;
 }) {
@@ -107,6 +132,9 @@ export function OrbitNebula({
   const uniforms = useMemo(
     () => ({
       uResolution: { value: new THREE.Vector2(1, 1) },
+      uTime: clock,
+      uActivity: activity,
+      uPulses: pulses,
       uParallax: { value: new THREE.Vector2(0, 0) },
       uDistantSky: { value: null as THREE.Texture | null },
       uDistantSkyReady: { value: 0 },
@@ -118,7 +146,7 @@ export function OrbitNebula({
       uGlow: { value: 0 },
       uGlowColor: { value: new THREE.Color() },
     }),
-    [],
+    [clock, pulses, activity],
   );
 
   useEffect(() => {
@@ -175,8 +203,7 @@ export function OrbitNebula({
         : (performance.now() - flare.at) / 1000
       : -1;
     const remount = flare && burst < BURST_LIFE;
-    // This finite opening fade reaches exactly one. The filament has no
-    // separate clock or fade, so a settled pause also holds its pixels.
+    // This finite opening fade reaches exactly one. The flowing gas uses the scene clock, so a settled pause also holds its pixels.
     fade.current = remount ? 1 : Math.min(1, fade.current + delta * 0.8);
     // The photographic sky joins the capture from rest and returns with
     // the incoming system. The old 0.55 -> 1 handoff was a brightness cut.

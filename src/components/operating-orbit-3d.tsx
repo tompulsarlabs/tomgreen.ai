@@ -104,7 +104,7 @@ const INK = new THREE.Color("#dbe2ee");
 const CORE_COLOR = new THREE.Color("#141414");
 
 /** The membrane: level far out, collapsing into a throat at the core. */
-const WELL = { drop: 1.35, shoulder: 0.55, power: 1.6, radius: 5 };
+const WELL = { drop: 2.0, shoulder: 0.85, power: 1.6, radius: 5 };
 const wellDepth = (r: number) =>
   -WELL.drop * Math.pow(WELL.shoulder / (WELL.shoulder + r), WELL.power);
 
@@ -371,6 +371,10 @@ void main() {
   float hover = uHoverStrength*exp(-pow(theta/0.28,2.0));
   float alpha = lattice*(0.045+vCrest*0.17+vPacket*0.25+hover*0.12+min(contact,1.0)*0.06);
   alpha += vCrest*0.085 + vPacket*0.14;
+  // Curved concentric contours reveal the throat's actual depth.
+  float throat = exp(-pow(vR / 1.8, 2.0));
+  alpha += lineMask(vR / 0.22) * throat * 0.16;
+  alpha += lattice * throat * 0.13;
   alpha += lattice*(vRing*uRingLight*0.5 + uThroat*0.18*exp(-vR*vR));
   alpha *= fade * uOpacity * (1.0+uWake*0.25);
   vec3 ink = mix(vec3(0.48,0.56,0.67),uInk,clamp(vPacket+vRing*uRingLight,0.0,1.0));
@@ -435,6 +439,7 @@ const HANDOFF_FRESH_MS = 1000;
 type Capture = {
   id: string;
   progress: number;
+  turnAt: number;
   /** true while spiralling in; false while easing back out. */
   active: boolean;
   /**
@@ -762,6 +767,7 @@ function OrbitScene({
     s.capture = {
       id,
       progress: 0,
+      turnAt: 0,
       active: true,
       held: false,
       navigated: false,
@@ -1670,7 +1676,12 @@ function OrbitScene({
       const captured = s.capture?.id === body.id;
       const suction = captured ? captureEased : 0;
       // The spiral: as the planet falls it also runs faster around.
-      const speedBoost = captured ? 1 + 9 * (s.capture?.progress ?? 0) : 1;
+      const progress = captured ? (s.capture?.progress ?? 0) : 0;
+      // A deliberate swept approach, independent of the very slow idle orbit.
+      // Exact phase differences keep the curve intact on a slower phone.
+      const turn = 1.35 * Math.pow(progress, 2.2);
+      const captureStep = captured ? turn - (s.capture?.turnAt ?? 0) : 0;
+      if (captured && s.capture) s.capture.turnAt = turn;
       // Keep the authored arrangement: the worlds wander gently around
       // their places rather than eventually bunching at one side of a
       // full orbit. Exact sine differences are independent of frame rate.
@@ -1679,11 +1690,11 @@ function OrbitScene({
       const driftStep =
         0.10 * (Math.sin(poseTime * 0.16 + driftPhase) - Math.sin(previousPoseTime * 0.16 + driftPhase)) +
         0.035 * (Math.sin(poseTime * 0.29 + driftPhase * 1.3) - Math.sin(previousPoseTime * 0.29 + driftPhase * 1.3));
-      const angularVelocity = captured ? el.speed * speedBoost :
+      const angularVelocity = captured ? 2.97 * Math.pow(progress, 1.2) / CAPTURE_SECONDS :
         (0.016 * Math.cos(poseTime * 0.16 + driftPhase) +
          0.01015 * Math.cos(poseTime * 0.29 + driftPhase * 1.3)) * (1 - 0.4 * nextEase);
       const angle = (s.angles.get(body.id) ?? 0) +
-        (captured ? motionDt * angularVelocity : driftStep * (1 - 0.4 * nextEase));
+        (captured ? captureStep : driftStep * (1 - 0.4 * nextEase));
       s.angles.set(body.id, angle);
       const group = bodyRefs.current.get(body.id);
       if (!group) return;
@@ -1781,7 +1792,7 @@ function OrbitScene({
         emerged *
         s.reveal;
       const surface = bodyHeat.current.get(body.id);
-      if (surface) surface.value = glow * 0.85;
+      if (surface) surface.value = glow * (captured ? 0.38 + 0.47 * suction : 0.85);
       if (index < MAX_TRAILS) {
         trails.write(
           index,
@@ -1821,8 +1832,9 @@ function OrbitScene({
         // along the fall and squeezed across it — the tide across its
         // own width — and the stretch accelerates with the last of the
         // fall. It turns to face the core as it goes.
-        const along = 1 + 2.0 * suction;
-        const across = 1 - 0.55 * suction;
+        const tide = suction * suction;
+        const along = 1 + 1.1 * tide;
+        const across = 1 - 0.4 * tide;
         scratch.aim.position.copy(scratch.v1);
         scratch.aim.lookAt(scratch.core);
         group.quaternion.slerp(
@@ -2275,7 +2287,7 @@ function OrbitScene({
       {/* The deep field. Renders first, with depth off, so it is a
           backdrop rather than an object: it occludes nothing, receives
           nothing, and never enters the raycaster. */}
-      <OrbitNebula narrow={narrow} flare={flare ?? null} />
+      <OrbitNebula narrow={narrow} flare={flare ?? null} clock={membraneUniforms.uTime} pulses={pulses} activity={membraneUniforms.uWake} />
       <points geometry={dust.geometry} material={dust.material} frustumCulled={false} renderOrder={3} raycast={() => null} />
 
       {/* The burst at the core. Mounted last so it draws over the
@@ -2328,6 +2340,7 @@ function OrbitScene({
         radius={CORE_RADIUS}
         opacity={coreMaterialRef}
         clock={membraneUniforms.uTime}
+        activity={membraneUniforms.uWake}
       />
       {/* Every comet trail in the scene: one geometry, one program, one
           draw call, written into by the frame loop. Never culled, because
