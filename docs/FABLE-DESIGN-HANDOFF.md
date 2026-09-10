@@ -14,6 +14,8 @@ Reference craft bar: <https://lusion.co/>
 The approved moon study is being carried into the planetary navigation on
 `codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;
 the editorial Home, Lab, case studies, CV and demos keep their content and structure.
+Tom's final copy adjustment changes the Contact channel heading to
+“Choose the fastest route.”
 
 - Five distinct planetary families replace the repeated lunar treatment: iron
   terrain, lunar highlands, gas belts, fractured ice and ocean/cloud worlds. Only
