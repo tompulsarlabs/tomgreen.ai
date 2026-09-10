@@ -108,7 +108,7 @@ export default function ContactPage() {
         <div>
           <p className="record text-muted">Direct channels</p>
           <h2 id="contact-channels" className="axis-heading mt-3 max-w-sm">
-            Choose the fastest route.
+            Let’s talk.
           </h2>
         </div>
 
