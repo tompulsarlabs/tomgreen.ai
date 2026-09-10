@@ -9,7 +9,20 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Demos introduction — 10 September 2026
+
+Tom requested “A few things I’m building.” and removal of the adjacent
+“Open a demo and explore.” line. The introduction now uses one column, retaining
+the heading’s existing type scale and two-line break. Production webpack build
+(including TypeScript), lint and the 12-route content guard passed; the updated
+Demos page was visually reviewed in the browser.
+
 ## Radar intake copy — 10 September 2026
+
+Released through PR #56 as main `191ffbb4080925a48d5eba29027dfa972fb1e083`;
+production deployment `dpl_EUX8A41Bs2qVPUHuVanRDCqX5RvA` was verified Ready.
+Required CI passed with 300 unit and 119 browser tests; live Intake navigation
+and copy were verified.
 
 Tom requested a standalone name for Radar’s second step, since visitors may not
 know Sybil. The step is now “Intake” in its tabs, heading and bottom selector.
