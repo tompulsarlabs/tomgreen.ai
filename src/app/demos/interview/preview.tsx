@@ -6,7 +6,7 @@ import styles from '../demos.module.css';
 import ui from './journey.module.css';
 
 // Purpose-written public fixtures. No private prompts, heuristics or model calls.
-const steps = ['Your background', 'Sybil conversation', 'Context & spikes', 'Signals & fit', 'Your approach', 'Interview practice'];
+const steps = ['Your background', 'Intake', 'Context & spikes', 'Signals & fit', 'Your approach', 'Interview practice'];
 const dialogue = [
   { question: 'Let’s start with your work. Where would an AI assistant be useful this week?', options: ['Preparing a project update', 'Making sense of research', 'Planning a team workshop'], reply: ['A project update is a useful place to start. Let’s make the audience and the decision clear.', 'Research can give you a lot to work with. Let’s make sure the summary stays grounded in its sources.', 'A workshop has a clear audience and outcome. Let’s give the assistant enough context to help.'] },
   { question: 'Before you use the result, what would you want to check?', options: ['The facts and source material', 'Whether it fits the audience', 'Both, with a human review'], reply: ['Checking the source material helps you catch an answer that sounds right but isn’t.', 'The same answer can work for one audience and miss the point for another.', 'That combines accuracy with usefulness. A final human review helps put the result in context.'] },
@@ -56,26 +56,26 @@ export default function InterviewPreview() {
     <p>Opportunity discovery & candidate fit</p>
     <h1>Find the roles<br/>you’re missing.</h1>
     <p className={styles.coachIntro}>Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.</p>
-    <p className={styles.coachNote}>Start with Sybil. Follow one fictional candidate from their first conversation to their next opportunity.</p>
+    <p className={styles.coachNote}>Follow one fictional candidate from intake to their next opportunity.</p>
     <nav className={ui.steps} aria-label="Radar journey">{steps.map((label, i) => <button key={label} aria-current={i === step ? 'step' : undefined} onClick={() => go(i)}><span>{String(i + 1).padStart(2, '0')}</span>{label}</button>)}</nav>
     <div className={ui.surface}>
-      <div className={ui.topline}><span>RADAR × SYBIL</span><span>Fictional guided demo</span></div>
+      <div className={ui.topline}><span>RADAR</span><span>Fictional guided demo</span></div>
       <h2 ref={title} tabIndex={-1} className={ui.title}>{steps[step]}</h2>
       {step === 0 && <>
         <p className={ui.lead}>A useful conversation starts with context.</p>
-        <p>Sybil’s intake starts with a LinkedIn profile or career background, then a check of the company context.</p>
+        <p>Start with a LinkedIn profile or career background, then check the company context.</p>
         <div className={ui.grid}>
           <section className={ui.card}><span className={ui.eyebrow}>01 / PROFILE</span><h3>Meet Alex Morgan</h3><p>Product leader · fictional candidate</p><button className={ui.secondary} onClick={() => setBackground(true)}>{background ? 'Sample profile loaded ✓' : 'Use sample LinkedIn profile'}</button>{background && <dl><dt>Experience</dt><dd>Product discovery, customer research and cross-team delivery.</dd><dt>Recent work</dt><dd>Built an AI-assisted research workflow with source checks and human review.</dd><dt>Next direction</dt><dd>A product role with wider ownership and room to build.</dd></dl>}</section>
           <section className={ui.card}><span className={ui.eyebrow}>02 / COMPANY CONTEXT</span><h3>Fieldwork Studio</h3><p>A fictional software company serving product teams.</p><dl><dt>Work environment</dt><dd>Cross-functional team; growing use of AI in research and delivery.</dd><dt>Context check</dt><dd>Alex confirms the context before the conversation begins.</dd></dl><button className={ui.secondary} disabled={!background} onClick={() => setConfirmed(true)}>{confirmed ? 'Company context confirmed ✓' : 'Confirm sample context'}</button></section>
         </div>
-        <button className={ui.primary} disabled={!confirmed} onClick={() => go(1)}>Start Sybil conversation →</button>
+        <button className={ui.primary} disabled={!confirmed} onClick={() => go(1)}>Start intake →</button>
       </>}
       {step === 1 && <>
         <p className={ui.lead}>One question. Then the next useful question.</p>
-        <p className={ui.note}>The same sample conversation as the Sybil showcase. These responses are scripted; they do not assess you.</p>
-        <div className={ui.chat} aria-live="polite"><div className={ui.bubble}><b>Sybil</b><p>Hi Alex. I’ll use your product role to make this relevant to the work you do.</p></div>{dialogue.slice(0, Math.min(answers.length + 1, dialogue.length)).map((round, i) => <div key={round.question}><div className={ui.bubble}><b>Sybil</b><p>{round.question}</p></div>{answers[i] !== undefined && <><div className={`${ui.bubble} ${ui.response}`}><b>Alex · sample answer</b><p>{round.options[answers[i]]}</p></div><div className={ui.bubble}><b>Sybil</b><p>{round.reply[answers[i]]}</p></div></>}</div>)}</div>
+        <p className={ui.note}>Explore a sample intake conversation. These responses are scripted; they do not assess you.</p>
+        <div className={ui.chat} aria-live="polite"><div className={ui.bubble}><b>Intake assistant</b><p>Hi Alex. I’ll use your product role to make this relevant to the work you do.</p></div>{dialogue.slice(0, Math.min(answers.length + 1, dialogue.length)).map((round, i) => <div key={round.question}><div className={ui.bubble}><b>Intake assistant</b><p>{round.question}</p></div>{answers[i] !== undefined && <><div className={`${ui.bubble} ${ui.response}`}><b>Alex · sample answer</b><p>{round.options[answers[i]]}</p></div><div className={ui.bubble}><b>Intake assistant</b><p>{round.reply[answers[i]]}</p></div></>}</div>)}</div>
         {answers.length < dialogue.length ? <div className={ui.options} aria-label="Choose a sample response">{dialogue[answers.length].options.map((text, i) => <button key={text} onClick={() => setAnswers([...answers, i])}>{text}<span aria-hidden>↗</span></button>)}</div> : <div className={ui.callout}><h3>Carry the context forward.</h3><p>A full conversation explores the person’s work in more depth. The next screen shows a fixed example of the context Radar could use.</p><button className={ui.primary} onClick={() => go(2)}>Review Alex’s context →</button></div>}
-        <button className={ui.textButton} onClick={() => setAnswers([])}>Restart conversation</button>
+        <button className={ui.textButton} onClick={() => setAnswers([])}>Restart intake</button>
       </>}
       {step === 2 && <>
         <p className={ui.lead}>More than a title on a CV.</p>
