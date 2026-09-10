@@ -50,7 +50,7 @@ import { BURST_LIFE } from "@/lib/supernova";
  * body inside a section is the one that finally goes somewhere.
  */
 
-type View = { kind: "map" } | { kind: "section"; id: string };
+type View = { kind: "map" } | { kind: "section"; id: string } | { kind: "moon"; entry: import("./orbit-moon-study").MoonEntry };
 
 /**
  * How long the burst holds the screen before a capture travels to a
@@ -149,6 +149,15 @@ export function OrbitPortal() {
     openRef.current = open;
     viewRef.current = view;
   }, [open, view]);
+  const previousView = useRef(view.kind);
+  useEffect(() => {
+    const returningFromMoon = previousView.current === "moon" && view.kind === "map";
+    previousView.current = view.kind;
+    if (!open || (!returningFromMoon && view.kind !== "moon")) return;
+    const selector = view.kind === "moon" ? ".orbit-portal-back" : ".orbit-moon-trigger";
+    const frame = requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLButtonElement>(selector)?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open, view.kind]);
 
   /** Which of our steps the current entry is, or null if it is not ours. */
   const currentStep = useCallback(() => {
@@ -254,7 +263,7 @@ export function OrbitPortal() {
     const step = currentStep();
     const record = step === null ? undefined : views.current.get(step);
     if (
-      record?.view.kind === "section" &&
+      record && record.view.kind !== "map" &&
       record.path === window.location.pathname
     ) {
       window.history.back();
@@ -433,7 +442,7 @@ export function OrbitPortal() {
         }
         return;
       }
-      if (viewRef.current.kind === "section") stepUp();
+      if (viewRef.current.kind !== "map") stepUp();
       else dismiss();
     };
     document.addEventListener("keydown", onKeyDown, true);
@@ -681,23 +690,23 @@ export function OrbitPortal() {
       data-golden-labels={labelsHeld ? "held" : undefined}
       role="dialog"
       aria-modal="true"
-      aria-label={world ? `${world.label} — orbit` : "Planetary map"}
+      aria-label={view.kind === "moon" ? "Moon close-up" : world ? `${world.label} — orbit` : "Planetary map"}
       ref={dialogRef}
       tabIndex={-1}
     >
       <div className="orbit-portal-chrome">
         <p className="record orbit-portal-record">
-          {world
+          {view.kind === "moon" ? "The moon / close-up" : world
             ? `${displayLabel(world.label)} / system`
             : "The system / all of it"}
         </p>
         <p className="orbit-portal-note">
-          {world
+          {view.kind === "moon" ? "" : world
             ? world.note
             : "Every section, in orbit around talent. Choose one."}
         </p>
         <div className="orbit-portal-actions">
-          {world ? (
+          {view.kind !== "map" ? (
             <button
               type="button"
               className="orbit-portal-back"
@@ -761,6 +770,13 @@ export function OrbitPortal() {
           onPress={onPress}
           flare={flare}
           handoff={handoff}
+          moonEntry={view.kind === "moon" ? view.entry : null}
+          onMoonExpand={view.kind === "map" ? (entry) => {
+            const next: View = { kind: "moon", entry };
+            viewRef.current = next;
+            setView(next);
+            pushPortalStep(next);
+          } : undefined}
         />
         {/* Shock breakout, in the DOM rather than the scene: the scene
                 is torn down and rebuilt at the instant of capture, and the
@@ -777,7 +793,7 @@ export function OrbitPortal() {
         ) : null}
       </div>
       <div className="orbit-portal-footer" inert={goldenLive} aria-hidden={goldenLive || undefined}>
-        <p className="orbit-portal-hint">Drag to explore. Choose a planet.</p>
+        <p className="orbit-portal-hint">{view.kind === "moon" ? "Drag to turn. Click to release a pulse." : "Drag to explore. Choose a planet."}</p>
         <div className="orbit-portal-motion">
           <button type="button" onClick={() => {
             setPaused(false);

@@ -786,6 +786,12 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
    scene mounts the layer stays out of the document — the poster's SVG
    links are the navigation. */
 .orbit-labels { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; }
+.orbit-moon-trigger { position: absolute; left: 0; top: 0; z-index: 3; display: none; visibility: hidden; border: 0; border-radius: 50%; background: transparent; padding: 0; cursor: pointer; }
+.orbit-field[data-live="true"] .orbit-moon-trigger { display: block; }
+.orbit-moon-trigger span { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); color: #e7edf5; font-size: 12px; opacity: 0; transition: opacity 180ms; }
+.orbit-moon-trigger:hover span, .orbit-moon-trigger:focus-visible span { opacity: 1; }
+.orbit-moon-trigger:focus-visible { outline: 1px solid #dfe8f5; outline-offset: 5px; }
+.orbit-field[data-moon="true"] .orbit-labels { visibility: hidden; }
 .orbit-field[data-live="true"] .orbit-labels { display: block; }
 .orbit-label {
   position: absolute;

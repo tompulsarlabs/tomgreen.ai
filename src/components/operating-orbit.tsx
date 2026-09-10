@@ -1,3 +1,4 @@
+import type { MoonEntry } from "./orbit-moon-study";
 import { OperatingOrbitLive } from "./operating-orbit-live";
 import type { MutableRefObject } from "react";
 import type { Flare } from "@/components/orbit-flare";
@@ -60,8 +61,12 @@ export function OperatingOrbit({
   onPress,
   flare,
   handoff,
+  moonEntry,
+  onMoonExpand,
 }: {
   bodies: OrbitBody[];
+  moonEntry?: MoonEntry | null;
+  onMoonExpand?: (entry: MoonEntry) => void;
   /** Redirects a captured planet away from travel — see OrbitScene. */
   onCapture?: (id: string) => void;
   onPress?: (id: string) => void;
@@ -189,7 +194,7 @@ export function OperatingOrbit({
       ));
 
   return (
-    <nav className="orbit-field" aria-label="Orbit navigation">
+    <nav className="orbit-field" aria-label="Orbit navigation" data-moon={moonEntry ? "true" : undefined}>
       <div className="orbit-fallback">
       <svg
         className="orbit-poster"
@@ -300,12 +305,21 @@ export function OperatingOrbit({
           {displayLabel(NUCLEUS_LABEL)}
         </span>
       </div>
+      {onMoonExpand && !moonEntry ? <button
+        type="button" className="orbit-moon-trigger" aria-label="Explore the moon"
+        onClick={(event) => {
+          const button = event.currentTarget;
+          onMoonExpand({ x: Number(button.dataset.x ?? 0), y: Number(button.dataset.y ?? 0), radius: Number(button.dataset.radius ?? 12) });
+        }}
+      ><span>Moon</span></button> : null}
       <OperatingOrbitLive
         bodies={bodies}
         onCapture={onCapture}
         onPress={onPress}
         flare={flare}
         handoff={handoff}
+        moonEntry={moonEntry}
+        onMoonExpand={onMoonExpand}
       />
     </nav>
   );

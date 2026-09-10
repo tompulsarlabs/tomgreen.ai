@@ -20,6 +20,9 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, Line } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import { createGravityDust, wavePacketGLSL } from "@/lib/gravitational-field";
+import { createEnergyDiffusion } from "@/lib/energy-diffusion";
+import { createMoonMaterial } from "@/lib/moon-study-material";
+import { OrbitMoonStudy, type MoonEntry } from "@/components/orbit-moon-study";
 import { OrbitNebula } from "@/components/orbit-nebula";
 import { OrbitGravityCore } from "@/components/orbit-gravity-core";
 import { OrbitFlare, type Flare } from "@/components/orbit-flare";
@@ -381,6 +384,8 @@ type SceneProps = {
   field: HTMLElement;
   narrow: boolean;
   bodies: OrbitBody[];
+  moonEntry?: MoonEntry | null;
+  onMoonExpand?: (entry: MoonEntry) => void;
   /**
    * What a captured planet means. Left out, a capture travels to the
    * body's target, which is what every section page wants. Supplied,
@@ -452,6 +457,8 @@ function OrbitScene({
   onPress,
   flare,
   handoff,
+  moonEntry,
+  onMoonExpand,
 }: SceneProps) {
   const { camera, gl, size, invalidate } = useThree();
   const setFrameloop = useThree((state) => state.setFrameloop);
@@ -547,6 +554,15 @@ function OrbitScene({
   const pulses = useMemo(() => ({ value: new THREE.Vector2(-100, -100) }), []);
   const dust = useMemo(() => createGravityDust(pulses), [pulses]);
   useEffect(() => () => dust.dispose(), [dust]);
+  const diffusion = useMemo(() => createEnergyDiffusion(), []);
+  useEffect(() => () => diffusion.dispose(), [diffusion]);
+  const releaseSeen = useRef<number | null>(null);
+  const energyOrigin = useMemo(() => new THREE.Vector3(0, CORE_Y + 0.3, 0), []);
+  const satellite = useRef<THREE.Mesh>(null);
+  const mapGroup = useRef<THREE.Group>(null);
+  const satelliteMaterial = useMemo(() => createMoonMaterial(), []);
+  const satelliteNormal = useMemo(() => new THREE.Matrix4(), []);
+  useEffect(() => () => satelliteMaterial.dispose(), [satelliteMaterial]);
 
   const membraneUniforms = useMemo(
     () => ({
@@ -737,6 +753,7 @@ function OrbitScene({
   });
 
   const startCapture = (id: string) => {
+    if (field.dataset.moon === "true") return;
     const s = state.current;
     // Any capture, not only an active one: a held capture belongs to a
     // scene the portal is about to replace.
@@ -749,6 +766,13 @@ function OrbitScene({
     if (goldenIsRunning()) return;
     if (!bodyById.has(id)) return;
     if (!isInteractive(id)) return;
+    const selected = bodyRefs.current.get(id);
+    if (selected) {
+      selected.getWorldPosition(energyOrigin);
+      diffusion.release(energyOrigin, s.poseTime, narrow ? 0.65 : 0.8);
+      pulses.value.set(pulses.value.y, s.time);
+      s.posePulses.set(s.posePulses.y, s.poseTime);
+    }
     // A departure is not a capture. The gravity core cannot deliver anyone to
     // a mail client or another origin, so it does not take these bodies in at
     // all: no spiral, no filament, no event. The portal answers the press on
@@ -973,6 +997,8 @@ function OrbitScene({
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      if (field.dataset.moon === "true") return;
+      if ((event.target as Element)?.closest?.(".orbit-moon-trigger")) return;
       if (event.button !== 0 && event.pointerType === "mouse") return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
         return;
@@ -1005,6 +1031,7 @@ function OrbitScene({
       s.lastInteraction = performance.now() / 1000;
     };
     const onPointerMove = (event: PointerEvent) => {
+      if (field.dataset.moon === "true") return;
       const bounds = dom.getBoundingClientRect();
       const nx = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
       const ny = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
@@ -1036,10 +1063,13 @@ function OrbitScene({
       }
     };
     const pulse = () => {
+      if (field.dataset.moon === "true") return;
       if (s.capture || goldenIsRunning()) return;
       field.dispatchEvent(new Event("orbit-resume", { bubbles: true }));
       pulses.value.set(pulses.value.y, s.time);
       s.posePulses.set(s.posePulses.y, s.poseTime);
+      energyOrigin.set(0, CORE_Y + 0.55, 0);
+      diffusion.release(energyOrigin, s.poseTime, narrow ? 0.85 : 1.25);
     };
     field.addEventListener("orbit-pulse", pulse);
     const endPress = (complete: boolean) => {
@@ -1065,7 +1095,10 @@ function OrbitScene({
       s.lastInteraction = performance.now() / 1000;
       dom.style.cursor = s.hover && isInteractive(s.hover) ? "pointer" : "grab";
     };
-    const onPointerUp = () => endPress(true);
+    const onPointerUp = (event: PointerEvent) => {
+      if ((event.target as Element)?.closest?.(".orbit-moon-trigger")) return;
+      endPress(true);
+    };
     // A cancelled pointer is not a click.
     const onPointerCancel = () => endPress(false);
     const onPointerLeave = () => {
@@ -1092,7 +1125,7 @@ function OrbitScene({
         label.style.opacity = "0";
       });
     };
-  }, [field, gl, bodies, elements, setFrameloop, pulses, invalidate]);
+  }, [field, gl, bodies, elements, setFrameloop, pulses, invalidate, diffusion, energyOrigin, narrow]);
 
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const groundPlane = useMemo(
@@ -1232,6 +1265,8 @@ function OrbitScene({
   };
 
   useFrame((rootState, rawDelta) => {
+    if (mapGroup.current) mapGroup.current.visible = !moonEntry || field.dataset.moonReady !== "true";
+    if (moonEntry) return;
     adoptBodies();
     const s = state.current;
     const layoutChanged = s.viewportWidth !== size.width || s.viewportHeight !== size.height || s.viewportNarrow !== narrow;
@@ -1517,14 +1552,48 @@ function OrbitScene({
     // Projection must see this frame's camera, especially on a paused
     // resize: Three normally refreshes the view matrix later, at render.
     camera.updateMatrixWorld();
+    // A small, unlabelled companion orbits above the field. Its actual sphere
+    // owns the HTML hit target, including touch and keyboard activation.
+    if (satellite.current && onMoonExpand) {
+      const a = 0.78 + poseTime*0.065;
+      const r = narrow ? 2.75 : 3.05;
+      satellite.current.position.set(Math.cos(a)*r, 1.18+Math.sin(a*1.3)*0.12, Math.sin(a)*r);
+      satellite.current.rotation.set(0.08,-Math.PI/2+poseTime*0.11,-0.09);
+      const scale = (narrow ? 1.25 : 1) * smoothstep(0.45,0.95,s.assembly);
+      satellite.current.scale.setScalar(scale);
+      satellite.current.updateMatrixWorld();
+      satelliteNormal.multiplyMatrices(camera.matrixWorldInverse,satellite.current.matrixWorld);
+      satelliteMaterial.uniforms.uNormalM.value.setFromMatrix4(satelliteNormal);
+      const button = field.querySelector<HTMLButtonElement>(".orbit-moon-trigger");
+      if (button) {
+        energyOrigin.copy(satellite.current.position).project(camera);
+        const x = (energyOrigin.x+1)*size.width/2;
+        const y = (1-energyOrigin.y)*size.height/2;
+        const depth = satellite.current.position.distanceTo(camera.position);
+        const radius = 0.19*scale*size.height/(2*Math.tan(THREE.MathUtils.degToRad((camera as THREE.PerspectiveCamera).fov/2))*depth);
+        const visible = scale > 0.2 && !goldenIsRunning() && y > s.contentTop+24 && y < size.height-s.contentBottom-24;
+        button.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)`;
+        button.style.width = `${Math.max(44,radius*2.8)}px`;
+        button.style.height = button.style.width;
+        button.style.visibility = visible ? "visible" : "hidden";
+        button.tabIndex = visible ? 0 : -1;
+        button.dataset.x = String(energyOrigin.x);
+        button.dataset.y = String(energyOrigin.y);
+        button.dataset.radius = String(radius);
+      }
+    }
     // Keep the broad lunar key above-left in the visitor's view. The
     // cratered faces remain readable as the camera orbits the system.
     keyLightRef.current?.position.set(-4, 5, 7).applyQuaternion(camera.quaternion);
 
     // Membrane uniforms.
     dust.uniforms.uTime.value = now;
-    dust.uniforms.uReveal.value = s.reveal * (goldenIsRunning() ? 0.15 : 1);
+    dust.uniforms.uReveal.value = s.reveal;
     dust.uniforms.uPixelRatio.value = gl.getPixelRatio();
+    diffusion.uniforms.uTime.value = poseTime;
+    diffusion.uniforms.uPixelRatio.value = gl.getPixelRatio();
+    diffusion.uniforms.uViewport.value.set(size.width, size.height);
+    diffusion.uniforms.uOpacity.value = Math.max(s.reveal, goldenIsRunning() ? 0.95 : 0);
     membraneUniforms.uTime.value = now;
     membraneUniforms.uReveal.value = 1 - Math.pow(1 - s.reveal, 3);
     membraneUniforms.uOpacity.value = s.reveal;
@@ -1537,6 +1606,12 @@ function OrbitScene({
     // stronger impulse, carried over the ambient spacetime motion.
     const burstT = flare ? (flare.conducted ? (goldenIsRunning() ? goldenBurstTime() : -1) : (performance.now() - flare.at) / 1000) : -1;
     const burstLive = burstT > 0 && burstT < BURST_LIFE;
+    if (burstLive && flare && releaseSeen.current !== flare.at) {
+      releaseSeen.current = flare.at;
+      energyOrigin.set(0, CORE_Y + 0.35, 0);
+      diffusion.release(energyOrigin, poseTime, narrow ? 0.95 : 1.4);
+      pulses.value.set(pulses.value.y, now);
+    }
     const burstLight = burstLive
       ? (flare?.conducted ? smoothstep(0, 0.45, burstT) * (1 - smoothstep(0.8, 3.2, burstT)) : lightCurve(burstT)) : 0;
     captureSignal.value = burstLive ? burstT : -1;
@@ -2210,7 +2285,7 @@ function OrbitScene({
   };
 
   return (
-    <group>
+    <group ref={mapGroup}>
       {/* Studio: one large soft key, a broad fill, a restrained rim —
           built as light-formers so the glass and graphite have real
           reflections, with no texture fetched from anywhere. */}
@@ -2237,12 +2312,17 @@ function OrbitScene({
       </Environment>
       <directionalLight ref={keyLightRef} position={[-4, 5, 7]} intensity={3} />
       <ambientLight intensity={0.12} />
+      {onMoonExpand ? <mesh ref={satellite} material={satelliteMaterial} raycast={() => null}>
+        <sphereGeometry args={[0.19,72,48]} />
+      </mesh> : null}
 
       {/* The deep field. Renders first, with depth off, so it is a
           backdrop rather than an object: it occludes nothing, receives
           nothing, and never enters the raycaster. */}
       <OrbitNebula narrow={narrow} flare={flare ?? null} clock={membraneUniforms.uTime} pulses={pulses} activity={membraneUniforms.uWake} />
       <points geometry={dust.geometry} material={dust.material} frustumCulled={false} renderOrder={3} raycast={() => null} />
+      <points geometry={diffusion.points} material={diffusion.material} frustumCulled={false} renderOrder={4} raycast={() => null} />
+      <mesh geometry={diffusion.ribbons} material={diffusion.filamentMaterial} frustumCulled={false} renderOrder={4} raycast={() => null} />
 
       {/* Legacy non-conducted departures retain their fallback. Live captures
           compress the well and send light through its own geometry. */}
@@ -2469,6 +2549,8 @@ export function OperatingOrbit3D({
   onCapture,
   onPress,
   flare,
+  moonEntry,
+  onMoonExpand,
 }: SceneProps) {
   return (
     <Canvas
@@ -2500,7 +2582,10 @@ export function OperatingOrbit3D({
         onPress={onPress}
         flare={flare}
         handoff={handoff}
+        moonEntry={moonEntry}
+        onMoonExpand={onMoonExpand}
       />
+      {moonEntry ? <OrbitMoonStudy field={field} narrow={narrow} entry={moonEntry} /> : null}
     </Canvas>
   );
 }

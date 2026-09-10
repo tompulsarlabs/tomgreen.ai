@@ -1,5 +1,7 @@
 "use client";
 
+import type { MoonEntry } from "./orbit-moon-study";
+
 import dynamic from "next/dynamic";
 import {
   Component,
@@ -68,8 +70,12 @@ export function OperatingOrbitLive({
   onPress,
   flare,
   handoff,
+  moonEntry,
+  onMoonExpand,
 }: {
   bodies: OrbitBody[];
+  moonEntry?: MoonEntry | null;
+  onMoonExpand?: (entry: MoonEntry) => void;
   onCapture?: (id: string) => void;
   onPress?: (id: string) => void;
   /** The core burst, owned by the portal so it outlives this scene. */
@@ -180,6 +186,8 @@ export function OperatingOrbitLive({
             onPress={onPress}
             flare={flare}
             handoff={handoff}
+            moonEntry={moonEntry}
+            onMoonExpand={onMoonExpand}
             onReady={reportReady}
             onFailure={reportFailure}
           />

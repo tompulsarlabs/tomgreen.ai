@@ -9,7 +9,7 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
-## Current implementation — 9 September 2026
+## Current implementation — 10 September 2026
 
 The approved moon study is being carried into the planetary navigation on
 `codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;
@@ -51,16 +51,31 @@ the editorial Home, Lab, case studies, CV and demos keep their content and struc
 - The static destination list remains until the canvas is ready, and returns on
   context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
   The decorative core label cannot pass clicks through to a nearby planet.
+- A small moon now orbits the root map as an optional Easter egg. Selecting its
+  44px-minimum touch/keyboard target expands it from its actual screen position
+  into a large close-up, using the approved study's NASA surface material,
+  libration and gravitational waves. Drag turns it; click/tap or Pulse releases
+  energy. All sections, Escape and browser Back restore the map, its camera and
+  keyboard focus. The entire visit uses the same WebGL canvas.
+- Clicks release visible silver flecks and short curved filament trails at the
+  selected planet; the well releases a wider diffusion as capture resolves.
+  Ambient fragments keep their visibility during capture. The close-up shares
+  the same finite GPU effect, with particles starting at the lunar limb. Two
+  overlapping releases use two draw calls and follow the paused scene clock.
+  The map stops updating behind the close-up and stops drawing after expansion.
 
 Local verification of this revision: 289 unit tests, lint, TypeScript, production
-webpack build, the 12-route content guard and all 26 planetary/capture/page-arrival E2E tests
-passed. The final remnant fade was then rebuilt and rechecked through parent
-arrival, page arrival and exact paused pixels. Browser review covered the root map and dense Lab system on desktop and
-at 393px. Phone rotation returned the paused composition upright, and all three
-paused-frame comparisons were pixel-identical. Physical iOS-device rendering is
-still for Tom to review; these checks used Chromium.
+webpack build and the 12-route content guard passed. All 26 existing
+planetary/capture/page-arrival E2E checks passed. Both new moon E2E checks passed
+against the production server at 1440px and 393px after correcting their touch
+fixture and excluding the two Vercel-only analytics scripts from localhost
+console checks. They cover keyboard/touch opening, canvas identity, drag, pulse,
+exact paused pixels, Escape, browser Back/Forward and focus restoration.
+Browser review covered the root map, expanded moon and visible release on both
+viewports. Existing rotation and all three map paused-frame comparisons passed.
+Physical iOS-device rendering remains unverified; these checks used Chromium.
 
-The previous branch head `985da09` passed protected-branch CI.
+The previous branch head `d2abb86` passed protected-branch CI.
 Tom's subsequent iOS and design feedback reopened this pass; the revised design
 is for preview review and the live release is held. Current CI is recorded in
 [PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
