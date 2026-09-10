@@ -97,8 +97,8 @@ describe("planet styling", () => {
     const sizes: number[] = [];
     for (let index = 0; index < 10; index += 1) {
       const size = defaultBodySize(index);
-      expect(size).toBeGreaterThanOrEqual(0.104);
-      expect(size).toBeLessThanOrEqual(0.154);
+      expect(size).toBeGreaterThanOrEqual(0.22);
+      expect(size).toBeLessThanOrEqual(0.325);
       sizes.push(size);
     }
     // The band is bounded above AND below in spread: wide enough that

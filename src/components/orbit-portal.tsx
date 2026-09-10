@@ -4,12 +4,7 @@ import { useRouter } from "next/navigation";
 import { ROUTE_AT, STILL_AT, TYPO_IN } from "@/lib/golden-path";
 import { SWAP_AT } from "@/lib/capture-release";
 import { SHOT_END } from "@/lib/capture-core";
-import {
-  getGoldenAssets,
-  goldenAssetsReady,
-  prefetchGoldenPath,
-  releaseGoldenAssets,
-} from "@/lib/golden-path-assets";
+import { resolveTier } from "@/lib/golden-path-assets";
 import {
   abortGoldenPath,
   armGoldenPath,
@@ -55,7 +50,7 @@ import { BURST_LIFE } from "@/lib/supernova";
  * body inside a section is the one that finally goes somewhere.
  */
 
-type View = { kind: "map" } | { kind: "section"; id: string };
+type View = { kind: "map" } | { kind: "section"; id: string } | { kind: "moon"; entry: import("./orbit-moon-study").MoonEntry };
 
 /**
  * How long the burst holds the screen before a capture travels to a
@@ -93,6 +88,7 @@ export function OrbitPortal() {
   const [flare, setFlare] = useState<Flare | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [departing, setDeparting] = useState(false);
+  const [paused, setPaused] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const travelTimer = useRef(0);
   const leaveTimer = useRef(0);
@@ -153,6 +149,15 @@ export function OrbitPortal() {
     openRef.current = open;
     viewRef.current = view;
   }, [open, view]);
+  const previousView = useRef(view.kind);
+  useEffect(() => {
+    const returningFromMoon = previousView.current === "moon" && view.kind === "map";
+    previousView.current = view.kind;
+    if (!open || (!returningFromMoon && view.kind !== "moon")) return;
+    const selector = view.kind === "moon" ? ".orbit-portal-back" : ".orbit-moon-trigger";
+    const frame = requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLButtonElement>(selector)?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open, view.kind]);
 
   /** Which of our steps the current entry is, or null if it is not ours. */
   const currentStep = useCallback(() => {
@@ -186,9 +191,6 @@ export function OrbitPortal() {
       setView({ kind: "map" });
       viewRef.current = { kind: "map" };
       pushPortalStep({ kind: "map" });
-      // The map has opened: start paying for the decode now, so the press
-      // that may come in a few seconds does not have to.
-      prefetchGoldenPath();
     });
   }, [pushPortalStep]);
 
@@ -202,11 +204,6 @@ export function OrbitPortal() {
       if (getGoldenState().pushed) finishGoldenPath();
       else abortGoldenPath("escape");
     }
-    // The package belongs to the open portal, not to a capture. One decode
-    // pays for every capture at every level of the hierarchy, and it is
-    // returned here - the one moment there is certainly no next capture -
-    // rather than at the end of a shot that a nested one is about to follow.
-    releaseGoldenAssets();
     // The clock goes back to rest: left in "done" it answers T_END for the
     // shot's whole absence, which is a trap for anything that reads it
     // without first asking whether a shot is running.
@@ -266,7 +263,7 @@ export function OrbitPortal() {
     const step = currentStep();
     const record = step === null ? undefined : views.current.get(step);
     if (
-      record?.view.kind === "section" &&
+      record && record.view.kind !== "map" &&
       record.path === window.location.pathname
     ) {
       window.history.back();
@@ -317,9 +314,6 @@ export function OrbitPortal() {
       viewRef.current = restored;
       setOpen(true);
       setView(restored);
-      // Reopened from history: the package was handed back when the portal
-      // closed, so the next capture needs it fetched again.
-      prefetchGoldenPath();
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -448,7 +442,7 @@ export function OrbitPortal() {
         }
         return;
       }
-      if (viewRef.current.kind === "section") stepUp();
+      if (viewRef.current.kind !== "map") stepUp();
       else dismiss();
     };
     document.addEventListener("keydown", onKeyDown, true);
@@ -472,7 +466,38 @@ export function OrbitPortal() {
   }, [open]);
 
   useEffect(() => {
-    if (open) dialogRef.current?.focus();
+    if (!open) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.focus();
+    // aria-modal alone doesn't stop keyboard focus reaching the page.
+    // Derive the current controls each press: systems and visibility change.
+    const containFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex="0"]',
+      )).filter((element) => {
+        const style = getComputedStyle(element);
+        return element.tabIndex >= 0 && element.getClientRects().length > 0 &&
+          style.visibility !== "hidden" && Number(style.opacity) > 0.1 && !element.closest('[inert]');
+      });
+      const first = controls[0];
+      const last = controls[controls.length-1];
+      if (!first || !last) { event.preventDefault(); dialog.focus(); return; }
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === dialog || !dialog.contains(active))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (active === last || active === dialog || !dialog.contains(active))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    const resume = () => setPaused(false);
+    dialog.addEventListener("orbit-resume", resume);
+    dialog.addEventListener("keydown", containFocus);
+    return () => {
+      dialog.removeEventListener("orbit-resume", resume);
+      dialog.removeEventListener("keydown", containFocus);
+    };
   }, [open]);
 
   // A pending travel must not outlive the portal: closing by Escape or
@@ -506,11 +531,9 @@ export function OrbitPortal() {
   }, [bodies]);
 
   /**
-   * A press the scene accepted. The capture engine arms here and nowhere else,
-   * and only if it can be drawn this instant: arming is a synchronous decision
-   * from what is already decoded, so a press never waits on media. Anything
-   * unready, and this returns silently and the site's existing procedural
-   * transition runs untouched.
+   * The live field is ready as soon as its planet can be pressed. There is
+   * no media gate or decoder to wait for; reduced-motion and Save-Data keep
+   * their existing static path.
    *
    * WHICH bodies it arms for is not a decision this file makes. It asks the
    * planet model how the node resolves and plays the event for the two
@@ -519,7 +542,8 @@ export function OrbitPortal() {
    * change to this function.
    */
   const onPress = useCallback((id: string) => {
-    if (!goldenAssetsReady()) return;
+    const tier = resolveTier();
+    if (tier === "none") return;
     const ending = captureEndingFor(id);
     // An external leaf is a departure rather than a capture, and a
     // non-interactive body is not a control. Neither arms.
@@ -528,7 +552,7 @@ export function OrbitPortal() {
       bodyId: id,
       href: ending.kind === "paper" ? ending.href : null,
       fromPath: window.location.pathname,
-      tier: getGoldenAssets().tier,
+      tier,
       ending: ending.kind,
       // The full event is the first one of a session; every nested capture
       // after it plays the same event on the compact clock.
@@ -561,17 +585,9 @@ export function OrbitPortal() {
         return;
       }
 
-      // DETONATE FIRST, whatever happens next, and for every capture the site
-      // takes. This is the cause: the core has the planet, and what follows is
-      // the core's answer to it. The engine does not stand this down and
-      // replace it with baked gas - the baked material is the release and the
-      // aftermath, and playing it instead of this is what turns a capture into
-      // a planet vanishing into fog. The engine only takes over its clock.
-      //
-      // The flare is state here rather than inside the scene because a capture
-      // that travels replaces the scene outright — the burst has to belong to
-      // the thing that survives, so the tear-down happens inside its
-      // brightest frame.
+      // The event belongs to the portal so the outgoing and arriving
+      // systems share one clock. Conducted captures feed the live well;
+      // legacy captures retain their fallback response.
       const conducted = goldenIsBody(id);
       const at = performance.now();
       // The plane the planet fell from, from the same elements the
@@ -674,23 +690,23 @@ export function OrbitPortal() {
       data-golden-labels={labelsHeld ? "held" : undefined}
       role="dialog"
       aria-modal="true"
-      aria-label={world ? `${world.label} — orbit` : "Planetary map"}
+      aria-label={view.kind === "moon" ? "Moon close-up" : world ? `${world.label} — orbit` : "Planetary map"}
       ref={dialogRef}
       tabIndex={-1}
     >
       <div className="orbit-portal-chrome">
         <p className="record orbit-portal-record">
-          {world
+          {view.kind === "moon" ? "The moon / close-up" : world
             ? `${displayLabel(world.label)} / system`
             : "The system / all of it"}
         </p>
         <p className="orbit-portal-note">
-          {world
+          {view.kind === "moon" ? "" : world
             ? world.note
             : "Every section, in orbit around talent. Choose one."}
         </p>
         <div className="orbit-portal-actions">
-          {world ? (
+          {view.kind !== "map" ? (
             <button
               type="button"
               className="orbit-portal-back"
@@ -724,6 +740,7 @@ export function OrbitPortal() {
         // before its canvas exists; under a live burst that frame is grey
         // planets beneath a white flash. Hidden while the burst is live.
         data-burst={flare ? "true" : undefined}
+        data-paused={paused ? "true" : undefined}
         // A nameplate is a real link, because the poster fallback
         // needs it to be. But on the map inside the portal a click
         // must descend, never travel — and the WebGL scene that
@@ -753,6 +770,13 @@ export function OrbitPortal() {
           onPress={onPress}
           flare={flare}
           handoff={handoff}
+          moonEntry={view.kind === "moon" ? view.entry : null}
+          onMoonExpand={view.kind === "map" ? (entry) => {
+            const next: View = { kind: "moon", entry };
+            viewRef.current = next;
+            setView(next);
+            pushPortalStep(next);
+          } : undefined}
         />
         {/* Shock breakout, in the DOM rather than the scene: the scene
                 is torn down and rebuilt at the instant of capture, and the
@@ -760,7 +784,7 @@ export function OrbitPortal() {
                 its first frame. The brightest sixty milliseconds of the
                 event would fall into that gap; a compositor animation
                 cannot. Keyed by the detonation, so a new burst restarts it. */}
-        {flare ? (
+        {flare && !flare.conducted ? (
           <div
             key={flare.at}
             className="orbit-portal-breakout"
@@ -768,10 +792,25 @@ export function OrbitPortal() {
           />
         ) : null}
       </div>
-      <p className="orbit-portal-credit">
-        Veil Nebula · <a href="https://esahubble.org/images/potw2113a/" target="_blank" rel="noreferrer">ESA/Hubble &amp; NASA, Z. Levay</a>
-        {" · "}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
-      </p>
+      <div className="orbit-portal-footer" inert={goldenLive} aria-hidden={goldenLive || undefined}>
+        <p className="orbit-portal-hint">{view.kind === "moon" ? "Drag to turn. Click to release a pulse." : "Drag to explore. Choose a planet."}</p>
+        <div className="orbit-portal-motion">
+          <button type="button" onClick={() => {
+            setPaused(false);
+            dialogRef.current?.querySelector(".orbit-field")?.dispatchEvent(new Event("orbit-pulse"));
+          }}>Pulse ↗</button>
+          <button type="button" aria-pressed={paused} onClick={() => setPaused((value) => !value)}>
+            {paused ? "Resume motion" : "Pause motion"}
+          </button>
+        </div>
+        <p className="orbit-portal-credit">
+          <a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noreferrer">NASA lunar data</a>
+          {" · "}
+          <a href="https://esahubble.org/images/potw2113a/" target="_blank" rel="noreferrer">Veil: ESA/Hubble &amp; NASA, Z. Levay</a>
+          {" · "}
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
+        </p>
+      </div>
     </div>
   );
 }

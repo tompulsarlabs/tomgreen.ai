@@ -49,6 +49,12 @@ async function descend(portal: Locator, id: string) {
 test("a parent resolves into its own system, inside the portal, off one event", async ({
   page,
 }) => {
+  // The live capture must work without requesting either retired video plate.
+  const retiredMedia: string[] = [];
+  page.on("request", (request) => {
+    if (/\/golden-path\/.*\.(mp4|webm)/.test(request.url())) retiredMedia.push(request.url());
+  });
+  await page.route("**/golden-path/*", (route) => route.abort());
   const portal = await openPortal(page);
   await expect(portal).toHaveAttribute("data-view", "map");
 
@@ -65,6 +71,7 @@ test("a parent resolves into its own system, inside the portal, off one event", 
   await expect(page).toHaveURL("/building");
   await expect(portal).not.toHaveAttribute("data-golden-labels", "held");
   await expect(portal).not.toHaveAttribute("data-golden", "true", { timeout: 90_000 });
+  expect(retiredMedia).toEqual([]);
 });
 
 test("the released system arrives complete: every child named, and pressable", async ({
@@ -218,6 +225,7 @@ test("a decorative body is not a control, however hard it is pressed", async ({ 
   await expect(portal.locator('a.orbit-label[data-body="talent"]')).toHaveCount(0);
   const plate = portal.locator('.orbit-label[data-body="talent"]');
   await expect(plate).toHaveCount(1);
+  await expect(plate).toHaveCSS("pointer-events", "auto");
 
   const settled = async () => {
     await page.waitForTimeout(1_500);
@@ -235,7 +243,7 @@ test("a decorative body is not a control, however hard it is pressed", async ({ 
   // press lands on a planet that is plainly the frontmost thing under the
   // cursor and capturing it is right - so a test clicking there was asserting
   // orbital phase, and was one arrival's worth of timing away from failing.
-  await plate.click({ force: true });
+  await plate.click();
   await settled();
 
   // And empty space: the corner of the field, outside every orbit, where
@@ -257,9 +265,22 @@ test("one canvas and one system, however many times the hierarchy is walked", as
   const canvases = async () => page.evaluate(() => document.querySelectorAll("canvas").length);
   const before = await canvases();
   expect(before).toBeGreaterThan(0);
+  const coreLabel = portal.locator('.orbit-label[data-body="talent"]');
+  const expectCoreLabel = async () => {
+    await expect.poll(() => coreLabel.evaluate((label) =>
+      Number(getComputedStyle(label).opacity)), { timeout: 30_000 }).toBeGreaterThan(0.5);
+    const box = await coreLabel.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+  };
 
   for (const round of [1, 2, 3]) {
     await descend(portal, "contact");
+    await expectCoreLabel();
     expect(await canvases(), `descent ${round}`).toBe(before);
     // Decoders are texture sources rather than page elements, so a package
     // rebuilt per capture would show up here as an element that should not
@@ -268,6 +289,7 @@ test("one canvas and one system, however many times the hierarchy is walked", as
 
     await page.goBack();
     await expect(portal).toHaveAttribute("data-view", "map", { timeout: 60_000 });
+    await expectCoreLabel();
     expect(await canvases(), `return ${round}`).toBe(before);
     // The map came back whole, not as the residue of the system it left.
     const bodies = await portal

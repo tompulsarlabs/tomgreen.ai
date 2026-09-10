@@ -9,6 +9,81 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Current implementation — 10 September 2026
+
+The approved moon study is being carried into the planetary navigation on
+`codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;
+the editorial Home, Lab, case studies, CV and demos keep their content and structure.
+Tom's final copy adjustment changes the Contact channel heading to
+“Let’s talk.”
+
+- Five distinct planetary families replace the repeated lunar treatment: iron
+  terrain, lunar highlands, gas belts, fractured ice and ocean/cloud worlds. Only
+  the lunar family uses the locally hosted NASA LROC/LOLA maps. Attribution is in
+  `public/planetary/ASSET-CREDITS.md`.
+- The central event horizon sits at the bottom of a real curved 3D basin, with
+  silver filaments winding down its walls. The surrounding membrane has a deeper
+  throat and illuminated contours; camera drag reveals the actual perspective. A visible white
+  Veil Nebula flows slowly behind the field and responds to pulses and capture,
+  using the shared paused scene clock. Source attribution remains visible.
+- Selected planets sweep inward on an accelerating curve, retaining their surface
+  until late tidal stretching. The first approach lasts 1.4 seconds (0.9 on repeat
+  journeys); later cinematic beats keep their pace. Full/compact sequences are
+  5.88/3.81 seconds. Core light and nearby gas respond during the fall.
+- The former blue volumetric/video release is replaced by a live field response:
+  compression at the throat, winding silver caustics, then an outward wave on
+  the actual membrane. The camera makes a restrained 16% inward move with mild
+  exposure change; it keeps the planet and surrounding system in context.
+  Captures no longer request video plates or depend on decoder readiness. A
+  clock-driven soft dissolve reveals the real document on page destinations.
+- The approved moon study guides the motion: bounded wandering around composed
+  positions, surface libration, and a small damped recoil as each pulse reaches a
+  planet. Drag settles where the visitor leaves it. Travelling light reveals the
+  curved field; silver fragments scatter with the same pulse. Pause holds the
+  rendered scene exactly; body poses also respect the cinematic's held clock.
+  Navigation remains usable while paused.
+- Portrait screens keep an upright orbital plane and fit it to the available
+  space. Phone bodies have more presence; labels clear the controls. Chrome/footer
+  resize and font completion refresh the fit even while the scene is paused.
+  Only visible names reserve label space; all spheres remain obstacles. The core's
+  name persists when moving between systems.
+- The map includes Home, Lab, Demos, About and Contact. Demos shares its catalogue
+  with the actual hub; Lab includes every published record. Stable existing body IDs,
+  real links and browser-history behaviour are preserved.
+- The static destination list remains until the canvas is ready, and returns on
+  context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
+  The decorative core label cannot pass clicks through to a nearby planet.
+- A small moon now orbits the root map as an optional Easter egg. Selecting its
+  44px-minimum touch/keyboard target expands it from its actual screen position
+  into a large close-up, using the approved study's NASA surface material,
+  libration and gravitational waves. Drag turns it; click/tap or Pulse releases
+  energy. All sections, Escape and browser Back restore the map, its camera and
+  keyboard focus. The entire visit uses the same WebGL canvas.
+- Clicks release visible silver flecks and short curved filament trails at the
+  selected planet; the well releases a wider diffusion as capture resolves.
+  Ambient fragments keep their visibility during capture. The close-up shares
+  the same finite GPU effect, with particles starting at the lunar limb. Two
+  overlapping releases use two draw calls and follow the paused scene clock.
+  The map stops updating behind the close-up and stops drawing after expansion.
+
+Local verification of this revision: 289 unit tests, lint, TypeScript, production
+webpack build and the 12-route content guard passed. All 26 existing
+planetary/capture/page-arrival E2E checks passed. Both new moon E2E checks passed
+against the production server at 1440px and 393px after correcting their touch
+fixture and excluding the two Vercel-only analytics scripts from localhost
+console checks. They cover keyboard/touch opening, canvas identity, drag, pulse,
+exact paused pixels, Escape, browser Back/Forward and focus restoration.
+Browser review covered the root map, expanded moon and visible release on both
+viewports. Existing rotation and all three map paused-frame comparisons passed.
+Physical iOS-device rendering remains unverified; these checks used Chromium.
+
+The previous branch head `d2abb86` passed protected-branch CI.
+Tom approved the preview for production on 10 September 2026, including the moon
+Easter egg, energy diffusion and “Let’s talk.” Contact heading. Production release
+proceeds after the required GitHub CI and Vercel checks pass. Current status is recorded in
+[PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
+The earlier design-scoping record follows as historical context.
+
 ## 1. Why this handoff exists
 
 This document gives Fable 5 the complete context from the last 24 hours so it can run a

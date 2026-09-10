@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureSeconds } from "@/lib/capture-timing";
 import { SHOT_END } from "@/lib/capture-core";
 import { CAPTURE_START } from "@/lib/golden-path";
 
@@ -103,7 +104,7 @@ describe("every way out", () => {
   it("ends itself if nothing else does", () => {
     arm();
     expect(store.goldenIsRunning()).toBe(true);
-    vi.advanceTimersByTime((SHOT_END - CAPTURE_START + 1.5) * 1000);
+    vi.advanceTimersByTime((captureSeconds("full") + 0.91) * 1000);
     expect(store.goldenIsRunning()).toBe(false);
   });
 });
@@ -221,18 +222,17 @@ describe("which speed the capture plays at", () => {
       tier: "high",
       mode: "compact",
     });
-    // Half a second in, a compact capture reaches the core that
-    // a full one does not reach until 0.84 s.
-    vi.advanceTimersByTime(500);
-    const compactAt500 = store.goldenShotTime();
-    expect(compactAt500).toBeCloseTo(1.1, 10);
+    // At 900 ms, a compact capture reaches the core; the full flight takes 1.4 s.
+    vi.advanceTimersByTime(900);
+    const compactAt900 = store.goldenShotTime();
+    expect(compactAt900).toBeCloseTo(1.1, 10);
 
     store.finishGoldenPath();
     store.endPlanetarySession();
     arm();
-    vi.advanceTimersByTime(500);
-    expect(store.goldenShotTime()).toBeLessThan(compactAt500);
-    expect(store.goldenShotTime()).toBeCloseTo(0.35 + 0.5 * 0.75 / 0.84, 10);
+    vi.advanceTimersByTime(900);
+    expect(store.goldenShotTime()).toBeLessThan(compactAt900);
+    expect(store.goldenShotTime()).toBeCloseTo(0.35 + 0.9 * 0.75 / 1.4, 10);
   });
 
   it("sizes its own watchdog, so a compact shot is not pinned for the full one's length", () => {
@@ -245,9 +245,9 @@ describe("which speed the capture plays at", () => {
     });
     // A stalled compact capture must not leave the camera pinned and the map
     // at a sixth of its brightness for the full capture's duration. The
-    // compact edit runs 3.41 s and the watchdog allows 0.9 s beyond it; the
+    // compact edit runs 3.81 s and the watchdog allows 0.9 s beyond it; the
     // full one would still have well over a second and a half to go here.
-    vi.advanceTimersByTime(4.32 * 1000);
+    vi.advanceTimersByTime((captureSeconds("compact") + 0.91) * 1000);
     expect(store.goldenIsRunning()).toBe(false);
   });
 

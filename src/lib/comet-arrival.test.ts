@@ -127,10 +127,12 @@ describe("a child leaves the core and arrives in its orbit", () => {
         const f = flight(i, count);
         const out = new THREE.Vector3();
         expect(f.at(1, out)).toBeCloseTo(f.orbitSpeed, 6);
-        // Direction, from the curve's own last step.
+        // Direction, from the curve's own last step. The slower idle
+        // orbits need a smaller interval to isolate the terminal tangent
+        // from the much faster arrival's remaining curvature.
         const a = new THREE.Vector3();
         const b = new THREE.Vector3();
-        f.at(1 - 1e-4, a);
+        f.at(1 - 1e-5, a);
         f.at(1, b);
         expect(b.sub(a).normalize().dot(f.tangent)).toBeCloseTo(1, 5);
       }

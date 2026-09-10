@@ -1029,9 +1029,10 @@ test("the orb opens the complete map, from any page", async ({ page }) => {
   await expect(portal).toHaveAttribute("data-view", "map");
   await expect(portal).toHaveAttribute("aria-modal", "true");
   // Every section is a planet, plus the nucleus nameplate.
-  await expect(portal.locator("a.orbit-label")).toHaveCount(4);
+  await expect(portal.locator("a.orbit-label")).toHaveCount(5);
   await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="lab"]')).toBeAttached();
+  await expect(portal.locator('a.orbit-label[data-body="demos"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="about"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="contact"]')).toBeAttached();
   await expect(portal.locator('.orbit-label[data-body="talent"]')).toBeAttached();
@@ -1054,7 +1055,7 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
   // The planet is captured, and what emerges is Work's own bodies —
   // its projects — orbiting the section centre. No navigation.
   await expect(portal).toHaveAttribute("data-view", "section", { timeout: 45_000 });
-  await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
+  await expect(portal.locator(".orbit-portal-record")).toContainText("HOME");
   await expect(page).toHaveURL("/building");
   await expect(portal.locator('a.orbit-label[data-body="ai-organisation"]')).toBeAttached({
     timeout: 45_000,
@@ -1162,7 +1163,7 @@ test("one real press on a nameplate captures its planet", async ({ page }) => {
     timeout: 30_000,
   });
   await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
-  await expect(portal.locator(".orbit-portal-record")).toContainText("WORK");
+  await expect(portal.locator(".orbit-portal-record")).toContainText("HOME");
 });
 
 test("Space on a focused nameplate captures its planet, like Enter", async ({ page }) => {
