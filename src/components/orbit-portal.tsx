@@ -700,11 +700,7 @@ export function OrbitPortal() {
             ? `${displayLabel(world.label)} / system`
             : "The system / all of it"}
         </p>
-        <p className="orbit-portal-note">
-          {view.kind === "moon" ? "" : world
-            ? world.note
-            : "Every section, in orbit around talent. Choose one."}
-        </p>
+        {world ? <p className="orbit-portal-note">{world.note}</p> : null}
         <div className="orbit-portal-actions">
           {view.kind !== "map" ? (
             <button

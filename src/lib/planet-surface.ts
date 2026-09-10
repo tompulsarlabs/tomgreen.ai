@@ -1,10 +1,9 @@
 import * as THREE from "three";
+import { planetFamilyIndex, planetTheme } from "@/lib/planet-themes";
 
 /**
- * Five seeded worlds with different physical surfaces: lunar highlands,
- * iron terrain, a banded gas atmosphere, fractured ice, and clouded oceans.
- * Only the lunar family uses the local LROC / LOLA maps. The other families
- * have their own geography, palette, roughness and restrained relief.
+ * Authored palettes across terrain, gas, ice, ocean, dunes, volcanic and
+ * mineral surfaces. The optional lunar family alone uses LROC / LOLA maps.
  *
  * This remains a physical-material patch: the scene owns illumination and
  * visibility, and capture owns uHeat. All bodies share one compiled program.
@@ -38,6 +37,12 @@ const PLANET_PARS = /* glsl */ `
   varying vec3 vPlanetObj;
   uniform float uSeed;
   uniform float uHeat;
+  uniform float uFamily;
+  uniform vec3 uPaletteDark;
+  uniform vec3 uPaletteMid;
+  uniform vec3 uPaletteLight;
+  uniform vec3 uAtmosphere;
+  uniform vec3 uRingPole;
   uniform sampler2D uPlanetAlbedo;
   uniform sampler2D uPlanetElevation;
 
@@ -127,31 +132,54 @@ const PLANET_PARS = /* glsl */ `
 `;
 
 export type PlanetSurfaceHandle = {
-  uniforms: { uSeed: { value: number }; uHeat: { value: number } };
+  uniforms: {
+    uSeed: { value: number }; uHeat: { value: number }; uFamily: { value: number };
+    uPaletteDark: { value: THREE.Color }; uPaletteMid: { value: THREE.Color };
+    uPaletteLight: { value: THREE.Color }; uAtmosphere: { value: THREE.Color };
+    uRingPole: { value: THREE.Vector3 };
+  };
 };
 
 /** Idempotent: a ref reattachment retains the heat uniform being animated. */
 export function applyPlanetSurface(
   material: THREE.MeshPhysicalMaterial,
-  seed: number,
+  id: string,
 ): PlanetSurfaceHandle {
+  const seed = planetSeed(id);
+  const theme = planetTheme(id);
+  const ringPole = theme.rings
+    ? new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(...theme.rings.tilt))
+    : new THREE.Vector3();
   const tagged = material as THREE.MeshPhysicalMaterial & {
     userData: { planetSurface?: PlanetSurfaceHandle };
   };
   const existing = tagged.userData.planetSurface;
   if (existing) {
     existing.uniforms.uSeed.value = seed;
+    existing.uniforms.uFamily.value = planetFamilyIndex[theme.family];
+    existing.uniforms.uPaletteDark.value.set(theme.palette[0]);
+    existing.uniforms.uPaletteMid.value.set(theme.palette[1]);
+    existing.uniforms.uPaletteLight.value.set(theme.palette[2]);
+    existing.uniforms.uAtmosphere.value.set(theme.atmosphere);
+    existing.uniforms.uRingPole.value.copy(ringPole);
     return existing;
   }
 
-  const uniforms = { uSeed: { value: seed }, uHeat: { value: 0 } };
+  const uniforms = {
+    uSeed: { value: seed }, uHeat: { value: 0 },
+    uFamily: { value: planetFamilyIndex[theme.family] },
+    uPaletteDark: { value: new THREE.Color(theme.palette[0]) },
+    uPaletteMid: { value: new THREE.Color(theme.palette[1]) },
+    uPaletteLight: { value: new THREE.Color(theme.palette[2]) },
+    uAtmosphere: { value: new THREE.Color(theme.atmosphere) },
+    uRingPole: { value: ringPole },
+  };
 
   material.onBeforeCompile = (shader) => {
     // Compilation happens on the browser's renderer. Importing or applying
     // the helper on the server never requests images or accesses the DOM.
     const textures = getSurfaceTextures();
-    shader.uniforms.uSeed = uniforms.uSeed;
-    shader.uniforms.uHeat = uniforms.uHeat;
+    Object.assign(shader.uniforms, uniforms);
     shader.uniforms.uPlanetAlbedo = { value: textures.albedo };
     shader.uniforms.uPlanetElevation = { value: textures.elevation };
 
@@ -172,13 +200,19 @@ export function applyPlanetSurface(
         `#include <color_fragment>
          vec3 pN = normalize(vPlanetObj);
          vec3 pDirection = planetDirection(pN);
+         // A ringed giant's cloud belts share the ring plane's equator.
+         if (dot(uRingPole, uRingPole) > 0.5) {
+           vec3 pEast = normalize(cross(uRingPole, vec3(1.0, 0.0, 0.0)));
+           vec3 pNorth = cross(pEast, uRingPole);
+           pDirection = vec3(dot(pN, pEast), dot(pN, uRingPole), dot(pN, pNorth));
+         }
          float pFootprint = max(length(dFdx(pN)), length(dFdy(pN)));
          float pOctaves = clamp(log2(0.16 / max(pFootprint, 0.0001)), 1.0, 4.0);
          vec3 pOffset = vec3(uSeed * 0.31, uSeed, uSeed * 0.17);
          vec3 pQ = pDirection * 2.7 + pOffset;
          float pLand = pFbm(pQ, pOctaves);
          float pFine = pFbm(pQ * 2.6, max(pOctaves - 1.0, 1.0));
-         float pFamily = floor(mod(uSeed * 15.0, 5.0));
+         float pFamily = uFamily;
          float pH = 0.0;
          float pRelief = 0.018;
          float pRoughness = 0.9;
@@ -195,7 +229,7 @@ export function applyPlanetSurface(
            float pElevation = textureGrad(uPlanetElevation, pUv, pUvDx, pUvDy).r;
            float pGrey = dot(pMap, vec3(0.2126, 0.7152, 0.0722));
            float pLunar = clamp(0.13 + pGrey * 1.2, 0.18, 0.94);
-           pColor = vec3(0.84, 0.85, 0.84) * pLunar;
+           pColor = uPaletteLight * pLunar;
            pH = pElevation * 0.9 + pFine * 0.1;
            pRoughness = 0.91;
          } else if (pFamily < 1.5) {
@@ -206,11 +240,11 @@ export function applyPlanetSurface(
            float pTerrain = pFbm(pWarp, pOctaves);
            float pBasalt = 1.0 - smoothstep(0.31, 0.47, pTerrain);
            float pDust = smoothstep(0.38, 0.70, pTerrain);
-           pColor = mix(vec3(0.27, 0.095, 0.047), vec3(0.56, 0.28, 0.13), pDust);
-           pColor = mix(pColor, vec3(0.12, 0.064, 0.041), pBasalt * 0.60);
+           pColor = mix(uPaletteMid * 0.68, uPaletteLight, pDust);
+           pColor = mix(pColor, uPaletteDark, pBasalt * 0.78);
            pColor *= 0.86 + pFine * 0.28;
            float pPolar = smoothstep(0.87, 0.98, abs(pDirection.y) + (pFine - 0.5) * 0.12);
-           pColor = mix(pColor, vec3(0.48, 0.41, 0.32), pPolar * 0.45);
+           pColor = mix(pColor, uPaletteLight, pPolar * 0.45);
            pH = pTerrain * 0.62 + pFine * 0.12;
            pRoughness = 0.92 + pDust * 0.05;
          } else if (pFamily < 2.5) {
@@ -233,17 +267,18 @@ export function applyPlanetSurface(
              pNoise(vec3(pLatitude * 43.0 + 8.3, uSeed, 6.4)) * 0.25 +
              pNoise(vec3(pLatitude * 87.0, uSeed, 2.8)) * 0.11;
            float pBelts = smoothstep(0.18, 0.82, pBands);
-           pColor = mix(vec3(0.29, 0.19, 0.12), vec3(0.75, 0.65, 0.49), pBelts);
+           pColor = mix(uPaletteDark, uPaletteLight, pBelts);
+           pColor = mix(pColor, uPaletteMid, (1.0 - abs(pBelts * 2.0 - 1.0)) * 0.34);
            float pWisps = pFbm(pDirection * vec3(5.0, 28.0, 5.0) + pOffset, pOctaves);
            pColor *= 0.86 + pWisps * 0.27;
            float pVortex = (1.0 - smoothstep(0.18, 1.2, pStormR)) * pStormFace;
            float pSpiral = sin(pStormR * 15.0 - atan(pStormUv.y, pStormUv.x) * 2.0 + pFlow * 2.0);
-           vec3 pStormColor = mix(vec3(0.38, 0.16, 0.085), vec3(0.62, 0.37, 0.19), 0.5 + 0.5 * pSpiral);
+           vec3 pStormColor = mix(uPaletteDark, uPaletteMid, 0.5 + 0.5 * pSpiral);
            pColor = mix(pColor, pStormColor, pVortex * 0.76);
            pH = pFlow * 0.12;
            pRelief = 0.0015;
            pRoughness = 0.97;
-           pAtmosphere = vec3(0.12, 0.16, 0.20);
+           pAtmosphere = uAtmosphere;
          } else if (pFamily < 3.5) {
            // Translucent blue ice exposed between pale frost fields.
            // Sparse plate boundaries have dark centers and pressure ridges.
@@ -253,14 +288,15 @@ export function applyPlanetSurface(
            float pFracture = (1.0 - smoothstep(pFractureWidth, pFractureWidth + 0.055, pPlate.x)) * pStress;
            float pRidge = (1.0 - smoothstep(0.06, 0.17, pPlate.x)) * pStress;
            float pFrost = smoothstep(0.35, 0.66, pLand * 0.8 + pFine * 0.2);
-           pColor = mix(vec3(0.13, 0.32, 0.43), vec3(0.66, 0.81, 0.85), pFrost);
+           pColor = mix(uPaletteMid, uPaletteLight, pFrost);
            pColor *= 0.9 + pPlate.y * 0.13;
-           pColor += vec3(0.055, 0.065, 0.07) * pRidge * (1.0 - pFracture);
-           pColor = mix(pColor, vec3(0.065, 0.19, 0.26), pFracture * (0.28 + pFine * 0.22));
+           pColor += uPaletteLight * 0.08 * pRidge * (1.0 - pFracture);
+           pColor = mix(pColor, uPaletteDark, pFracture * (0.28 + pFine * 0.22));
            pH = pLand * 0.18 + pFine * 0.07 - pFracture * 0.028;
            pRelief = 0.008;
            pRoughness = 0.62 + pFrost * 0.27;
-         } else {
+           pAtmosphere = uAtmosphere;
+         } else if (pFamily < 4.5) {
            // Dark oceans, continental shelves and broken cloud fronts.
            // Geography and clouds are independent so continents remain
            // legible through broad clear regions at small screen sizes.
@@ -269,8 +305,8 @@ export function applyPlanetSurface(
            float pTerrain = pFbm(pContinentQ, pOctaves);
            float pCoast = smoothstep(0.46, 0.53, pTerrain);
            float pShelf = smoothstep(0.39, 0.49, pTerrain);
-           vec3 pOcean = mix(vec3(0.009, 0.026, 0.052), vec3(0.018, 0.092, 0.13), pShelf);
-           vec3 pGround = mix(vec3(0.075, 0.14, 0.10), vec3(0.31, 0.27, 0.16), smoothstep(0.51, 0.66, pTerrain));
+           vec3 pOcean = mix(uPaletteDark, uPaletteMid * 0.45, pShelf);
+           vec3 pGround = mix(uPaletteMid, uPaletteLight * 0.72, smoothstep(0.51, 0.66, pTerrain));
            pColor = mix(pOcean, pGround, pCoast);
            vec3 pCloudQ = pDirection * vec3(4.8, 6.4, 4.8) + pOffset.zxy +
              vec3(pLand - 0.5, pFine - 0.5, pLand - pFine) * 1.6;
@@ -278,13 +314,55 @@ export function applyPlanetSurface(
            float pCloudFront = pFbm(pDirection * 1.8 + pOffset.yzx, min(pOctaves, 2.5));
            float pCloud = smoothstep(0.48, 0.73, pCloudField) *
              smoothstep(0.32, 0.61, pCloudFront);
-           pColor = mix(pColor, vec3(0.74, 0.79, 0.81), pCloud * 0.79);
+           vec3 pCloudColor = mix(uPaletteLight, vec3(0.85), 0.7);
+           pColor = mix(pColor, pCloudColor, pCloud * 0.79);
            float pPolar = smoothstep(0.87, 0.98, abs(pDirection.y) + (pFine - 0.5) * 0.09);
-           pColor = mix(pColor, vec3(0.73, 0.79, 0.79), pPolar * 0.82);
+           pColor = mix(pColor, pCloudColor, pPolar * 0.82);
            pH = pCoast * pTerrain * 0.10 + pCloud * 0.018;
            pRelief = 0.004;
            pRoughness = mix(mix(0.38, 0.88, pCoast), 0.96, pCloud);
-           pAtmosphere = vec3(0.085, 0.23, 0.43);
+           pAtmosphere = uAtmosphere;
+         } else if (pFamily < 5.5) {
+           // Windswept dunes cross broad dark basins. Direction and spacing
+           // vary continuously, instead of repeating gas-giant latitude belts.
+           vec3 pWind = pDirection * vec3(1.4, 2.2, 1.8) + pOffset;
+           float pWarp = pFbm(pWind, pOctaves);
+           float pWave = (pDirection.x * 0.55 + pDirection.y * 0.8 + pDirection.z * 0.2) * 38.0 + pWarp * 19.0;
+           float pDune = 0.5 + 0.5 * sin(pWave);
+           float pDetail = 1.0 - smoothstep(0.6, 1.9, fwidth(pWave));
+           pDune = mix(0.5, pDune, pDetail);
+           float pBasin = smoothstep(0.3, 0.58, pLand);
+           pColor = mix(uPaletteDark, uPaletteMid, pBasin);
+           pColor = mix(pColor, uPaletteLight, pow(pDune, 3.0) * pBasin * 0.55);
+           pH = pLand * 0.22 + pDune * pBasin * 0.055;
+           pRelief = 0.009;
+           pRoughness = 0.96;
+         } else if (pFamily < 6.5) {
+           // Dark lava fields cut by a few hot fault lines. The stone stays
+           // rough; the ember colour is local, not a glossy or glowing sphere.
+           vec3 pRock = pDirection * 3.6 + pOffset + vec3(pFine - 0.5) * 0.5;
+           float pCrust = pFbm(pRock, pOctaves);
+           float pWidth = max(fwidth(pCrust), 0.006);
+           float pFault = 1.0 - smoothstep(pWidth, pWidth + 0.014, abs(pCrust - 0.5));
+           pFault *= smoothstep(0.43, 0.62, pLand);
+           pColor = mix(uPaletteDark, uPaletteMid, smoothstep(0.29, 0.72, pCrust));
+           pColor = mix(pColor, uPaletteLight, pFault * 0.9);
+           pH = pCrust * 0.62 + pFine * 0.13 - pFault * 0.018;
+           pRelief = 0.019;
+           pRoughness = 0.94;
+         } else {
+           // Large mineral plates, pale seams and granular outcrops. Facets
+           // read at navigation scale without turning into a crystal ornament.
+           vec2 pPlate = pIcePlates(pDirection * 3.1 + pOffset);
+           float pEdgeWidth = max(fwidth(pPlate.x), 0.012);
+           float pEdge = (1.0 - smoothstep(pEdgeWidth, pEdgeWidth + 0.08, pPlate.x)) * smoothstep(0.4, 0.67, pFine);
+           float pOutcrop = smoothstep(0.34, 0.7, pLand * 0.65 + pPlate.y * 0.35);
+           pColor = mix(uPaletteDark, uPaletteMid, 0.35 + pOutcrop * 0.65);
+           pColor = mix(pColor, uPaletteLight, pEdge * 0.32 + smoothstep(0.52, 0.73, pFine) * 0.4);
+           pColor *= 0.92 + pPlate.y * 0.12;
+           pH = pLand * 0.4 + pFine * 0.16;
+           pRelief = 0.006;
+           pRoughness = 0.84;
          }
          diffuseColor.rgb = pColor;`,
       )
@@ -331,7 +409,7 @@ export function applyPlanetSurface(
          }`,
       );
   };
-  material.customProgramCacheKey = () => "planet-surface-worlds-v3";
+  material.customProgramCacheKey = () => "planet-surface-authored-v4";
   material.needsUpdate = true;
 
   const handle: PlanetSurfaceHandle = { uniforms };

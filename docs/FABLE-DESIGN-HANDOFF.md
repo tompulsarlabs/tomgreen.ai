@@ -9,10 +9,48 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
-## Current implementation — 10 September 2026
+## Planet identities release — 10 September 2026
 
-The approved moon study is being carried into the planetary navigation on
-`codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;
+Tom requested distinct themes and colours for every planet after shipping the
+approved `codex/planetary-fidelity` release. `codex/planet-identities` is based on
+its merged main commit `85d189f`. Tom explicitly approved building and shipping
+this follow-up, including rings, the Ivy headline and the two text removals.
+
+- All 38 published bodies have explicit identities keyed to their existing IDs.
+  Every system has a distinct palette per planet and several surface families.
+  Matching Ivy/Sybil records retain their identity across Lab and Demos.
+- Copper terrain, violet mineral plates, amber gas belts, green oceans and blue
+  ice distinguish the root sections. The denser systems also include windswept
+  dunes and dark volcanic terrain with restrained ember-coloured faults.
+- The shader now consumes authored palette/family uniforms instead of choosing
+  one of five hard-coded palettes from a hash. Bodies still share one compiled
+  GPU program and retain the existing capture heat uniform on ref reattachment.
+  Fallback posters and capture trails use the same characteristic colours.
+- Demos is the one ringed gas giant. Tilted annular geometry includes unequal
+  dust bands, a division and the globe's shadow. Cloud belts share its equator.
+  Rings follow the same body transform, capture heat, opacity and paused clock.
+  Camera fitting, nameplate clearance and the static poster include the rings.
+- The realistic white moon satellite/close-up, gravitational field, capture timing
+  and navigation retain the approved implementation.
+- The decorative TALENT nameplate is removed from live and static maps. The root
+  sentence “Every section, in orbit around talent. Choose one.” is removed;
+  individual section descriptions remain.
+- Ivy's demo-card headline is now “Give non-technical teams a clearer way to ship
+  agentic work.”, as requested. The rest of the demo copy is unchanged.
+
+Verification: 300 unit tests, lint, typecheck, production webpack build and the
+12-route content guard passed. All 20 targeted browser checks passed: the 16
+planetary/moon checks and four existing core/map tests updated for the requested
+label removal. Coverage includes every section journey (including the ringed
+Demos capture), context-loss/reduced-motion fallbacks, exact paused pixels at
+desktop and phone sizes, upright phone rotation and the moon close-up at 1440px
+and 393px. Root, Home and Lab surfaces were visually inspected, including ring
+depth and the rendered Ivy heading. Physical iOS remains unverified.
+
+## Approved release — 10 September 2026
+
+The approved moon study shipped through PR #54 as main `85d189f`, from
+`codex/planetary-fidelity` based on main `5d2a6e3`. This pass changes the hidden map;
 the editorial Home, Lab, case studies, CV and demos keep their content and structure.
 Tom's final copy adjustment changes the Contact channel heading to
 “Let’s talk.”
@@ -77,11 +115,14 @@ Browser review covered the root map, expanded moon and visible release on both
 viewports. Existing rotation and all three map paused-frame comparisons passed.
 Physical iOS-device rendering remains unverified; these checks used Chromium.
 
-The previous branch head `d2abb86` passed protected-branch CI.
-Tom approved the preview for production on 10 September 2026, including the moon
-Easter egg, energy diffusion and “Let’s talk.” Contact heading. Production release
-proceeds after the required GitHub CI and Vercel checks pass. Current status is recorded in
-[PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
+Tom approved this release for production on 10 September 2026. Required CI for
+`ebeeb07` passed with 289 unit tests, 119 browser tests, lint, types, build and the
+12-route content guard; Vercel also passed.
+[PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54) merged at 08:43 UTC
+as `85d189fa6ef6068e4155994aecea14a4035ea84f`. Production deployment
+`dpl_H1jdiHAmopgYSaiBi7ztZnAhdPB1` is Ready and aliased to tomgreen.ai. Live
+verification covered the main routes, the Let’s talk heading, moon expansion,
+Pulse, return to the map and Home → AI build → Zalando, without browser errors.
 The earlier design-scoping record follows as historical context.
 
 ## 1. Why this handoff exists

@@ -216,16 +216,12 @@ test("an external channel leaves immediately, well inside the shortest capture",
   expect(captured, "the core took a departure in").toBe(false);
 });
 
-test("a decorative body is not a control, however hard it is pressed", async ({ page }) => {
+test("the decorative core has no nameplate and empty space cannot capture", async ({ page }) => {
   const portal = await openPortal(page);
   // The nucleus is a destination the whole system falls toward and must not
-  // take a capture, a cursor or a nameplate that reads as one. It IS named -
-  // it is the thing everything orbits - but its nameplate is a span rather
-  // than a link, which is the difference between labelled and pressable.
-  await expect(portal.locator('a.orbit-label[data-body="talent"]')).toHaveCount(0);
-  const plate = portal.locator('.orbit-label[data-body="talent"]');
-  await expect(plate).toHaveCount(1);
-  await expect(plate).toHaveCSS("pointer-events", "auto");
+  // take a capture, a cursor or a decorative nameplate. Its removed label
+  // must not return as an invisible hit target above the rendered scene.
+  await expect(portal.locator('.orbit-label[data-body="talent"]')).toHaveCount(0);
 
   const settled = async () => {
     await page.waitForTimeout(1_500);
@@ -233,21 +229,8 @@ test("a decorative body is not a control, however hard it is pressed", async ({ 
     await expect(portal).toHaveAttribute("data-view", "map");
   };
 
-  // Its own nameplate, pressed where a visitor would press it. This is the
-  // press that would read as a control if the nucleus were one, and unlike a
-  // point on the canvas it is somewhere only the nucleus can be.
-  //
-  // Not the middle of the field, which this used to click: the planets orbit
-  // the core and one of them transits it several times a minute, so that
-  // point belongs to the nucleus only some of the time. When it does not, the
-  // press lands on a planet that is plainly the frontmost thing under the
-  // cursor and capturing it is right - so a test clicking there was asserting
-  // orbital phase, and was one arrival's worth of timing away from failing.
-  await plate.click();
-  await settled();
-
-  // And empty space: the corner of the field, outside every orbit, where
-  // there is nothing but the membrane.
+  // Empty space outside every orbit. Avoid the centre: a real planet can
+  // transit it, and capturing the frontmost planet there is correct.
   const field = portal.locator(".orbit-field");
   const box = await field.boundingBox();
   await page.mouse.click(box!.x + 50, box!.y + box!.height - 50);
@@ -265,22 +248,11 @@ test("one canvas and one system, however many times the hierarchy is walked", as
   const canvases = async () => page.evaluate(() => document.querySelectorAll("canvas").length);
   const before = await canvases();
   expect(before).toBeGreaterThan(0);
-  const coreLabel = portal.locator('.orbit-label[data-body="talent"]');
-  const expectCoreLabel = async () => {
-    await expect.poll(() => coreLabel.evaluate((label) =>
-      Number(getComputedStyle(label).opacity)), { timeout: 30_000 }).toBeGreaterThan(0.5);
-    const box = await coreLabel.boundingBox();
-    const viewport = page.viewportSize()!;
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.y).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
-  };
+  const expectNoCoreLabel = () => expect(portal.locator('.orbit-label[data-body="talent"]')).toHaveCount(0);
 
   for (const round of [1, 2, 3]) {
     await descend(portal, "contact");
-    await expectCoreLabel();
+    await expectNoCoreLabel();
     expect(await canvases(), `descent ${round}`).toBe(before);
     // Decoders are texture sources rather than page elements, so a package
     // rebuilt per capture would show up here as an element that should not
@@ -289,7 +261,7 @@ test("one canvas and one system, however many times the hierarchy is walked", as
 
     await page.goBack();
     await expect(portal).toHaveAttribute("data-view", "map", { timeout: 60_000 });
-    await expectCoreLabel();
+    await expectNoCoreLabel();
     expect(await canvases(), `return ${round}`).toBe(before);
     // The map came back whole, not as the residue of the system it left.
     const bodies = await portal

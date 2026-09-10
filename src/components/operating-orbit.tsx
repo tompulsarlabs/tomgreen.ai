@@ -3,10 +3,9 @@ import { OperatingOrbitLive } from "./operating-orbit-live";
 import type { MutableRefObject } from "react";
 import type { Flare } from "@/components/orbit-flare";
 import type { SceneHandoff } from "@/components/operating-orbit-3d";
+import { planetExtent, planetTheme } from "@/lib/planet-themes";
 import {
   DEFAULT_CAMERA,
-  NUCLEUS_ID,
-  NUCLEUS_LABEL,
   NUCLEUS_RADIUS,
   depthAlpha,
   project,
@@ -166,22 +165,35 @@ export function OperatingOrbit({
 
   // Each planet is a link: circle and nameplate together, navigable
   // before any script runs.
+  const rings = (body: OrbitBody, x: number, y: number, radius: number, front: boolean) => {
+    const theme = planetTheme(body.id);
+    if (!theme.rings) return null;
+    return <g transform={`translate(${x} ${y}) rotate(-20) scale(1 .35)`} fill="none" stroke={theme.palette[2]}>
+      {[{ r: 1.565, width: 0.47, opacity: 0.7 }, { r: 1.985, width: 0.27, opacity: 0.46 }].map((band, index) => {
+        const r = radius * band.r;
+        return front ? <path key={index} d={`M ${r} 0 A ${r} ${r} 0 0 1 ${-r} 0`} strokeWidth={radius * band.width} opacity={band.opacity} />
+          : <circle key={index} r={r} strokeWidth={radius * band.width} opacity={band.opacity} />;
+      })}
+    </g>;
+  };
   const planets = (behind: boolean) =>
     placed
       .filter(({ projected }) => projected.depth > nucleus.depth === behind)
       .map(({ body, projected, radius }) => (
         <a key={body.id} href={targetHref(body.target)} tabIndex={-1}>
           <g opacity={depthAlpha(projected.depth, 1, 0.38).toFixed(3)}>
+            {rings(body, cx + projected.x, cy + projected.y, radius, false)}
             <circle
               cx={cx + projected.x}
               cy={cy + projected.y}
               r={radius.toFixed(2)}
               fill={`url(#orb-${body.id})`}
             />
+            {rings(body, cx + projected.x, cy + projected.y, radius, true)}
             {/* Nameplates are links: depth still cues them, but never
                 below readable contrast on the space panel. */}
             <text
-              x={(cx + projected.x + radius + 6).toFixed(1)}
+              x={(cx + projected.x + radius * planetExtent(body.id) + 6).toFixed(1)}
               y={(cy + projected.y + 3).toFixed(1)}
               className="orbit-svg-label"
               fontSize={(12 * projected.scale).toFixed(1)}
@@ -254,15 +266,6 @@ export function OperatingOrbit({
             stroke="rgba(219, 226, 238, 0.85)"
             strokeWidth="2"
           />
-          <text
-            x={(cx + nucleus.x + nucleus.radius + 7).toFixed(1)}
-            y={(cy + nucleus.y + 3).toFixed(1)}
-            className="orbit-svg-label"
-            fontSize="12"
-            fill="rgba(240, 245, 252, 0.95)"
-          >
-            {displayLabel(NUCLEUS_LABEL)}
-          </text>
           {strokeChunks(orbitChunks, true, "orbit")}
         </g>
         {planets(false)}
@@ -301,9 +304,6 @@ export function OperatingOrbit({
             {displayLabel(body.label, body.keepCase)}
           </a>
         ))}
-        <span className="orbit-label" data-body={NUCLEUS_ID} aria-hidden="true">
-          {displayLabel(NUCLEUS_LABEL)}
-        </span>
       </div>
       {onMoonExpand && !moonEntry ? <button
         type="button" className="orbit-moon-trigger" aria-label="Explore the moon"

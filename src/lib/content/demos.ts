@@ -29,7 +29,7 @@ export const demos: readonly ProductDemo[] = [
     id: "ivy",
     name: "Ivy",
     category: "AGENTIC WORK",
-    title: "Give nontechnical teams a clearer way to check agentic work.",
+    title: "Give non-technical teams a clearer way to ship agentic work.",
     copy: "Compare two example agent changes, inspect the evidence, and see why a cheaper run is not always a better result.",
     href: "/demos/ivy",
     action: "Explore Ivy",

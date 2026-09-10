@@ -4,7 +4,8 @@ import { demos } from "@/lib/content/demos";
 import { graphNodes, labNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { hasTestimonials, testimonials } from "@/lib/content/testimonials";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
+import { defaultBodySize, type OrbitBody } from "@/lib/orbit-nav";
+import { planetTheme } from "@/lib/planet-themes";
 
 /**
  * The hidden world, in two levels.
@@ -32,16 +33,15 @@ export type OrbitWorld = {
   bodies: OrbitBody[];
 };
 
-/** Bodies for one section: colours continue the parent's palette walk. */
+/** Surface, fallback poster and capture trails share each body's identity. */
 function orbit(
   items: { id: string; label: string; href: string; external?: boolean; keepCase?: boolean }[],
-  paletteOffset: number,
 ): OrbitBody[] {
   const densityScale = Math.min(1, Math.sqrt(6 / items.length));
   return items.map((item, index) => ({
     id: item.id,
     label: item.label,
-    color: planetColor(paletteOffset + index),
+    color: planetTheme(item.id).palette[1],
     target: item.external
       ? { kind: "link", href: item.href, external: true }
       : { kind: "route", href: item.href },
@@ -56,7 +56,6 @@ const workBodies = orbit(
     label: project.label,
     href: `/work/${project.slug}`,
   })),
-  0,
 );
 
 const labIds = new Set<string>(labNodeIds);
@@ -68,7 +67,6 @@ const labBodies = orbit(
       label: node.label,
       href: `/building#${node.id}`,
     })),
-  2,
 );
 
 const demoBodies = orbit(
@@ -79,7 +77,6 @@ const demoBodies = orbit(
     external: demo.external,
     keepCase: true,
   })),
-  3,
 );
 
 const aboutBodies = orbit(
@@ -88,7 +85,6 @@ const aboutBodies = orbit(
     label: stop.company,
     href: `/about#station-${index}`,
   })),
-  4,
 );
 
 const contactBodies = orbit(
@@ -98,7 +94,6 @@ const contactBodies = orbit(
     { id: "linkedin", label: "LinkedIn", href: site.links.linkedin, external: true },
     { id: "github", label: "GitHub", href: site.links.github, external: true },
   ],
-  6,
 );
 
 const voicesBodies = orbit(
@@ -108,12 +103,11 @@ const voicesBodies = orbit(
     href: "/voices",
     keepCase: true,
   })),
-  8,
 );
 
 /**
- * The map's planets, in the order they take their palette and their
- * orbits. Voices only exists once someone has actually spoken, exactly
+ * The map's planets in their orbital order. Voices only exists once
+ * someone has actually spoken, exactly
  * as it does in the navigation.
  */
 export const orbitWorlds: OrbitWorld[] = [
@@ -166,11 +160,11 @@ export const orbitWorlds: OrbitWorld[] = [
   },
 ];
 
-/** The map itself: one planet per world, coloured in world order. */
+/** The map itself: one authored identity per world. */
 export const mapBodies: OrbitBody[] = orbitWorlds.map((world, index) => ({
   id: world.id,
   label: world.label,
-  color: planetColor(index),
+  color: planetTheme(world.id).palette[1],
   target: { kind: "route", href: world.href },
   size: defaultBodySize(index),
 }));
