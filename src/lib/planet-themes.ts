@@ -7,6 +7,7 @@ export type PlanetTheme = {
   /** Shadow, characteristic surface, and lit highlands/clouds; sRGB. */
   palette: readonly [string, string, string];
   atmosphere: string;
+  rings?: { inner: number; outer: number; tilt: readonly [number, number, number] };
 };
 
 function theme(name: string, family: PlanetFamily, dark: string, mid: string, light: string, atmosphere = "#000000"): PlanetTheme {
@@ -18,6 +19,7 @@ function theme(name: string, family: PlanetFamily, dark: string, mid: string, li
 const copper = theme("Copper rifts", "terrain", "#45241e", "#bf764e", "#dba171");
 const amethyst = theme("Amethyst crystal", "mineral", "#3d3448", "#9985b3", "#d3c4e3");
 const amber = theme("Amber belts", "gas", "#674126", "#c8975f", "#f3dcb1", "#675947");
+amber.rings = { inner: 1.32, outer: 2.12, tilt: [0.58, 0.12, -0.30] };
 const verdant = theme("Verdant seas", "ocean", "#102e33", "#4f9472", "#c1d7a5", "#356b75");
 const azure = theme("Azure ice", "ice", "#133550", "#589ed0", "#c9e9f6", "#294b69");
 const cobalt = theme("Cobalt archipelago", "ocean", "#101e48", "#476ea8", "#a4c7d5", "#31579c");
@@ -89,3 +91,8 @@ export function planetTheme(id: string): PlanetTheme {
 export const planetFamilyIndex: Readonly<Record<PlanetFamily, number>> = {
   lunar: 0, terrain: 1, gas: 2, ice: 3, ocean: 4, dunes: 5, volcanic: 6, mineral: 7,
 };
+
+/** Fit and label the full silhouette, including a ring system. */
+export function planetExtent(id: string): number {
+  return planetTheme(id).rings?.outer ?? 1;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mapBodies, orbitWorlds } from "@/lib/orbit-worlds";
-import { planetTheme, planetThemes } from "@/lib/planet-themes";
+import { planetExtent, planetTheme, planetThemes } from "@/lib/planet-themes";
 
 describe("published planet identities", () => {
   for (const [name, bodies] of [["Map", mapBodies], ...orbitWorlds.map((world) => [world.label, world.bodies] as const)] as const) {
@@ -20,6 +20,14 @@ describe("published planet identities", () => {
   it("keeps a product's identity when reached through Lab or Demos", () => {
     expect(planetTheme("lab-ivy")).toBe(planetTheme("demo-ivy"));
     expect(planetTheme("lab-sybil")).toBe(planetTheme("demo-sybil"));
+  });
+
+  it("reserves rings for one giant and includes them in its fit and label radius", () => {
+    expect(Object.entries(planetThemes).filter(([, theme]) => theme.rings).map(([id]) => id)).toEqual(["demos"]);
+    expect(planetTheme("demos").family).toBe("gas");
+    expect(planetExtent("demos")).toBe(planetTheme("demos").rings!.outer);
+    expect(planetExtent("demos")).toBeGreaterThan(planetTheme("demos").rings!.inner);
+    expect(planetExtent("work")).toBe(1);
   });
 
   it("gives a future destination a deterministic complete fallback", () => {

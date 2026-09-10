@@ -59,6 +59,8 @@ import {
   type ArrivalPlan,
 } from "@/lib/comet-arrival";
 import { applyPlanetSurface } from "@/lib/planet-surface";
+import { planetExtent, planetTheme } from "@/lib/planet-themes";
+import { OrbitPlanetRings } from "@/components/orbit-planet-rings";
 import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 
@@ -480,7 +482,7 @@ function OrbitScene({
         orbitPoint(elements[index], sample / 96 * Math.PI * 2, point);
         point.y = Math.max(point.y, wellDepth(Math.hypot(point.x, point.z)) + body.size * 1.9 + 0.08);
         point.y += 0.42;
-        radius = Math.max(radius, point.length() + body.size * bodyMagnification * 1.14);
+        radius = Math.max(radius, point.length() + body.size * planetExtent(body.id) * bodyMagnification * 1.14);
       }
     });
     // Measure around the camera's look-at point. The envelope covers a complete
@@ -501,7 +503,7 @@ function OrbitScene({
         const radius = Math.hypot(point.x, point.z);
         samples[offset++] = radius;
         samples[offset++] = Math.max(point.y, wellDepth(radius) + body.size * 1.9 + 0.08) + 0.42;
-        samples[offset++] = body.size * bodyMagnification * 1.14 + padding;
+        samples[offset++] = body.size * planetExtent(body.id) * bodyMagnification * 1.14 + padding;
       }
     });
     samples[offset++] = 0;
@@ -1909,7 +1911,7 @@ function OrbitScene({
           .length();
         const pxScale =
           height / 2 / (Math.tan((40 * Math.PI) / 360) * cameraDistance);
-        const bodyPx = body.size * swell * pxScale;
+        const bodyPx = body.size * planetExtent(body.id) * swell * pxScale;
         // Where the body is on screen, published on the nameplate so a
         // test can aim a real pointer at the planet.
         const cx = Math.round(x);
@@ -2213,31 +2215,6 @@ function OrbitScene({
     membraneUniforms.uHoverTheta.value = hoverTheta;
     membraneUniforms.uHoverStrength.value = hoverStrength;
 
-    // Keep the core's name beneath its silhouette, leaving the sides for
-    // the surrounding worlds and their destination labels.
-    scratch.v2.copy(scratch.core).project(camera);
-    const coreX = ((scratch.v2.x + 1) / 2) * width;
-    const coreY = ((1 - scratch.v2.y) / 2) * height;
-    const corePx =
-      (CORE_RADIUS * 1.2 * (height / 2)) /
-      (Math.tan((40 * Math.PI) / 360) * cameraToCore);
-    const coreLabel = s.labels.get(NUCLEUS_ID);
-    if (coreLabel) {
-      let coreBox = s.measured.get(NUCLEUS_ID);
-      if (!coreBox) {
-        coreBox = { width: coreLabel.offsetWidth, height: coreLabel.offsetHeight };
-        s.measured.set(NUCLEUS_ID, coreBox);
-      }
-      coreLabel.style.transform = `translate3d(${(coreX - coreBox.width / 2).toFixed(1)}px, ${(coreY + corePx + 10).toFixed(1)}px, 0)`;
-      const opacity = (
-        (0.9 + 0.1 * membraneUniforms.uWake.value) *
-        s.reveal
-      );
-      coreLabel.style.opacity = opacity.toFixed(3);
-      coreLabel.style.pointerEvents = opacity > 0.02 ? "auto" : "none";
-    }
-
-
     // The live capture, on the field: the contract is that an accepted
     // press begins exactly one transition, and this is how a test sees
     // it begin rather than inferring it from the descent seconds later.
@@ -2459,6 +2436,9 @@ function OrbitScene({
               envMapIntensity={0.22}
               transparent
             />
+            {planetTheme(body.id).rings ? <OrbitPlanetRings
+              id={body.id} radius={body.size} materials={bodyMaterials} light={keyLightRef}
+            /> : null}
           </mesh>
           {/* A generous invisible hit target around each small body. */}
           <mesh

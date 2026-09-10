@@ -1028,14 +1028,15 @@ test("the orb opens the complete map, from any page", async ({ page }) => {
   const portal = page.locator(".orbit-portal");
   await expect(portal).toHaveAttribute("data-view", "map");
   await expect(portal).toHaveAttribute("aria-modal", "true");
-  // Every section is a planet, plus the nucleus nameplate.
+  // Every section is a planet; the gravitational centre has no nameplate.
   await expect(portal.locator("a.orbit-label")).toHaveCount(5);
   await expect(portal.locator('a.orbit-label[data-body="work"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="lab"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="demos"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="about"]')).toBeAttached();
   await expect(portal.locator('a.orbit-label[data-body="contact"]')).toBeAttached();
-  await expect(portal.locator('.orbit-label[data-body="talent"]')).toBeAttached();
+  await expect(portal.locator('.orbit-label[data-body="talent"]')).toHaveCount(0);
+  await expect(portal.getByText("Every section, in orbit around talent. Choose one.", { exact: true })).toHaveCount(0);
   // The page behind cannot scroll while the world is open.
   await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
   // And it did not navigate to get here.
@@ -1264,7 +1265,7 @@ test("the same planet works again after stepping back to the map", async ({ page
 });
 
 test("the nucleus is a destination, not a control", async ({ page }) => {
-  // It carries a label and it glows on approach, so it must not also
+  // It glows on approach, but it must not also
   // carry the cursor of something clickable: pressing it does nothing,
   // and an object that looks like a control and has no outcome is the
   // exact thing the map must never ship.

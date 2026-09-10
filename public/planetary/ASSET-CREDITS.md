@@ -10,7 +10,8 @@ These files are unchanged copies of the assets used in the approved moon study.
 The moon close-up and satellite use these maps. The terrain, gas, ice, ocean,
 dune, volcanic and mineral planets use original procedural terrain, weather
 and surface shaders with authored colour palettes. These are
-illustrative worlds, not astronomical representations of named planets.
+illustrative worlds, not astronomical representations of named planets. The
+Saturn-like rings use original annular geometry and procedural dust/shadow shaders.
 
 Both files are served locally through shared samplers. The distant background
 uses the locally hosted Veil Nebula photograph; see its

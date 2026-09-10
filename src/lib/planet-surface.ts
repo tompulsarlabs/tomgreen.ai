@@ -42,6 +42,7 @@ const PLANET_PARS = /* glsl */ `
   uniform vec3 uPaletteMid;
   uniform vec3 uPaletteLight;
   uniform vec3 uAtmosphere;
+  uniform vec3 uRingPole;
   uniform sampler2D uPlanetAlbedo;
   uniform sampler2D uPlanetElevation;
 
@@ -135,6 +136,7 @@ export type PlanetSurfaceHandle = {
     uSeed: { value: number }; uHeat: { value: number }; uFamily: { value: number };
     uPaletteDark: { value: THREE.Color }; uPaletteMid: { value: THREE.Color };
     uPaletteLight: { value: THREE.Color }; uAtmosphere: { value: THREE.Color };
+    uRingPole: { value: THREE.Vector3 };
   };
 };
 
@@ -145,6 +147,9 @@ export function applyPlanetSurface(
 ): PlanetSurfaceHandle {
   const seed = planetSeed(id);
   const theme = planetTheme(id);
+  const ringPole = theme.rings
+    ? new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(...theme.rings.tilt))
+    : new THREE.Vector3();
   const tagged = material as THREE.MeshPhysicalMaterial & {
     userData: { planetSurface?: PlanetSurfaceHandle };
   };
@@ -156,6 +161,7 @@ export function applyPlanetSurface(
     existing.uniforms.uPaletteMid.value.set(theme.palette[1]);
     existing.uniforms.uPaletteLight.value.set(theme.palette[2]);
     existing.uniforms.uAtmosphere.value.set(theme.atmosphere);
+    existing.uniforms.uRingPole.value.copy(ringPole);
     return existing;
   }
 
@@ -166,6 +172,7 @@ export function applyPlanetSurface(
     uPaletteMid: { value: new THREE.Color(theme.palette[1]) },
     uPaletteLight: { value: new THREE.Color(theme.palette[2]) },
     uAtmosphere: { value: new THREE.Color(theme.atmosphere) },
+    uRingPole: { value: ringPole },
   };
 
   material.onBeforeCompile = (shader) => {
@@ -193,6 +200,12 @@ export function applyPlanetSurface(
         `#include <color_fragment>
          vec3 pN = normalize(vPlanetObj);
          vec3 pDirection = planetDirection(pN);
+         // A ringed giant's cloud belts share the ring plane's equator.
+         if (dot(uRingPole, uRingPole) > 0.5) {
+           vec3 pEast = normalize(cross(uRingPole, vec3(1.0, 0.0, 0.0)));
+           vec3 pNorth = cross(pEast, uRingPole);
+           pDirection = vec3(dot(pN, pEast), dot(pN, uRingPole), dot(pN, pNorth));
+         }
          float pFootprint = max(length(dFdx(pN)), length(dFdy(pN)));
          float pOctaves = clamp(log2(0.16 / max(pFootprint, 0.0001)), 1.0, 4.0);
          vec3 pOffset = vec3(uSeed * 0.31, uSeed, uSeed * 0.17);

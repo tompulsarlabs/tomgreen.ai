@@ -90,4 +90,13 @@ describe("planet material integration", () => {
     expect(new Set(shaders.map(({ key }) => key)).size).toBe(1);
     expect(new Set(shaders.map(({ source }) => source)).size).toBe(1);
   });
+
+  it("aligns a ringed giant's cloud belts with the ring plane", () => {
+    const material = new THREE.MeshPhysicalMaterial();
+    const handle = applyPlanetSurface(material, "demos");
+    const normal = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(...planetTheme("demos").rings!.tilt));
+    expect(handle.uniforms.uRingPole.value).toEqual(normal);
+    applyPlanetSurface(material, "work");
+    expect(handle.uniforms.uRingPole.value.length()).toBe(0);
+  });
 });

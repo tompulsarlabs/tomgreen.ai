@@ -267,9 +267,7 @@ test.describe("393px touch navigation", () => {
       }
       return bodies.length === 10 && visible.length >= 4 && collisions.length === 0;
     }), { timeout: sceneTimeout }).toBe(true);
-    await expect.poll(() => portal.locator('.orbit-label[data-body="talent"]')
-      .evaluate((label) => Number(getComputedStyle(label).opacity)),
-    { timeout: sceneTimeout }).toBeGreaterThan(0.5);
+    await expect(portal.locator('.orbit-label[data-body="talent"]')).toHaveCount(0);
   });
 
   test("the moon, section links and portal controls retain usable hit targets", async ({ page }) => {
