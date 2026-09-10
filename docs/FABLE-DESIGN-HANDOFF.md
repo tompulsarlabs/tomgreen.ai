@@ -9,7 +9,23 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Radar intake copy — 10 September 2026
+
+Tom requested a standalone name for Radar’s second step, since visitors may not
+know Sybil. The step is now “Intake” in its tabs, heading and bottom selector.
+Start/restart controls, introduction, panel label and assistant name use the same
+plain language. The fictional-data explanation, dialogue, navigation and routes
+are unchanged. Production build (including TypeScript), lint and the 12-route
+content guard passed. Browser review exercised profile/context confirmation,
+Start intake and both sample responses through the completion state.
+
 ## Planet identities release — 10 September 2026
+
+Released through [PR #55](https://github.com/tompulsarlabs/tomgreen.ai/pull/55)
+as main `3172524f836ed998eaa6745fa918a08c4e0ecf3b`. Production deployment
+`dpl_38PbedBQSJ6cHnKXjEox74DJTTrC` was verified Ready on tomgreen.ai. Required
+CI passed with 300 unit tests and 119 browser tests; live navigation and appearance
+were checked after deployment.
 
 Tom requested distinct themes and colours for every planet after shipping the
 approved `codex/planetary-fidelity` release. `codex/planet-identities` is based on
