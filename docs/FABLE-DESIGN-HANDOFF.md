@@ -78,8 +78,9 @@ viewports. Existing rotation and all three map paused-frame comparisons passed.
 Physical iOS-device rendering remains unverified; these checks used Chromium.
 
 The previous branch head `d2abb86` passed protected-branch CI.
-Tom's subsequent iOS and design feedback reopened this pass; the revised design
-is for preview review and the live release is held. Current CI is recorded in
+Tom approved the preview for production on 10 September 2026, including the moon
+Easter egg, energy diffusion and “Let’s talk.” Contact heading. Production release
+proceeds after the required GitHub CI and Vercel checks pass. Current status is recorded in
 [PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54).
 The earlier design-scoping record follows as historical context.
 

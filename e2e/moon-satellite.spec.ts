@@ -11,7 +11,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 393, height: 852 
       page.on("console", message => {
         const url = message.location().url;
         // These scripts are served by Vercel, not the local Next server.
-        if (new URL(page.url()).hostname === "127.0.0.1" && /\/_vercel\/(insights|speed-insights)\/script\.js$/.test(url)) return;
+        const local = ["localhost", "127.0.0.1", "[::1]"].includes(new URL(page.url()).hostname);
+        if (local && /\/_vercel\/(insights|speed-insights)\/script\.js$/.test(url)) return;
         if (message.type() === "error") errors.push(`${message.text()} (${url})`);
       });
       await page.goto("/contact");
