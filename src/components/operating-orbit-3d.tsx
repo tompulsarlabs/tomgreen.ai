@@ -58,7 +58,7 @@ import {
   orbitTangent,
   type ArrivalPlan,
 } from "@/lib/comet-arrival";
-import { applyPlanetSurface, planetSeed } from "@/lib/planet-surface";
+import { applyPlanetSurface } from "@/lib/planet-surface";
 import { idleBodySlots, pruneToLiveBodies } from "@/lib/body-adoption";
 import { NUCLEUS_ID } from "@/lib/orbit-geometry";
 
@@ -2444,10 +2444,9 @@ function OrbitScene({
               ref={(material) => {
                 if (!material) return;
                 bodyMaterials.current.set(body.id, material);
-                // Terrain, not a snooker ball. Patched onto the material
-                // the body already has, so its mineral colour, clearcoat
-                // and environment reflection all survive.
-                const surface = applyPlanetSurface(material, planetSeed(body.id));
+                // Authored geography and palette share the scene's physical
+                // illumination, capture heat and material lifecycle.
+                const surface = applyPlanetSurface(material, body.id);
                 // The heat the frame loop drives: a body glows because it is
                 // falling into the core or was just thrown out of one.
                 bodyHeat.current.set(body.id, surface.uniforms.uHeat);
@@ -2480,8 +2479,8 @@ function OrbitScene({
         One planet's material that never leaves.
 
         Every planet compiles to the same program - applyPlanetSurface pins
-        customProgramCacheKey to "planet-surface" and puts the seed in a
-        uniform - so the whole map costs one shader. three counts how many
+        customProgramCacheKey and puts identity in uniforms — so the whole
+        map costs one shader. three counts how many
         materials are using that program and deletes it the moment the count
         reaches zero. Swapping a body set unmounts every material in it, and
         R3F disposes them on an idle callback that is not ordered against the
@@ -2500,7 +2499,7 @@ function OrbitScene({
         <sphereGeometry args={[0.0005, 3, 2]} />
         <meshPhysicalMaterial
           ref={(material) => {
-            if (material) applyPlanetSurface(material, planetSeed("keeper"));
+            if (material) applyPlanetSurface(material, "keeper");
           }}
           color="#000000"
           roughness={0.88}

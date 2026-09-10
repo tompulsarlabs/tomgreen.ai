@@ -9,7 +9,35 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
-## Current implementation — 10 September 2026
+## Follow-up preview — planet identities, 10 September 2026
+
+Tom requested distinct themes and colours for every planet after shipping the
+approved `codex/planetary-fidelity` release. `codex/planet-identities` is a separate
+appearance pass, prepared without modifying that release's head or CI run.
+
+- All 38 published bodies have explicit identities keyed to their existing IDs.
+  Every system has a distinct palette per planet and several surface families.
+  Matching Ivy/Sybil records retain their identity across Lab and Demos.
+- Copper terrain, violet mineral plates, amber gas belts, green oceans and blue
+  ice distinguish the root sections. The denser systems also include windswept
+  dunes and dark volcanic terrain with restrained ember-coloured faults.
+- The shader now consumes authored palette/family uniforms instead of choosing
+  one of five hard-coded palettes from a hash. Bodies still share one compiled
+  GPU program and retain the existing capture heat uniform on ref reattachment.
+  Fallback posters and capture trails use the same characteristic colours.
+- The realistic white moon satellite/close-up, gravitational field, timing,
+  navigation, layout and labels retain the approved implementation.
+- Ivy's demo-card headline is now “Give non-technical teams a clearer way to ship
+  agentic work.”, as requested. The rest of the demo copy is unchanged.
+
+Verification: 298 unit tests, lint, typecheck, production webpack build and the
+12-route content guard passed. All 16 planetary/moon browser checks passed,
+covering every section journey, context-loss/reduced-motion fallbacks, exact
+paused pixels, phone rotation and the moon close-up at 1440px and 393px. Root
+and Home surfaces were visually inspected, plus the generated phone screenshots
+and the exact rendered Ivy heading. Physical iOS remains unverified.
+
+## Approved release — 10 September 2026
 
 The approved moon study is being carried into the planetary navigation on
 `codex/planetary-fidelity`, based on main `5d2a6e3`. This pass changes the hidden map;

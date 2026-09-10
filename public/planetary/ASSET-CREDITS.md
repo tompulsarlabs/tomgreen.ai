@@ -7,8 +7,9 @@ Lunar imagery and elevation: NASA's Scientific Visualization Studio,
 - `lola-elevation-1k.jpg` — LOLA elevation preview, 1024 × 512. [Original image](https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_3_8bit.jpg).
 
 These files are unchanged copies of the assets used in the approved moon study.
-The lunar surface family uses these maps. The iron, gas, ice and ocean families
-use original procedural terrain, weather and surface shaders. These are
+The moon close-up and satellite use these maps. The terrain, gas, ice, ocean,
+dune, volcanic and mineral planets use original procedural terrain, weather
+and surface shaders with authored colour palettes. These are
 illustrative worlds, not astronomical representations of named planets.
 
 Both files are served locally through shared samplers. The distant background
