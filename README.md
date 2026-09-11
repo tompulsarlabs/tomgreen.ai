@@ -66,3 +66,12 @@ overflow. These checks do not establish private-product model quality.
 
 Google OAuth configuration and detailed Sybil checks live in the private
 `tompulsarlabs/sybil-showcase` repository's `HANDOFF.md`.
+
+## Licence
+
+Original project materials owned by Tom Green are proprietary. Commercial
+reuse requires prior written permission; see [LICENSE](LICENSE). Access to
+this repository does not grant permission to reuse the underlying code.
+Authorised use of the hosted product or public demo remains allowed under
+its applicable terms. Third-party materials, users' content and rights
+previously granted remain governed by their own terms.
