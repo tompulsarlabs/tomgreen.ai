@@ -54,6 +54,7 @@ export const planetThemes: Readonly<Record<string, PlanetTheme>> = {
   "founding-team": glacial,
   "quant-search": rose,
   "lab-ivy": verdant,
+  "lab-radar": copper,
   "lab-this-site": basalt,
   "lab-sybil": amethyst,
   "lab-writing-voice-skill": rose,

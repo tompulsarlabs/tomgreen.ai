@@ -44,7 +44,7 @@ function RecordLink({ node }: { node: GraphNode }) {
     </a>
   ) : (
     <Link href={node.href} className={className}>
-      Read →
+      {node.kind === "project" ? "Explore demo →" : "Read →"}
     </Link>
   );
 }

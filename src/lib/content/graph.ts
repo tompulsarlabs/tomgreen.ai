@@ -1,4 +1,5 @@
 import { projects } from "./building";
+import { demos } from "./demos";
 
 export type CategoryId = "agents" | "products" | "talent" | "craft";
 export type ClusterId = "practice" | "systems" | "content";
@@ -68,6 +69,7 @@ export const clusterOrder: ClusterId[] = [
 export const projectCategory: Record<string, CategoryId> = {
   ivy: "agents",
   sybil: "products",
+  radar: "products",
   brightpaws: "products",
   "writing-voice-skill": "craft",
   "this-site": "craft",
@@ -138,7 +140,7 @@ export const graphNodes: GraphNode[] = [
     kind: "project" as const,
     category: projectCategory[project.slug] ?? "craft",
     cluster: "systems" as const,
-    href: project.repo,
+    href: project.repo ?? demos.find((demo) => demo.id === project.demoId)?.href,
     blurb: project.tagline,
     meta: project.status,
   })),

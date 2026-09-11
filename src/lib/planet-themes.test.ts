@@ -18,6 +18,7 @@ describe("published planet identities", () => {
   }
 
   it("keeps a product's identity when reached through Lab or Demos", () => {
+    expect(planetTheme("lab-radar")).toBe(planetTheme("demo-radar"));
     expect(planetTheme("lab-ivy")).toBe(planetTheme("demo-ivy"));
     expect(planetTheme("lab-sybil")).toBe(planetTheme("demo-sybil"));
   });
