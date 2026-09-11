@@ -35,6 +35,11 @@ catalogue/planet unit checks, both existing Lab browser checks and the 12-route
 content guard passed. Browser review confirmed the six-card layout; the test
 also follows Radar's demo link with JavaScript disabled.
 
+Full CI exposed one remaining hard-coded ten-body expectation in the dense
+phone Lab test. It now takes the expected count from the published Lab catalogue;
+the minimum-visible-label and zero-overlap assertions remain unchanged. The
+393px dense Lab check passed locally with all eleven bodies.
+
 ## Demos introduction — 10 September 2026
 
 Released through PR #57 as main `0d5d21f42e258212e44ad0838f3eb0c95ff34aaf`.
