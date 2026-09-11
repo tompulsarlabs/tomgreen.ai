@@ -9,7 +9,45 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Moon field motion — 11 September 2026
+
+Tom requested the travelling motion beneath the large moon back, while keeping
+the darker presentation. The field now has clearer moving crests, greater grid
+displacement and a slightly faster outward drift. Its background is near-black;
+the lunar surface and interaction timing are unchanged. The two existing moon
+browser journeys passed at 393px and 1440px, including pulse, drag, exact pause,
+history and returning to the map.
+
+The same ripple settings and dark background are reflected in the original
+standalone `moon-study` source and self-contained preview under the visualization
+workspace. The study is served locally at `http://127.0.0.1:3136/` for review.
+
+## Radar in Lab — 11 September 2026
+
+Radar now appears in Systems & products beside Ivy, marked “in the lab”, with
+its published opportunity-discovery description and a direct Explore demo link.
+The link resolves from the Demos catalogue rather than a separate URL. Adding
+Radar to the shared Lab catalogue also publishes its map destination at
+`/building#radar`; it shares the existing Radar demo's copper planet identity.
+
+Verification: production webpack build (including TypeScript), lint, 15 targeted
+catalogue/planet unit checks, both existing Lab browser checks and the 12-route
+content guard passed. Browser review confirmed the six-card layout; the test
+also follows Radar's demo link with JavaScript disabled.
+
+Full CI exposed one remaining hard-coded ten-body expectation in the dense
+phone Lab test. It now takes the expected count from the published Lab catalogue;
+the minimum-visible-label and zero-overlap assertions remain unchanged. The
+393px dense Lab check passed locally with all eleven bodies.
+
 ## Demos introduction — 10 September 2026
+
+Released through PR #57 as main `0d5d21f42e258212e44ad0838f3eb0c95ff34aaf`.
+Production deployment `dpl_8viK1ZrwuGwgRPU9sJweAqKHPStq` was verified Ready
+on tomgreen.ai. Required CI passed: 300 unit tests, 118 browser tests passed on
+first run and one portrait planetary-map check passed on retry (reported flaky).
+Live Demos copy and subtitle removal were verified.
+
 
 Tom requested “A few things I’m building.” and removal of the adjacent
 “Open a demo and explore.” line. The introduction now uses one column, retaining

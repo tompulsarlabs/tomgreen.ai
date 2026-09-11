@@ -245,7 +245,7 @@ test.describe("393px touch navigation", () => {
     await activatePlanet(page, portal, "lab");
     await expect(portal).toHaveAttribute("data-view", "section", { timeout: sceneTimeout });
     await expect(portal).not.toHaveAttribute("data-golden", "true", { timeout: sceneTimeout });
-    await expect.poll(() => portal.locator("a.orbit-label[data-body]").evaluateAll((labels) => {
+    await expect.poll(() => portal.locator("a.orbit-label[data-body]").evaluateAll((labels, expectedCount) => {
       const bodies = labels.map((element) => {
         const label = element as HTMLElement;
         return { id: label.dataset.body, x: Number(label.dataset.cx),
@@ -265,8 +265,8 @@ test.describe("393px touch navigation", () => {
             collisions.push(`${label.dataset.body} overlaps ${body.id}`);
         }
       }
-      return bodies.length === 10 && visible.length >= 4 && collisions.length === 0;
-    }), { timeout: sceneTimeout }).toBe(true);
+      return bodies.length === expectedCount && visible.length >= 4 && collisions.length === 0;
+    }, orbitWorlds.find((world) => world.id === "lab")!.bodies.length), { timeout: sceneTimeout }).toBe(true);
     await expect(portal.locator('.orbit-label[data-body="talent"]')).toHaveCount(0);
   });
 

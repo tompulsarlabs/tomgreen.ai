@@ -142,7 +142,7 @@ export function OrbitMoonStudy({ field, narrow, entry }: {
   return <group ref={root}>
     <mesh renderOrder={8} frustumCulled={false} raycast={() => null} onBeforeRender={(renderer) => renderer.clearDepth()}>
       <planeGeometry args={[200,200]} />
-      <meshBasicMaterial ref={shade} color="#0b0f14" transparent opacity={0} depthTest={false} depthWrite={false} />
+      <meshBasicMaterial ref={shade} color="#040609" transparent opacity={0} depthTest={false} depthWrite={false} />
     </mesh>
     <primitive object={gravity.mesh} renderOrder={9} />
     <mesh ref={moon} material={material} renderOrder={10} frustumCulled={false}>

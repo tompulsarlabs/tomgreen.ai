@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 // An illustrative spacetime field: a transparent warped coordinate surface,
-// with a quiet travelling wave and finite, overlapping interaction pulses.
+// with a visible travelling wave and finite, overlapping interaction pulses.
 export function createMoonGravityField(compact: boolean) {
   const material = new THREE.ShaderMaterial({
     transparent: true,
@@ -37,8 +37,8 @@ export function createMoonGravityField(compact: boolean) {
         // Broad curvature; never a sharp funnel at the centre.
         float well = -1.03 / sqrt(1.0 + r * r * 0.58);
         float warp = r + 0.10 * sin(theta * 2.0 + 0.4) * smoothstep(0.7, 3.0, r);
-        float phase = warp * 3.2 - uTime * 0.84;
-        float idle = sin(phase) * 0.045 * exp(-r * 0.12);
+        float phase = warp * 4.2 - uTime * 1.15;
+        float idle = sin(phase) * 0.11 * exp(-r * 0.12);
         float p1 = packet(warp, uPulses.x);
         float p2 = packet(warp, uPulses.y);
         float phase1 = (warp - 1.15 - (uTime - uPulses.x) * 0.91) * 5.5;
@@ -72,15 +72,15 @@ export function createMoonGravityField(compact: boolean) {
 
       void main() {
         float r = vRadius;
-        float phase = r * 3.2 - uTime * 0.84;
-        float crest = pow(0.5 + 0.5 * cos(phase), 18.0);
+        float phase = r * 4.2 - uTime * 1.15;
+        float crest = pow(0.5 + 0.5 * cos(phase), 10.0);
         float shoulder = pow(0.5 + 0.5 * cos(phase), 4.0);
         float fieldLines = gridLine(vField);
         float edge = (1.0 - smoothstep(3.0, 5.5, r)) * smoothstep(0.40, 1.10, r);
         // The grid catches the travelling light. Almost all of the
         // membrane remains transparent, without a mirror or horizon.
-        float light = fieldLines * (0.038 + crest * 0.14 + vPacket * 0.14);
-        light += crest * 0.07 + shoulder * 0.006 + vPacket * 0.11;
+        float light = fieldLines * (0.045 + crest * 0.23 + vPacket * 0.22);
+        light += crest * 0.19 + shoulder * 0.022 + vPacket * 0.18;
         vec2 screen = gl_FragCoord.xy / uViewport;
         float copyDesktop = (1.0 - smoothstep(0.23, 0.45, screen.y))
                           * (1.0 - smoothstep(0.28, 0.56, screen.x));

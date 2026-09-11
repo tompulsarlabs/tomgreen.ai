@@ -5,6 +5,7 @@ export type Project = {
   tagline: string;
   description: string[];
   repo?: string;
+  demoId?: string;
   stack: string[];
 };
 
@@ -20,6 +21,17 @@ export const projects: Project[] = [
     ],
     repo: "https://github.com/tompulsarlabs/ivy",
     stack: ["Claude Code cloud routines", "GitHub", "self-tuning playbook"],
+  },
+  {
+    slug: "radar",
+    name: "Radar",
+    status: "in the lab",
+    tagline: "Opportunity discovery & candidate fit",
+    description: [
+      "Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.",
+    ],
+    demoId: "radar",
+    stack: [],
   },
   {
     slug: "this-site",
