@@ -9,6 +9,23 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Moon invitation on refresh — 18 September 2026
+
+Tom clarified that the “Explore ↗” label should return after a browser refresh
+or a new address-bar navigation. Discovery is now remembered only in the current
+document, so client-side menu navigation keeps the cue dismissed. The previous
+persistent discovery flag is ignored, including for people who opened the moon
+before this update. The ripple remains once per browser session.
+
+Browser coverage follows discovery → menu navigation (still dismissed) → refresh
+(cue restored), direct URL navigation, and phone refresh. Existing returning-touch
+checks now discover the map through the real interaction rather than seeding a
+persistent storage flag.
+
+Local verification passed: lint, production webpack build with TypeScript, all
+300 unit tests, three discovery journeys, both returning-touch checks, and the
+12-route content guard. Release evidence is recorded in the PR.
+
 ## Moon discovery — 18 September 2026
 
 The header moon now carries a quiet “Explore ↗” invitation until the visitor

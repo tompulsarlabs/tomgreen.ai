@@ -20,9 +20,8 @@ const LEAVE_MS = 260;
 /** Roughly the surface's own travel, after which it is simply OPEN. */
 const EXPAND_MS = 380;
 
-const DISCOVERED_KEY = "tg-planets-discovered";
 const RIPPLE_KEY = "tg-moon-invitation-played";
-// Storage can be unavailable; keep the same behaviour for this page lifetime.
+// Discovery lasts for this document: client navigation keeps it, refresh resets it.
 let discoveredHere = false;
 let rippledHere = false;
 
@@ -131,14 +130,12 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
     const reveal = () => {
       observer?.disconnect();
       timer = window.setTimeout(() => {
-        let discovered = discoveredHere;
         let played = rippledHere;
         try {
-          discovered ||= localStorage.getItem(DISCOVERED_KEY) === "1";
           played ||= sessionStorage.getItem(RIPPLE_KEY) === "1";
         } catch { /* The in-memory flags still work without storage. */ }
-        setInvitation(!discovered);
-        if (!discovered && !played) {
+        setInvitation(!discoveredHere);
+        if (!discoveredHere && !played) {
           setRipple(true);
           rippledHere = true;
           try { sessionStorage.setItem(RIPPLE_KEY, "1"); } catch { /* Optional. */ }
@@ -157,7 +154,6 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
       discoveredHere = true;
       setInvitation(false);
       setRipple(false);
-      try { localStorage.setItem(DISCOVERED_KEY, "1"); } catch { /* Optional. */ }
     });
     return () => {
       window.clearTimeout(timer);
