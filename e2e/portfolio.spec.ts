@@ -188,7 +188,7 @@ test("the Moon is the way into the map, not a way home", async ({ page }) => {
   // It used to be a link home. It is a control now, and it says so: no
   // href, and a label that names what it actually does.
   const moon = page.locator("button.sphere-home");
-  await expect(moon).toHaveAttribute("aria-label", "Open the planetary map");
+  await expect(moon).toHaveAttribute("aria-label", "Explore the planetary map");
   await expect(moon).not.toHaveAttribute("href", /.*/);
 
   // Hover reveals the row; the click means the map, not travel.
@@ -235,6 +235,7 @@ test("a second touch tap on the open island opens the map", async ({ browser }) 
     hasTouch: true,
     isMobile: true,
   });
+  await context.addInitScript(() => localStorage.setItem("tg-planets-discovered", "1"));
   const page = await context.newPage();
   await page.goto("/building");
   await waitForFonts(page);
@@ -373,7 +374,7 @@ test("keyboard focus opens the island and leaving it closes again", async ({ pag
   await expect(island).toHaveAttribute("data-expanded", "false");
 });
 
-test("a touch tap opens the island instead of navigating, and tapping away closes it", async ({ browser }) => {
+test("after discovery a touch tap opens the island, and tapping away closes it", async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     hasTouch: true,

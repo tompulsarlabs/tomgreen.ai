@@ -244,6 +244,40 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   outline-color: rgba(242, 246, 252, 0.95);
 }
 
+/* A first-visit invitation; the destination remains a surprise. */
+.sphere-invitation {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+  transition: opacity 180ms ease;
+}
+.sphere-ripple {
+  position: absolute;
+  inset: 2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.sphere-home[data-ripple="true"] .sphere-ripple,
+.sphere-home:is(:hover, :focus-visible) .sphere-ripple {
+  animation: moon-invitation-ripple 1800ms ease-out both;
+}
+@keyframes moon-invitation-ripple {
+  0% { transform: scale(0.86); opacity: 0; }
+  18% { opacity: 0.24; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sphere-home .sphere-ripple { display: none; animation: none; }
+}
+
 /* The canvas runs wider than the sphere so drift and the hover swell are
    never clipped. Transparent, and never a pointer target. */
 .sphere-stage {

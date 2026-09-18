@@ -16,7 +16,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 393, height: 852 
         if (message.type() === "error") errors.push(`${message.text()} (${url})`);
       });
       await page.goto("/contact");
-      await page.getByRole("button", { name: "Open the planetary map", exact: true }).click();
+      await page.getByRole("button", { name: "Explore the planetary map", exact: true }).click();
       const portal = page.getByRole("dialog");
       const satellite = portal.getByRole("button", { name: "Explore the moon", exact: true });
       await expect(satellite).toBeVisible({ timeout: 90_000 });
@@ -72,7 +72,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 393, height: 852 
       await expect(page).toHaveURL("/contact");
       await portal.getByRole("button", { name: "Close the planetary map", exact: true }).click();
       await expect(portal).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "Open the planetary map", exact: true })).toBeFocused();
+      await expect(page.getByRole("button", { name: "Explore the planetary map", exact: true })).toBeFocused();
       expect(errors.filter(error => !error.includes("favicon"))).toEqual([]);
     });
   });
