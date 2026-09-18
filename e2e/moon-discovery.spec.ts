@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 const cue = ".sphere-invitation";
 const moon = ".sphere-home";
 
-test("invitation waits for the opening, ripples once per visit, and remembers discovery", async ({ page }) => {
+test("invitation waits for the opening, stays dismissed during navigation, and returns on refresh", async ({ page }) => {
+  // Previously discovered visitors must also see the cue after this update.
+  await page.addInitScript(() => localStorage.setItem("tg-planets-discovered", "1"));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator(cue)).toHaveCount(0);
@@ -20,10 +22,19 @@ test("invitation waits for the opening, ripples once per visit, and remembers di
   await page.getByRole("button", { name: "Close the planetary map", exact: true }).click();
   await expect(page.locator(cue)).toHaveCount(0);
   await expect(page.locator(moon)).toBeFocused();
-  await page.goto("/contact");
-  await expect(page.locator(".sphere-stage canvas")).toBeVisible();
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Contact", exact: true }).click();
+  await expect(page).toHaveURL(/\/contact$/);
+  // Let the route's invitation delay elapse: navigation must not bring it back.
+  await page.waitForTimeout(1200);
   await expect(page.locator(cue)).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem("tg-planets-discovered"))).toBe("1");
+  await page.reload();
+  await expect(page.locator(cue)).toBeVisible();
+  await page.locator(cue).click();
+  await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close the planetary map", exact: true }).click();
+  // Entering a URL in the address bar starts a new document too.
+  await page.goto("/building");
+  await expect(page.locator(cue)).toBeVisible();
 });
 
 test("phone invitation opens the map in one tap and respects reduced motion", async ({ browser }) => {
@@ -42,6 +53,8 @@ test("phone invitation opens the map in one tap and respects reduced motion", as
   await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close the planetary map", exact: true }).tap();
   await expect(page.locator(cue)).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(cue)).toBeVisible();
   await context.close();
 });
 

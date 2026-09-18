@@ -235,10 +235,16 @@ test("a second touch tap on the open island opens the map", async ({ browser }) 
     hasTouch: true,
     isMobile: true,
   });
-  await context.addInitScript(() => localStorage.setItem("tg-planets-discovered", "1"));
   const page = await context.newPage();
   await page.goto("/building");
   await waitForFonts(page);
+  await expect(page.locator(".sphere-invitation")).toBeVisible();
+  await page.locator(".sphere-invitation").tap();
+  await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close the planetary map", exact: true }).tap();
+  await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeHidden();
+  await page.locator("h1").tap();
+  await expect(page.locator(".nav-island")).toHaveAttribute("data-phase", "idle");
 
   const island = page.locator(".nav-island");
   const moon = island.locator("button.sphere-home");
@@ -380,10 +386,16 @@ test("after discovery a touch tap opens the island, and tapping away closes it",
     hasTouch: true,
     isMobile: true,
   });
-  await context.addInitScript(() => localStorage.setItem("tg-planets-discovered", "1"));
   const page = await context.newPage();
   await page.goto("/building");
   await waitForFonts(page);
+  await expect(page.locator(".sphere-invitation")).toBeVisible();
+  await page.locator(".sphere-invitation").tap();
+  await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close the planetary map", exact: true }).tap();
+  await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeHidden();
+  await page.locator("h1").tap();
+  await expect(page.locator(".nav-island")).toHaveAttribute("data-phase", "idle");
 
   const island = page.locator(".nav-island");
   await expect(island).toHaveAttribute("data-expanded", "false");
@@ -392,7 +404,7 @@ test("after discovery a touch tap opens the island, and tapping away closes it",
   // Touch has no hover, so the first tap only opens: it must not travel.
   await expect(page).toHaveURL(/\/building$/);
 
-  await page.locator("body").tap({ position: { x: 40, y: 600 } });
+  await page.locator("h1").tap();
   await expect(island).toHaveAttribute("data-expanded", "false");
   await expect(island.locator(".sphere-stage canvas")).toBeVisible();
   await context.close();
