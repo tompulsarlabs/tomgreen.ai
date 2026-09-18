@@ -380,6 +380,7 @@ test("after discovery a touch tap opens the island, and tapping away closes it",
     hasTouch: true,
     isMobile: true,
   });
+  await context.addInitScript(() => localStorage.setItem("tg-planets-discovered", "1"));
   const page = await context.newPage();
   await page.goto("/building");
   await waitForFonts(page);
