@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { site } from "@/lib/content/site";
-import { openOrbitPortal } from "@/lib/orbit-portal-bus";
+import { onOrbitPortalOpen, openOrbitPortal } from "@/lib/orbit-portal-bus";
 
 // WebGL is loaded only in the browser; the button and the links are
 // server-rendered without it, so navigation never depends on the canvas.
@@ -19,6 +19,12 @@ const INTENT_MS = 70;
 const LEAVE_MS = 260;
 /** Roughly the surface's own travel, after which it is simply OPEN. */
 const EXPAND_MS = 380;
+
+const DISCOVERED_KEY = "tg-planets-discovered";
+const RIPPLE_KEY = "tg-moon-invitation-played";
+// Storage can be unavailable; keep the same behaviour for this page lifetime.
+let discoveredHere = false;
+let rippledHere = false;
 
 type Phase = "idle" | "approaching" | "expanding" | "open" | "collapsing" | "focused";
 
@@ -47,13 +53,16 @@ function PendingMark() {
  * else: it navigates nowhere. Hover and focus open the navigation row,
  * which carries every destination including Home, so the object itself
  * is free to carry one meaning. Touch has neither hover nor focus, so
- * there the first tap opens the row and only a second one opens the map.
+ * the invitation opens the map directly; after discovery, a first tap opens
+ * the row and a second opens the map.
  */
 export function SiteHeader({ showVoices }: { showVoices: boolean }) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("idle");
   const [seenPath, setSeenPath] = useState(pathname);
   const [reduced, setReduced] = useState(false);
+  const [invitation, setInvitation] = useState(false);
+  const [ripple, setRipple] = useState(false);
   const islandRef = useRef<HTMLDivElement>(null);
   const timers = useRef<{ intent?: number; leave?: number; settle?: number }>({});
 
@@ -116,6 +125,47 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
     return () => query.removeEventListener("change", sync);
   }, []);
 
+  useEffect(() => {
+    let timer = 0;
+    let observer: MutationObserver | undefined;
+    const reveal = () => {
+      observer?.disconnect();
+      timer = window.setTimeout(() => {
+        let discovered = discoveredHere;
+        let played = rippledHere;
+        try {
+          discovered ||= localStorage.getItem(DISCOVERED_KEY) === "1";
+          played ||= sessionStorage.getItem(RIPPLE_KEY) === "1";
+        } catch { /* The in-memory flags still work without storage. */ }
+        setInvitation(!discovered);
+        if (!discovered && !played) {
+          setRipple(true);
+          rippledHere = true;
+          try { sessionStorage.setItem(RIPPLE_KEY, "1"); } catch { /* Optional. */ }
+        }
+      }, 900);
+    };
+    const opening = document.querySelector(".home-resolve");
+    const ready = () => !opening || opening.classList.contains("is-done") ||
+      (window.matchMedia("(prefers-reduced-motion: reduce)").matches && opening.classList.contains("is-ready"));
+    if (ready()) reveal();
+    else {
+      observer = new MutationObserver(() => { if (ready()) reveal(); });
+      observer.observe(opening!, { attributes: true, attributeFilter: ["class"] });
+    }
+    const unsubscribe = onOrbitPortalOpen(() => {
+      discoveredHere = true;
+      setInvitation(false);
+      setRipple(false);
+      try { localStorage.setItem(DISCOVERED_KEY, "1"); } catch { /* Optional. */ }
+    });
+    return () => {
+      window.clearTimeout(timer);
+      observer?.disconnect();
+      unsubscribe();
+    };
+  }, [pathname]);
+
   useEffect(() => clearTimers, [clearTimers]);
 
   // Tapping away closes it, as does Escape.
@@ -169,7 +219,9 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
         <button
           type="button"
           className="sphere-home"
-          aria-label="Open the planetary map"
+          data-invitation={invitation ? "true" : undefined}
+          data-ripple={ripple ? "true" : undefined}
+          aria-label="Explore the planetary map"
           // The moon does not travel any more. It has one meaning: the
           // hidden world. Every destination — Home included — lives in
           // the row it reveals on hover, which is why it can afford to.
@@ -184,15 +236,17 @@ export function SiteHeader({ showVoices }: { showVoices: boolean }) {
           }}
           // Mouse and keyboard reveal the navigation before they can
           // activate anything, so their click can simply mean the map.
-          // Touch has neither, so the first tap must only open the row —
+          // After discovery, a touch first opens the row —
           // and cancelling the touch's default is what suppresses the
           // click the browser would otherwise synthesise from it.
           onTouchEnd={(event) => {
-            if (SHOWING.has(phase)) return;
+            if (invitation || SHOWING.has(phase)) return;
             event.preventDefault();
             openNav(false);
           }}
         >
+          {invitation && <span className="sphere-invitation" aria-hidden>Explore ↗</span>}
+          <span className="sphere-ripple" aria-hidden onAnimationEnd={() => setRipple(false)} />
           <span className="sphere-stage" aria-hidden>
             <NavSphere active={engaged} reduced={reduced} />
           </span>

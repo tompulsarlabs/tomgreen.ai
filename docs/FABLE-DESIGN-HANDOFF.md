@@ -9,6 +9,26 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Moon discovery — 18 September 2026
+
+The header moon now carries a quiet “Explore ↗” invitation until the visitor
+opens the planetary map. The cue appears 900ms after the opening resolves (or
+after arrival on other routes), with one 1.8-second ripple per browser session.
+Hover and keyboard focus also trigger a single ripple alongside the existing
+moon response. Reduced motion keeps the text and suppresses the ripple.
+
+The invitation opens the map in one tap on phones. After discovery, the label
+stays dismissed across visits using local storage, and the existing navigation
+row interaction remains. Storage refusal falls back to memory for the current
+page lifetime; it does not block navigation. The accessible button name is now
+“Explore the planetary map”, matching its visible invitation.
+
+Verification: production webpack build including TypeScript, lint, all 300 unit
+tests, three new discovery browser journeys, 13 existing navigation/browser
+checks, and the 12-route content guard passed locally. Desktop and 390px phone
+visuals were reviewed. Full required CI and production verification follow in
+the release PR.
+
 ## Moon field motion — 11 September 2026
 
 Tom requested the travelling motion beneath the large moon back, while keeping

@@ -10,7 +10,7 @@ const closeName = "Close the planetary map";
 const sceneTimeout = 90_000;
 
 async function openMap(page: Page) {
-  const moon = page.getByRole("button", { name: "Open the planetary map", exact: true });
+  const moon = page.getByRole("button", { name: "Explore the planetary map", exact: true });
   await moon.focus();
   await page.keyboard.press("Enter");
   const portal = page.locator(portalSelector);
@@ -62,7 +62,7 @@ async function expectDismissed(page: Page) {
   await expect(page.locator(portalSelector)).toHaveCount(0);
   await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
   await expect(page.locator("html")).not.toHaveClass(/\bgolden-landing\b/);
-  await expect(page.getByRole("button", { name: "Open the planetary map", exact: true }))
+  await expect(page.getByRole("button", { name: "Explore the planetary map", exact: true }))
     .toBeFocused();
 }
 
@@ -272,7 +272,7 @@ test.describe("393px touch navigation", () => {
 
   test("the moon, section links and portal controls retain usable hit targets", async ({ page }) => {
     await page.goto(originPage);
-    const moon = page.getByRole("button", { name: "Open the planetary map", exact: true });
+    const moon = page.getByRole("button", { name: "Explore the planetary map", exact: true });
     await moon.tap();
     await expect(page.locator(".nav-island")).toHaveAttribute("data-phase", "open");
     const nav = page.getByRole("navigation", { name: "Primary navigation" });
