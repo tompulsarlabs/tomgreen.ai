@@ -640,3 +640,13 @@ Playwright/accessibility suite passed. The refinement added tests for:
 The final commit is to be validated again with `git diff --check`, lint, typecheck, unit tests,
 production build and the complete Playwright/accessibility suite. No production deployment or
 merge is part of this handoff.
+
+## 21 September 2026 — neutral Scout demo release
+
+Added `/demos/scout` to the demo catalogue, Lab and existing orbit themes. The page uses Scout's canonical brief/market/people research interface with two explicitly fictional examples. Visitors can explore evidence, filters, priorities, ordering and review notes. A custom brief creates a local planning sketch with no people or implied research results. Demo interactions are temporary; no model calls or outreach occur.
+
+The six files under `src/components/scout/` and `src/lib/scout/` mirror the public-safe source in the private `talent-scout` repository. Run that repository's `scripts/check-public-demo.mjs` against this checkout to detect drift. The component-level LICENSE preserves the original work's proprietary terms. Product adapters, operational prompts and model API routes are not copied.
+
+This public release does not contain the prepared Apollo examples or Roisin's private Notion data, and does not modify their existing deployment/workspace. The optional Notion illustration is generic HTML only. Build uploads exclude private/local artifacts via `.vercelignore`.
+
+Release checks: lint, typecheck, 300 unit tests, production build, five Scout browser tests plus affected Lab regression checks, and the existing content guard. Desktop/mobile screenshots inspected. The complete browser regression suite is also run before landing; actual result and deployed commit are recorded in the release PR. These are deterministic UI checks, not sourcing/model-quality evaluations.

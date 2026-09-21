@@ -5,7 +5,7 @@ import styles from './demos.module.css';
 
 export const metadata: Metadata = {
   title: 'Demos',
-  description: 'Try the AI products I’m building: opportunity discovery and candidate fit, a way to check agentic work, and team AI fluency.',
+  description: 'Try the AI products I’m building: talent research, opportunity discovery, a way to check agentic work, and team AI fluency.',
   alternates: { canonical: '/demos' },
 };
 export default function DemosPage() {

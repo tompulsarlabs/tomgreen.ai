@@ -11,6 +11,15 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    slug: "scout",
+    name: "Scout",
+    status: "in the lab",
+    tagline: "Find exceptional people before they apply",
+    description: ["Scout helps teams research the people behind relevant work and build useful relationships ahead of hiring need. Explore the brief, market and evidence in a fictional worked example."],
+    demoId: "scout",
+    stack: [],
+  },
+  {
     slug: "ivy",
     name: "Ivy",
     status: "running",
