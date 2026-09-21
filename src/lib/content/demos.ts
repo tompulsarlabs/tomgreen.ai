@@ -15,6 +15,17 @@ export type ProductDemo = {
 /** The published demo catalogue, shared by the hub and the planetary map. */
 export const demos: readonly ProductDemo[] = [
   {
+    id: "scout",
+    name: "Scout",
+    category: "TALENT RESEARCH",
+    title: "Find exceptional people before they apply.",
+    copy: "Start with the work, explore where it happens and challenge the evidence behind each research lead.",
+    href: "/demos/scout",
+    action: "Explore Scout",
+    note: "Two fictional examples · Try your own brief · No sign-in",
+    tone: "scout",
+  },
+  {
     id: "radar",
     name: "Radar",
     category: "EXECUTIVE RECRUITING",

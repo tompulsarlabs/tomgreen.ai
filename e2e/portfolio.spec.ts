@@ -1371,7 +1371,7 @@ test("Lab starts with builds and keeps operating models and writing distinct", a
   await expect(page.locator("#radar").getByRole("link", { name: "Explore demo" })).toHaveAttribute("href", "/demos/interview");
 
   const workshop = page.locator("#projects");
-  await expect(workshop.locator("article")).toHaveCount(6);
+  await expect(workshop.locator("article")).toHaveCount(7);
   for (const row of await workshop.locator("article").all()) {
     await expect(row.getByText(/^(running|shipped|in the lab)$/i)).toBeVisible();
   }
@@ -1399,7 +1399,7 @@ test("Lab without JavaScript keeps every build and operating model available", a
   await expect(page.locator(".orbit-poster")).toHaveCount(0);
   await expect(page.locator(".maturity-rows")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Systems & products" })).toBeVisible();
-  await expect(page.locator("#projects article")).toHaveCount(6);
+  await expect(page.locator("#projects article")).toHaveCount(7);
   await expect(page.locator("#building-practice, #recruiting-practice, #operations-practice")).toHaveCount(3);
   await expect(page.locator("#zalando, #chapter-2")).toHaveCount(0);
   await expect(page.locator("#ivy")).toBeAttached();
