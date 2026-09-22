@@ -12,7 +12,8 @@ Reference craft bar: <https://lusion.co/>
 ## Demo colours and Audibene copy — 22 September 2026
 
 The four demo cards now have distinct accents and background tints: Scout green,
-Radar copper, Ivy blue and Sybil purple. Audibene / Hear.com uses Tom’s revised
+Radar copper, Ivy blue and Sybil purple. Tom subsequently swapped the green and
+blue assignments: Ivy is green and Scout is blue, including their background tints. Audibene / Hear.com uses Tom’s revised
 two-paragraph account and closing line, ending “inside the technology org itself.”
 
 Local verification: lint, 300 unit tests, production webpack build with TypeScript,
