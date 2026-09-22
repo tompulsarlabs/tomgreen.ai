@@ -212,8 +212,8 @@ export const caseStudies: CaseStudy[] = [
     context:
       "An EQT Ventures-backed HealthTech had two consecutive mandates: scale the technology organization toward IPO, then make the product portfolio itself run better.",
     body: [
-      "Leading three talent-acquisition teams across the US, Germany and India, I doubled the function and grew the technology organization from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
-      "Then the crossover: I moved into the organization to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
+      "Leading talent-acquisition teams across the US, Germany and India, I grew the technology organization from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
+      "I then moved into the tech organization to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
     ],
     metrics: [
       { value: "~70 → 180", label: "Technology organization" },
@@ -222,7 +222,7 @@ export const caseStudies: CaseStudy[] = [
       { value: "~20%", label: "Faster release cycles" },
     ],
     demonstrates:
-      "The range: trusted first to build the leadership team, then to operate inside the product org itself.",
+      "The range: trusted first to build the leadership team, then to operate inside the technology org itself.",
     tier: "supporting",
   },
   {
