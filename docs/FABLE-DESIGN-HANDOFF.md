@@ -9,6 +9,18 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Demo colours and Audibene copy — 22 September 2026
+
+The four demo cards now have distinct accents and background tints: Scout green,
+Radar copper, Ivy blue and Sybil purple. Audibene / Hear.com uses Tom’s revised
+two-paragraph account and closing line, ending “inside the technology org itself.”
+
+Local verification: lint, 300 unit tests, production webpack build with TypeScript,
+and the 12-route content guard passed. Browser checks confirmed four distinct
+accent/background colours at 1440px and 390px without horizontal overflow, and
+all three Audibene passages match the supplied copy exactly. Desktop and phone
+screenshots were reviewed. Release evidence follows in the PR.
+
 ## Moon invitation on refresh — 18 September 2026
 
 Tom clarified that the “Explore ↗” label should return after a browser refresh
