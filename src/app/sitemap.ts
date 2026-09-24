@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${base}/work/${study.slug}`,
       priority: 0.8,
     })),
-    { url: `${base}/building`, priority: 0.7 },
+    { url: `${base}/lab`, priority: 0.7 },
     { url: `${base}/demos`, priority: 0.8 },
     { url: `${base}/about`, priority: 0.6 },
     { url: `${base}/contact`, priority: 0.6 },

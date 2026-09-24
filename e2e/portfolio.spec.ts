@@ -7,7 +7,7 @@ const requiredRoutes = [
   "/",
   "/work/zalando",
   "/work/chapter-2",
-  "/building",
+  "/lab",
   "/voices",
   "/about",
   "/contact",
@@ -167,7 +167,7 @@ test("any input skips the Home sequence straight to the map", async ({ page }) =
 test("the island is docked to the top right", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   // It sits in the right half and clears the content column, so it can
@@ -182,7 +182,7 @@ test("the island is docked to the top right", async ({ page }) => {
 test("the Moon is the way into the map, not a way home", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   // It used to be a link home. It is a control now, and it says so: no
@@ -196,14 +196,14 @@ test("the Moon is the way into the map, not a way home", async ({ page }) => {
   await settleIsland(page);
   await moon.click();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
-  await expect(page).toHaveURL("/building");
+  await expect(page).toHaveURL("/lab");
 });
 
 
 test("the open island names the way home in words", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   // The Moon is a picture of home; not everyone reads it as one. The
@@ -236,7 +236,7 @@ test("a second touch tap on the open island opens the map", async ({ browser }) 
     isMobile: true,
   });
   const page = await context.newPage();
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await expect(page.locator(".sphere-invitation")).toBeVisible();
   await page.locator(".sphere-invitation").tap();
@@ -252,19 +252,19 @@ test("a second touch tap on the open island opens the map", async ({ browser }) 
   // Settled, not merely opening: tapping mid-transition races the state
   // the second tap has to read.
   await expect(island).toHaveAttribute("data-phase", "open");
-  await expect(page).toHaveURL(/\/building$/);
+  await expect(page).toHaveURL(/\/lab$/);
   // Open already, so this one means the map: touch reaches the world in
   // two taps rather than never, and still travels nowhere.
   await moon.tap();
   await expect(page.locator('.orbit-portal[role="dialog"]')).toBeVisible();
-  await expect(page).toHaveURL(/\/building$/);
+  await expect(page).toHaveURL(/\/lab$/);
   await context.close();
 });
 
 test("collapsed, the sphere is the only visible navigation object", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
@@ -305,7 +305,7 @@ test("collapsed, the sphere is the only visible navigation object", async ({ pag
 test("empty space beside the sphere does not open the navigation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
@@ -320,7 +320,7 @@ test("empty space beside the sphere does not open the navigation", async ({ page
 test("the navigation grows from the sphere and returns when the pointer leaves", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
@@ -361,7 +361,7 @@ test("the navigation grows from the sphere and returns when the pointer leaves",
 test("keyboard focus opens the island and leaving it closes again", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   const island = page.locator(".nav-island");
@@ -387,7 +387,7 @@ test("after discovery a touch tap opens the island, and tapping away closes it",
     isMobile: true,
   });
   const page = await context.newPage();
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await expect(page.locator(".sphere-invitation")).toBeVisible();
   await page.locator(".sphere-invitation").tap();
@@ -402,7 +402,7 @@ test("after discovery a touch tap opens the island, and tapping away closes it",
   await island.locator("button.sphere-home").tap();
   await expect(island).toHaveAttribute("data-expanded", "true");
   // Touch has no hover, so the first tap only opens: it must not travel.
-  await expect(page).toHaveURL(/\/building$/);
+  await expect(page).toHaveURL(/\/lab$/);
 
   await page.locator("h1").tap();
   await expect(island).toHaveAttribute("data-expanded", "false");
@@ -784,7 +784,7 @@ test("reduced-motion header, row and in-content navigation use the direct fallba
     // The record's own rows and the in-content links are the doors now:
     // the map is behind the orb and is never the primary navigation.
     { from: "/", selector: '[data-work-row][href="/work/zalando"]', to: "/work/zalando" },
-    { from: "/", selector: '.work-index-next a[href="/building"]', to: "/building" },
+    { from: "/", selector: '.work-index-next a[href="/lab"]', to: "/lab" },
     { from: "/about", selector: 'a[href="/contact"]', to: "/contact" },
   ];
 
@@ -911,7 +911,7 @@ test("Home and the Lab use one continuous editorial ground", async ({ page }) =>
   await gotoReduced(page, "/");
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
 
-  await gotoReduced(page, "/building");
+  await gotoReduced(page, "/lab");
   await expect(page.locator(".systems-route")).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(page.locator(".sphere-stage canvas")).toBeVisible();
   await expect(page.locator(".maturity-index, .maturity-rows")).toHaveCount(0);
@@ -992,7 +992,7 @@ async function seePlanet(page: Page, portal: Locator, body: string) {
 
 test("no page carries the planetary map any more", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  for (const route of ["/", "/building", "/about", "/contact", "/work/zalando"]) {
+  for (const route of ["/", "/lab", "/about", "/contact", "/work/zalando"]) {
     await page.goto(route);
     await waitForFonts(page);
     // Neither the live scene nor the server-rendered poster.
@@ -1006,7 +1006,7 @@ test("no page carries the planetary map any more", async ({ page }) => {
 test("the moon opens the map and navigates nowhere", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
 
   // One object, one meaning. It is a button, not a link: there is no
@@ -1023,7 +1023,7 @@ test("the moon opens the map and navigates nowhere", async ({ page }) => {
   await expect(page.locator(".orbit-portal")).toHaveCount(0);
   await moon.click();
   await expect(page.locator(".orbit-portal")).toBeVisible();
-  await expect(page).toHaveURL("/building");
+  await expect(page).toHaveURL("/lab");
 
   // Every destination lives in the row instead, Home included.
   await page.keyboard.press("Escape");
@@ -1060,7 +1060,7 @@ test("the orb opens the complete map, from any page", async ({ page }) => {
 test("capturing a planet opens that section's own system", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
 
@@ -1071,7 +1071,7 @@ test("capturing a planet opens that section's own system", async ({ page }) => {
   // its projects — orbiting the section centre. No navigation.
   await expect(portal).toHaveAttribute("data-view", "section", { timeout: 45_000 });
   await expect(portal.locator(".orbit-portal-record")).toContainText("HOME");
-  await expect(page).toHaveURL("/building");
+  await expect(page).toHaveURL("/lab");
   await expect(portal.locator('a.orbit-label[data-body="ai-organisation"]')).toBeAttached({
     timeout: 45_000,
   });
@@ -1093,7 +1093,7 @@ test("one real press on a planet's body captures it, jitter and all", async ({ p
   // press, with that jitter, must capture — every time.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
 
@@ -1123,7 +1123,7 @@ test("a press aimed at where the planet was drawn a moment ago still lands", asy
   // empty space. The press model remembers the frames the visitor saw.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
 
@@ -1162,7 +1162,7 @@ test("one real press on a nameplate captures its planet", async ({ page }) => {
   // release, which a moving nameplate does not guarantee.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
 
@@ -1186,7 +1186,7 @@ test("Space on a focused nameplate captures its planet, like Enter", async ({ pa
   // who reached a planet by keyboard should not have to know that.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
 
@@ -1210,7 +1210,7 @@ test("one touch tap on a planet's body captures it", async ({ browser }) => {
   });
   const page = await context.newPage();
   try {
-    await page.goto("/building");
+    await page.goto("/lab");
     await waitForFonts(page);
     await openPortal(page);
     const portal = page.locator(".orbit-portal");
@@ -1231,7 +1231,7 @@ test("a press still lands after the window is resized", async ({ page }) => {
   // layout.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
   await page.setViewportSize({ width: 1100, height: 760 });
@@ -1256,7 +1256,7 @@ test("the same planet works again after stepping back to the map", async ({ page
   test.setTimeout(240_000);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
   const portal = page.locator(".orbit-portal");
@@ -1285,7 +1285,7 @@ test("the nucleus is a destination, not a control", async ({ page }) => {
   // exact thing the map must never ship.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
 
@@ -1322,7 +1322,7 @@ test("the portal steps back one level at a time, then closes", async ({ page }) 
 });
 
 test("the map is reachable under reduced motion, as its poster", async ({ page }) => {
-  await gotoReduced(page, "/building");
+  await gotoReduced(page, "/lab");
   await page.locator(".sphere-home").click();
   const portal = page.locator(".orbit-portal");
   await expect(portal).toBeVisible();
@@ -1330,7 +1330,7 @@ test("the map is reachable under reduced motion, as its poster", async ({ page }
   // whose planets are real links out to the sections.
   await expect(portal.locator(".orbit-poster")).toBeVisible();
   await expect(portal.locator('.orbit-field[data-live="true"]')).toHaveCount(0);
-  await expect(portal.locator('.orbit-poster a[href="/building"]')).toBeAttached();
+  await expect(portal.locator('.orbit-poster a[href="/lab"]')).toBeAttached();
   await expect(portal.locator('.orbit-poster a[href="/contact"]')).toBeAttached();
 });
 
@@ -1341,7 +1341,7 @@ test("the site navigates completely without the orb", async ({ browser }) => {
   const page = await context.newPage();
   await page.goto("/");
   await expect(page.locator(".orbit-portal")).toHaveCount(0);
-  for (const href of ["/building", "/about", "/contact"]) {
+  for (const href of ["/lab", "/about", "/contact"]) {
     await expect(page.locator(`a[href="${href}"]`).first()).toBeAttached();
   }
   await expect(page.locator('[data-work-row][href="/work/zalando"]')).toBeAttached();
@@ -1350,7 +1350,7 @@ test("the site navigates completely without the orb", async ({ browser }) => {
 
 
 test("Lab starts with builds and keeps operating models and writing distinct", async ({ page }) => {
-  await gotoReduced(page, "/building");
+  await gotoReduced(page, "/lab");
   await expect(page.getByRole("heading", { name: "Lab.", level: 1 })).toBeVisible();
   await expect(page.locator(".systems-route h2")).toHaveText([
     "Systems & products", "Teams & operating models", "Writing & ideas",
@@ -1391,7 +1391,7 @@ test("Lab without JavaScript keeps every build and operating model available", a
     viewport: { width: 1005, height: 900 },
   });
   const page = await context.newPage();
-  await page.goto("/building");
+  await page.goto("/lab");
   await expect(page.locator("html")).not.toHaveClass(/\bjs\b/);
   // Without JavaScript there is no orb and no map — the semantic index
   // below is the whole page, and it is complete.
@@ -1481,7 +1481,7 @@ test("the career corridor travels between stations and stops resolved", async ({
   await expect(stations.nth(2)).toHaveClass(/is-stop/, { timeout: 8000 });
   await expect.poll(() => customProperty(stations.nth(2), "--station-axis"), { timeout: 6000 }).toBeGreaterThan(99);
   await expect(stations.nth(2).getByRole("link", { name: "Read →" })).toHaveAttribute("href", "/work/zalando");
-  await expect(corridor.locator('a[href^="/building#"]')).toHaveCount(0);
+  await expect(corridor.locator('a[href^="/lab#"]')).toHaveCount(0);
   await expect(page.locator(".career-corridor")).toHaveAttribute("data-state", "idle", { timeout: 12_000 });
   await expect.poll(() => inkedCanvasPixels(page, ".corridor-canvas"), { timeout: 6000 }).toBeGreaterThan(300);
 });

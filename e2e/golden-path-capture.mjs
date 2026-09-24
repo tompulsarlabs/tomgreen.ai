@@ -32,10 +32,10 @@ async function reachZalando(page) {
   // The shot refuses to arm under reduced motion, which is the correct
   // behaviour and not what this recording is for.
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  // /building, not /, for the same reason the suite uses it: the home page
+  // /lab, not /, for the same reason the suite uses it: the home page
   // runs its own WebGL sequence, and on a CPU rasteriser that alone can eat
   // the whole budget before the map is ever opened.
-  await page.goto(`${baseURL}/building`, { waitUntil: "load" });
+  await page.goto(`${baseURL}/lab`, { waitUntil: "load" });
   await page.waitForFunction(() => !document.documentElement.classList.contains("route-entering"));
   await page.locator(".sphere-home").click();
   await page.locator('.orbit-portal[role="dialog"]').waitFor({ state: "visible" });

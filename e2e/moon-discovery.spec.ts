@@ -33,7 +33,7 @@ test("invitation waits for the opening, stays dismissed during navigation, and r
   await expect(page.getByRole("dialog", { name: "Planetary map", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close the planetary map", exact: true }).click();
   // Entering a URL in the address bar starts a new document too.
-  await page.goto("/building");
+  await page.goto("/lab");
   await expect(page.locator(cue)).toBeVisible();
 });
 
