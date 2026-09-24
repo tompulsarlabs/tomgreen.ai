@@ -4,7 +4,7 @@ import { PersonalHero } from "@/components/personal-hero";
 import { caseStudies } from "@/lib/content/case-studies";
 import { site } from "@/lib/content/site";
 
-// Lead with the European business remit; AI hiring at scale follows.
+// Lead with the EMEA business remit; AI hiring at scale follows.
 // This is the homepage's editorial order, separate from career chronology.
 const homeStudies = [
   ...caseStudies.filter(study => study.slug === "chapter-2"),

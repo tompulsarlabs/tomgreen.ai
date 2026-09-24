@@ -747,6 +747,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .work-index-row .row-company { display: inline-block; font-size: clamp(1.875rem, 5.2vw, 4rem); transition: font-variation-settings var(--d-1) var(--ease); }
 .work-index-row.is-supporting .row-company { font-size: clamp(1.875rem, 3.2vw, 2.5rem); }
 .work-index-row:hover .row-company, .work-index-row:focus-visible .row-company { font-variation-settings: "wdth" 100; }
+/* Company context stays quieter than the outcome beneath it. */
+.row-context { display: block; margin-top: .7rem; color: var(--muted); font-size: .8125rem; line-height: 1.5; letter-spacing: .015em; max-width: 52rem; }
+.row-context + .row-headline { margin-top: .6rem; }
+@media (max-width: 768px) { .row-context { font-size: .75rem; } }
 .row-headline { display: block; max-width: 54rem; margin-top: 0.5rem; line-height: 1.45; color: var(--ink-secondary); }
 .work-index-next { display: grid; grid-template-columns: 0.45fr 1fr auto; gap: 2rem; align-items: start; margin-top: 8rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 3rem 0; }
 .work-index-next .axis-heading { max-width: 12ch; }

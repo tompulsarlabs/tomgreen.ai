@@ -663,3 +663,14 @@ The six files under `src/components/scout/` and `src/lib/scout/` mirror the publ
 This public release does not contain the prepared Apollo examples or Roisin's private Notion data, and does not modify their existing deployment/workspace. The optional Notion illustration is generic HTML only. Build uploads exclude private/local artifacts via `.vercelignore`.
 
 Release checks: lint, typecheck, 300 unit tests, production build, five Scout browser tests plus affected Lab regression checks, and the existing content guard. Desktop/mobile screenshots inspected. The complete browser regression suite is also run before landing; actual result and deployed commit are recorded in the release PR. These are deterministic UI checks, not sourcing/model-quality evaluations.
+
+
+## 24 September 2026 — homepage company context (version B)
+
+Tom selected version B from the local A/B preview and authorized production release. Keep the existing homepage opening, positioning, metric labels and animation. Add a quiet company-and-role descriptor beneath each company name, before its existing outcome.
+
+Approved descriptors: Chapter 2 — Managing Director, EMEA · Embedded Talent and RPO; Zalando — DAX-listed e-commerce · Global Talent Leader; Audibene / Hear.com — Hearing care technology · Talent Leader → Product Operations; Wave — Talent strategy · Founder; WeR — Behavioral AI · Talent Advisor; Campbell North — Executive search · Senior Consultant.
+
+Chapter 2's role and business/P&L remit use EMEA consistently across the homepage, case study, visual CV and operating sequence. EU People Ops remains the scope of the specific operating project. Zalando and Audibene role labels also match the approved wording in the case studies and visual CV.
+
+Validation before PR: production build, lint, typecheck, 300 unit tests and six targeted browser checks passed (homepage structure, no-JavaScript content, mobile hierarchy, mobile accessibility and both flagship case studies). The content baseline changes are limited to this release's approved wording and descriptors. Required GitHub CI and Vercel checks must pass before merge; release PR records final deployment verification.

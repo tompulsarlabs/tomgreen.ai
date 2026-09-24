@@ -27,16 +27,16 @@ export const career: CareerStop[] = [
   },
   {
     company: "Chapter 2",
-    role: "Managing Director",
+    role: "Managing Director, EMEA",
     period: "2025 – 2026",
-    note: "Ran the European business. Won €3.3M in new ARR over twelve months. Then rebuilt how Europe operated.",
+    note: "Ran the EMEA business. Won €3.3M in new ARR over twelve months. Then rebuilt EU People Ops.",
     achievements: [
       "Led recruiting programs across Germany, the US, the UK and India and directly hired a Chief Product Officer.",
       "Rebuilt EU People Ops so a Germany-based operator, supported by agents working within clear rules and human oversight, could replace reliance on three UK shared-service roles. The model became the reference for the group’s wider AI transformation.",
       "Delivered a consulting project on executive recruiting (NDA).",
     ],
     metrics: [
-      { value: "Europe", label: "P&L owned" },
+      { value: "EMEA", label: "P&L owned" },
       { value: "€3.3M", label: "new ARR won in twelve months" },
       { value: "4 countries", label: "recruiting programs led" },
       { value: "3 roles", label: "shared-service reliance removed" },
@@ -45,7 +45,7 @@ export const career: CareerStop[] = [
   },
   {
     company: "Zalando",
-    role: "Global Lead, Talent Acquisition",
+    role: "Global Talent Leader",
     period: "2022 – 2025",
     note: "Europe's leading fashion platform makes its AI bet — and needs the org built.",
     achievements: [
@@ -64,7 +64,7 @@ export const career: CareerStop[] = [
   {
     company: "Audibene / Hear.com",
     role: "Product Operations",
-    promotedFrom: "Talent Acquisition Lead",
+    promotedFrom: "Talent Leader",
     period: "2019 – 2022",
     note: "An EQT Ventures-backed HealthTech, scaled toward IPO — then the crossover.",
     achievements: [
