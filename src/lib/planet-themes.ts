@@ -64,6 +64,7 @@ export const planetThemes: Readonly<Record<string, PlanetTheme>> = {
   "lab-recruiting-practice": azure,
   "lab-operations-practice": sulphur,
   "lab-tom-green-labs": ivory,
+  "lab-its-easy-to-get-lost-in-building": violet,
   "lab-stop-hiding-behind-culture": indigo,
   "demo-radar": copper,
   "demo-scout": jade,

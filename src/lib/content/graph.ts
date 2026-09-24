@@ -114,6 +114,16 @@ const contentNodes: GraphNode[] = [
     meta: "Substack",
   },
   {
+    id: "its-easy-to-get-lost-in-building",
+    label: "It’s easy to get lost in building",
+    kind: "content",
+    category: "craft",
+    cluster: "content",
+    href: "https://tomgreenlabs.substack.com/p/its-easy-to-get-lost-in-building",
+    blurb: "A few things that helped me keep perspective.",
+    meta: "Essay",
+  },
+  {
     id: "stop-hiding-behind-culture",
     label: "Stop hiding behind culture",
     kind: "content",
