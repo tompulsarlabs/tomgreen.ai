@@ -9,6 +9,14 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Latest Substack essay — 24 September 2026
+
+Added “It’s easy to get lost in building” to Lab’s Writing & ideas catalogue,
+ahead of the older essay. The title and subtitle match the published article,
+and the link goes directly to Substack. The shared catalogue also includes it
+in the Lab planetary map, with a violet ocean identity. Verification and release
+status are recorded in the release PR.
+
 ## Canonical Lab URL — 24 September 2026
 
 Lab now lives at `/lab`. Menu, homepage, contact and planetary destinations use
