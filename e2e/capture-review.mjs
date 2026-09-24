@@ -138,7 +138,7 @@ await gotoSettled(reviewPage, "/work/chapter-2");
 await reviewPage.screenshot({ path: `${output}/chapter-two-1440.png` });
 await scrollSectionToStart(reviewPage, '[aria-label="How the operating system worked"]');
 await reviewPage.screenshot({ path: `${output}/chapter-two-system-1440.png` });
-await gotoSettled(reviewPage, "/building");
+await gotoSettled(reviewPage, "/lab");
 await reviewPage.screenshot({ path: `${output}/systems-1440.png` });
 await gotoSettled(reviewPage, "/about");
 await reviewPage.screenshot({ path: `${output}/about-1440.png` });
@@ -153,7 +153,7 @@ await gotoSettled(midReviewPage, "/work/zalando");
 await midReviewPage.screenshot({ path: `${output}/zalando-1005.png` });
 await scrollSectionToStart(midReviewPage, '[aria-label="How the operating system worked"]');
 await midReviewPage.screenshot({ path: `${output}/zalando-system-1005.png` });
-await gotoSettled(midReviewPage, "/building");
+await gotoSettled(midReviewPage, "/lab");
 await midReviewPage.screenshot({ path: `${output}/systems-1005.png` });
 await midReviewContext.close();
 
@@ -162,7 +162,7 @@ const tabletReviewContext = await browser.newContext({
   reducedMotion: "no-preference",
 });
 const tabletReviewPage = await tabletReviewContext.newPage();
-await gotoSettled(tabletReviewPage, "/building");
+await gotoSettled(tabletReviewPage, "/lab");
 await tabletReviewPage.screenshot({ path: `${output}/systems-768.png` });
 await gotoSettled(tabletReviewPage, "/work/zalando");
 await tabletReviewPage.screenshot({ path: `${output}/zalando-768.png` });
@@ -180,7 +180,7 @@ await gotoSettled(mobileReviewPage, "/work/chapter-2");
 await mobileReviewPage.screenshot({ path: `${output}/chapter-two-390.png` });
 await scrollSectionToStart(mobileReviewPage, '[aria-label="How the operating system worked"]');
 await mobileReviewPage.screenshot({ path: `${output}/chapter-two-system-390.png` });
-await gotoSettled(mobileReviewPage, "/building");
+await gotoSettled(mobileReviewPage, "/lab");
 await mobileReviewPage.screenshot({ path: `${output}/systems-390.png` });
 await gotoSettled(mobileReviewPage, "/about");
 await mobileReviewPage.screenshot({ path: `${output}/about-390.png` });
@@ -195,7 +195,7 @@ const reducedContext = await browser.newContext({
 const reducedPage = await reducedContext.newPage();
 await gotoSettled(reducedPage, "");
 await reducedPage.screenshot({ path: `${output}/home-reduced-motion-1005.png` });
-await gotoSettled(reducedPage, "/building");
+await gotoSettled(reducedPage, "/lab");
 await reducedPage.screenshot({ path: `${output}/systems-reduced-motion-1005.png` });
 await gotoSettled(reducedPage, "/work/zalando");
 await reducedPage.screenshot({ path: `${output}/zalando-reduced-motion-1005.png` });
@@ -208,7 +208,7 @@ const noJsContext = await browser.newContext({
 const noJsPage = await noJsContext.newPage();
 await noJsPage.goto(baseURL, { waitUntil: "load" });
 await noJsPage.screenshot({ path: `${output}/home-no-js-1005.png`, fullPage: true });
-await noJsPage.goto(`${baseURL}/building`, { waitUntil: "load" });
+await noJsPage.goto(`${baseURL}/lab`, { waitUntil: "load" });
 await noJsPage.screenshot({ path: `${output}/systems-no-js-1005.png` });
 await noJsPage.goto(`${baseURL}/work/zalando`, { waitUntil: "load" });
 await noJsPage.screenshot({ path: `${output}/zalando-no-js-1005.png`, fullPage: true });

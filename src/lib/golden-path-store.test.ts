@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 const arm = (bodyId = "ai-organisation", href = "/work/zalando") =>
-  store.armGoldenPath({ bodyId, href, fromPath: "/building", tier: "high" });
+  store.armGoldenPath({ bodyId, href, fromPath: "/lab", tier: "high" });
 
 describe("the shot clock", () => {
   it("starts at the press instant and is idle before it", () => {
@@ -122,8 +122,8 @@ describe("which ending the shot is playing toward", () => {
     // the capture exists to deliver, at the moment it lands.
     store.armGoldenPath({
       bodyId: "work",
-      href: "/building",
-      fromPath: "/building",
+      href: "/lab",
+      fromPath: "/lab",
       tier: "high",
       ending: "children",
     });
@@ -148,7 +148,7 @@ describe("which ending the shot is playing toward", () => {
     store.armGoldenPath({
       bodyId: "work",
       href: null,
-      fromPath: "/building",
+      fromPath: "/lab",
       tier: "high",
       ending: "children",
     });
@@ -164,7 +164,7 @@ describe("which ending the shot is playing toward", () => {
     store.armGoldenPath({
       bodyId: "work",
       href: null,
-      fromPath: "/building",
+      fromPath: "/lab",
       tier: "high",
       ending: "children",
     });
@@ -198,8 +198,8 @@ describe("which speed the capture plays at", () => {
 
     store.armGoldenPath({
       bodyId: "work",
-      href: "/building",
-      fromPath: "/building",
+      href: "/lab",
+      fromPath: "/lab",
       tier: "high",
       mode: store.nextCaptureMode(),
     });
@@ -217,8 +217,8 @@ describe("which speed the capture plays at", () => {
   it("runs the compact clock faster, over the same shot", () => {
     store.armGoldenPath({
       bodyId: "work",
-      href: "/building",
-      fromPath: "/building",
+      href: "/lab",
+      fromPath: "/lab",
       tier: "high",
       mode: "compact",
     });
@@ -238,8 +238,8 @@ describe("which speed the capture plays at", () => {
   it("sizes its own watchdog, so a compact shot is not pinned for the full one's length", () => {
     store.armGoldenPath({
       bodyId: "work",
-      href: "/building",
-      fromPath: "/building",
+      href: "/lab",
+      fromPath: "/lab",
       tier: "high",
       mode: "compact",
     });
@@ -298,7 +298,7 @@ describe("several captures in one session", () => {
     arm();
     store.markGoldenPushed();
     store.finishGoldenPath();
-    arm("work", "/building");
+    arm("work", "/lab");
     // The landing classes are the state most likely to survive a run and
     // hold the next page's masthead invisible.
     expect(document.documentElement.classList.contains("golden-landing")).toBe(false);

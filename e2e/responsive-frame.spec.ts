@@ -32,7 +32,7 @@ test("the shared frame grows for a wide monitor and reflows on phones", async ({
 test("the planetary map keeps its destinations inside a portrait phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/building");
+  await page.goto("/lab");
   await page.locator(".sphere-home").click();
   await expect(page.locator(".orbit-canvas canvas")).toBeVisible();
   for (const id of ["work", "lab", "demos", "about", "contact"]) {

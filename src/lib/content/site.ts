@@ -22,7 +22,7 @@ export const site = {
     // Home is the operating record now — /work redirects here, so it is
     // not a second destination in the row.
     { href: "/", label: "Home" },
-    { href: "/building", label: "Lab" },
+    { href: "/lab", label: "Lab" },
     { href: "/demos", label: "Demos" },
     { href: "/voices", label: "Voices" },
     { href: "/about", label: "About" },

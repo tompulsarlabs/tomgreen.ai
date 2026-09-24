@@ -92,7 +92,7 @@ function SystemRecord({ node }: { node: GraphNode }) {
   );
 }
 
-export default function Building() {
+export default function Lab() {
   return (
     <div className="systems-route flex w-full flex-col gap-20 pb-20">
       <section

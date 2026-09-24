@@ -9,6 +9,18 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Canonical Lab URL — 24 September 2026
+
+Lab now lives at `/lab`. Menu, homepage, contact and planetary destinations use
+the new route, and the sitemap lists it. `/building` permanently redirects to
+`/lab`, retaining query parameters and browser section anchors. Page content and
+design are unchanged. The content source module remains named `building.ts`.
+
+Local verification: production build, typecheck, lint, 300 unit tests, nine
+focused browser checks (including redirect, canonical metadata, deep link,
+navigation and accessibility), and the 12-route content guard passed. Required
+CI and production verification are recorded in the release PR.
+
 ## Demo colours and Audibene copy — 22 September 2026
 
 The four demo cards now have distinct accents and background tints: Scout green,

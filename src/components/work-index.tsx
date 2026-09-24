@@ -66,7 +66,7 @@ export function WorkIndex() {
             Explore the products, tools and methods behind these results.
           </p>
         </div>
-        <Link href="/building" className="action action-light">
+        <Link href="/lab" className="action action-light">
           Explore the Lab →
         </Link>
       </aside>

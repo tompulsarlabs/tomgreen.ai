@@ -65,7 +65,7 @@ const labBodies = orbit(
     .map((node) => ({
       id: `lab-${node.id}`,
       label: node.label,
-      href: `/building#${node.id}`,
+      href: `/lab#${node.id}`,
     })),
 );
 
@@ -122,7 +122,7 @@ export const orbitWorlds: OrbitWorld[] = [
   {
     id: "lab",
     label: "Lab",
-    href: "/building",
+    href: "/lab",
     note: "Products, operating methods and writing, in public.",
     bodies: labBodies,
   },

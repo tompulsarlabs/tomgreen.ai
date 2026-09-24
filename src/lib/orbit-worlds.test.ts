@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import Building from "@/app/building/page";
+import Building from "@/app/lab/page";
 import DemosPage from "@/app/demos/page";
 import { CareerCorridor } from "@/components/career-corridor";
 import { career } from "@/lib/content/about";
@@ -43,12 +43,12 @@ describe("the planetary map's published destinations", () => {
 
   it("covers every record actually rendered in the Lab, including methods and writing", () => {
     const renderedRecords = [...labMarkup.matchAll(/<article\b[^>]*\bid="([^"]+)"/g)]
-      .map((match) => `/building#${match[1]}`);
+      .map((match) => `/lab#${match[1]}`);
     expect(renderedRecords.length).toBeGreaterThan(0);
     const destinations = worldById("lab")!.bodies.map((body) => targetHref(body.target));
     expect(new Set(destinations)).toEqual(new Set(renderedRecords));
-    expect(destinations).toContain("/building#operations-practice");
-    expect(destinations).toContain("/building#tom-green-labs");
+    expect(destinations).toContain("/lab#operations-practice");
+    expect(destinations).toContain("/lab#tom-green-labs");
   });
 
   it("offers the demos linked by the published hub under their product names", () => {
@@ -61,7 +61,7 @@ describe("the planetary map's published destinations", () => {
 
   it("resolves every local destination to a real page and every hash to rendered content", () => {
     const renderedAnchors: Record<string, Set<string>> = {
-      "/building": new Set(attributeValues(labMarkup, "id")),
+      "/lab": new Set(attributeValues(labMarkup, "id")),
       "/about": new Set(attributeValues(aboutMarkup, "id")),
     };
     const bodies = [...mapBodies, ...orbitWorlds.flatMap((world) => world.bodies)];

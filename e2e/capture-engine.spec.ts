@@ -16,7 +16,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 async function openPortal(page: Page) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
@@ -68,7 +68,7 @@ test("a parent resolves into its own system, inside the portal, off one event", 
   // And it resolves by releasing Contact's own system rather than by taking
   // paper: nothing navigates, and the portal is still here afterwards.
   await expect(portal).toHaveAttribute("data-view", "section", { timeout: 90_000 });
-  await expect(page).toHaveURL("/building");
+  await expect(page).toHaveURL("/lab");
   await expect(portal).not.toHaveAttribute("data-golden-labels", "held");
   await expect(portal).not.toHaveAttribute("data-golden", "true", { timeout: 90_000 });
   expect(retiredMedia).toEqual([]);
@@ -164,7 +164,7 @@ test("a mail channel answers on the press, with no cinematic in front of it", as
   // A departure, not an exit: the map is exactly where it was, and the
   // acknowledgement decays on its own rather than leaving the portal marked.
   await expect(portal).toHaveAttribute("data-view", "section");
-  await expect(page).toHaveURL("/building");
+  await expect(page).toHaveURL("/lab");
   await expect(portal).not.toHaveAttribute("data-departing", "true", { timeout: 10_000 });
 });
 

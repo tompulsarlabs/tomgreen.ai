@@ -1397,7 +1397,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    Everything here is scoped to `.home-page`, `.work-index-page`,
    `.work-index-masthead` or a `.personal-*` class. The global
    `.axis-display`, `.axis-heading` and `.axis-index` definitions are left
-   alone, so /about, /contact, /building, /work/[slug] and the Lab render
+   alone, so /about, /contact, /lab, /work/[slug] and the Lab render
    exactly as before.
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -1483,7 +1483,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .work-index-masthead > h2       { margin-top: var(--air-1); }
 .work-index-masthead > .systems-lead { margin-top: var(--air-2); }
 
-/* `.systems-lead` is not a home-page class — it is also on /building,
+/* `.systems-lead` is not a home-page class — it is also on /lab,
    /contact and /about. Unscoped, this would strip the baseline nudge that
    holds the Lab's lead against its h1 in an end-aligned grid, and would
    beat the ≤768 `.systems-lead` max-width on three other routes. */
