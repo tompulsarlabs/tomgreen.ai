@@ -16,12 +16,12 @@ export type ProductDemo = {
 export const demos: readonly ProductDemo[] = [
   {
     id: "scout",
-    name: "Scout",
+    name: "Nabu",
     category: "TALENT RESEARCH",
     title: "Find exceptional people before they apply.",
     copy: "Start with the work, explore where it happens and challenge the evidence behind each research lead.",
-    href: "/demos/scout",
-    action: "Explore Scout",
+    href: "/demos/nabu",
+    action: "Explore Nabu",
     note: "Two fictional examples · Try your own brief · No sign-in",
     tone: "scout",
   },

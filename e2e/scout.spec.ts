@@ -5,7 +5,7 @@ test('neutral examples, review controls and isolation', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', request => { if (/notion\.(so|com)|\/api\//.test(request.url())) requests.push(request.url()); });
   await page.goto('/demos');
-  await page.getByRole('link', { name: 'Explore Scout' }).click();
+  await page.getByRole('link', { name: 'Explore Nabu' }).click();
   await page.getByRole('tab', { name: /The people/ }).click();
   await expect(page.getByRole('heading', { name: 'Avery Chen' })).toBeVisible();
   await page.getByLabel('What evidence would change your mind?').fill('A local test note');
@@ -31,7 +31,7 @@ test('neutral examples, review controls and isolation', async ({ page }) => {
 });
 
 test('custom input is a local brief, never relabeled candidate results', async ({ page }) => {
-  await page.goto('/demos/scout');
+  await page.goto('/demos/nabu');
   await page.getByText('Try your own brief', { exact: false }).click();
   await page.getByLabel('Company or team').fill('My example team');
   await page.getByLabel('Role', { exact: true }).fill('Research Engineer');
@@ -47,10 +47,10 @@ test('custom input is a local brief, never relabeled candidate results', async (
 });
 
 for (const width of [390, 1440]) {
-  test(`Scout keyboard, layout and accessibility at ${width}`, async ({ page }) => {
+  test(`Nabu keyboard, layout and accessibility at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 950 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/demos/scout');
+    await page.goto('/demos/nabu');
     const tabs = page.getByRole('tab');
     await tabs.first().focus();
     await page.keyboard.press('ArrowRight');
@@ -65,11 +65,24 @@ for (const width of [390, 1440]) {
 }
 
 test('public route excludes tailored examples and retains a no-JS brief', async ({ browser, request, baseURL }) => {
-  for (const path of ['apollo-ai-ecosystems', 'apollo-principal-engineer', 'notion']) expect((await request.get(`/demos/scout/${path}`)).status()).toBe(404);
+  for (const path of ['apollo-ai-ecosystems', 'apollo-principal-engineer', 'notion']) expect((await request.get(`/demos/nabu/${path}`)).status()).toBe(404);
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto(`${baseURL}/demos/scout`);
+  await page.goto(`${baseURL}/demos/nabu`);
   await expect(page.getByRole('heading', { name: 'Founding Engineer', exact: true })).toBeVisible();
   await expect(page.getByText('Enable JavaScript to explore', { exact: false })).toBeVisible();
   await context.close();
+});
+
+
+test('the old Scout link redirects to Nabu with the new identity', async ({ page, request }) => {
+  const response = await request.get('/demos/scout?source=shared', { maxRedirects: 0 });
+  expect(response.status()).toBe(308);
+  expect(response.headers().location).toBe('/demos/nabu?source=shared');
+  await page.goto('/demos/scout?source=shared#scout-panel-0');
+  await expect(page).toHaveURL(/\/demos\/nabu\?source=shared#scout-panel-0$/);
+  await expect(page).toHaveTitle(/Nabu/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://tomgreen.ai/demos/nabu');
+  await expect(page.getByRole('tablist', { name: 'Explore Nabu' })).toBeVisible();
+  expect(await page.locator('main').innerText()).not.toMatch(/\bscout\b/i);
 });

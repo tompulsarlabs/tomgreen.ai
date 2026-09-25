@@ -9,6 +9,15 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Nabu rename — 25 September 2026
+
+Scout is now presented as Nabu across Demos, Lab, the planetary map, demo copy,
+accessibility labels and page metadata. The canonical demo is `/demos/nabu`;
+`/demos/scout` permanently redirects, preserving query strings and section links.
+Internal catalogue IDs, CSS, component paths and storage remain stable so the
+existing Lab anchors, planet materials and saved interactions keep working.
+Verification and production release evidence are recorded in the PR.
+
 ## Latest Substack essay — 24 September 2026
 
 Added “It’s easy to get lost in building” to Lab’s Writing & ideas catalogue,
