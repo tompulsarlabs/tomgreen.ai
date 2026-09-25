@@ -9,7 +9,10 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
   redirects() {
-    return [{ source: "/building", destination: "/lab", permanent: true }];
+    return [
+      { source: "/building", destination: "/lab", permanent: true },
+      { source: "/demos/scout", destination: "/demos/nabu", permanent: true },
+    ];
   },
 
   env: {

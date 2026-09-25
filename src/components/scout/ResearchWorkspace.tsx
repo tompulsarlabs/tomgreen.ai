@@ -72,13 +72,13 @@ export default function ResearchWorkspace({ example, storageKey }: { example: Sc
 
   return <div className={`${s.scout} ${hydrated ? s.hydrated : ''}`} data-example={example.slug}>
     <header className={s.header}>
-      <div className={s.topline}><span className={s.brand}><i aria-hidden="true" />SCOUT</span><span className={s.eyebrow}>{example.organization} / {example.discipline}</span></div>
+      <div className={s.topline}><span className={s.brand}><i aria-hidden="true" />NABU</span><span className={s.eyebrow}>{example.organization} / {example.discipline}</span></div>
       <h1>Who could do this<br className={s.titleBreak} /> exceptionally well?</h1>
       <p className={s.lead}>Start with what the role demands. Research the market deeply. Hire exceptional folks, whether or not they’re looking.</p>
       <div className={s.meta}><span><i aria-hidden="true" /> {example.mode === 'fictional' ? 'Fictional worked example' : 'Research record'} · {example.checked}</span><span>{people.length} profiles · {example.mode === 'fictional' ? 'fictional, not candidates' : 'leads to verify'}</span><span>No outreach sent</span></div>
     </header>
 
-    <div className={s.tabs} role="tablist" aria-label="Explore Scout">
+    <div className={s.tabs} role="tablist" aria-label="Explore Nabu">
       {tabs.map((label, index) => <button key={label} ref={element => { tabRefs.current[index] = element; }} id={`scout-tab-${index}`} role="tab" aria-controls={`scout-panel-${index}`} aria-selected={tab === index} tabIndex={tab === index ? 0 : -1} onClick={() => go(index)} onKeyDown={event => keyboard(event, index)}><span>0{index + 1}</span>{label}<span className={s.tabArrow} aria-hidden="true">↗</span></button>)}
     </div>
 
@@ -106,7 +106,7 @@ export default function ResearchWorkspace({ example, storageKey }: { example: Sc
           <div className={s.divider} />
           <h4>Questions before a shortlist</h4>
           <p>{example.questions}</p>
-          <div className={s.noteBox}><strong>A role is one starting point.</strong><p>Scout’s broader purpose is to help people across a business build genuine relationships, warm talent pools and communities before the next role opens.</p></div>
+          <div className={s.noteBox}><strong>A role is one starting point.</strong><p>Nabu’s broader purpose is to help people across a business build genuine relationships, warm talent pools and communities before the next role opens.</p></div>
         </aside>
       </div>
       <div className={s.next}><p>Start with the mandate.<br /><strong>Now find where the relevant work is happening.</strong></p><button className={s.primary} onClick={() => go(1, true)}>Explore the market <span aria-hidden="true">→</span></button></div>
@@ -172,8 +172,8 @@ export default function ResearchWorkspace({ example, storageKey }: { example: Sc
     <details className={s.notionSurface}>
       <summary><span><b>Work in Notion?</b> There’s a surface for that, too.</span><span aria-hidden="true">+</span></summary>
       <div className={s.notionGrid}>
-        <div><p className={s.eyebrow}>Optional workspace surface</p><h3>Bring the review<br />into your workspace.</h3><p>A Notion surface can place the brief, research packets and a priority board alongside an embedded Scout view.</p><p>Scout runs independently here. You don’t need a Notion account, and changes in this demo don’t sync to any workspace.</p><p className={s.small}>Illustrative layout only. This does not display or connect to a private search.</p></div>
-        <div className={s.notionPage} aria-label="Illustrative Notion page layout"><div className={s.notionChrome}><span>N</span> Scout / Example workspace <span>•••</span></div><div className={s.notionDocument}><span className={s.notionIcon}>◎</span><h4>{example.title}</h4><p>Illustrative workspace. Not a live connection.</p><div className={s.notionEmbed}><span className={s.eyebrow}>Scout · Embedded view</span><strong>Who could do this exceptionally well?</strong><div><span>The brief</span><span>The market</span><span>The people</span></div></div><div className={s.notionRow}>↗ <span>Role brief & search thesis</span></div><div className={s.notionRow}>▦ <span>People to investigate</span></div><div className={s.notionBoard}>{priorities.map(priority => <div key={priority}><span>{priority}</span><i /><i /></div>)}</div></div></div>
+        <div><p className={s.eyebrow}>Optional workspace surface</p><h3>Bring the review<br />into your workspace.</h3><p>A Notion surface can place the brief, research packets and a priority board alongside an embedded Nabu view.</p><p>Nabu runs independently here. You don’t need a Notion account, and changes in this demo don’t sync to any workspace.</p><p className={s.small}>Illustrative layout only. This does not display or connect to a private search.</p></div>
+        <div className={s.notionPage} aria-label="Illustrative Notion page layout"><div className={s.notionChrome}><span>N</span> Nabu / Example workspace <span>•••</span></div><div className={s.notionDocument}><span className={s.notionIcon}>◎</span><h4>{example.title}</h4><p>Illustrative workspace. Not a live connection.</p><div className={s.notionEmbed}><span className={s.eyebrow}>Nabu · Embedded view</span><strong>Who could do this exceptionally well?</strong><div><span>The brief</span><span>The market</span><span>The people</span></div></div><div className={s.notionRow}>↗ <span>Role brief & search thesis</span></div><div className={s.notionRow}>▦ <span>People to investigate</span></div><div className={s.notionBoard}>{priorities.map(priority => <div key={priority}><span>{priority}</span><i /><i /></div>)}</div></div></div>
       </div>
     </details>
 

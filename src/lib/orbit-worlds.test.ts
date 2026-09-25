@@ -56,7 +56,7 @@ describe("the planetary map's published destinations", () => {
       .filter((href) => href.startsWith("/demos/"));
     const demos = worldById("demos")?.bodies ?? [];
     expect(demos.map((body) => targetHref(body.target))).toEqual(hubDestinations);
-    expect(demos.map((body) => body.label)).toEqual(["Scout", "Radar", "Ivy", "Sybil"]);
+    expect(demos.map((body) => body.label)).toEqual(["Nabu", "Radar", "Ivy", "Sybil"]);
   });
 
   it("resolves every local destination to a real page and every hash to rendered content", () => {
