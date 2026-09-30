@@ -10,6 +10,7 @@ const nextConfig = {
 
   redirects() {
     return [
+      { source: "/demos/interview", destination: "/demos/radar", permanent: true },
       { source: "/building", destination: "/lab", permanent: true },
       { source: "/demos/scout", destination: "/demos/nabu", permanent: true },
     ];

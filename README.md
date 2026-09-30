@@ -45,13 +45,13 @@ the shorter homepage introduction, and the shared violet hover treatment.
 
 ## Product demos
 
-`/demos` is the public launch hub. Radar at `/demos/interview` now follows
-six stops: sample background/company intake, Sybil's scripted conversation,
+`/demos` is the public launch hub. Radar at `/demos/radar` follows
+six stops: sample background/company context, career-focused intake,
 candidate context and spikes, fictional market signals and fit, a curated
 approach, and interview practice. The selector, browser history and restart
 support exploring the complete journey. All candidate/company/role examples
 are fictional; no personal input, model calls, scoring implementation or private
-product data is included. The separate live voice beta remains invitation-only.
+product data is included. The private pilot remains separate; the public walkthrough does not provide live voice or market research. `/demos/interview` permanently redirects to the canonical Radar route.
 
 `/demos/ivy` embeds the reviewed static Ivy showcase. Public access was
 restored at Tom’s request on 9 September 2026 after reviewing its exposure:

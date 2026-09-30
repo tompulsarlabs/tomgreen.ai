@@ -129,7 +129,7 @@ test.describe("live planetary journeys", () => {
       // Radar is a local interactive page. Ivy embeds an external showcase
       // and Sybil redirects off-site, both covered by their href contract.
       const leaf = world.id === "demos"
-        ? internal.find((body) => targetHref(body.target) === "/demos/interview")
+        ? internal.find((body) => targetHref(body.target) === "/demos/radar")
         : internal[0];
       if (world.id === "demos") expect(leaf, "Demos must expose the local Radar journey").toBeDefined();
       if (leaf) {

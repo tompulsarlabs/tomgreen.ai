@@ -82,7 +82,7 @@ describe("the planetary map's published destinations", () => {
   });
 
   it("keeps local demos in the page transition and treats Sybil's redirect as a departure", () => {
-    expect(captureEndingFor("demo-radar")).toEqual({ kind: "paper", href: "/demos/interview" });
+    expect(captureEndingFor("demo-radar")).toEqual({ kind: "paper", href: "/demos/radar" });
     expect(captureEndingFor("demo-ivy")).toEqual({ kind: "paper", href: "/demos/ivy" });
     expect(captureEndingFor("demo-sybil")).toEqual({ kind: "external", href: "/demos/sybil" });
     expect(usesCaptureEngine("demo-sybil")).toBe(false);

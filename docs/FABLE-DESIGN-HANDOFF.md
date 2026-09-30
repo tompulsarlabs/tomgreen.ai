@@ -9,6 +9,31 @@ Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
 
+## Radar public demo refresh — 30 September 2026
+
+The public walkthrough now lives at `/demos/radar`; `/demos/interview` redirects
+permanently with query strings preserved. Demos, Lab and the planetary map use
+the canonical route. Radar has dedicated Open Graph/Twitter copy and a 1200×630
+share image for LinkedIn.
+
+The presentation follows the current private Radar preview’s restrained blue
+palette and lighter typography. The scripted intake now explores career direction
+and constraints, with separate fictional posted-role and fit-hypothesis examples.
+This remains a purpose-written public six-step walkthrough, not a deployment of
+the private pilot: no authentication, real candidate data, model calls or voice
+service is exposed. The other demo cards keep their established colours.
+
+The existing public planetary renderer is embedded prominently beside the opening
+copy on desktop and above it on mobile, with pause and full-map controls. No
+private Radar renderer was copied. The demo step survives opening and closing
+the full map. Reduced motion retains the accessible destination fallback.
+
+Local verification: production build, typecheck, lint, 300 unit tests and four
+Radar browser tests passed. Browser tests cover desktop/mobile journeys,
+accessibility, restart/history, old-link redirects, sharing metadata/image, live
+map rendering, pause, responsive sizing and full-map open/close.
+Final CI and production evidence are recorded in the release PR.
+
 ## Nabu rename — 25 September 2026
 
 Scout is now presented as Nabu across Demos, Lab, the planetary map, demo copy,
