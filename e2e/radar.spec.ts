@@ -58,23 +58,35 @@ test('Radar has a shareable canonical URL and preserves old deep links', async (
   await expect(page.getByRole('heading', { name: 'Your background', exact: true })).toBeVisible();
 });
 
-test('Radar exposes the live interstellar map and returns to the same demo step', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
+test('Radar visual belongs to the product and respects motion controls', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/demos/radar?step=3');
-  const map = page.getByRole('region', { name: 'Interstellar map', exact: true });
-  await expect(map).toBeVisible();
-  await expect(map.locator('.orbit-field')).toHaveAttribute('data-live', 'true', { timeout: 30_000 });
-  await expect(map.locator('canvas')).toBeVisible();
+  const map = page.getByRole('region', { name: 'Radar neural constellation', exact: true });
+  const canvas = map.locator('canvas');
+  await expect(canvas).toHaveAttribute('data-ready', 'true');
+  await page.screenshot({ path: testInfo.outputPath('radar-desktop.png') });
+  // Regression: the product visual must never contain the website's destinations.
+  await expect(map.locator('a, .orbit-field')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Explore full map ↗' })).toHaveCount(0);
+  const pixels = () => canvas.evaluate(el => (el as HTMLCanvasElement).toDataURL());
+  const moving = await pixels();
+  await expect.poll(pixels).not.toBe(moving);
   await map.getByRole('button', { name: 'Pause motion', exact: true }).click();
   await expect(map.getByRole('button', { name: 'Resume motion' })).toHaveAttribute('aria-pressed', 'true');
-  await map.getByRole('button', { name: 'Explore full map ↗' }).click();
-  await expect(page.getByRole('dialog', { name: 'Planetary map', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Close the planetary map', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const stopped = await pixels();
+  await page.waitForTimeout(150);
+  expect(await pixels()).toBe(stopped);
+  await map.getByRole('button', { name: 'Resume motion' }).click();
+  await expect.poll(pixels).not.toBe(stopped);
   await expect(page.getByRole('heading', { name: 'Context & spikes', exact: true })).toBeVisible();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(map.getByRole('button')).toHaveCount(0);
+  const reduced = await pixels();
+  await page.waitForTimeout(150);
+  expect(await pixels()).toBe(reduced);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(map.locator('canvas')).toBeVisible();
-  expect(await map.locator('.orbit-field').evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(350);
+  await expect(canvas).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('radar-mobile.png') });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
