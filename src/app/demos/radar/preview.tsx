@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ui from './journey.module.css';
-import InterstellarMap from './interstellar-map';
+import RadarConstellation from './radar-constellation';
 
 // Purpose-written public fixtures. No private prompts, heuristics or model calls.
 const steps = ['Your background', 'Intake', 'Context & spikes', 'Signals & fit', 'Your approach', 'Interview practice'];
@@ -56,11 +56,12 @@ export default function RadarPreview() {
   }
   return <section className={ui.coach}>
     <header className={ui.hero}>
-      <div><p className={ui.eyebrow}>RADAR / EXECUTIVE OPPORTUNITIES</p>
+      <RadarConstellation />
+      <div className={ui.heroCopy}><p className={ui.eyebrow}>YOUR CAREER COACH</p>
       <h1>Let’s find what’s next.</h1>
       <p className={ui.coachIntro}>Find the roles you’re missing. Connect your experience and ambitions with market signals, then prepare a considered approach.</p>
-      <p className={ui.coachNote}>Explore Alex’s fictional journey. Six steps. No sign-in.</p></div>
-      <InterstellarMap />
+      <button className={ui.primary} onClick={() => go(0)}>Explore Alex’s journey →</button>
+      <p className={ui.coachNote}>Fictional walkthrough · Six steps · No sign-in</p></div>
     </header>
     <nav className={ui.steps} aria-label="Radar journey">{steps.map((label, i) => <button key={label} aria-current={i === step ? 'step' : undefined} onClick={() => go(i)}><span>{String(i + 1).padStart(2, '0')}</span>{label}</button>)}</nav>
     <div className={ui.surface}>

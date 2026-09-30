@@ -1,5 +1,12 @@
 # tomgreen.ai — Fable 5 Design Scoping Handoff
 
+## 30 September 2026 — Radar visual correction, approved for release
+
+The previous release incorrectly embedded tomgreen.ai’s navigation planets inside Radar. Tom rejected this: the products have no such crossover. Removed that embedding and its full-map action. A new, independently written public-demo constellation follows Radar’s observed neural visual direction (blue light, connected nodes, instrument rings and centred opening), without copying private product source or data. The existing site-wide moon remains in the outer website navigation. Step controls no longer float over the opening.
+
+Local preview: `http://127.0.0.1:3162/demos/radar` in `/private/tmp/tomgreen-radar-20260930`, branch `codex/radar-visual-correction`. Lint and typecheck pass; all four Radar browser tests pass, including desktop/mobile journeys, redirect/metadata, constellation motion, pause and reduced motion. Desktop and mobile visually inspected. This is a public visual recreation, not the private app’s renderer. Tom reviewed the correction and explicitly approved shipping it on 30 September. Release CI and production evidence will be recorded on the correction PR.
+
+
 Date: 27 August 2026  
 Owner: Tom Green  
 Repository: <https://github.com/tompulsarlabs/tomgreen.ai>  
