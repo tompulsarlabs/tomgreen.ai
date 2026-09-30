@@ -23,9 +23,15 @@ This remains a purpose-written public six-step walkthrough, not a deployment of
 the private pilot: no authentication, real candidate data, model calls or voice
 service is exposed. The other demo cards keep their established colours.
 
-Local verification: production build, typecheck, lint, 300 unit tests and three
+The existing public planetary renderer is embedded prominently beside the opening
+copy on desktop and above it on mobile, with pause and full-map controls. No
+private Radar renderer was copied. The demo step survives opening and closing
+the full map. Reduced motion retains the accessible destination fallback.
+
+Local verification: production build, typecheck, lint, 300 unit tests and four
 Radar browser tests passed. Browser tests cover desktop/mobile journeys,
-accessibility, restart/history, old-link redirects and sharing metadata/image.
+accessibility, restart/history, old-link redirects, sharing metadata/image, live
+map rendering, pause, responsive sizing and full-map open/close.
 Final CI and production evidence are recorded in the release PR.
 
 ## Nabu rename — 25 September 2026

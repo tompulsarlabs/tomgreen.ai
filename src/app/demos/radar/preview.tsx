@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ui from './journey.module.css';
+import InterstellarMap from './interstellar-map';
 
 // Purpose-written public fixtures. No private prompts, heuristics or model calls.
 const steps = ['Your background', 'Intake', 'Context & spikes', 'Signals & fit', 'Your approach', 'Interview practice'];
@@ -59,13 +60,7 @@ export default function RadarPreview() {
       <h1>Let’s find what’s next.</h1>
       <p className={ui.coachIntro}>Find the roles you’re missing. Connect your experience and ambitions with market signals, then prepare a considered approach.</p>
       <p className={ui.coachNote}>Explore Alex’s fictional journey. Six steps. No sign-in.</p></div>
-      <svg className={ui.constellation} viewBox="0 0 260 260" fill="none" aria-hidden="true">
-        <circle cx="130" cy="130" r="112" stroke="currentColor" opacity=".15"/>
-        <circle cx="130" cy="130" r="82" stroke="currentColor" opacity=".1"/>
-        <path d="M38 112Q85 10 162 50T225 146M38 112Q125 60 225 146M38 112Q90 185 156 213L225 146M83 190L162 50M64 65L195 190M64 65Q155 85 156 213" stroke="currentColor" opacity=".4"/>
-        {[[38,112],[64,65],[162,50],[225,146],[156,213],[83,190],[195,190],[129,116],[101,92],[164,144]].map(([cx,cy], i) => <circle key={i} cx={cx} cy={cy} r={i === 7 ? 5 : 2.5} fill="currentColor"/>) }
-        <circle cx="129" cy="116" r="13" stroke="currentColor" opacity=".4"/>
-      </svg>
+      <InterstellarMap />
     </header>
     <nav className={ui.steps} aria-label="Radar journey">{steps.map((label, i) => <button key={label} aria-current={i === step ? 'step' : undefined} onClick={() => go(i)}><span>{String(i + 1).padStart(2, '0')}</span>{label}</button>)}</nav>
     <div className={ui.surface}>

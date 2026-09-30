@@ -57,3 +57,24 @@ test('Radar has a shareable canonical URL and preserves old deep links', async (
   await page.goto('/demos/radar?step=999');
   await expect(page.getByRole('heading', { name: 'Your background', exact: true })).toBeVisible();
 });
+
+test('Radar exposes the live interstellar map and returns to the same demo step', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/demos/radar?step=3');
+  const map = page.getByRole('region', { name: 'Interstellar map', exact: true });
+  await expect(map).toBeVisible();
+  await expect(map.locator('.orbit-field')).toHaveAttribute('data-live', 'true', { timeout: 30_000 });
+  await expect(map.locator('canvas')).toBeVisible();
+  await map.getByRole('button', { name: 'Pause motion', exact: true }).click();
+  await expect(map.getByRole('button', { name: 'Resume motion' })).toHaveAttribute('aria-pressed', 'true');
+  await map.getByRole('button', { name: 'Explore full map ↗' }).click();
+  await expect(page.getByRole('dialog', { name: 'Planetary map', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close the planetary map', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Context & spikes', exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(map.locator('canvas')).toBeVisible();
+  expect(await map.locator('.orbit-field').evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(350);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
