@@ -31,7 +31,7 @@ export const demos: readonly ProductDemo[] = [
     category: "EXECUTIVE RECRUITING",
     title: "Find the roles you’re missing.",
     copy: "Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.",
-    href: "/demos/interview",
+    href: "/demos/radar",
     action: "Explore Radar",
     note: "6-step guided journey · Fictional candidate",
     tone: "radar",
