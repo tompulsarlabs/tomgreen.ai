@@ -102,3 +102,18 @@ test('Radar visual belongs to the product and respects motion controls', async (
   await page.screenshot({ path: testInfo.outputPath('radar-mobile.png') });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+// A bottom-sticky dock used to cover the heading and start controls on short windows.
+test('Radar navigation stays below coach controls in a short window', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/demos/radar');
+  const controls = page.getByRole('button', { name: 'Start coaching' });
+  const dock = page.getByRole('navigation', { name: 'Radar areas' });
+  const controlBox = await controls.boundingBox();
+  const dockBox = await dock.boundingBox();
+  expect(controlBox).not.toBeNull();
+  expect(dockBox).not.toBeNull();
+  expect(dockBox!.y).toBeGreaterThan(controlBox!.y + controlBox!.height);
+  await controls.click();
+  await expect(page.getByRole('button', { name: 'Build the operating model across product teams' })).toBeVisible();
+});
