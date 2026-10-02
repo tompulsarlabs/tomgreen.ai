@@ -15,10 +15,27 @@ const points = Array.from({ length: 64 }, (_, i) => {
 const edges = points.flatMap((a, i) => points.flatMap((b, j) =>
   j > i && Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < .46 ? [[i, j]] : []));
 
-export default function RadarConstellation() {
+export default function RadarConstellation({ onPing }: { onPing: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const clock = useRef(0);
-  const [paused, setPaused] = useState(false);
+  const [sequence, setSequence] = useState(0);
+  const scan = useRef({ start: -10, route: new Set<number>() });
+  function ping() {
+    onPing();
+    const next = sequence + 1;
+    const available = edges.map((_, i) => i).filter(i => !scan.current.route.has(i));
+    const first = available[(next * 17) % available.length] ?? 0;
+    const route = new Set([first]), visited = new Set(edges[first]);
+    for (let i = 1; i < 9; i++) {
+      const candidates = edges.map(([a, b], index) => ({a,b,index})).filter(edge => visited.has(edge.a) !== visited.has(edge.b));
+      const fresh = candidates.filter(edge => !scan.current.route.has(edge.index));
+      const choices = fresh.length ? fresh : candidates;
+      const edge = choices[(next * 11 + i * 7) % choices.length];
+      if (!edge) break;
+      route.add(edge.index); visited.add(edge.a); visited.add(edge.b);
+    }
+    scan.current = {start: clock.current, route}; setSequence(next);
+  }
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -34,13 +51,16 @@ export default function RadarConstellation() {
     if (!node || !ctx) return;
     let frame = 0, previous = 0, visible = true;
     let width = 600, height = 340;
-    const still = paused || reduced || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const still = reduced || matchMedia('(prefers-reduced-motion: reduce)').matches;
     function draw() {
       if (!ctx || !node) return;
       ctx.clearRect(0, 0, width, height);
-      const cx = width / 2, cy = height / 2 - 10;
+      const cx = width / 2, cy = height / 2;
       const radius = Math.min(width * .36, height * .42);
       const time = clock.current;
+      const progress = (time - scan.current.start) / 2.8;
+      const active = !still && progress >= 0 && progress < 1;
+      const sweep = progress * Math.PI * 2 - Math.PI / 2;
       const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 1.5);
       glow.addColorStop(0, '#77c8ee12'); glow.addColorStop(1, '#77c8ee00');
       ctx.fillStyle = glow; ctx.fillRect(0, 0, width, height);
@@ -58,6 +78,15 @@ export default function RadarConstellation() {
         const outer = radius + (i % 10 === 0 ? 7 : 2);
         ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer); ctx.stroke();
       }
+      const orbit = time * Math.PI / 24;
+      ctx.strokeStyle = '#b4eff7a6';
+      for (const offset of [0, Math.PI]) {
+        ctx.beginPath(); ctx.arc(cx, cy, radius * .92, orbit + offset, orbit + offset + .75); ctx.stroke();
+      }
+      if (active) {
+        ctx.strokeStyle = `rgba(194,245,255,${Math.sin(progress * Math.PI) * .85})`;
+        ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.08, sweep - .45, sweep); ctx.stroke();
+      }
       const rotation = time * .075;
       const projected = points.map(p => {
         const x = p.x * Math.cos(rotation) + p.z * Math.sin(rotation);
@@ -68,7 +97,9 @@ export default function RadarConstellation() {
       });
       edges.forEach(([a, b], i) => {
         const p = projected[a], q = projected[b];
-        ctx.strokeStyle = `rgba(161,218,246,${.10 + (p.z + q.z + 2) * .045})`;
+        const lit = active && scan.current.route.has(i) ? Math.sin(progress * Math.PI) : 0;
+        ctx.lineWidth = .6 + lit;
+        ctx.strokeStyle = `rgba(161,218,246,${.10 + (p.z + q.z + 2) * .045 + lit * .65})`;
         ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
         if (i % 8 === 0) {
           const travel = (time * .13 + i * .117) % 1;
@@ -118,11 +149,11 @@ export default function RadarConstellation() {
     document.addEventListener('visibilitychange', schedule);
     draw(); schedule();
     return () => { cancelAnimationFrame(frame); resize.disconnect(); intersection.disconnect(); document.removeEventListener('visibilitychange', schedule); };
-  }, [paused, reduced]);
+  }, [reduced]);
 
-  return <section className={ui.constellation} aria-label="Radar neural constellation">
+  return <section className={ui.constellation} aria-label="Radar neural constellation" data-scan={sequence}>
     <div className={ui.constellationFallback} aria-hidden="true" />
     <canvas ref={canvas} role="img" aria-label="A slowly rotating constellation of connected lights, framed by Radar’s instrument rings" />
-    {!reduced && <button className={ui.motionControl} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? 'Resume motion' : 'Pause motion'}</button>}
+    <button className={ui.mapTap} aria-label="Ping the radar" onClick={ping} />
   </section>;
 }

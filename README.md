@@ -46,10 +46,11 @@ the shorter homepage introduction, and the shared violet hover treatment.
 ## Product demos
 
 `/demos` is the public launch hub. Radar at `/demos/radar` follows
-six stops: sample background/company context, career-focused intake,
-candidate context and spikes, fictional market signals and fit, a curated
-approach, and interview practice. The selector, browser history and restart
-support exploring the complete journey. All candidate/company/role examples
+five areas: Coach, Explore, Prepare, Pipeline and You. Sample background and
+company context sit within You. The interactive neural map, restrained typography
+and fading tape-delay sonar follow the current Radar experience. Area navigation,
+browser history and restart support exploring the complete journey; Open Radar
+links directly to the live beta at `https://radar.tomgreen.ai`. All candidate/company/role examples
 are fictional; no personal input, model calls, scoring implementation or private
 product data is included. The private pilot remains separate; the public walkthrough does not provide live voice or market research. `/demos/interview` permanently redirects to the canonical Radar route.
 

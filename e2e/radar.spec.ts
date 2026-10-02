@@ -7,11 +7,10 @@ for (const width of [1440, 390]) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/demos/radar');
     await expect(page.getByRole('heading', { name: 'Let’s find what’s next.' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Start intake →' })).toBeDisabled();
-    await page.getByRole('button', { name: 'Use sample LinkedIn profile' }).click();
-    await page.getByRole('button', { name: 'Confirm sample context' }).click();
-    await page.getByRole('button', { name: 'Start intake →' }).click();
-    await expect(page).toHaveURL(/step=2/);
+    const areas = page.getByRole('navigation', {name:'Radar areas'});
+    await expect(areas.getByRole('button')).toHaveCount(5);
+    await expect(page.getByRole('link', {name:'Open Radar ↗', exact:true}).first()).toHaveAttribute('href','https://radar.tomgreen.ai');
+    await page.getByRole('button', {name:'Start coaching'}).click();
     await page.getByRole('button', { name: 'Build the operating model across product teams' }).click();
     await page.getByRole('button', { name: 'Accountability without decision authority' }).click();
     await page.getByRole('button', { name: 'Review Alex’s context →' }).click();
@@ -33,10 +32,16 @@ for (const width of [1440, 390]) {
     const accessibility = await new AxeBuilder({ page }).include('main').analyze();
     expect(accessibility.violations).toEqual([]);
     await page.getByRole('button', { name: 'Start again ↺' }).click();
-    await expect(page.getByRole('button', { name: 'Start intake →' })).toBeDisabled();
-    await page.getByLabel('Choose a step').selectOption('3');
+    await expect(page.getByRole('button', {name:'Start coaching'})).toBeVisible();
+    await areas.getByRole('button', {name:'You',exact:true}).click();
+    await page.getByRole('button', {name:'View sample background →'}).click();
+    await expect(page.getByRole('button', {name:'Start intake →'})).toBeDisabled();
+    await page.getByRole('button', {name:'Use sample LinkedIn profile'}).click();
+    await page.getByRole('button', {name:'Confirm sample context'}).click();
+    await expect(page.getByRole('button', {name:'Start intake →'})).toBeEnabled();
+    await areas.getByRole('button', {name:'Explore',exact:true}).click();
     await page.goBack();
-    await expect(page.getByRole('heading', { name: 'Your background', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', {name:'Your background',exact:true})).toBeVisible();
   });
 }
 
@@ -55,13 +60,13 @@ test('Radar has a shareable canonical URL and preserves old deep links', async (
   expect(response.ok()).toBe(true);
   expect(response.headers()['content-type']).toContain('image/png');
   await page.goto('/demos/radar?step=999');
-  await expect(page.getByRole('heading', { name: 'Your background', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Let’s find what’s next.', exact: true })).toBeVisible();
 });
 
 test('Radar visual belongs to the product and respects motion controls', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/demos/radar?step=3');
+  await page.goto('/demos/radar');
   const map = page.getByRole('region', { name: 'Radar neural constellation', exact: true });
   const canvas = map.locator('canvas');
   await expect(canvas).toHaveAttribute('data-ready', 'true');
@@ -72,17 +77,24 @@ test('Radar visual belongs to the product and respects motion controls', async (
   const pixels = () => canvas.evaluate(el => (el as HTMLCanvasElement).toDataURL());
   const moving = await pixels();
   await expect.poll(pixels).not.toBe(moving);
-  await map.getByRole('button', { name: 'Pause motion', exact: true }).click();
-  await expect(map.getByRole('button', { name: 'Resume motion' })).toHaveAttribute('aria-pressed', 'true');
-  const stopped = await pixels();
-  await page.waitForTimeout(150);
-  expect(await pixels()).toBe(stopped);
-  await map.getByRole('button', { name: 'Resume motion' }).click();
-  await expect.poll(pixels).not.toBe(stopped);
-  await expect(page.getByRole('heading', { name: 'Context & spikes', exact: true })).toBeVisible();
+  await map.getByRole('button', {name:'Ping the radar'}).click();
+  await expect(map).toHaveAttribute('data-scan','1');
+  await map.getByRole('button', {name:'Ping the radar'}).click();
+  await expect(map).toHaveAttribute('data-scan','2');
+  await expect(page.getByRole('button', {name:'Pause motion'})).toHaveCount(0);
+  await page.getByRole('button',{name:'Radar demo sound'}).click();
+  await expect(page.getByRole('button',{name:'Radar demo sound'})).toHaveAttribute('aria-pressed','false');
+  await page.getByRole('navigation',{name:'Radar areas'}).getByRole('button',{name:'Explore',exact:true}).click();
+  await page.getByRole('navigation',{name:'Radar areas'}).getByRole('button',{name:'Coach',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Radar demo sound'})).toHaveAttribute('aria-pressed','false');
+  await expect(page.getByRole('heading',{name:'Let’s find what’s next.'})).toBeFocused();
+  await expect(map).toBeInViewport();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect(map.getByRole('button')).toHaveCount(0);
+  await page.waitForTimeout(200);
   const reduced = await pixels();
+  await page.waitForTimeout(150);
+  expect(await pixels()).toBe(reduced);
+  await map.getByRole('button', {name:'Ping the radar'}).click();
   await page.waitForTimeout(150);
   expect(await pixels()).toBe(reduced);
   await page.setViewportSize({ width: 390, height: 844 });

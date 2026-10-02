@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ui from './journey.module.css';
 import RadarConstellation from './radar-constellation';
+import { useDemoSound } from './use-demo-sound';
 
 // Purpose-written public fixtures. No private prompts, heuristics or model calls.
 const steps = ['Your background', 'Intake', 'Context & spikes', 'Signals & fit', 'Your approach', 'Interview practice'];
+const areas = [{label:'Coach',step:1,icon:'M5 10v4m4-8v12m3-15v18m3-15v12m4-8v4'}, {label:'Explore',step:3,icon:'M20 12a8 8 0 1 1-8-8m0 5a3 3 0 1 0 3 3m-3 0 9-9'}, {label:'Prepare',step:5,icon:'M4 4h16v12H9l-5 4V4zm4 4h8m-8 4h5'}, {label:'Pipeline',step:4,icon:'M4 4h4v10H4zm6 0h4v16h-4zm6 0h4v7h-4z'}, {label:'You',step:2,icon:'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21v-3a8 8 0 0 1 16 0v3'}];
 const dialogue = [
   { question: 'What would you like to change in your next role?', options: ['Own product strategy and a larger team', 'Build the operating model across product teams', 'Explore both before narrowing my search'], reply: ['Let’s look for decision authority, team scope and a product problem you want to own.', 'We’ll look at the mandate to change how teams plan, prioritise and deliver.', 'We can compare both paths against your experience before you choose a direction.'] },
   { question: 'What would make an otherwise interesting opportunity the wrong fit?', options: ['Accountability without decision authority', 'A role without room to build a team', 'A location or working pattern that does not fit'], reply: ['That becomes a question to resolve early: which decisions would you actually own?', 'Team-building scope needs evidence. A senior title alone won’t establish it.', 'Working arrangements belong in your confirmed context before you pursue an opportunity.'] },
@@ -21,7 +23,10 @@ const examples = [
 ];
 
 export default function RadarPreview() {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
+  const [started, setStarted] = useState(false);
+  const sound = useDemoSound(step === 1);
+  const activeArea = step === 0 ? 2 : step;
   const [background, setBackground] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -31,41 +36,43 @@ export default function RadarPreview() {
   const [selected, setSelected] = useState(0);
   const [copied, setCopied] = useState('');
   const title = useRef<HTMLHeadingElement>(null);
+  const workspace = useRef<HTMLElement>(null);
   const picked = opportunities[opportunity];
   useEffect(() => {
     const sync = () => {
-      const n = Number(new URLSearchParams(location.search).get('step') || 1) - 1;
-      setStep(Number.isInteger(n) && n >= 0 && n < steps.length ? n : 0);
+      const n = Number(new URLSearchParams(location.search).get('step') || 2) - 1;
+      setStep(Number.isInteger(n) && n >= 0 && n < steps.length ? n : 1);
+      setStarted(false);
     };
     sync(); window.addEventListener('popstate', sync);
     return () => window.removeEventListener('popstate', sync);
   }, []);
   function go(next: number) {
     const bounded = Math.max(0, Math.min(steps.length - 1, next));
-    setStep(bounded); setCopied('');
+    setStep(bounded); setCopied(''); setStarted(false); sound.stop();
     const url = new URL(location.href); url.searchParams.set('step', String(bounded + 1));
     history.pushState(null, '', url);
     requestAnimationFrame(() => {
       title.current?.focus({ preventScroll: true });
-      title.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      (bounded === 1 ? workspace.current : title.current)?.scrollIntoView({ behavior: 'instant', block: 'start' });
     });
   }
   function restart() {
     setBackground(false); setConfirmed(false); setAnswers([]); setFocus('Product leadership');
-    setOpportunity(0); setApproach('Direct introduction'); setSelected(0); go(0);
+    setOpportunity(0); setApproach('Direct introduction'); setSelected(0); go(1);
   }
-  return <section className={ui.coach}>
-    <header className={ui.hero}>
-      <RadarConstellation />
-      <div className={ui.heroCopy}><p className={ui.eyebrow}>YOUR CAREER COACH</p>
-      <h1>Let’s find what’s next.</h1>
-      <p className={ui.coachIntro}>Find the roles you’re missing. Connect your experience and ambitions with market signals, then prepare a considered approach.</p>
-      <button className={ui.primary} onClick={() => go(0)}>Explore Alex’s journey →</button>
-      <p className={ui.coachNote}>Fictional walkthrough · Six steps · No sign-in</p></div>
-    </header>
-    <nav className={ui.steps} aria-label="Radar journey">{steps.map((label, i) => <button key={label} aria-current={i === step ? 'step' : undefined} onClick={() => go(i)}><span>{String(i + 1).padStart(2, '0')}</span>{label}</button>)}</nav>
-    <div className={ui.surface}>
-      <div className={ui.topline}><span>RADAR</span><span>Fictional guided demo</span></div>
+  return <section ref={workspace} className={ui.coach}>
+    <div className={ui.workspaceBar}><span>RADAR <small>Public demo</small></span><button className={ui.soundControl} aria-pressed={sound.enabled} onClick={sound.toggle} aria-label="Radar demo sound">{sound.enabled ? 'Sound on' : 'Sound off'}</button></div>
+    {step === 1 && <header className={ui.hero}>
+      <RadarConstellation onPing={() => sound.play('ping')} />
+      {!started && <div className={ui.heroCopy}>
+        <h1 ref={title} tabIndex={-1}>Let’s find what’s next.</h1>
+        <div className={ui.heroActions}><button className={ui.primary} onClick={() => { sound.play('arrival'); setStarted(true); requestAnimationFrame(() => { title.current?.focus({ preventScroll: true }); title.current?.scrollIntoView({ behavior: 'instant', block: 'start' }); }); }}>Start coaching <span aria-hidden>→</span></button><button className={ui.textButton} onClick={() => go(2)}>Review context</button></div>
+        <p className={ui.coachNote}>Alex’s fictional journey · No sign-in</p>
+      </div>}
+    </header>}
+    {(step !== 1 || started) && <div className={ui.surface}>
+      <div className={ui.topline}><span>{areas.find(area => area.step === activeArea)?.label}</span><span>Alex Morgan · Sample workspace</span></div>
       <h2 ref={title} tabIndex={-1} className={ui.title}>{steps[step]}</h2>
       {step === 0 && <>
         <p className={ui.lead}>A useful conversation starts with context.</p>
@@ -74,7 +81,7 @@ export default function RadarPreview() {
           <section className={ui.card}><span className={ui.eyebrow}>01 / PROFILE</span><h3>Meet Alex Morgan</h3><p>Product leader · fictional candidate</p><button className={ui.secondary} onClick={() => setBackground(true)}>{background ? 'Sample profile loaded ✓' : 'Use sample LinkedIn profile'}</button>{background && <dl><dt>Experience</dt><dd>Led a product team spanning discovery, customer research and cross-team delivery.</dd><dt>Recent work</dt><dd>Built an AI-assisted research workflow with source checks and human review.</dd><dt>Next direction</dt><dd>A product leadership role with wider decision authority and room to build a team.</dd></dl>}</section>
           <section className={ui.card}><span className={ui.eyebrow}>02 / COMPANY CONTEXT</span><h3>Fieldwork Studio</h3><p>A fictional software company serving product teams.</p><dl><dt>Work environment</dt><dd>Cross-functional team; growing use of AI in research and delivery.</dd><dt>Context check</dt><dd>Alex confirms the context before the conversation begins.</dd></dl><button className={ui.secondary} disabled={!background} onClick={() => setConfirmed(true)}>{confirmed ? 'Company context confirmed ✓' : 'Confirm sample context'}</button></section>
         </div>
-        <button className={ui.primary} disabled={!confirmed} onClick={() => go(1)}>Start intake →</button>
+        <button className={ui.primary} disabled={!confirmed} onClick={() => { go(1); setStarted(true); }}>Start intake →</button>
       </>}
       {step === 1 && <>
         <p className={ui.lead}>One question. Then the next useful question.</p>
@@ -84,6 +91,7 @@ export default function RadarPreview() {
         <button className={ui.textButton} onClick={() => setAnswers([])}>Restart intake</button>
       </>}
       {step === 2 && <>
+        <button className={ui.textButton} onClick={() => go(0)}>View sample background →</button>
         <p className={ui.lead}>More than a title on a CV.</p>
         <div className={ui.grid}><section className={ui.card}><span className={ui.eyebrow}>CONTEXT</span><h3>Research into decisions.</h3><p>Alex works across discovery and delivery, and wants more ownership of the problems a team chooses to solve.</p><label className={ui.field}>Explore a direction<select value={focus} onChange={e => setFocus(e.target.value)}><option>Product leadership</option><option>Product operations</option></select></label></section><section className={ui.card}><span className={ui.eyebrow}>SPIKES · SAMPLE EVIDENCE</span><h3>A clearer operating model.</h3><p>Connects customer evidence, team priorities and delivery. Introduced source checks and human review into an AI-assisted research workflow.</p><p className={ui.note}>A strength suggested by Alex’s fictional background, not a verified score or a conclusion about you.</p></section></div>
         <div className={ui.callout}><h3>Confirm before matching.</h3><p>Review the evidence, ambitions and constraints before matching. This direction changes which sample opportunity you see first.</p><button className={ui.primary} onClick={() => { setOpportunity(focus === 'Product operations' ? 1 : 0); go(3); }}>Use this sample direction →</button></div>
@@ -95,6 +103,7 @@ export default function RadarPreview() {
         <button className={ui.primary} onClick={() => go(4)}>Curate the approach →</button>
       </>}
       {step === 4 && <>
+        <div className={ui.pipelineSummary}><span>{picked.name}</span><span>Preparing an introduction</span></div>
         <p className={ui.lead}>{picked.approach}</p><p>Make the first step relevant to the company and grounded in the candidate’s own work.</p>
         <div className={ui.options}>{['Direct introduction', 'Warm route already active'].map(value => <button key={value} aria-pressed={approach === value} onClick={() => setApproach(value)}>{value}</button>)}</div>
         {approach === 'Warm route already active' ? <div className={ui.callout}><h3>Keep one coordinated approach.</h3><p>Alex checks with the person making the introduction before starting a separate conversation.</p></div> : <section className={ui.card}><span className={ui.eyebrow}>FICTIONAL DRAFT · NOTHING IS SENT</span><blockquote>{picked.draft}</blockquote><button className={ui.secondary} onClick={async () => { try { await navigator.clipboard.writeText(picked.draft); setCopied('Sample draft copied.'); } catch { setCopied('Select the sample draft above to copy it.'); } }}>Copy sample draft</button><p role="status" className={ui.note}>{copied}</p></section>}
@@ -105,8 +114,8 @@ export default function RadarPreview() {
         <div className={ui.options}>{examples.map((example, i) => <button key={example.label} aria-pressed={selected === i} onClick={() => setSelected(i)}>{example.label}</button>)}</div><div aria-live="polite"><blockquote className={ui.answer}>{examples[selected].answer}</blockquote><div className={ui.feedback}><section><h3>What the coach notices</h3><p>{examples[selected].feedback}</p></section><section><h3>A useful follow-up</h3><p>{examples[selected].next}</p></section></div></div>
         <div className={ui.callout}><h3>One candidate. A connected journey.</h3><p>Intake, context, discovery, approach and preparation. This public walkthrough uses scripted examples. The private pilot explores these steps with a candidate’s own context.</p><div className={ui.actions}><button className={ui.primary} onClick={restart}>Start again ↺</button><Link className={ui.secondary} href="/demos">← All demos</Link></div></div>
       </>}
-    </div>
-    <nav className={ui.controls} aria-label="Demo controls"><button onClick={() => go(step - 1)} disabled={step === 0} aria-label="Previous step">←</button><label><span>{String(step + 1).padStart(2, '0')} / 06</span><select aria-label="Choose a step" value={step} onChange={e => go(Number(e.target.value))}>{steps.map((label, i) => <option key={label} value={i}>{label}</option>)}</select></label><button onClick={() => step === steps.length - 1 ? restart() : go(step + 1)} aria-label={step === steps.length - 1 ? 'Restart demo' : 'Next step'}>{step === steps.length - 1 ? '↺' : '→'}</button></nav>
-    <p className={ui.coachNote}>Fictional examples throughout. No uploads, personal assessment, live market search or model calls. The private product’s methods and candidate data are not included in this demo.</p>
+    </div>}
+    <nav className={ui.areaDock} aria-label="Radar areas">{areas.map(area => <button key={area.label} aria-current={activeArea === area.step ? 'page' : undefined} onClick={() => go(area.step)}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={area.icon}/></svg><span>{area.label}</span></button>)}</nav>
+    <p className={ui.demoFootnote}>Scripted examples. For your own search, <a href="https://radar.tomgreen.ai" target="_blank" rel="noopener noreferrer">open Radar ↗</a>.</p>
   </section>;
 }
