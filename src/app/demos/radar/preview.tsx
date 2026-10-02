@@ -36,6 +36,7 @@ export default function RadarPreview() {
   const [selected, setSelected] = useState(0);
   const [copied, setCopied] = useState('');
   const title = useRef<HTMLHeadingElement>(null);
+  const workspace = useRef<HTMLElement>(null);
   const picked = opportunities[opportunity];
   useEffect(() => {
     const sync = () => {
@@ -53,19 +54,19 @@ export default function RadarPreview() {
     history.pushState(null, '', url);
     requestAnimationFrame(() => {
       title.current?.focus({ preventScroll: true });
-      title.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      (bounded === 1 ? workspace.current : title.current)?.scrollIntoView({ behavior: 'instant', block: 'start' });
     });
   }
   function restart() {
     setBackground(false); setConfirmed(false); setAnswers([]); setFocus('Product leadership');
     setOpportunity(0); setApproach('Direct introduction'); setSelected(0); go(1);
   }
-  return <section className={ui.coach}>
+  return <section ref={workspace} className={ui.coach}>
     <div className={ui.workspaceBar}><span>RADAR <small>Public demo</small></span><button className={ui.soundControl} aria-pressed={sound.enabled} onClick={sound.toggle} aria-label="Radar demo sound">{sound.enabled ? 'Sound on' : 'Sound off'}</button></div>
     {step === 1 && <header className={ui.hero}>
       <RadarConstellation onPing={() => sound.play('ping')} />
       {!started && <div className={ui.heroCopy}>
-        <h1>Let’s find what’s next.</h1>
+        <h1 ref={title} tabIndex={-1}>Let’s find what’s next.</h1>
         <div className={ui.heroActions}><button className={ui.primary} onClick={() => { sound.play('arrival'); setStarted(true); requestAnimationFrame(() => { title.current?.focus({ preventScroll: true }); title.current?.scrollIntoView({ behavior: 'instant', block: 'start' }); }); }}>Start coaching <span aria-hidden>→</span></button><button className={ui.textButton} onClick={() => go(2)}>Review context</button></div>
         <p className={ui.coachNote}>Alex’s fictional journey · No sign-in</p>
       </div>}

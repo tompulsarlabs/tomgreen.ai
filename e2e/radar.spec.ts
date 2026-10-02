@@ -87,6 +87,8 @@ test('Radar visual belongs to the product and respects motion controls', async (
   await page.getByRole('navigation',{name:'Radar areas'}).getByRole('button',{name:'Explore',exact:true}).click();
   await page.getByRole('navigation',{name:'Radar areas'}).getByRole('button',{name:'Coach',exact:true}).click();
   await expect(page.getByRole('button',{name:'Radar demo sound'})).toHaveAttribute('aria-pressed','false');
+  await expect(page.getByRole('heading',{name:'Let’s find what’s next.'})).toBeFocused();
+  await expect(map).toBeInViewport();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.waitForTimeout(200);
   const reduced = await pixels();
