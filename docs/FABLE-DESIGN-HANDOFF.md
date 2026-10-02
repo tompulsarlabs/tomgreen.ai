@@ -1,5 +1,29 @@
 # tomgreen.ai — Fable 5 Design Scoping Handoff
 
+## 2 October 2026 — Current Radar public demo
+
+Tom requested the website demo reflect the latest Radar iteration. `/demos/radar`
+now opens with the neural map and five areas: Coach, Explore, Prepare, Pipeline
+and You. Space Grotesk headings, Inter body text, restrained type sizes, outlined
+controls and blue surfaces follow the current product direction. Tapping the map
+lights varied connected pathways with a concentric sweep and a single sonar ping;
+a 340ms filtered feedback delay makes each repeat quieter and darker. Warm arrival
+audio returns on Coach, subject to browser autoplay rules. Mute persists and
+leaving Coach or hiding the tab stops playback. OS reduced motion is respected.
+
+This remains an independently written public walkthrough with fictional examples,
+scripted coaching and no sign-in. No private renderer, candidate data, prompts,
+scoring or live voice service is included. Open Radar links to the stable beta at
+`https://radar.tomgreen.ai`. Existing deep links and the `/demos/interview` redirect
+still work. The website’s global moon remains separate from the product map.
+
+Local verification: lint, typecheck, production build, 300 unit tests and the
+12-route content guard passed; all four focused Radar browser checks passed on desktop/mobile, covering the sample journey,
+accessibility, navigation/history, links, motion, repeated map interaction and
+mute persistence. Screenshots were reviewed. Release CI and production evidence
+will be recorded on the release PR; local verification alone is not deployment.
+
+
 ## 30 September 2026 — Radar visual correction, approved for release
 
 The previous release incorrectly embedded tomgreen.ai’s navigation planets inside Radar. Tom rejected this: the products have no such crossover. Removed that embedding and its full-map action. A new, independently written public-demo constellation follows Radar’s observed neural visual direction (blue light, connected nodes, instrument rings and centred opening), without copying private product source or data. The existing site-wide moon remains in the outer website navigation. Step controls no longer float over the opening.

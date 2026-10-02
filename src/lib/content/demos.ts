@@ -33,7 +33,7 @@ export const demos: readonly ProductDemo[] = [
     copy: "Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.",
     href: "/demos/radar",
     action: "Explore Radar",
-    note: "6-step guided journey · Fictional candidate",
+    note: "Five areas · Fictional candidate · No sign-in",
     tone: "radar",
   },
   {
