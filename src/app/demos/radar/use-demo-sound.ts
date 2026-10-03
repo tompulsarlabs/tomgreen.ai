@@ -6,16 +6,32 @@ export function useDemoSound(onCoach: boolean) {
   const context = useRef<AudioContext | null>(null);
   const cleanup = useRef<(() => void) | null>(null);
   const generation = useRef(0);
+  const cancelResume = useRef<(() => void) | null>(null);
+  const releaseSession = useRef<(() => void) | null>(null);
   const preference = useRef(true);
   const [enabled, setEnabled] = useState(true);
-  const stop = useCallback(() => { generation.current++; cleanup.current?.(); cleanup.current = null; }, []);
+  const stop = useCallback(() => {
+    generation.current++; cancelResume.current?.(); cancelResume.current = null;
+    cleanup.current?.(); cleanup.current = null;
+    releaseSession.current?.(); releaseSession.current = null;
+  }, []);
   const play = useCallback(async (kind: 'arrival' | 'ping') => {
-    if (!preference.current || document.hidden) return;
+    if (!preference.current || document.hidden) return false;
     stop(); const request = generation.current;
     try {
-      const audio = context.current ??= new AudioContext();
-      await Promise.race([audio.resume(), new Promise((_, reject) => setTimeout(() => reject(new Error('autoplay blocked')), 600))]);
-      if (audio.state !== 'running' || request !== generation.current || !preference.current) return;
+      const Audio = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Audio) return false;
+      if (!context.current || context.current.state === 'closed') context.current = new Audio();
+      const audio = context.current;
+      // Safari otherwise treats Web Audio as ambient sound and follows the
+      // hardware mute switch. Relinquish playback mode when this short sound ends.
+      try {
+        const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+        if (session && session.type !== 'play-and-record') {
+          const previous = session.type; session.type = 'playback';
+          releaseSession.current = () => { try { if (session.type === 'playback') session.type = previous; } catch {} };
+        }
+      } catch { /* Audio Session is optional. */ }
       const at = audio.currentTime, out = audio.createGain(); out.gain.value = .16; out.connect(audio.destination);
       const nodes: AudioNode[] = [out], sources: OscillatorNode[] = [];
       const oscillator = (frequency: number, gain: number, decay: number, target: AudioNode) => {
@@ -36,9 +52,27 @@ export function useDemoSound(onCoach: boolean) {
         for (const [frequency, level] of [[65.4,.08],[130.81,.5],[196,.12],[261.63,.06]]) oscillator(frequency, level, 3.6, out);
       }
       out.gain.setValueAtTime(.16, at + duration - .15); out.gain.linearRampToValueAtTime(0, at + duration);
-      const timer = setTimeout(() => { nodes.forEach(node => node.disconnect()); if (generation.current === request) cleanup.current = null; }, duration * 1000 + 100);
-      cleanup.current = () => { clearTimeout(timer); out.gain.cancelScheduledValues(audio.currentTime); out.gain.setTargetAtTime(0, audio.currentTime, .015); sources.forEach(source => { try { source.stop(audio.currentTime + .06); } catch {} }); setTimeout(() => nodes.forEach(node => node.disconnect()), 80); };
-    } catch { /* Autoplay is optional; the next user gesture can start sound. */ }
+      const timer = setTimeout(() => { nodes.forEach(node => node.disconnect()); if (generation.current === request) { cleanup.current = null; releaseSession.current?.(); releaseSession.current = null; } }, duration * 1000 + 100);
+      cleanup.current = () => { clearTimeout(timer); out.gain.cancelScheduledValues(audio.currentTime); out.gain.setTargetAtTime(0, audio.currentTime, .015); sources.forEach(source => { try { source.stop(audio.currentTime + (audio.state === 'running' ? .06 : 0)); } catch {} }); setTimeout(() => nodes.forEach(node => node.disconnect()), 80); };
+      // Sources and resume must be started in the tap handler, before awaiting.
+      // A cancelled or blocked request must never play later during another view.
+      const resumed = audio.resume();
+      const running = await new Promise<boolean>(resolve => {
+        const finish = (ok: boolean) => {
+          clearTimeout(timeout);
+          if (cancelResume.current === cancel) cancelResume.current = null;
+          resolve(ok);
+        };
+        const cancel = () => finish(false);
+        const timeout = setTimeout(cancel, 800); cancelResume.current = cancel;
+        void resumed.then(() => finish(audio.state === 'running'), () => finish(false));
+      });
+      if (!running || request !== generation.current || !preference.current) {
+        if (request === generation.current) stop();
+        return false;
+      }
+      return true;
+    } catch { if (request === generation.current) stop(); return false; }
   }, [stop]);
   useEffect(() => {
     try { preference.current = localStorage.getItem('radar-demo-sound') !== 'off'; } catch {}
@@ -47,7 +81,12 @@ export function useDemoSound(onCoach: boolean) {
     document.addEventListener('visibilitychange', hide);
     return () => { document.removeEventListener('visibilitychange', hide); stop(); void context.current?.close().catch(() => {}); context.current = null; };
   }, [stop]);
-  useEffect(() => { if (onCoach) void play('arrival'); else stop(); return stop; }, [onCoach, play, stop]);
+  useEffect(() => {
+    if (onCoach) void play('arrival'); else stop();
+    const returned = () => { if (!document.hidden && onCoach) void play('arrival'); };
+    document.addEventListener('visibilitychange', returned);
+    return () => { document.removeEventListener('visibilitychange', returned); stop(); };
+  }, [onCoach, play, stop]);
   function toggle() {
     preference.current = !preference.current; setEnabled(preference.current); stop();
     try { localStorage.setItem('radar-demo-sound', preference.current ? 'on' : 'off'); } catch {}
