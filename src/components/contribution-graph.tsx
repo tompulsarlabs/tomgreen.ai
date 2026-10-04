@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { ContributionDay } from "@/lib/data/github";
 
-// Keep the neutral record available; the Lab uses a GitHub-green month view.
+// Keep the neutral record available; the Lab uses a GitHub-green rolling activity view.
 const RAMP = [
   "rgba(16, 20, 16, 0.05)",
   "rgba(16, 20, 16, 0.18)",

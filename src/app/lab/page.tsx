@@ -1,3 +1,4 @@
+import { RECENT_CONTRIBUTION_DAYS } from "@/lib/data/github";
 import { Suspense, type CSSProperties } from "react";
 import { RecentBuildActivity } from "@/components/recent-build-activity";
 import type { Metadata, Viewport } from "next";
@@ -110,7 +111,7 @@ export default function Lab() {
             <Suspense
               fallback={
                 <div className="lab-build-activity" aria-label="Loading recent build activity">
-                  <p className="record text-muted">Last 30 days</p>
+                  <p className="record text-muted">Last {RECENT_CONTRIBUTION_DAYS} days</p>
                 </div>
               }
             >

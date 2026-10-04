@@ -1,5 +1,11 @@
 # tomgreen.ai — Fable 5 Design Scoping Handoff
 
+## 4 October 2026 — Rolling 60-day GitHub activity
+
+Extended the Lab’s animated contribution calendar from 30 to 60 consecutive days, including the current Berlin date. Shared window constant keeps the calendar, loading text and accessible label consistent. Date-range footer uses the actual endpoints; desktop column and narrow-phone cell sizes accommodate up to ten week columns. Existing green activity levels and edge animations are retained. Missing dates still show unavailable rather than invented zero activity.
+
+Tom asked for a 9 p.m. Pacific daily update if not already automatic. Verified the existing GitHub fetch revalidates hourly on visits: production returned STALE, then HIT with a new cache age, and showed today’s date. This is live CSS animation with cached GitHub data, not a generated GIF; no extra scheduled job was created. The first request after expiry can receive the old page while regeneration runs. Existing window/date tests updated to cover 60 days across a year boundary; eight GitHub data tests, lint and typecheck pass. Desktop and 320px mobile layout reviewed. Release evidence will be recorded in the PR.
+
 ## 2 October 2026 — Current Radar public demo
 
 Tom requested the website demo reflect the latest Radar iteration. `/demos/radar`
