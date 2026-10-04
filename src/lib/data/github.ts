@@ -9,6 +9,7 @@ export type Contributions = {
 };
 
 const USER = "tompulsarlabs";
+export const RECENT_CONTRIBUTION_DAYS = 60;
 
 /**
  * Parse GitHub's public contribution-calendar HTML fragment. Exported for
@@ -62,7 +63,7 @@ export function recentContributionDays(
   if (!Number.isFinite(end.getTime()) || end.toISOString().slice(0, 10) !== today) return null;
   const byDate = new Map(days.map((day) => [day.date, day]));
   const recent: ContributionDay[] = [];
-  for (let offset = 29; offset >= 0; offset--) {
+  for (let offset = RECENT_CONTRIBUTION_DAYS - 1; offset >= 0; offset--) {
     const date = new Date(end.getTime() - offset * 86_400_000).toISOString().slice(0, 10);
     const day = byDate.get(date);
     if (!day) return null;

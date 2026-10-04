@@ -1811,9 +1811,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    above. All that is left for the shot to do is take the chrome's ground out
    of the way with it, which the visibility rule already does. */
 
-/* Reserve the former Lab introduction for a quiet, one-month build record. */
+/* Reserve the former Lab introduction for a quiet, rolling build record. */
 .lab-build-activity { min-height: 13rem; }
 .lab-hero .systems-title-row { margin-top: 0; }
+@media (min-width: 769px) {
+  .lab-hero .systems-title-row { grid-template-columns: minmax(0, 1fr) minmax(21.5rem, .55fr); }
+}
 
 /* GitHub orientation: weekday rows, week columns advancing left to right.
    Solid fills carry the data; rough edge slivers and detached motes carry motion. */
@@ -1821,6 +1824,10 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .contribution-month { display: flex; gap: 7px; }
 .contribution-week { display: flex; flex-direction: column; gap: 7px; }
 .contribution-cell { position: relative; width: 27px; height: 27px; flex: none; }
+@media (max-width: 480px) {
+  .contribution-month, .contribution-week { gap: 5px; }
+  .contribution-cell { width: 22px; height: 22px; }
+}
 .contribution-cell[data-active="true"]::before,
 .contribution-cell[data-active="true"]::after {
   content: "";
