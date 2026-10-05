@@ -90,12 +90,21 @@ function hash(seed: number): number {
 export function arrivalPlan(index: number, count: number): ArrivalPlan {
   const n = Math.max(1, count);
   const order = n <= 1 ? 0 : index / (n - 1);
-  // Decorrelated from the departure order, so the two staggers do not lock:
-  // bodies that leave together arrive apart, and bodies that leave apart can
-  // arrive together. Either way no two land on the same frame.
-  const settle = hash(index * 17 + 23);
   const start = order * DEPART_BY;
-  const end = Math.min(1, start + FLIGHT_MIN + FLIGHT_SPREAD * settle);
+  // Keep the existing jitter, resolving millisecond-scale collisions as the
+  // catalogue grows. Plans are built in index order so each call agrees on
+  // the earlier landings without depending on the caller's iteration order.
+  const landings: number[] = [];
+  for (let i = 0; i <= index; i += 1) {
+    const departure = n <= 1 ? 0 : (i / (n - 1)) * DEPART_BY;
+    let landing = departure + FLIGHT_MIN + FLIGHT_SPREAD * hash(i * 17 + 23);
+    const direction = landing < 0.99 ? 1 : -1;
+    while (landings.some((previous) => Math.abs(previous - landing) < 0.001)) {
+      landing += direction * 0.002;
+    }
+    landings.push(landing);
+  }
+  const end = landings[index];
   return {
     start,
     end,
