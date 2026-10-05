@@ -248,7 +248,9 @@ describe("the arrival schedule", () => {
   });
 
   it("staggers both ends, so the system never moves as one object", () => {
-    for (const count of SETS) {
+    // Fourteen destinations exposed a collision when a writing note was added.
+    // Keep that case even if the catalogue changes, plus nearby future sizes.
+    for (const count of new Set([...SETS, 13, 14, 15, 32])) {
       if (count < 2) continue;
       const starts = new Set<number>();
       const ends = new Set<number>();

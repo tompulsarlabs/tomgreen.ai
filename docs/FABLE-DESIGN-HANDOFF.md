@@ -1,5 +1,10 @@
 # tomgreen.ai — Fable 5 Design Scoping Handoff
 
+## 5 October 2026 — Radar introduction in Lab
+
+Added “Introducing Radar” to Writing & ideas immediately after the Substack profile, ahead of the older essays. The card is marked Note and links to Tom’s public October 1 introduction at `https://substack.com/@tomgreenlabs/note/c-350555860`; its summary follows the published opening. Verified the canonical URL and note content against Substack’s public feed. The shared catalogue also adds the Lab map destination, with a distinct Sienna storms identity. The additional destination exposed two nearly identical arrival times; the scheduler now resolves millisecond-scale collisions while preserving its existing jitter. Existing layout and product demo are unchanged. Release checks and production verification are recorded in the PR.
+
+
 ## 4 October 2026 — Rolling 60-day GitHub activity
 
 Extended the Lab’s animated contribution calendar from 30 to 60 consecutive days, including the current Berlin date. Shared window constant keeps the calendar, loading text and accessible label consistent. Date-range footer uses the actual endpoints; desktop column and narrow-phone cell sizes accommodate up to ten week columns. Existing green activity levels and edge animations are retained. Missing dates still show unavailable rather than invented zero activity.

@@ -114,6 +114,16 @@ const contentNodes: GraphNode[] = [
     meta: "Substack",
   },
   {
+    id: "introducing-radar",
+    label: "Introducing Radar",
+    kind: "content",
+    category: "craft",
+    cluster: "content",
+    href: "https://substack.com/@tomgreenlabs/note/c-350555860",
+    blurb: "An agentic executive recruiter drawing on more than 12 years of research, heuristics and interview methods.",
+    meta: "Note",
+  },
+  {
     id: "its-easy-to-get-lost-in-building",
     label: "It’s easy to get lost in building",
     kind: "content",
