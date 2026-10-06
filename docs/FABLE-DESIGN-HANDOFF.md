@@ -1,5 +1,14 @@
 # tomgreen.ai — Fable 5 Design Scoping Handoff
 
+## 6 October 2026 — Website and demo release sweep
+
+Reviewed current main `cdc1279`, all six open PRs and the existing worktrees. PR34’s Calendly capitalization already exists on main and the duplicate PR is closed. The Chapter 2 privacy branch is patch-equivalent to main. The primary checkout’s uncommitted handoff note and private retro file remain untouched. Draft PRs13/14/15/58 stay unmerged: visual review gate, outdated glossary/copy proposals, and the older Radar subtitle respectively. PR59’s ready proprietary licence is integrated with its original verified attribution and no dependency changes.
+
+The Ivy and Sybil owners are refreshing their separate existing showcases. Website catalogue copy follows their verified handoffs: Ivy’s fictional team hub, brief and evidence/owner-decision flow; Sybil’s individual capability/learning and leader evidence plans. Ivy remains static and public; Sybil retains its Google gate. No product auth, database, DNS or provider configuration changes are part of the website release. Merge only after the showcase deployments and matching website copy are verified; exact PR/SHA/deployment evidence belongs in the release PR.
+
+Radar’s public production remains runtime `3088b53`, with Coach, Explore, Prepare, Pipeline and You. Its current website walkthrough matches those areas and links to `radar.tomgreen.ai`. Newer saved-practice/source-reading features in product draft PR11 are not advertised as production capabilities. Nabu’s six shared files match the approved neutral source after the intentional Scout→Nabu branding substitution; newer HUD work remains behind its design/draft gate and is not copied. Eleven existing Radar/Nabu browser checks passed against live `tomgreen.ai`, including desktop/mobile, accessibility, redirect/deep links, fictional-data isolation and the product-specific neural map.
+
+
 ## 5 October 2026 — Radar introduction in Lab
 
 Added “Introducing Radar” to Writing & ideas immediately after the Substack profile, ahead of the older essays. The card is marked Note and links to Tom’s public October 1 introduction at `https://substack.com/@tomgreenlabs/note/c-350555860`; its summary follows the published opening. Verified the canonical URL and note content against Substack’s public feed. The shared catalogue also adds the Lab map destination, with a distinct Sienna storms identity. The additional destination exposed two nearly identical arrival times; the scheduler now resolves millisecond-scale collisions while preserving its existing jitter. Existing layout and product demo are unchanged. Release checks and production verification are recorded in the PR.

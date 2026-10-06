@@ -56,9 +56,13 @@ product data is included. The private pilot remains separate; the public walkthr
 
 `/demos/ivy` embeds the reviewed static Ivy showcase. Public access was
 restored at Tom’s request on 9 September 2026 after reviewing its exposure:
-nine generic checks, two fictional outcomes and no operational engine or live
-work data. The Vercel project is resumed and the original Sites copy is public. `/demos/sybil` opens the
-Google-gated Sybil showcase, with a return link to this hub.
+a fictional team hub, brief and owner decision flow alongside nine generic
+checks and two fictional outcomes. No operational engine or live work data is
+connected. The Vercel project is resumed and the original Sites copy is public. `/demos/sybil` opens the
+Google-gated Sybil showcase, with individual and leader perspectives and a
+return link to this hub. Capability examples are conversational assessments;
+adoption and business-value screens illustrate evidence plans, not measured
+usage or financial ROI.
 
 Radar journey checks (8 September 2026): production build/TypeScript passed;
 local browser walkthrough covered intake, conversation, context, discovery,
