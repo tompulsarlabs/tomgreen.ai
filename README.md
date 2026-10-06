@@ -56,9 +56,13 @@ product data is included. The private pilot remains separate; the public walkthr
 
 `/demos/ivy` embeds the reviewed static Ivy showcase. Public access was
 restored at Tom’s request on 9 September 2026 after reviewing its exposure:
-nine generic checks, two fictional outcomes and no operational engine or live
-work data. The Vercel project is resumed and the original Sites copy is public. `/demos/sybil` opens the
-Google-gated Sybil showcase, with a return link to this hub.
+a fictional team hub, brief and owner decision flow alongside nine generic
+checks and two fictional outcomes. No operational engine or live work data is
+connected. The Vercel project is resumed and the original Sites copy is public. `/demos/sybil` opens the
+Google-gated Sybil showcase, with individual and leader perspectives and a
+return link to this hub. Capability examples are conversational assessments;
+adoption and business-value screens illustrate evidence plans, not measured
+usage or financial ROI.
 
 Radar journey checks (8 September 2026): production build/TypeScript passed;
 local browser walkthrough covered intake, conversation, context, discovery,
@@ -67,3 +71,12 @@ overflow. These checks do not establish private-product model quality.
 
 Google OAuth configuration and detailed Sybil checks live in the private
 `tompulsarlabs/sybil-showcase` repository's `HANDOFF.md`.
+
+## Licence
+
+Original project materials owned by Tom Green are proprietary. Commercial
+reuse requires prior written permission; see [LICENSE](LICENSE). Access to
+this repository does not grant permission to reuse the underlying code.
+Authorised use of the hosted product or public demo remains allowed under
+its applicable terms. Third-party materials, users' content and rights
+previously granted remain governed by their own terms.
