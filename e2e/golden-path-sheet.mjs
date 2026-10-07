@@ -56,7 +56,7 @@ async function reachZalando(page, name) {
   const t0 = Date.now();
   const mark = (what) => console.log(`  ${name} ${what} +${((Date.now() - t0) / 1000).toFixed(1)}s`);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto(`${baseURL}/building`, { waitUntil: "load" });
+  await page.goto(`${baseURL}/lab`, { waitUntil: "load" });
   // The first document commit can still be replaced under a loaded machine,
   // and an evaluate that lands across it dies with its execution context.
   // Waiting for the review clock through waitForFunction rather than
@@ -120,7 +120,7 @@ async function reachZalando(page, name) {
       view: document.querySelector(".orbit-portal")?.getAttribute("data-view") ?? null,
     }))
     .catch(() => null);
-  if (!standing || standing.path !== "/building" || standing.view !== "section") {
+  if (!standing || standing.path !== "/lab" || standing.view !== "section") {
     throw new Error(`the walk did not hold: ${JSON.stringify(standing)}`);
   }
   mark("standing");

@@ -83,7 +83,7 @@ const mark = (what) => console.log(`  ${what} +${((Date.now() - t0) / 1000).toFi
 
 async function openMap(page) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto(`${baseURL}/building`, { waitUntil: "load" });
+  await page.goto(`${baseURL}/lab`, { waitUntil: "load" });
   await page.waitForFunction(
     () => typeof window.__goldenHold === "function",
     null,

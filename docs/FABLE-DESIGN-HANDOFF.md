@@ -1,5 +1,56 @@
 # tomgreen.ai — Fable 5 Design Scoping Handoff
 
+## 6 October 2026 — Website and demo release sweep
+
+Reviewed current main `cdc1279`, all six open PRs and the existing worktrees. PR34’s Calendly capitalization already exists on main and the duplicate PR is closed. The Chapter 2 privacy branch is patch-equivalent to main. The primary checkout’s uncommitted handoff note and private retro file remain untouched. Draft PRs13/14/15/58 stay unmerged: visual review gate, outdated glossary/copy proposals, and the older Radar subtitle respectively. PR59’s ready proprietary licence is integrated with its original verified attribution and no dependency changes.
+
+The Ivy and Sybil owners are refreshing their separate existing showcases. Website catalogue copy follows their verified handoffs: Ivy’s fictional team hub, brief and evidence/owner-decision flow; Sybil’s individual capability/learning and leader evidence plans. Ivy remains static and public; Sybil retains its Google gate. No product auth, database, DNS or provider configuration changes are part of the website release. Merge only after the showcase deployments and matching website copy are verified; exact PR/SHA/deployment evidence belongs in the release PR.
+
+Radar’s public production remains runtime `3088b53`, with Coach, Explore, Prepare, Pipeline and You. Its current website walkthrough matches those areas and links to `radar.tomgreen.ai`. Newer saved-practice/source-reading features in product draft PR11 are not advertised as production capabilities. Nabu’s six shared files match the approved neutral source after the intentional Scout→Nabu branding substitution; newer HUD work remains behind its design/draft gate and is not copied. Eleven existing Radar/Nabu browser checks passed against live `tomgreen.ai`, including desktop/mobile, accessibility, redirect/deep links, fictional-data isolation and the product-specific neural map.
+
+
+## 5 October 2026 — Radar introduction in Lab
+
+Added “Introducing Radar” to Writing & ideas immediately after the Substack profile, ahead of the older essays. The card is marked Note and links to Tom’s public October 1 introduction at `https://substack.com/@tomgreenlabs/note/c-350555860`; its summary follows the published opening. Verified the canonical URL and note content against Substack’s public feed. The shared catalogue also adds the Lab map destination, with a distinct Sienna storms identity. The additional destination exposed two nearly identical arrival times; the scheduler now resolves millisecond-scale collisions while preserving its existing jitter. Existing layout and product demo are unchanged. Release checks and production verification are recorded in the PR.
+
+
+## 4 October 2026 — Rolling 60-day GitHub activity
+
+Extended the Lab’s animated contribution calendar from 30 to 60 consecutive days, including the current Berlin date. Shared window constant keeps the calendar, loading text and accessible label consistent. Date-range footer uses the actual endpoints; desktop column and narrow-phone cell sizes accommodate up to ten week columns. Existing green activity levels and edge animations are retained. Missing dates still show unavailable rather than invented zero activity.
+
+Tom asked for a 9 p.m. Pacific daily update if not already automatic. Verified the existing GitHub fetch revalidates hourly on visits: production returned STALE, then HIT with a new cache age, and showed today’s date. This is live CSS animation with cached GitHub data, not a generated GIF; no extra scheduled job was created. The first request after expiry can receive the old page while regeneration runs. Existing window/date tests updated to cover 60 days across a year boundary; eight GitHub data tests, lint and typecheck pass. Desktop and 320px mobile layout reviewed. Release evidence will be recorded in the PR.
+
+## 2 October 2026 — Current Radar public demo
+
+Tom requested the website demo reflect the latest Radar iteration. `/demos/radar`
+now opens with the neural map and five areas: Coach, Explore, Prepare, Pipeline
+and You. Space Grotesk headings, Inter body text, restrained type sizes, outlined
+controls and blue surfaces follow the current product direction. Tapping the map
+lights varied connected pathways with a concentric sweep and a single sonar ping;
+a 340ms filtered feedback delay makes each repeat quieter and darker. Warm arrival
+audio returns on Coach, subject to browser autoplay rules. Mute persists and
+leaving Coach or hiding the tab stops playback. OS reduced motion is respected.
+
+This remains an independently written public walkthrough with fictional examples,
+scripted coaching and no sign-in. No private renderer, candidate data, prompts,
+scoring or live voice service is included. Open Radar links to the stable beta at
+`https://radar.tomgreen.ai`. Existing deep links and the `/demos/interview` redirect
+still work. The website’s global moon remains separate from the product map.
+
+Local verification: lint, typecheck, production build, 300 unit tests and the
+12-route content guard passed; all four focused Radar browser checks passed on desktop/mobile, covering the sample journey,
+accessibility, navigation/history, links, motion, repeated map interaction and
+mute persistence. Screenshots were reviewed. Release CI and production evidence
+will be recorded on the release PR; local verification alone is not deployment.
+
+
+## 30 September 2026 — Radar visual correction, approved for release
+
+The previous release incorrectly embedded tomgreen.ai’s navigation planets inside Radar. Tom rejected this: the products have no such crossover. Removed that embedding and its full-map action. A new, independently written public-demo constellation follows Radar’s observed neural visual direction (blue light, connected nodes, instrument rings and centred opening), without copying private product source or data. The existing site-wide moon remains in the outer website navigation. Step controls no longer float over the opening.
+
+Local preview: `http://127.0.0.1:3162/demos/radar` in `/private/tmp/tomgreen-radar-20260930`, branch `codex/radar-visual-correction`. Lint and typecheck pass; all four Radar browser tests pass, including desktop/mobile journeys, redirect/metadata, constellation motion, pause and reduced motion. Desktop and mobile visually inspected. This is a public visual recreation, not the private app’s renderer. Tom reviewed the correction and explicitly approved shipping it on 30 September. Release CI and production evidence will be recorded on the correction PR.
+
+
 Date: 27 August 2026  
 Owner: Tom Green  
 Repository: <https://github.com/tompulsarlabs/tomgreen.ai>  
@@ -8,6 +59,293 @@ Review branch: `codex/lusion-experience-overhaul`
 Base: `main` at `1df0a4d0a77d849bd3338e169024ceabbbf8910e`  
 Implemented P0 commit: `c73a160` (`feat: establish operating field experience`)  
 Reference craft bar: <https://lusion.co/>
+
+## Radar public demo refresh — 30 September 2026
+
+The public walkthrough now lives at `/demos/radar`; `/demos/interview` redirects
+permanently with query strings preserved. Demos, Lab and the planetary map use
+the canonical route. Radar has dedicated Open Graph/Twitter copy and a 1200×630
+share image for LinkedIn.
+
+The presentation follows the current private Radar preview’s restrained blue
+palette and lighter typography. The scripted intake now explores career direction
+and constraints, with separate fictional posted-role and fit-hypothesis examples.
+This remains a purpose-written public six-step walkthrough, not a deployment of
+the private pilot: no authentication, real candidate data, model calls or voice
+service is exposed. The other demo cards keep their established colours.
+
+The existing public planetary renderer is embedded prominently beside the opening
+copy on desktop and above it on mobile, with pause and full-map controls. No
+private Radar renderer was copied. The demo step survives opening and closing
+the full map. Reduced motion retains the accessible destination fallback.
+
+Local verification: production build, typecheck, lint, 300 unit tests and four
+Radar browser tests passed. Browser tests cover desktop/mobile journeys,
+accessibility, restart/history, old-link redirects, sharing metadata/image, live
+map rendering, pause, responsive sizing and full-map open/close.
+Final CI and production evidence are recorded in the release PR.
+
+## Nabu rename — 25 September 2026
+
+Scout is now presented as Nabu across Demos, Lab, the planetary map, demo copy,
+accessibility labels and page metadata. The canonical demo is `/demos/nabu`;
+`/demos/scout` permanently redirects, preserving query strings and section links.
+Internal catalogue IDs, CSS, component paths and storage remain stable so the
+existing Lab anchors, planet materials and saved interactions keep working.
+Verification and production release evidence are recorded in the PR.
+
+## Latest Substack essay — 24 September 2026
+
+Added “It’s easy to get lost in building” to Lab’s Writing & ideas catalogue,
+ahead of the older essay. The title and subtitle match the published article,
+and the link goes directly to Substack. The shared catalogue also includes it
+in the Lab planetary map, with a violet ocean identity. Verification and release
+status are recorded in the release PR.
+
+## Canonical Lab URL — 24 September 2026
+
+Lab now lives at `/lab`. Menu, homepage, contact and planetary destinations use
+the new route, and the sitemap lists it. `/building` permanently redirects to
+`/lab`, retaining query parameters and browser section anchors. Page content and
+design are unchanged. The content source module remains named `building.ts`.
+
+Local verification: production build, typecheck, lint, 300 unit tests, nine
+focused browser checks (including redirect, canonical metadata, deep link,
+navigation and accessibility), and the 12-route content guard passed. Required
+CI and production verification are recorded in the release PR.
+
+## Demo colours and Audibene copy — 22 September 2026
+
+The four demo cards now have distinct accents and background tints: Scout green,
+Radar copper, Ivy blue and Sybil purple. Tom subsequently swapped the green and
+blue assignments: Ivy is green and Scout is blue, including their background tints. Audibene / Hear.com uses Tom’s revised
+two-paragraph account and closing line, ending “inside the technology org itself.”
+
+Local verification: lint, 300 unit tests, production webpack build with TypeScript,
+and the 12-route content guard passed. Browser checks confirmed four distinct
+accent/background colours at 1440px and 390px without horizontal overflow, and
+all three Audibene passages match the supplied copy exactly. Desktop and phone
+screenshots were reviewed. Release evidence follows in the PR.
+
+## Moon invitation on refresh — 18 September 2026
+
+Tom clarified that the “Explore ↗” label should return after a browser refresh
+or a new address-bar navigation. Discovery is now remembered only in the current
+document, so client-side menu navigation keeps the cue dismissed. The previous
+persistent discovery flag is ignored, including for people who opened the moon
+before this update. The ripple remains once per browser session.
+
+Browser coverage follows discovery → menu navigation (still dismissed) → refresh
+(cue restored), direct URL navigation, and phone refresh. Existing returning-touch
+checks now discover the map through the real interaction rather than seeding a
+persistent storage flag.
+
+Local verification passed: lint, production webpack build with TypeScript, all
+300 unit tests, three discovery journeys, both returning-touch checks, and the
+12-route content guard. Release evidence is recorded in the PR.
+
+## Moon discovery — 18 September 2026
+
+The header moon now carries a quiet “Explore ↗” invitation until the visitor
+opens the planetary map. The cue appears 900ms after the opening resolves (or
+after arrival on other routes), with one 1.8-second ripple per browser session.
+Hover and keyboard focus also trigger a single ripple alongside the existing
+moon response. Reduced motion keeps the text and suppresses the ripple.
+
+The invitation opens the map in one tap on phones. After discovery, the label
+stays dismissed across visits using local storage, and the existing navigation
+row interaction remains. Storage refusal falls back to memory for the current
+page lifetime; it does not block navigation. The accessible button name is now
+“Explore the planetary map”, matching its visible invitation.
+
+Verification: production webpack build including TypeScript, lint, all 300 unit
+tests, three new discovery browser journeys, 13 existing navigation/browser
+checks, and the 12-route content guard passed locally. Desktop and 390px phone
+visuals were reviewed. Full required CI and production verification follow in
+the release PR.
+
+## Moon field motion — 11 September 2026
+
+Tom requested the travelling motion beneath the large moon back, while keeping
+the darker presentation. The field now has clearer moving crests, greater grid
+displacement and a slightly faster outward drift. Its background is near-black;
+the lunar surface and interaction timing are unchanged. The two existing moon
+browser journeys passed at 393px and 1440px, including pulse, drag, exact pause,
+history and returning to the map.
+
+The same ripple settings and dark background are reflected in the original
+standalone `moon-study` source and self-contained preview under the visualization
+workspace. The study is served locally at `http://127.0.0.1:3136/` for review.
+
+## Radar in Lab — 11 September 2026
+
+Radar now appears in Systems & products beside Ivy, marked “in the lab”, with
+its published opportunity-discovery description and a direct Explore demo link.
+The link resolves from the Demos catalogue rather than a separate URL. Adding
+Radar to the shared Lab catalogue also publishes its map destination at
+`/building#radar`; it shares the existing Radar demo's copper planet identity.
+
+Verification: production webpack build (including TypeScript), lint, 15 targeted
+catalogue/planet unit checks, both existing Lab browser checks and the 12-route
+content guard passed. Browser review confirmed the six-card layout; the test
+also follows Radar's demo link with JavaScript disabled.
+
+Full CI exposed one remaining hard-coded ten-body expectation in the dense
+phone Lab test. It now takes the expected count from the published Lab catalogue;
+the minimum-visible-label and zero-overlap assertions remain unchanged. The
+393px dense Lab check passed locally with all eleven bodies.
+
+## Demos introduction — 10 September 2026
+
+Released through PR #57 as main `0d5d21f42e258212e44ad0838f3eb0c95ff34aaf`.
+Production deployment `dpl_8viK1ZrwuGwgRPU9sJweAqKHPStq` was verified Ready
+on tomgreen.ai. Required CI passed: 300 unit tests, 118 browser tests passed on
+first run and one portrait planetary-map check passed on retry (reported flaky).
+Live Demos copy and subtitle removal were verified.
+
+
+Tom requested “A few things I’m building.” and removal of the adjacent
+“Open a demo and explore.” line. The introduction now uses one column, retaining
+the heading’s existing type scale and two-line break. Production webpack build
+(including TypeScript), lint and the 12-route content guard passed; the updated
+Demos page was visually reviewed in the browser.
+
+## Radar intake copy — 10 September 2026
+
+Released through PR #56 as main `191ffbb4080925a48d5eba29027dfa972fb1e083`;
+production deployment `dpl_EUX8A41Bs2qVPUHuVanRDCqX5RvA` was verified Ready.
+Required CI passed with 300 unit and 119 browser tests; live Intake navigation
+and copy were verified.
+
+Tom requested a standalone name for Radar’s second step, since visitors may not
+know Sybil. The step is now “Intake” in its tabs, heading and bottom selector.
+Start/restart controls, introduction, panel label and assistant name use the same
+plain language. The fictional-data explanation, dialogue, navigation and routes
+are unchanged. Production build (including TypeScript), lint and the 12-route
+content guard passed. Browser review exercised profile/context confirmation,
+Start intake and both sample responses through the completion state.
+
+## Planet identities release — 10 September 2026
+
+Released through [PR #55](https://github.com/tompulsarlabs/tomgreen.ai/pull/55)
+as main `3172524f836ed998eaa6745fa918a08c4e0ecf3b`. Production deployment
+`dpl_38PbedBQSJ6cHnKXjEox74DJTTrC` was verified Ready on tomgreen.ai. Required
+CI passed with 300 unit tests and 119 browser tests; live navigation and appearance
+were checked after deployment.
+
+Tom requested distinct themes and colours for every planet after shipping the
+approved `codex/planetary-fidelity` release. `codex/planet-identities` is based on
+its merged main commit `85d189f`. Tom explicitly approved building and shipping
+this follow-up, including rings, the Ivy headline and the two text removals.
+
+- All 38 published bodies have explicit identities keyed to their existing IDs.
+  Every system has a distinct palette per planet and several surface families.
+  Matching Ivy/Sybil records retain their identity across Lab and Demos.
+- Copper terrain, violet mineral plates, amber gas belts, green oceans and blue
+  ice distinguish the root sections. The denser systems also include windswept
+  dunes and dark volcanic terrain with restrained ember-coloured faults.
+- The shader now consumes authored palette/family uniforms instead of choosing
+  one of five hard-coded palettes from a hash. Bodies still share one compiled
+  GPU program and retain the existing capture heat uniform on ref reattachment.
+  Fallback posters and capture trails use the same characteristic colours.
+- Demos is the one ringed gas giant. Tilted annular geometry includes unequal
+  dust bands, a division and the globe's shadow. Cloud belts share its equator.
+  Rings follow the same body transform, capture heat, opacity and paused clock.
+  Camera fitting, nameplate clearance and the static poster include the rings.
+- The realistic white moon satellite/close-up, gravitational field, capture timing
+  and navigation retain the approved implementation.
+- The decorative TALENT nameplate is removed from live and static maps. The root
+  sentence “Every section, in orbit around talent. Choose one.” is removed;
+  individual section descriptions remain.
+- Ivy's demo-card headline is now “Give non-technical teams a clearer way to ship
+  agentic work.”, as requested. The rest of the demo copy is unchanged.
+
+Verification: 300 unit tests, lint, typecheck, production webpack build and the
+12-route content guard passed. All 20 targeted browser checks passed: the 16
+planetary/moon checks and four existing core/map tests updated for the requested
+label removal. Coverage includes every section journey (including the ringed
+Demos capture), context-loss/reduced-motion fallbacks, exact paused pixels at
+desktop and phone sizes, upright phone rotation and the moon close-up at 1440px
+and 393px. Root, Home and Lab surfaces were visually inspected, including ring
+depth and the rendered Ivy heading. Physical iOS remains unverified.
+
+## Approved release — 10 September 2026
+
+The approved moon study shipped through PR #54 as main `85d189f`, from
+`codex/planetary-fidelity` based on main `5d2a6e3`. This pass changes the hidden map;
+the editorial Home, Lab, case studies, CV and demos keep their content and structure.
+Tom's final copy adjustment changes the Contact channel heading to
+“Let’s talk.”
+
+- Five distinct planetary families replace the repeated lunar treatment: iron
+  terrain, lunar highlands, gas belts, fractured ice and ocean/cloud worlds. Only
+  the lunar family uses the locally hosted NASA LROC/LOLA maps. Attribution is in
+  `public/planetary/ASSET-CREDITS.md`.
+- The central event horizon sits at the bottom of a real curved 3D basin, with
+  silver filaments winding down its walls. The surrounding membrane has a deeper
+  throat and illuminated contours; camera drag reveals the actual perspective. A visible white
+  Veil Nebula flows slowly behind the field and responds to pulses and capture,
+  using the shared paused scene clock. Source attribution remains visible.
+- Selected planets sweep inward on an accelerating curve, retaining their surface
+  until late tidal stretching. The first approach lasts 1.4 seconds (0.9 on repeat
+  journeys); later cinematic beats keep their pace. Full/compact sequences are
+  5.88/3.81 seconds. Core light and nearby gas respond during the fall.
+- The former blue volumetric/video release is replaced by a live field response:
+  compression at the throat, winding silver caustics, then an outward wave on
+  the actual membrane. The camera makes a restrained 16% inward move with mild
+  exposure change; it keeps the planet and surrounding system in context.
+  Captures no longer request video plates or depend on decoder readiness. A
+  clock-driven soft dissolve reveals the real document on page destinations.
+- The approved moon study guides the motion: bounded wandering around composed
+  positions, surface libration, and a small damped recoil as each pulse reaches a
+  planet. Drag settles where the visitor leaves it. Travelling light reveals the
+  curved field; silver fragments scatter with the same pulse. Pause holds the
+  rendered scene exactly; body poses also respect the cinematic's held clock.
+  Navigation remains usable while paused.
+- Portrait screens keep an upright orbital plane and fit it to the available
+  space. Phone bodies have more presence; labels clear the controls. Chrome/footer
+  resize and font completion refresh the fit even while the scene is paused.
+  Only visible names reserve label space; all spheres remain obstacles. The core's
+  name persists when moving between systems.
+- The map includes Home, Lab, Demos, About and Contact. Demos shares its catalogue
+  with the actual hub; Lab includes every published record. Stable existing body IDs,
+  real links and browser-history behaviour are preserved.
+- The static destination list remains until the canvas is ready, and returns on
+  context loss or reduced-motion/Save-Data changes. Modal keyboard focus is contained.
+  The decorative core label cannot pass clicks through to a nearby planet.
+- A small moon now orbits the root map as an optional Easter egg. Selecting its
+  44px-minimum touch/keyboard target expands it from its actual screen position
+  into a large close-up, using the approved study's NASA surface material,
+  libration and gravitational waves. Drag turns it; click/tap or Pulse releases
+  energy. All sections, Escape and browser Back restore the map, its camera and
+  keyboard focus. The entire visit uses the same WebGL canvas.
+- Clicks release visible silver flecks and short curved filament trails at the
+  selected planet; the well releases a wider diffusion as capture resolves.
+  Ambient fragments keep their visibility during capture. The close-up shares
+  the same finite GPU effect, with particles starting at the lunar limb. Two
+  overlapping releases use two draw calls and follow the paused scene clock.
+  The map stops updating behind the close-up and stops drawing after expansion.
+
+Local verification of this revision: 289 unit tests, lint, TypeScript, production
+webpack build and the 12-route content guard passed. All 26 existing
+planetary/capture/page-arrival E2E checks passed. Both new moon E2E checks passed
+against the production server at 1440px and 393px after correcting their touch
+fixture and excluding the two Vercel-only analytics scripts from localhost
+console checks. They cover keyboard/touch opening, canvas identity, drag, pulse,
+exact paused pixels, Escape, browser Back/Forward and focus restoration.
+Browser review covered the root map, expanded moon and visible release on both
+viewports. Existing rotation and all three map paused-frame comparisons passed.
+Physical iOS-device rendering remains unverified; these checks used Chromium.
+
+Tom approved this release for production on 10 September 2026. Required CI for
+`ebeeb07` passed with 289 unit tests, 119 browser tests, lint, types, build and the
+12-route content guard; Vercel also passed.
+[PR #54](https://github.com/tompulsarlabs/tomgreen.ai/pull/54) merged at 08:43 UTC
+as `85d189fa6ef6068e4155994aecea14a4035ea84f`. Production deployment
+`dpl_H1jdiHAmopgYSaiBi7ztZnAhdPB1` is Ready and aliased to tomgreen.ai. Live
+verification covered the main routes, the Let’s talk heading, moon expansion,
+Pulse, return to the map and Home → AI build → Zalando, without browser errors.
+The earlier design-scoping record follows as historical context.
 
 ## 1. Why this handoff exists
 
@@ -420,3 +758,28 @@ Playwright/accessibility suite passed. The refinement added tests for:
 The final commit is to be validated again with `git diff --check`, lint, typecheck, unit tests,
 production build and the complete Playwright/accessibility suite. No production deployment or
 merge is part of this handoff.
+
+## 21 September 2026 — neutral Scout demo release
+
+Added `/demos/scout` to the demo catalogue, Lab and existing orbit themes. The page uses Scout's canonical brief/market/people research interface with two explicitly fictional examples. Visitors can explore evidence, filters, priorities, ordering and review notes. A custom brief creates a local planning sketch with no people or implied research results. Demo interactions are temporary; no model calls or outreach occur.
+
+The six files under `src/components/scout/` and `src/lib/scout/` mirror the public-safe source in the private `talent-scout` repository. Run that repository's `scripts/check-public-demo.mjs` against this checkout to detect drift. The component-level LICENSE preserves the original work's proprietary terms. Product adapters, operational prompts and model API routes are not copied.
+
+This public release does not contain the prepared Apollo examples or Roisin's private Notion data, and does not modify their existing deployment/workspace. The optional Notion illustration is generic HTML only. Build uploads exclude private/local artifacts via `.vercelignore`.
+
+Release checks: lint, typecheck, 300 unit tests, production build, five Scout browser tests plus affected Lab regression checks, and the existing content guard. Desktop/mobile screenshots inspected. The complete browser regression suite is also run before landing; actual result and deployed commit are recorded in the release PR. These are deterministic UI checks, not sourcing/model-quality evaluations.
+
+
+## 24 September 2026 — homepage company context (version B)
+
+Tom selected version B from the local A/B preview and authorized production release. Keep the existing homepage opening, positioning, metric labels and animation. Add a quiet company-and-role descriptor beneath each company name, before its existing outcome.
+
+Approved descriptors: Chapter 2 — Managing Director, EMEA · Embedded Talent and RPO; Zalando — DAX-listed e-commerce · Global Talent Leader; Audibene / Hear.com — Hearing care technology · Talent Leader → Product Operations; Wave — Talent strategy · Founder; WeR — Behavioral AI · Talent Advisor; Campbell North — Executive search · Senior Consultant.
+
+Chapter 2's role and business/P&L remit use EMEA consistently across the homepage, case study, visual CV and operating sequence. EU People Ops remains the scope of the specific operating project. Zalando and Audibene role labels also match the approved wording in the case studies and visual CV.
+
+Validation before PR: production build, lint, typecheck, 300 unit tests and six targeted browser checks passed (homepage structure, no-JavaScript content, mobile hierarchy, mobile accessibility and both flagship case studies). The content baseline changes are limited to this release's approved wording and descriptors. Required GitHub CI and Vercel checks must pass before merge; release PR records final deployment verification.
+
+## 7 October 2026 — completed Radar subtitle reconciliation
+
+The approved Radar subtitle from PR #58 is retained in the current shared demo catalogue: “Your personal executive recruiter.” The hub and planetary map now read the same catalogue; the former inline catalogue is not restored. Existing showcase routes and current product evidence remain intact. This is a copy-only reconciliation, with no product-runtime or animation change.

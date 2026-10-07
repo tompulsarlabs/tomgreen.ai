@@ -1,0 +1,13 @@
+.git
+.github
+.env*
+.next
+node_modules
+docs
+tools
+e2e
+review-vfx
+review-screenshots
+test-results
+playwright-report
+*.tsbuildinfo

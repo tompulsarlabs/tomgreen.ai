@@ -21,6 +21,8 @@ export type CaseStudy = {
   slug: string;
   company: string;
   role: string;
+  /** Company context and role shown beneath its name on the homepage. */
+  indexDescriptor: string;
   period: string;
   headline: string;
   /** Shorter homepage framing when the case-study headline needs more detail. */
@@ -42,8 +44,9 @@ export type CaseStudy = {
 export const caseStudies: CaseStudy[] = [
   {
     slug: "zalando",
+    indexDescriptor: "DAX-listed e-commerce · Global Talent Leader",
     company: "Zalando",
-    role: "Global Lead, Talent Acquisition",
+    role: "Global Talent Leader",
     period: "2022 – 2025",
     headline: "An AI organization from zero to 120 people in six months",
     summary:
@@ -122,23 +125,24 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     slug: "chapter-2",
+    indexDescriptor: "Managing Director, EMEA · Embedded Talent and RPO",
     company: "Chapter 2",
-    role: "Managing Director",
+    role: "Managing Director, EMEA",
     period: "2025 – 2026",
-    indexHeadline: "Ran the European business with P&L ownership",
+    indexHeadline: "Ran the EMEA business with P&L ownership",
     headline:
-      "Ran the European business. Won €3.3M in new ARR over twelve months. Then rebuilt how Europe operated.",
+      "Ran the EMEA business. Won €3.3M in new ARR over twelve months. Then rebuilt EU People Ops.",
     summary:
       "I ran the region, won the work and built the team. Then I redesigned the operation behind it.",
     context:
-      "Chapter 2 needed someone to run its European business, win clients and build the operation behind the work. It also wanted to prove inside its own company how AI could improve People Ops.",
+      "Chapter 2 needed someone to run its EMEA business, win clients and build the operation behind the work. It also wanted to prove inside its own company how AI could improve People Ops.",
     body: [
       "I led recruiting programs across Germany, the US, the UK and India and directly hired a Chief Product Officer.",
       "I rebuilt EU People Ops so a Germany-based operator, supported by AI agents working within clear rules, could replace reliance on three UK shared-service roles. Repeatable work moved to agents; sensitive decisions remained with people.",
       "The model became the reference for the group’s wider AI transformation.",
     ],
     metrics: [
-      { value: "Europe", label: "P&L owned" },
+      { value: "EMEA", label: "P&L owned" },
       { value: "€3.3M", label: "New ARR won in twelve months" },
       { value: "4 countries", label: "Recruiting programs led" },
       { value: "3 roles", label: "Shared-service reliance removed" },
@@ -203,8 +207,9 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     slug: "audibene",
+    indexDescriptor: "Hearing care technology · Talent Leader → Product Operations",
     company: "Audibene / Hear.com",
-    role: "Technology Talent Lead → Product Operations",
+    role: "Talent Leader → Product Operations",
     period: "2019 – 2022",
     headline: "Scaled the technology organization—then built Product Operations from zero",
     summary:
@@ -212,8 +217,8 @@ export const caseStudies: CaseStudy[] = [
     context:
       "An EQT Ventures-backed HealthTech had two consecutive mandates: scale the technology organization toward IPO, then make the product portfolio itself run better.",
     body: [
-      "Leading three talent-acquisition teams across the US, Germany and India, I doubled the function and grew the technology organization from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
-      "Then the crossover: I moved into the organization to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
+      "Leading talent-acquisition teams across the US, Germany and India, I grew the technology organization from about 70 to 180 people. I directly hired 40+ people before IPO, including the Group Technology Officer, information-security leader, and leaders across Commercial, Product, Platform Engineering and Data Engineering. Time to Hire fell 17% year on year; offer acceptance rose 9%.",
+      "I then moved into the tech organization to build Product Operations from zero. I established Tech and Product OKRs with the executive team, eliminated 75% of low-ROI projects through cross-functional roadmap review and capacity reallocation, and release cycles ran ~20% faster.",
     ],
     metrics: [
       { value: "~70 → 180", label: "Technology organization" },
@@ -222,11 +227,12 @@ export const caseStudies: CaseStudy[] = [
       { value: "~20%", label: "Faster release cycles" },
     ],
     demonstrates:
-      "The range: trusted first to build the leadership team, then to operate inside the product org itself.",
+      "The range: trusted first to build the leadership team, then to operate inside the technology org itself.",
     tier: "supporting",
   },
   {
     slug: "wave",
+    indexDescriptor: "Talent strategy · Founder",
     company: "Wave",
     role: "Founder",
     period: "2016 – 2019",
@@ -248,6 +254,7 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     slug: "wer",
+    indexDescriptor: "Behavioral AI · Talent Advisor",
     company: "WeR",
     role: "Talent Advisor",
     period: "2026 – present",
@@ -267,6 +274,7 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     slug: "campbell-north",
+    indexDescriptor: "Executive search · Senior Consultant",
     company: "Campbell North",
     role: "Senior Consultant",
     period: "2014 – 2015",

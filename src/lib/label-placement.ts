@@ -65,6 +65,8 @@ export type PlaceOptions = {
   width: number;
   height: number;
   core: { x: number; y: number; radius: number };
+  /** All projected planets, including bodies whose labels are not being placed. */
+  bodies?: readonly Pick<LabelItem, "id" | "x" | "y" | "radius">[];
   /** Anchors chosen last time, so a stable layout stays stable. */
   previous?: ReadonlyMap<string, Anchor>;
   /** Visible space between planet edge and label edge. */
@@ -149,6 +151,16 @@ function hitsCircle(rect: Rect, cx: number, cy: number, r: number) {
   return (nx - cx) ** 2 + (ny - cy) ** 2 < r * r;
 }
 
+/** Check the final drawn box against all planets, including unlabelled ones. */
+export function hitsOtherBody(
+  rect: Rect,
+  ownerId: string,
+  bodies: readonly Pick<LabelItem, "id" | "x" | "y" | "radius">[],
+): boolean {
+  return bodies.some((body) => body.id !== ownerId &&
+    hitsCircle(rect, body.x, body.y, body.radius));
+}
+
 function outsideBy(rect: Rect, width: number, height: number, inset: number) {
   return (
     Math.max(0, inset - rect.x) +
@@ -192,6 +204,7 @@ export function placeLabels(items: readonly LabelItem[], options: PlaceOptions):
   const gap = options.gap ?? 14;
   const inset = options.inset ?? 8;
   const previous = options.previous;
+  const bodies = options.bodies ?? items;
 
   const taken: Rect[] = [];
   const placements: Placement[] = [];
@@ -223,7 +236,7 @@ export function placeLabels(items: readonly LabelItem[], options: PlaceOptions):
       // planet, or land on a label already placed.
       cost += outsideBy(rect, width, height, inset) * 26;
       if (hitsCircle(rect, core.x, core.y, core.radius * 1.25)) cost += 900;
-      for (const other of items) {
+      for (const other of bodies) {
         if (other.id === item.id) continue;
         if (hitsCircle(rect, other.x, other.y, other.radius + 3)) cost += 520;
       }

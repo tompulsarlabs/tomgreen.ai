@@ -14,8 +14,8 @@ import {
 
 export type CaptureMode = "full" | "compact";
 
-/** A slightly more readable inward flight; every later beat keeps its pace. */
-export const CAPTURE_APPROACH_SECONDS = 0.84;
+/** Let the curved inward flight read before the core answers; later beats keep their pace. */
+export const CAPTURE_APPROACH_SECONDS = 1.4;
 const AUTHORED_APPROACH = CORE_IN - CAPTURE_START;
 const APPROACH_DELAY = CAPTURE_APPROACH_SECONDS - AUTHORED_APPROACH;
 
@@ -34,7 +34,7 @@ export const BREAKOUT_OUT = 1.75 + RELEASE_DELAY;
  * the render's own clock sleeps through.
  */
 const SEGMENTS: ReadonlyArray<{ from: number; to: number; compact: number }> = [
-  { from: CAPTURE_START, to: CORE_IN, compact: 0.5 },
+  { from: CAPTURE_START, to: CORE_IN, compact: 0.9 },
   { from: CORE_IN, to: WHITE_PEAK, compact: 0.4 },
   { from: WHITE_PEAK, to: RELEASE_AT, compact: 0.14 },
   { from: RELEASE_AT, to: BREAKOUT_OUT, compact: 0.65 },

@@ -108,7 +108,7 @@ export default function ContactPage() {
         <div>
           <p className="record text-muted">Direct channels</p>
           <h2 id="contact-channels" className="axis-heading mt-3 max-w-sm">
-            Choose the shortest route.
+            Let’s talk.
           </h2>
         </div>
 
@@ -158,7 +158,7 @@ export default function ContactPage() {
           <Link href="/work" className="inline-flex min-h-11 items-center text-ink hover:underline">
             See the work →
           </Link>
-          <Link href="/building" className="inline-flex min-h-11 items-center text-ink hover:underline">
+          <Link href="/lab" className="inline-flex min-h-11 items-center text-ink hover:underline">
             Explore the Lab →
           </Link>
         </div>

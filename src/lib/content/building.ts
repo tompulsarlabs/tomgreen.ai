@@ -5,10 +5,20 @@ export type Project = {
   tagline: string;
   description: string[];
   repo?: string;
+  demoId?: string;
   stack: string[];
 };
 
 export const projects: Project[] = [
+  {
+    slug: "scout",
+    name: "Nabu",
+    status: "in the lab",
+    tagline: "Find exceptional people before they apply",
+    description: ["Nabu helps teams research the people behind relevant work and build useful relationships ahead of hiring need. Explore the brief, market and evidence in a fictional worked example."],
+    demoId: "scout",
+    stack: [],
+  },
   {
     slug: "ivy",
     name: "Ivy",
@@ -20,6 +30,17 @@ export const projects: Project[] = [
     ],
     repo: "https://github.com/tompulsarlabs/ivy",
     stack: ["Claude Code cloud routines", "GitHub", "self-tuning playbook"],
+  },
+  {
+    slug: "radar",
+    name: "Radar",
+    status: "in the lab",
+    tagline: "Opportunity discovery & candidate fit",
+    description: [
+      "Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.",
+    ],
+    demoId: "radar",
+    stack: [],
   },
   {
     slug: "this-site",

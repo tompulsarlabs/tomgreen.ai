@@ -1,3 +1,4 @@
+import { RECENT_CONTRIBUTION_DAYS } from "@/lib/data/github";
 import { Suspense, type CSSProperties } from "react";
 import { RecentBuildActivity } from "@/components/recent-build-activity";
 import type { Metadata, Viewport } from "next";
@@ -44,7 +45,7 @@ function RecordLink({ node }: { node: GraphNode }) {
     </a>
   ) : (
     <Link href={node.href} className={className}>
-      Read →
+      {node.kind === "project" ? "Explore demo →" : "Read →"}
     </Link>
   );
 }
@@ -92,7 +93,7 @@ function SystemRecord({ node }: { node: GraphNode }) {
   );
 }
 
-export default function Building() {
+export default function Lab() {
   return (
     <div className="systems-route flex w-full flex-col gap-20 pb-20">
       <section
@@ -110,7 +111,7 @@ export default function Building() {
             <Suspense
               fallback={
                 <div className="lab-build-activity" aria-label="Loading recent build activity">
-                  <p className="record text-muted">Last 30 days</p>
+                  <p className="record text-muted">Last {RECENT_CONTRIBUTION_DAYS} days</p>
                 </div>
               }
             >

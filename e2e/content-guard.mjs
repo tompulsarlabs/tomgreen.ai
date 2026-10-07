@@ -19,7 +19,7 @@ const ROUTES = [
   "/work/wave",
   "/work/wer",
   "/work/campbell-north",
-  "/building",
+  "/lab",
   "/voices",
   "/about",
   "/contact",

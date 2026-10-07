@@ -127,10 +127,12 @@ describe("a child leaves the core and arrives in its orbit", () => {
         const f = flight(i, count);
         const out = new THREE.Vector3();
         expect(f.at(1, out)).toBeCloseTo(f.orbitSpeed, 6);
-        // Direction, from the curve's own last step.
+        // Direction, from the curve's own last step. The slower idle
+        // orbits need a smaller interval to isolate the terminal tangent
+        // from the much faster arrival's remaining curvature.
         const a = new THREE.Vector3();
         const b = new THREE.Vector3();
-        f.at(1 - 1e-4, a);
+        f.at(1 - 1e-5, a);
         f.at(1, b);
         expect(b.sub(a).normalize().dot(f.tangent)).toBeCloseTo(1, 5);
       }
@@ -246,7 +248,9 @@ describe("the arrival schedule", () => {
   });
 
   it("staggers both ends, so the system never moves as one object", () => {
-    for (const count of SETS) {
+    // Fourteen destinations exposed a collision when a writing note was added.
+    // Keep that case even if the catalogue changes, plus nearby future sizes.
+    for (const count of new Set([...SETS, 13, 14, 15, 32])) {
       if (count < 2) continue;
       const starts = new Set<number>();
       const ends = new Set<number>();

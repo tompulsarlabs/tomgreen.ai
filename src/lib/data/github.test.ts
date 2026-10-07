@@ -48,16 +48,16 @@ describe("parseContributions", () => {
 });
 
 describe("recentContributionDays", () => {
-  const days: ContributionDay[] = Array.from({ length: 45 }, (_, i) => ({
-    date: new Date(Date.UTC(2025, 11, 15 + i)).toISOString().slice(0, 10),
+  const days: ContributionDay[] = Array.from({ length: 90 }, (_, i) => ({
+    date: new Date(Date.UTC(2025, 10, 1 + i)).toISOString().slice(0, 10),
     level: i % 5 as ContributionDay["level"],
   }));
 
-  it("shows exactly 30 consecutive dates across a year boundary, including today", () => {
+  it("shows exactly 60 consecutive dates across a year boundary, including today", () => {
     const recent = recentContributionDays([...days].reverse(), "2026-01-15")!;
-    expect(recent).toHaveLength(30);
-    expect(recent[0].date).toBe("2025-12-17");
-    expect(recent[29].date).toBe("2026-01-15");
+    expect(recent).toHaveLength(60);
+    expect(recent[0].date).toBe("2025-11-17");
+    expect(recent[59].date).toBe("2026-01-15");
     expect(recent.some(day => day.date > "2026-01-15")).toBe(false);
     expect(recent.filter(day => day.level === 0).length).toBeGreaterThan(0);
   });

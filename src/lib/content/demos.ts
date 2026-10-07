@@ -1,0 +1,63 @@
+export type ProductDemo = {
+  id: string;
+  name: string;
+  category: string;
+  title: string;
+  copy: string;
+  href: string;
+  action: string;
+  note: string;
+  tone: string;
+  /** The entry route leaves the site for an external product showcase. */
+  external?: boolean;
+};
+
+/** The published demo catalogue, shared by the hub and the planetary map. */
+export const demos: readonly ProductDemo[] = [
+  {
+    id: "scout",
+    name: "Nabu",
+    category: "TALENT RESEARCH",
+    title: "Find exceptional people before they apply.",
+    copy: "Start with the work, explore where it happens and challenge the evidence behind each research lead.",
+    href: "/demos/nabu",
+    action: "Explore Nabu",
+    note: "Two fictional examples · Try your own brief · No sign-in",
+    tone: "scout",
+  },
+  {
+    id: "radar",
+    name: "Radar",
+    category: "EXECUTIVE RECRUITING",
+    title: "Your personal executive recruiter.",
+    copy: "Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.",
+    href: "/demos/radar",
+    action: "Explore Radar",
+    note: "Five areas · Fictional candidate · No sign-in",
+    tone: "radar",
+  },
+  {
+    id: "ivy",
+    name: "Ivy",
+    category: "AGENTIC WORK",
+    title: "Give non-technical teams a clearer way to ship agentic work.",
+    copy: "Explore a fictional team hub, review a brief and compare agent changes before making the owner’s decision.",
+    href: "/demos/ivy",
+    action: "Explore Ivy",
+    note: "Team hub · Evidence review · Fictional records",
+    tone: "ivy",
+  },
+  {
+    id: "sybil",
+    name: "Sybil",
+    category: "AI FLUENCY",
+    title: "See where a team stands with AI—and what to improve.",
+    copy: "Explore individual capability and learning, then see how leaders can plan evidence of adoption and business value.",
+    href: "/demos/sybil",
+    action: "Explore Sybil",
+    note: "7 feature stops · Google sign-in · Fictional data",
+    tone: "sybil",
+    // The local entry route redirects to the external Sybil showcase.
+    external: true,
+  },
+];

@@ -50,7 +50,7 @@ async function captureIdle(portal: Locator) {
 async function reachWorkSystem(page: Page) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/building");
+  await page.goto("/lab");
   await waitForFonts(page);
   await openPortal(page);
   const portal = page.locator(".orbit-portal");
@@ -120,7 +120,7 @@ test("Back walks up the hierarchy it came down, replaying nothing", async ({ pag
 
   // One step: the Work system, landed. Not the capture again.
   await page.goBack();
-  await expect(page).toHaveURL("/building", { timeout: 60_000 });
+  await expect(page).toHaveURL("/lab", { timeout: 60_000 });
   await expect(page.locator(".orbit-portal")).toHaveAttribute("data-view", "section", {
     timeout: 60_000,
   });

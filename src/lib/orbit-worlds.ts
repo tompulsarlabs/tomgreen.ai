@@ -1,9 +1,11 @@
-import { projects } from "@/lib/content/building";
 import { career } from "@/lib/content/about";
 import { workProjects } from "@/lib/content/case-studies";
+import { demos } from "@/lib/content/demos";
+import { graphNodes, labNodeIds } from "@/lib/content/graph";
 import { site } from "@/lib/content/site";
 import { hasTestimonials, testimonials } from "@/lib/content/testimonials";
-import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
+import { defaultBodySize, type OrbitBody } from "@/lib/orbit-nav";
+import { planetTheme } from "@/lib/planet-themes";
 
 /**
  * The hidden world, in two levels.
@@ -12,13 +14,12 @@ import { defaultBodySize, planetColor, type OrbitBody } from "@/lib/orbit-nav";
  * only by clicking the moon, and it is the one place the whole system is
  * visible at once. So it earns a second level. Each planet is a section,
  * and inside each section its own bodies orbit that section's centre —
- * the projects inside Work, the builds inside the Lab, the chapters
+ * the projects inside Home, the records inside the Lab, the chapters
  * inside About, the channels inside Contact.
  *
- * Every body here is derived from content that already exists and is
- * already published elsewhere on the site. Nothing is authored twice: if
- * a case study is renamed in case-studies.ts, its moon here is renamed
- * with it, and there is exactly one place to fix it.
+ * Every body here points to content already published elsewhere on the
+ * site. Shared content supplies the records and their labels; destination
+ * tests compare the map with the pages and anchors the site renders.
  */
 
 export type OrbitWorld = {
@@ -32,19 +33,19 @@ export type OrbitWorld = {
   bodies: OrbitBody[];
 };
 
-/** Bodies for one section: colours continue the parent's palette walk. */
+/** Surface, fallback poster and capture trails share each body's identity. */
 function orbit(
   items: { id: string; label: string; href: string; external?: boolean; keepCase?: boolean }[],
-  paletteOffset: number,
 ): OrbitBody[] {
+  const densityScale = Math.min(1, Math.sqrt(6 / items.length));
   return items.map((item, index) => ({
     id: item.id,
     label: item.label,
-    color: planetColor(paletteOffset + index),
+    color: planetTheme(item.id).palette[1],
     target: item.external
       ? { kind: "link", href: item.href, external: true }
       : { kind: "route", href: item.href },
-    size: defaultBodySize(index),
+    size: defaultBodySize(index) * densityScale,
     ...(item.keepCase ? { keepCase: true } : {}),
   }));
 }
@@ -55,16 +56,27 @@ const workBodies = orbit(
     label: project.label,
     href: `/work/${project.slug}`,
   })),
-  0,
 );
 
+const labIds = new Set<string>(labNodeIds);
 const labBodies = orbit(
-  projects.map((project) => ({
-    id: `lab-${project.slug}`,
-    label: project.name,
-    href: `/building#${project.slug}`,
+  graphNodes
+    .filter((node) => labIds.has(node.id))
+    .map((node) => ({
+      id: `lab-${node.id}`,
+      label: node.label,
+      href: `/lab#${node.id}`,
+    })),
+);
+
+const demoBodies = orbit(
+  demos.map((demo) => ({
+    id: `demo-${demo.id}`,
+    label: demo.name,
+    href: demo.href,
+    external: demo.external,
+    keepCase: true,
   })),
-  2,
 );
 
 const aboutBodies = orbit(
@@ -73,7 +85,6 @@ const aboutBodies = orbit(
     label: stop.company,
     href: `/about#station-${index}`,
   })),
-  4,
 );
 
 const contactBodies = orbit(
@@ -83,7 +94,6 @@ const contactBodies = orbit(
     { id: "linkedin", label: "LinkedIn", href: site.links.linkedin, external: true },
     { id: "github", label: "GitHub", href: site.links.github, external: true },
   ],
-  6,
 );
 
 const voicesBodies = orbit(
@@ -93,18 +103,18 @@ const voicesBodies = orbit(
     href: "/voices",
     keepCase: true,
   })),
-  8,
 );
 
 /**
- * The map's planets, in the order they take their palette and their
- * orbits. Voices only exists once someone has actually spoken, exactly
+ * The map's planets in their orbital order. Voices only exists once
+ * someone has actually spoken, exactly
  * as it does in the navigation.
  */
 export const orbitWorlds: OrbitWorld[] = [
   {
+    // Preserve the map/history identity while matching the site's Home label.
     id: "work",
-    label: "Work",
+    label: "Home",
     href: "/",
     note: "Operating records — the mandate, the system, the evidence.",
     bodies: workBodies,
@@ -112,9 +122,16 @@ export const orbitWorlds: OrbitWorld[] = [
   {
     id: "lab",
     label: "Lab",
-    href: "/building",
-    note: "What is being built right now, in public.",
+    href: "/lab",
+    note: "Products, operating methods and writing, in public.",
     bodies: labBodies,
+  },
+  {
+    id: "demos",
+    label: "Demos",
+    href: "/demos",
+    note: "Open a demo and explore.",
+    bodies: demoBodies,
   },
   ...(hasTestimonials
     ? [
@@ -143,11 +160,11 @@ export const orbitWorlds: OrbitWorld[] = [
   },
 ];
 
-/** The map itself: one planet per world, coloured in world order. */
+/** The map itself: one authored identity per world. */
 export const mapBodies: OrbitBody[] = orbitWorlds.map((world, index) => ({
   id: world.id,
   label: world.label,
-  color: planetColor(index),
+  color: planetTheme(world.id).palette[1],
   target: { kind: "route", href: world.href },
   size: defaultBodySize(index),
 }));

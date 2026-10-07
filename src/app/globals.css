@@ -244,6 +244,40 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
   outline-color: rgba(242, 246, 252, 0.95);
 }
 
+/* A first-visit invitation; the destination remains a surprise. */
+.sphere-invitation {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+  transition: opacity 180ms ease;
+}
+.sphere-ripple {
+  position: absolute;
+  inset: 2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.sphere-home[data-ripple="true"] .sphere-ripple,
+.sphere-home:is(:hover, :focus-visible) .sphere-ripple {
+  animation: moon-invitation-ripple 1800ms ease-out both;
+}
+@keyframes moon-invitation-ripple {
+  0% { transform: scale(0.86); opacity: 0; }
+  18% { opacity: 0.24; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sphere-home .sphere-ripple { display: none; animation: none; }
+}
+
 /* The canvas runs wider than the sphere so drift and the hover swell are
    never clipped. Transparent, and never a pointer target. */
 .sphere-stage {
@@ -713,6 +747,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid currentColor; }
 .work-index-row .row-company { display: inline-block; font-size: clamp(1.875rem, 5.2vw, 4rem); transition: font-variation-settings var(--d-1) var(--ease); }
 .work-index-row.is-supporting .row-company { font-size: clamp(1.875rem, 3.2vw, 2.5rem); }
 .work-index-row:hover .row-company, .work-index-row:focus-visible .row-company { font-variation-settings: "wdth" 100; }
+/* Company context stays quieter than the outcome beneath it. */
+.row-context { display: block; margin-top: .7rem; color: var(--muted); font-size: .8125rem; line-height: 1.5; letter-spacing: .015em; max-width: 52rem; }
+.row-context + .row-headline { margin-top: .6rem; }
+@media (max-width: 768px) { .row-context { font-size: .75rem; } }
 .row-headline { display: block; max-width: 54rem; margin-top: 0.5rem; line-height: 1.45; color: var(--ink-secondary); }
 .work-index-next { display: grid; grid-template-columns: 0.45fr 1fr auto; gap: 2rem; align-items: start; margin-top: 8rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 3rem 0; }
 .work-index-next .axis-heading { max-width: 12ch; }
@@ -786,6 +824,12 @@ body.orbit-dragging { user-select: none; -webkit-user-select: none; }
    scene mounts the layer stays out of the document — the poster's SVG
    links are the navigation. */
 .orbit-labels { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; }
+.orbit-moon-trigger { position: absolute; left: 0; top: 0; z-index: 3; display: none; visibility: hidden; border: 0; border-radius: 50%; background: transparent; padding: 0; cursor: pointer; }
+.orbit-field[data-live="true"] .orbit-moon-trigger { display: block; }
+.orbit-moon-trigger span { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); color: #e7edf5; font-size: 12px; opacity: 0; transition: opacity 180ms; }
+.orbit-moon-trigger:hover span, .orbit-moon-trigger:focus-visible span { opacity: 1; }
+.orbit-moon-trigger:focus-visible { outline: 1px solid #dfe8f5; outline-offset: 5px; }
+.orbit-field[data-moon="true"] .orbit-labels { visibility: hidden; }
 .orbit-field[data-live="true"] .orbit-labels { display: block; }
 .orbit-label {
   position: absolute;
@@ -1353,7 +1397,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    Everything here is scoped to `.home-page`, `.work-index-page`,
    `.work-index-masthead` or a `.personal-*` class. The global
    `.axis-display`, `.axis-heading` and `.axis-index` definitions are left
-   alone, so /about, /contact, /building, /work/[slug] and the Lab render
+   alone, so /about, /contact, /lab, /work/[slug] and the Lab render
    exactly as before.
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -1439,7 +1483,7 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .work-index-masthead > h2       { margin-top: var(--air-1); }
 .work-index-masthead > .systems-lead { margin-top: var(--air-2); }
 
-/* `.systems-lead` is not a home-page class — it is also on /building,
+/* `.systems-lead` is not a home-page class — it is also on /lab,
    /contact and /about. Unscoped, this would strip the baseline nudge that
    holds the Lab's lead against its h1 in an end-aligned grid, and would
    beat the ≤768 `.systems-lead` max-width on three other routes. */
@@ -1767,9 +1811,12 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
    above. All that is left for the shot to do is take the chrome's ground out
    of the way with it, which the visibility rule already does. */
 
-/* Reserve the former Lab introduction for a quiet, one-month build record. */
+/* Reserve the former Lab introduction for a quiet, rolling build record. */
 .lab-build-activity { min-height: 13rem; }
 .lab-hero .systems-title-row { margin-top: 0; }
+@media (min-width: 769px) {
+  .lab-hero .systems-title-row { grid-template-columns: minmax(0, 1fr) minmax(21.5rem, .55fr); }
+}
 
 /* GitHub orientation: weekday rows, week columns advancing left to right.
    Solid fills carry the data; rough edge slivers and detached motes carry motion. */
@@ -1777,6 +1824,10 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 .contribution-month { display: flex; gap: 7px; }
 .contribution-week { display: flex; flex-direction: column; gap: 7px; }
 .contribution-cell { position: relative; width: 27px; height: 27px; flex: none; }
+@media (max-width: 480px) {
+  .contribution-month, .contribution-week { gap: 5px; }
+  .contribution-cell { width: 22px; height: 22px; }
+}
 .contribution-cell[data-active="true"]::before,
 .contribution-cell[data-active="true"]::after {
   content: "";
@@ -1818,4 +1869,108 @@ a.orbit-label:focus-visible { opacity: 1 !important; color: #ffffff; outline: 2p
 @media (prefers-reduced-motion: reduce) {
   .contribution-cell[data-active="true"]::before,
   .contribution-cell[data-active="true"]::after { animation: none; }
+}
+
+/* The planetary map: mineral surfaces suspended in a quiet field. */
+.orbit-portal,
+.orbit-field {
+  background: radial-gradient(ellipse at 60% 44%, #171d25 0%, #0c1016 68%, #07090d 100%);
+}
+.orbit-portal-chrome {
+  padding-top: max(26px, env(safe-area-inset-top));
+  gap: 0.6rem 2rem;
+}
+.orbit-portal-record { color: #a5afb9; }
+.orbit-portal-note { color: #c1c8cf; max-width: 46rem; }
+.orbit-portal-actions { gap: 0.5rem; }
+.orbit-portal-actions button,
+.orbit-portal-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  font-size: 0.7rem;
+  border-color: #48505a;
+}
+.orbit-label {
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0.065em;
+  padding: 8px 2px;
+  text-shadow: 0 1px 10px #080b11, 0 0 4px #080b11;
+}
+.orbit-canvas { display: block; }
+.orbit-live { opacity: 0; transition: opacity 450ms ease; }
+.orbit-field[data-live="true"] .orbit-live { opacity: 1; }
+.orbit-field[data-live="true"] .orbit-fallback { display: none; }
+.orbit-portal-footer {
+  position: absolute;
+  z-index: 2;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: max(22px, 6vw);
+  right: max(22px, 6vw);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  pointer-events: none;
+}
+.orbit-portal-hint { margin: 0; font-size: 12px; color: #a9b2be; }
+.orbit-portal-motion { display: flex; gap: 0.65rem; pointer-events: auto; }
+.orbit-portal-motion button {
+  min-height: 44px;
+  padding: 0.6rem 0.65rem;
+  color: #d3dae2;
+  font-size: 12px;
+  border: 0;
+  border-bottom: 1px solid #4a5460;
+  background: transparent;
+  cursor: pointer;
+}
+.orbit-portal-motion button:hover { color: #fff; border-color: #d3dae2; }
+.orbit-portal-motion button:focus-visible { outline: 2px solid #e8edf5; outline-offset: 4px; }
+.orbit-portal-credit {
+  position: static;
+  margin: 0 0 0 auto;
+  padding: 0;
+  background: none;
+  color: #909aa6;
+  pointer-events: auto;
+}
+.orbit-portal:has(.orbit-field:not([data-live="true"])) .orbit-portal-motion,
+.orbit-portal:has(.orbit-field:not([data-live="true"])) .orbit-portal-hint { display: none; }
+.orbit-portal[data-golden] .orbit-portal-footer { opacity: 0; pointer-events: none; }
+.orbit-portal[data-golden] .orbit-portal-footer * { pointer-events: none; }
+.orbit-fallback { position: absolute; inset: 0; overflow: auto; padding: 10rem max(22px, 6vw) 7rem; }
+.orbit-fallback .orbit-poster { opacity: 0.35; pointer-events: none; }
+.orbit-fallback-heading { position: relative; color: #aab4c1; font-size: 0.85rem; margin: 1.5rem 0 1rem; }
+.orbit-destinations { position: relative; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 40rem; gap: 0 2rem; }
+.orbit-destination { display: flex; min-height: 52px; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid #424b55; color: #edf0f3; font-size: 1rem; text-decoration: none; }
+.orbit-destination:hover { color: #fff; border-color: #c1c8cf; }
+.orbit-destination:focus-visible { outline: 2px solid #e8edf5; outline-offset: 3px; }
+@media (max-width: 699px) {
+  .orbit-portal-chrome { padding: max(20px, env(safe-area-inset-top)) 22px 0; gap: 0.55rem; }
+  .orbit-portal-note { font-size: 13px; max-width: 37ch; }
+  .orbit-portal-actions { gap: 0.4rem; }
+  .orbit-portal-actions button, .orbit-portal-actions a { font-size: 10px; padding: 0.6rem 0.85rem; }
+  .orbit-label { font-size: 12px; letter-spacing: 0.035em; }
+  .orbit-portal-footer { gap: 0.5rem; flex-wrap: wrap; bottom: max(18px, env(safe-area-inset-bottom)); }
+  .orbit-portal-hint { flex-basis: 100%; font-size: 11px; }
+  .orbit-portal-motion { gap: 0.4rem; }
+  .orbit-portal-motion button { padding: 0.55rem 0.4rem; font-size: 11px; }
+  .orbit-portal-credit { max-width: 11rem; font-size: 9px; text-align: right; }
+  .orbit-destinations { grid-template-columns: minmax(0,1fr); }
+  .orbit-fallback { padding-top: 13rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-live { transition: none; }
+}
+.orbit-field { overflow: hidden; }
+@media (max-width: 699px) {
+  /* Preserve the small visual nav while giving each label a full tap area. */
+  .island-nav { gap: 0.25rem; padding-left: 0.6rem; padding-right: 0.4rem; }
+  .nav-link { min-width: 44px; min-height: 44px; justify-content: center; font-size: 9px; letter-spacing: 0.04em; }
+  .nav-cta { min-width: 58px; min-height: 44px; justify-content: center; padding: 0 0.5rem; font-size: 9px; letter-spacing: 0.04em; background: transparent; color: var(--paper); position: relative; isolation: isolate; }
+  .nav-cta::before { content: ""; position: absolute; inset: 8px 0; border-radius: 999px; background: var(--ink); z-index: -1; }
+  .nav-cta:hover { background: transparent; }
 }

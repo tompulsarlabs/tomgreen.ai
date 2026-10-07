@@ -8,6 +8,14 @@ const nextConfig = {
   // directory instead of clobbering the working .next build.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
+  redirects() {
+    return [
+      { source: "/demos/interview", destination: "/demos/radar", permanent: true },
+      { source: "/building", destination: "/lab", permanent: true },
+      { source: "/demos/scout", destination: "/demos/nabu", permanent: true },
+    ];
+  },
+
   env: {
     // Declared here so it is always a literal in the output. Left to the
     // ambient environment it compiles to a live process.env lookup, and the
