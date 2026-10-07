@@ -29,7 +29,7 @@ export const demos: readonly ProductDemo[] = [
     id: "radar",
     name: "Radar",
     category: "EXECUTIVE RECRUITING",
-    title: "Find the roles you’re missing.",
+    title: "Your personal executive recruiter.",
     copy: "Radar combines market signals with your context and spikes to find high-fit opportunities and curate every step from outreach to interview.",
     href: "/demos/radar",
     action: "Explore Radar",

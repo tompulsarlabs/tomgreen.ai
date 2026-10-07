@@ -779,3 +779,7 @@ Approved descriptors: Chapter 2 — Managing Director, EMEA · Embedded Talent a
 Chapter 2's role and business/P&L remit use EMEA consistently across the homepage, case study, visual CV and operating sequence. EU People Ops remains the scope of the specific operating project. Zalando and Audibene role labels also match the approved wording in the case studies and visual CV.
 
 Validation before PR: production build, lint, typecheck, 300 unit tests and six targeted browser checks passed (homepage structure, no-JavaScript content, mobile hierarchy, mobile accessibility and both flagship case studies). The content baseline changes are limited to this release's approved wording and descriptors. Required GitHub CI and Vercel checks must pass before merge; release PR records final deployment verification.
+
+## 7 October 2026 — completed Radar subtitle reconciliation
+
+The approved Radar subtitle from PR #58 is retained in the current shared demo catalogue: “Your personal executive recruiter.” The hub and planetary map now read the same catalogue; the former inline catalogue is not restored. Existing showcase routes and current product evidence remain intact. This is a copy-only reconciliation, with no product-runtime or animation change.
